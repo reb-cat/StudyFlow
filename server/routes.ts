@@ -564,10 +564,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('📁 Processing CSV upload:', req.file.originalname);
 
-      // Helper function to normalize time format (HH:MM or HH:MM:SS)
+      // Helper function to normalize time format (handles AM/PM and HH:MM formats)
       const normalizeTime = (timeStr: string): string => {
         const time = timeStr?.trim();
         if (!time) return '';
+        
+        // Handle AM/PM format (e.g., "12:40 PM")
+        if (time.match(/\d{1,2}:\d{2}\s*(AM|PM)/i)) {
+          const [timePart, ampm] = time.split(/\s+/);
+          const [hours, minutes] = timePart.split(':');
+          let hour24 = parseInt(hours);
+          
+          if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
+            hour24 += 12;
+          } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
+            hour24 = 0;
+          }
+          
+          return `${hour24.toString().padStart(2, '0')}:${minutes}:00`;
+        }
         
         // If already in HH:MM:SS format, return as-is
         if (time.match(/^\d{1,2}:\d{2}:\d{2}$/)) {
@@ -616,14 +631,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`📋 Parsed row ${i}:`, row); // Debug log
 
         // Clean up the row data with proper field names (camelCase for Drizzle schema)
+        // Map your CSV headers: student, day, block, subject, type, start, end
         const cleanRow = {
-          studentName: row.student_name?.trim() || row['student name']?.trim(),
-          weekday: row.weekday?.trim(),
-          blockNumber: (row.block_number?.trim() === '' || !row.block_number) ? null : parseInt(row.block_number?.trim()),
-          startTime: normalizeTime(row.start_time?.trim() || row['start time']?.trim()),
-          endTime: normalizeTime(row.end_time?.trim() || row['end time']?.trim()),
+          studentName: row.student?.trim() || row.student_name?.trim() || row['student name']?.trim(),
+          weekday: row.day?.trim() || row.weekday?.trim(),
+          blockNumber: (row.block?.trim() === '' || !row.block) ? null : parseInt(row.block?.trim()),
+          startTime: normalizeTime(row.start?.trim() || row.start_time?.trim() || row['start time']?.trim()),
+          endTime: normalizeTime(row.end?.trim() || row.end_time?.trim() || row['end time']?.trim()),
           subject: row.subject?.trim(),
-          blockType: row.block_type?.trim() || row['block type']?.trim()
+          blockType: row.type?.trim() || row.block_type?.trim() || row['block type']?.trim()
         };
         
         console.log(`📋 Final clean row ${i}:`, cleanRow); // Debug log
