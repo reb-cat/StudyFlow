@@ -230,8 +230,8 @@ export default function AdminPage() {
               Schedule Template Upload
             </CardTitle>
             <CardDescription>
-              Upload a CSV file to update the schedule_template table. The CSV should include columns: 
-              student_name, weekday, block_number, start_time, end_time, subject, block_type
+              Upload a CSV file to update the permanent schedule template. This creates a reusable weekly schedule that's not tied to specific dates. 
+              CSV should include: student_name, weekday, block_number, start_time, end_time, subject, block_type
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -313,8 +313,8 @@ export default function AdminPage() {
                   <li><code>student_name</code> - Student name (e.g., "Abigail", "Khalil")</li>
                   <li><code>weekday</code> - Day of week (e.g., "Monday", "Tuesday")</li>
                   <li><code>block_number</code> - Block number or leave empty for non-numbered blocks</li>
-                  <li><code>start_time</code> - Start time in HH:MM:SS format (e.g., "09:00:00")</li>
-                  <li><code>end_time</code> - End time in HH:MM:SS format (e.g., "09:30:00")</li>
+                  <li><code>start_time</code> - Start time in HH:MM or HH:MM:SS format (e.g., "09:00" or "09:00:00")</li>
+                  <li><code>end_time</code> - End time in HH:MM or HH:MM:SS format (e.g., "09:30" or "09:30:00")</li>
                   <li><code>subject</code> - Subject or activity name</li>
                   <li><code>block_type</code> - Type of block (e.g., "Assignment", "Bible", "Movement", "Co-Op")</li>
                 </ul>
@@ -323,8 +323,11 @@ export default function AdminPage() {
               <div>
                 <h4 className="font-semibold mb-2">Example CSV Row:</h4>
                 <code className="text-xs bg-muted p-2 rounded block">
-                  Abigail,Tuesday,1,09:00:00,09:20:00,Bible,Bible
+                  Abigail,Tuesday,1,09:00,09:20,Bible,Bible
                 </code>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Note: Times automatically converted to database format. This creates a permanent weekly template.
+                </p>
               </div>
             </div>
           </CardContent>

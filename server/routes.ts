@@ -579,13 +579,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             mapHeaders: ({ header }: { header: string }) => header.trim().toLowerCase()
           }))
           .on('data', (row: any) => {
+            // Helper function to normalize time format (HH:MM or HH:MM:SS)
+            const normalizeTime = (timeStr: string): string => {
+              const time = timeStr?.trim();
+              if (!time) return '';
+              
+              // If already in HH:MM:SS format, return as-is
+              if (time.match(/^\d{1,2}:\d{2}:\d{2}$/)) {
+                return time;
+              }
+              
+              // If in HH:MM format, add :00 for seconds
+              if (time.match(/^\d{1,2}:\d{2}$/)) {
+                return time + ':00';
+              }
+              
+              // Return original if unrecognized format
+              return time;
+            };
+
             // Clean up the row data
             const cleanRow = {
               student_name: row.student_name?.trim(),
               weekday: row.weekday?.trim(),
               block_number: row.block_number?.trim() === '' ? null : parseInt(row.block_number?.trim()),
-              start_time: row.start_time?.trim(),
-              end_time: row.end_time?.trim(),
+              start_time: normalizeTime(row.start_time),
+              end_time: normalizeTime(row.end_time),
               subject: row.subject?.trim(),
               block_type: row.block_type?.trim()
             };
