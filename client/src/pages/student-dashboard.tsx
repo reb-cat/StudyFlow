@@ -313,46 +313,39 @@ export default function StudentDashboard() {
                     {allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((block, index) => {
-                        // Get appropriate icon component with colored pill containers
+                        // Get appropriate icon component with consistent colored pill containers
                         const getBlockIcon = (blockType: string) => {
                           const iconClass = "h-4 w-4 text-white";
+                          const pillBg = 'bg-gradient-to-br from-blue-500 to-blue-600'; // Same background for ALL pills
                           
-                          const configs = {
-                            'bible': { 
-                              icon: <BookOpen className={iconClass} />,
-                              bg: 'bg-gradient-to-br from-purple-500 to-purple-600'
-                            },
-                            'assignment': { 
-                              icon: <FileText className={iconClass} />,
-                              bg: 'bg-gradient-to-br from-blue-500 to-blue-600'
-                            },
-                            'movement': { 
-                              icon: <Activity className={iconClass} />,
-                              bg: 'bg-gradient-to-br from-green-500 to-green-600'
-                            },
-                            'lunch': { 
-                              icon: <UtensilsCrossed className={iconClass} />,
-                              bg: 'bg-gradient-to-br from-orange-500 to-orange-600'
-                            },
-                            'prep/load': { 
-                              icon: <UtensilsCrossed className={iconClass} />,
-                              bg: 'bg-gradient-to-br from-orange-500 to-orange-600'
-                            },
-                            'travel': { 
-                              icon: <Car className={iconClass} />,
-                              bg: 'bg-gradient-to-br from-indigo-500 to-indigo-600'
-                            },
-                            'co-op': { 
-                              icon: <Building2 className={iconClass} />,
-                              bg: 'bg-gradient-to-br from-teal-500 to-teal-600'
-                            }
-                          };
-                          
-                          const config = configs[blockType as keyof typeof configs] || configs['assignment'];
+                          let icon;
+                          switch(blockType) {
+                            case 'bible': 
+                              icon = <BookOpen className={iconClass} />;
+                              break;
+                            case 'assignment': 
+                              icon = <FileText className={iconClass} />;
+                              break;
+                            case 'movement': 
+                              icon = <Activity className={iconClass} />;
+                              break;
+                            case 'lunch':
+                            case 'prep/load': 
+                              icon = <Utensils className={iconClass} />;
+                              break;
+                            case 'travel': 
+                              icon = <Car className={iconClass} />;
+                              break;
+                            case 'co-op': 
+                              icon = <Building2 className={iconClass} />;
+                              break;
+                            default: 
+                              icon = <FileText className={iconClass} />;
+                          }
                           
                           return (
-                            <div className={`p-2 rounded-full ${config.bg}`}>
-                              {config.icon}
+                            <div className={`p-2 rounded-full ${pillBg}`}>
+                              {icon}
                             </div>
                           );
                         };
