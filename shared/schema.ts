@@ -100,7 +100,7 @@ export const insertUserPreferencesSchema = createInsertSchema(userPreferences).o
 // Advanced assignment management (integrated from learning-schedule)
 export const assignments = pgTable("assignments", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  userId: text("user_id").notNull(), // Changed to text to support student names like "khalil", "abigail"
   title: text("title").notNull(),
   subject: text("subject"),
   courseName: text("course_name"),
