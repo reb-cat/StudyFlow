@@ -38,17 +38,8 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) {
-        console.error('Error getting user:', error);
-        return undefined;
-      }
-      return data as User;
+      const result = await db.select().from(users).where(eq(users.id, id));
+      return result[0] as User | undefined;
     } catch (error) {
       console.error('Error getting user:', error);
       return undefined;
@@ -57,17 +48,8 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('username', username)
-        .single();
-      
-      if (error) {
-        console.error('Error getting user by username:', error);
-        return undefined;
-      }
-      return data as User;
+      const result = await db.select().from(users).where(eq(users.username, username));
+      return result[0] as User | undefined;
     } catch (error) {
       console.error('Error getting user by username:', error);
       return undefined;
@@ -76,17 +58,8 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .insert(insertUser)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating user:', error);
-        throw new Error('Failed to create user');
-      }
-      return data as User;
+      const result = await db.insert(users).values(insertUser).returning();
+      return result[0] as User;
     } catch (error) {
       console.error('Error creating user:', error);
       throw new Error('Failed to create user');
@@ -113,17 +86,8 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignment(id: string): Promise<Assignment | undefined> {
     try {
-      const { data, error } = await supabase
-        .from('assignments')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) {
-        console.error('Error getting assignment:', error);
-        return undefined;
-      }
-      return data as Assignment;
+      const result = await db.select().from(assignments).where(eq(assignments.id, id));
+      return result[0] as Assignment | undefined;
     } catch (error) {
       console.error('Error getting assignment:', error);
       return undefined;
@@ -169,39 +133,8 @@ export class DatabaseStorage implements IStorage {
 
   async updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined> {
     try {
-      // Use camelCase for Supabase (matching schema)
-      const updateData: any = {};
-      if (update.title !== undefined) updateData.title = update.title;
-      if (update.subject !== undefined) updateData.subject = update.subject;
-      if (update.courseName !== undefined) updateData.courseName = update.courseName;
-      if (update.instructions !== undefined) updateData.instructions = update.instructions;
-      if (update.dueDate !== undefined) updateData.dueDate = update.dueDate;
-      if (update.scheduledDate !== undefined) updateData.scheduledDate = update.scheduledDate;
-      if (update.scheduledBlock !== undefined) updateData.scheduledBlock = update.scheduledBlock;
-      if (update.blockStart !== undefined) updateData.blockStart = update.blockStart;
-      if (update.blockEnd !== undefined) updateData.blockEnd = update.blockEnd;
-      if (update.actualEstimatedMinutes !== undefined) updateData.actualEstimatedMinutes = update.actualEstimatedMinutes;
-      if (update.completionStatus !== undefined) updateData.completionStatus = update.completionStatus;
-      if (update.blockType !== undefined) updateData.blockType = update.blockType;
-      if (update.isAssignmentBlock !== undefined) updateData.isAssignmentBlock = update.isAssignmentBlock;
-      if (update.priority !== undefined) updateData.priority = update.priority;
-      if (update.difficulty !== undefined) updateData.difficulty = update.difficulty;
-      if (update.timeSpent !== undefined) updateData.timeSpent = update.timeSpent;
-      if (update.notes !== undefined) updateData.notes = update.notes;
-      
-      const { data, error } = await supabase
-        .from('assignments')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error updating assignment:', error);
-        return undefined;
-      }
-      
-      return data as Assignment;
+      const result = await db.update(assignments).set(update).where(eq(assignments.id, id)).returning();
+      return result[0] as Assignment | undefined;
     } catch (error) {
       console.error('Error updating assignment:', error);
       return undefined;
@@ -210,16 +143,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAssignment(id: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('assignments')
-        .delete()
-        .eq('id', id);
-      
-      if (error) {
-        console.error('Error deleting assignment:', error);
-        return false;
-      }
-      
+      await db.delete(assignments).where(eq(assignments.id, id));
       return true;
     } catch (error) {
       console.error('Error deleting assignment:', error);
@@ -230,23 +154,18 @@ export class DatabaseStorage implements IStorage {
   // Schedule template operations
   async getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]> {
     try {
-      let query = supabase
-        .from('schedule_template')
-        .select('*')
-        .eq('student_name', studentName);
-      
       if (weekday) {
-        query = query.eq('weekday', weekday);
+        const result = await db.select().from(scheduleTemplate).where(and(
+          eq(scheduleTemplate.studentName, studentName),
+          eq(scheduleTemplate.weekday, weekday)
+        )).orderBy(scheduleTemplate.startTime);
+        return result as ScheduleTemplate[];
+      } else {
+        const result = await db.select().from(scheduleTemplate).where(
+          eq(scheduleTemplate.studentName, studentName)
+        ).orderBy(scheduleTemplate.startTime);
+        return result as ScheduleTemplate[];
       }
-      
-      const { data, error } = await query.order('start_time');
-      
-      if (error) {
-        console.error('Error getting schedule template:', error);
-        return [];
-      }
-      
-      return (data || []) as ScheduleTemplate[];
     } catch (error) {
       console.error('Error getting schedule template:', error);
       return [];
@@ -255,26 +174,8 @@ export class DatabaseStorage implements IStorage {
 
   async createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate> {
     try {
-      const { data, error } = await supabase
-        .from('schedule_template')
-        .insert({
-          student_name: template.studentName,
-          weekday: template.weekday,
-          block_number: template.blockNumber,
-          start_time: template.startTime,
-          end_time: template.endTime,
-          subject: template.subject,
-          block_type: template.blockType
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating schedule template:', error);
-        throw new Error('Failed to create schedule template');
-      }
-      
-      return data as ScheduleTemplate;
+      const result = await db.insert(scheduleTemplate).values(template).returning();
+      return result[0] as ScheduleTemplate;
     } catch (error) {
       console.error('Error creating schedule template:', error);
       throw new Error('Failed to create schedule template');
@@ -284,20 +185,15 @@ export class DatabaseStorage implements IStorage {
   // Bible curriculum operations
   async getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]> {
     try {
-      let query = supabase.from('bible_curriculum').select('*');
-      
       if (weekNumber !== undefined) {
-        query = query.eq('week_number', weekNumber);
+        const result = await db.select().from(bibleCurriculum).where(
+          eq(bibleCurriculum.weekNumber, weekNumber)
+        ).orderBy(bibleCurriculum.weekNumber, bibleCurriculum.dayOfWeek);
+        return result as BibleCurriculum[];
+      } else {
+        const result = await db.select().from(bibleCurriculum).orderBy(bibleCurriculum.weekNumber, bibleCurriculum.dayOfWeek);
+        return result as BibleCurriculum[];
       }
-      
-      const { data, error } = await query.order('week_number').order('day_of_week');
-      
-      if (error) {
-        console.error('Error getting bible curriculum:', error);
-        return [];
-      }
-      
-      return (data || []) as BibleCurriculum[];
     } catch (error) {
       console.error('Error getting bible curriculum:', error);
       return [];
@@ -318,25 +214,20 @@ export class DatabaseStorage implements IStorage {
 
   async updateBibleCompletion(weekNumber: number, dayOfWeek: number, completed: boolean): Promise<BibleCurriculum | undefined> {
     try {
-      const updateData: any = {
+      const updateData = {
         completed,
-        completed_at: completed ? new Date().toISOString() : null
+        completedAt: completed ? new Date() : null
       };
       
-      const { data, error } = await supabase
-        .from('bible_curriculum')
-        .update(updateData)
-        .eq('week_number', weekNumber)
-        .eq('day_of_week', dayOfWeek)
-        .select()
-        .single();
+      const result = await db.update(bibleCurriculum)
+        .set(updateData)
+        .where(and(
+          eq(bibleCurriculum.weekNumber, weekNumber),
+          eq(bibleCurriculum.dayOfWeek, dayOfWeek)
+        ))
+        .returning();
       
-      if (error) {
-        console.error('Error updating bible completion:', error);
-        return undefined;
-      }
-      
-      return data as BibleCurriculum;
+      return result[0] as BibleCurriculum | undefined;
     } catch (error) {
       console.error('Error updating bible completion:', error);
       return undefined;
