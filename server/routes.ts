@@ -615,21 +615,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(`📋 Parsed row ${i}:`, row); // Debug log
 
-        // Clean up the row data with proper field names  
+        // Clean up the row data with proper field names (camelCase for Drizzle schema)
         const cleanRow = {
-          student_name: row.student_name?.trim() || row['student name']?.trim(),
+          studentName: row.student_name?.trim() || row['student name']?.trim(),
           weekday: row.weekday?.trim(),
-          block_number: (row.block_number?.trim() === '' || !row.block_number) ? null : parseInt(row.block_number?.trim()),
-          start_time: normalizeTime(row.start_time?.trim() || row['start time']?.trim()),
-          end_time: normalizeTime(row.end_time?.trim() || row['end time']?.trim()),
+          blockNumber: (row.block_number?.trim() === '' || !row.block_number) ? null : parseInt(row.block_number?.trim()),
+          startTime: normalizeTime(row.start_time?.trim() || row['start time']?.trim()),
+          endTime: normalizeTime(row.end_time?.trim() || row['end time']?.trim()),
           subject: row.subject?.trim(),
-          block_type: row.block_type?.trim() || row['block type']?.trim()
+          blockType: row.block_type?.trim() || row['block type']?.trim()
         };
         
         console.log(`📋 Final clean row ${i}:`, cleanRow); // Debug log
         
         // Only add if we have essential data
-        if (cleanRow.student_name && cleanRow.weekday && cleanRow.subject) {
+        if (cleanRow.studentName && cleanRow.weekday && cleanRow.subject) {
           csvData.push(cleanRow);
         } else {
           console.log(`⚠️ Skipping invalid row ${i}:`, cleanRow);
@@ -646,7 +646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let rowsAffected = 0;
       
       // Get unique students from CSV
-      const studentSet = new Set(csvData.map(row => row.student_name));
+      const studentSet = new Set(csvData.map(row => row.studentName));
       const students = Array.from(studentSet);
       
       for (const studentName of students) {
@@ -655,18 +655,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`🗑️ Cleared existing schedule for ${studentName}`);
         
         // Insert new schedule entries for this student
-        const studentRows = csvData.filter(row => row.student_name === studentName);
+        const studentRows = csvData.filter(row => row.studentName === studentName);
         
         for (const row of studentRows) {
           try {
             await storage.createScheduleTemplate({
-              studentName: row.student_name,
+              studentName: row.studentName,
               weekday: row.weekday,
-              blockNumber: row.block_number,
-              startTime: row.start_time,
-              endTime: row.end_time,
+              blockNumber: row.blockNumber,
+              startTime: row.startTime,
+              endTime: row.endTime,
               subject: row.subject,
-              blockType: row.block_type
+              blockType: row.blockType
             });
             rowsAffected++;
           } catch (error) {
