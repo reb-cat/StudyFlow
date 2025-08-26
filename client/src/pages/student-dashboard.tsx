@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
 import { BibleBlock } from '@/components/BibleBlock';
@@ -12,7 +12,7 @@ import type { Assignment } from '@shared/schema';
 export default function StudentDashboard() {
   const studentName = "Demo Student";
   const [isGuidedMode, setIsGuidedMode] = useState(false);
-  const [selectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const queryClient = useQueryClient();
 
   // Fetch assignments for today
@@ -28,11 +28,13 @@ export default function StudentDashboard() {
 
   const todayAssignments = assignments as Assignment[];
   
-  // Weekend/Break Detection 
+  // Date utilities
+  const selectedDateObj = new Date(selectedDate);
   const today = new Date();
-  const isWeekend = today.getDay() === 0 || today.getDay() === 6;
-  const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
-  const dateDisplay = today.toLocaleDateString('en-US', { 
+  const isToday = selectedDate === today.toISOString().split('T')[0];
+  const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
+  const dayName = selectedDateObj.toLocaleDateString('en-US', { weekday: 'long' });
+  const dateDisplay = selectedDateObj.toLocaleDateString('en-US', { 
     weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
@@ -40,7 +42,24 @@ export default function StudentDashboard() {
   });
 
   // Fixed blocks for the day (sample schedule)
-  const isThursday = today.getDay() === 4;
+  const isThursday = selectedDateObj.getDay() === 4;
+
+  // Date navigation functions
+  const goToPreviousDay = () => {
+    const prevDay = new Date(selectedDateObj);
+    prevDay.setDate(prevDay.getDate() - 1);
+    setSelectedDate(prevDay.toISOString().split('T')[0]);
+  };
+
+  const goToNextDay = () => {
+    const nextDay = new Date(selectedDateObj);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setSelectedDate(nextDay.toISOString().split('T')[0]);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date().toISOString().split('T')[0]);
+  };
   const fixedBlocks = [
     // Bible is handled separately as it has special logic
     // Travel/prep block
@@ -118,22 +137,59 @@ export default function StudentDashboard() {
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
         
-        {/* Clean Header */}
+        {/* Clean Header with Date Navigation */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground" data-testid="welcome-message">
               Welcome, {studentName}!
             </h1>
-            <p className="text-lg text-muted-foreground mt-1" data-testid="date-display">
-              {dateDisplay}
-            </p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-lg text-muted-foreground" data-testid="date-display">
+                {dateDisplay}
+              </p>
+              {!isToday && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToToday}
+                  className="text-xs"
+                  data-testid="button-go-to-today"
+                >
+                  Go to Today
+                </Button>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center gap-2">
+            {/* Date Navigation */}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goToPreviousDay}
+                className="h-8 w-8 p-0"
+                data-testid="button-previous-day"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="px-2 text-sm font-medium min-w-[80px] text-center">
+                {isToday ? 'Today' : dayName}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goToNextDay}
+                className="h-8 w-8 p-0"
+                data-testid="button-next-day"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={refetch}
+              onClick={() => refetch()}
               className="flex items-center gap-2"
               data-testid="button-refresh"
             >
@@ -178,7 +234,14 @@ export default function StudentDashboard() {
           <div className="space-y-6">
             {/* Daily Schedule - Fixed Blocks & Assignments */}
             <div>
-              <h2 className="text-xl font-semibold text-foreground mb-4">Today's Complete Schedule</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-4">
+                {isToday ? "Today's" : `${dayName}'s`} Complete Schedule
+                {!isToday && (
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                    ({selectedDateObj.toLocaleDateString()})
+                  </span>
+                )}
+              </h2>
               <div className="space-y-4">
                 {/* Bible Block - always first (except Thursday has different time) */}
                 <BibleBlock 
