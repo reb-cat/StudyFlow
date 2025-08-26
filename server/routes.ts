@@ -612,60 +612,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('📋 CSV Headers found:', headers);
 
-      // Parse data rows
+      // Parse data rows using direct array indexing (bypassing object mapping issues)
       const csvData: any[] = [];
+      
+      console.log('📋 CSV Headers found:', headers);
+      console.log('📋 Expected CSV format: student, day, block, subject, type, start, end');
+      
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
 
         const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
         
-        console.log(`📋 Row ${i}:`, values); // Debug log
+        console.log(`📋 Row ${i}:`, values);
         
-        const row: any = {};
-        
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
-        });
-
-        console.log(`📋 Parsed row ${i}:`, row); // Debug log
-
-        // Clean up the row data with proper field names (camelCase for Drizzle schema)
-        // Map your CSV headers: student, day, block, subject, type, start, end
-        
-        // Debug field access
-        console.log(`📋 Debug field access row ${i}:`);
-        console.log(`  row.student: "${row.student}"`);
-        console.log(`  row.day: "${row.day}"`);
-        console.log(`  row.start: "${row.start}"`);
-        console.log(`  row.end: "${row.end}"`);
-        console.log(`  row.type: "${row.type}"`);
+        // Direct array indexing based on your CSV format:
+        // [student, day, block, subject, type, start, end]
+        if (values.length < 7) {
+          console.log(`⚠️ Skipping row ${i}: insufficient columns (${values.length})`);
+          continue;
+        }
         
         const cleanRow = {
-          studentName: row.student?.trim() || row.student_name?.trim() || row['student name']?.trim(),
-          weekday: row.day?.trim() || row.weekday?.trim(),
-          blockNumber: (row.block?.trim() === '' || !row.block) ? null : parseInt(row.block?.trim()),
-          startTime: normalizeTime(row.start?.trim() || row.start_time?.trim() || row['start time']?.trim()),
-          endTime: normalizeTime(row.end?.trim() || row.end_time?.trim() || row['end time']?.trim()),
-          subject: row.subject?.trim(),
-          blockType: row.type?.trim() || row.block_type?.trim() || row['block type']?.trim()
+          studentName: values[0]?.trim(), // student
+          weekday: values[1]?.trim(), // day  
+          blockNumber: (values[2]?.trim() === '' || !values[2]) ? null : parseInt(values[2]?.trim()), // block
+          subject: values[3]?.trim(), // subject
+          blockType: values[4]?.trim(), // type
+          startTime: normalizeTime(values[5]?.trim()), // start
+          endTime: normalizeTime(values[6]?.trim()) // end
         };
         
-        console.log(`📋 Direct mapping test row ${i}:`);
-        console.log(`  studentName should be: "${row.student}"`);
-        console.log(`  weekday should be: "${row.day}"`);
-        console.log(`  startTime should be: "${normalizeTime(row.start)}"`);
-        console.log(`  blockType should be: "${row.type}"`);
-        console.log(`  But cleanRow.studentName is: "${cleanRow.studentName}"`);
-        console.log(`  But cleanRow.weekday is: "${cleanRow.weekday}"`);
-        console.log(`  But cleanRow.startTime is: "${cleanRow.startTime}"`);
-        console.log(`  But cleanRow.blockType is: "${cleanRow.blockType}"`);
-        
-        console.log(`📋 Final clean row ${i}:`, cleanRow); // Debug log
+        console.log(`📋 Final clean row ${i}:`, cleanRow);
         
         // Only add if we have essential data
         if (cleanRow.studentName && cleanRow.weekday && cleanRow.subject) {
           csvData.push(cleanRow);
+          console.log(`✅ Added valid row ${i}`);
         } else {
           console.log(`⚠️ Skipping invalid row ${i}:`, cleanRow);
         }
