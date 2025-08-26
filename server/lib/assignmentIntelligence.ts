@@ -9,6 +9,24 @@ export interface AssignmentIntelligence {
   isSchedulable: boolean;
   blockType: 'assignment' | 'co-op' | 'travel' | 'prep';
   category: 'homework' | 'in-class' | 'makeup' | 'other';
+  
+  // Enhanced metadata for Canvas integration
+  isRecurring: boolean;
+  canvasCategory: 'assignments' | 'discussions' | 'quizzes' | 'syllabus' | 'other';
+  isFromPreviousYear: boolean;
+  isTemplateData: boolean;
+  suggestedScheduleDate: Date | null;
+  availabilityWindow: {
+    availableFrom: Date | null;
+    availableUntil: Date | null;
+  };
+  submissionContext: {
+    submissionTypes: string[];
+    pointsValue: number | null;
+    isGraded: boolean;
+    allowsLateSubs: boolean;
+  };
+  confidence: number;
 }
 
 /**
@@ -115,9 +133,71 @@ export function extractClassDate(title: string): Date | null {
 }
 
 /**
- * Comprehensive analysis of assignment title and content
+ * Detect if assignment is recurring (like attendance, participation)
  */
-export function analyzeAssignment(title: string, description?: string): AssignmentIntelligence {
+export function isRecurringAssignment(title: string, description?: string): boolean {
+  const text = `${title} ${description || ''}`.toLowerCase();
+  
+  const recurringPatterns = [
+    'roll call',
+    'attendance',
+    'participation',
+    'daily',
+    'weekly',
+    'monthly',
+    'ongoing',
+    'semester',
+    'year-long',
+    'continuous'
+  ];
+  
+  return recurringPatterns.some(pattern => text.includes(pattern));
+}
+
+/**
+ * Detect if assignment data appears to be from previous academic year or template
+ */
+export function isFromPreviousYearOrTemplate(assignmentDate: Date | null, courseStartDate?: string): boolean {
+  if (!assignmentDate) return false;
+  
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const assignmentYear = assignmentDate.getFullYear();
+  
+  // More than 1 year old = likely template data
+  if (assignmentYear < currentYear - 1) return true;
+  
+  // Assignment from previous year but course started this year = template data
+  if (courseStartDate) {
+    const courseStart = new Date(courseStartDate);
+    if (assignmentYear < courseStart.getFullYear()) return true;
+  }
+  
+  // Assignment due before June 15, 2025 (our filter date)
+  const filterDate = new Date('2025-06-15');
+  if (assignmentDate < filterDate) return true;
+  
+  return false;
+}
+
+/**
+ * Enhanced comprehensive analysis of assignment with Canvas metadata
+ */
+export function analyzeAssignmentWithCanvas(
+  title: string, 
+  description?: string,
+  canvasData?: {
+    assignment_group?: { name: string };
+    submission_types?: string[];
+    points_possible?: number;
+    unlock_at?: string;
+    lock_at?: string;
+    is_recurring?: boolean;
+    academic_year?: string;
+    course_start_date?: string;
+    course_end_date?: string;
+  }
+): AssignmentIntelligence {
   const isInClass = isInClassActivity(title);
   const extractedDueDate = extractDueDateFromTitle(title) || (isInClass ? extractClassDate(title) : null);
   
@@ -142,13 +222,80 @@ export function analyzeAssignment(title: string, description?: string): Assignme
     blockType = 'co-op'; // Fixed co-op class time
   }
 
+  // Enhanced analysis with Canvas data
+  const isRecurring = canvasData?.is_recurring || isRecurringAssignment(title, description);
+  const isFromPrevious = isFromPreviousYearOrTemplate(extractedDueDate, canvasData?.course_start_date);
+  
+  // Determine Canvas category
+  let canvasCategory: 'assignments' | 'discussions' | 'quizzes' | 'syllabus' | 'other' = 'other';
+  const groupName = canvasData?.assignment_group?.name?.toLowerCase() || '';
+  const titleLower = title.toLowerCase();
+  
+  if (groupName.includes('syllabus') || titleLower.includes('syllabus') || titleLower.includes('fee')) {
+    canvasCategory = 'syllabus';
+  } else if (groupName.includes('discussion') || canvasData?.submission_types?.includes('discussion_topic')) {
+    canvasCategory = 'discussions';
+  } else if (groupName.includes('quiz') || canvasData?.submission_types?.includes('online_quiz')) {
+    canvasCategory = 'quizzes';
+  } else {
+    canvasCategory = 'assignments';
+  }
+  
+  // Calculate availability window
+  const availabilityWindow = {
+    availableFrom: canvasData?.unlock_at ? new Date(canvasData.unlock_at) : null,
+    availableUntil: canvasData?.lock_at ? new Date(canvasData.lock_at) : null
+  };
+  
+  // Submission context
+  const submissionContext = {
+    submissionTypes: canvasData?.submission_types || [],
+    pointsValue: canvasData?.points_possible || null,
+    isGraded: (canvasData?.points_possible || 0) > 0,
+    allowsLateSubs: !canvasData?.lock_at // If no lock date, late submissions might be allowed
+  };
+  
+  // Smart scheduling suggestion
+  let suggestedScheduleDate: Date | null = null;
+  if (extractedDueDate && isSchedulable) {
+    if (category === 'homework') {
+      // Schedule homework 1-2 days before due date
+      suggestedScheduleDate = new Date(extractedDueDate);
+      suggestedScheduleDate.setDate(suggestedScheduleDate.getDate() - 1);
+    } else {
+      suggestedScheduleDate = extractedDueDate;
+    }
+  }
+  
+  // Calculate confidence score
+  let confidence = 0.5; // Base confidence
+  if (extractedDueDate) confidence += 0.3;
+  if (canvasData?.assignment_group) confidence += 0.2;
+  if (isInClass) confidence += 0.2;
+  if (isRecurring) confidence += 0.1;
+  
   return {
     extractedDueDate,
     isInClassActivity: isInClass,
     isSchedulable,
     blockType,
-    category
+    category,
+    isRecurring,
+    canvasCategory,
+    isFromPreviousYear: isFromPrevious,
+    isTemplateData: isFromPrevious,
+    suggestedScheduleDate,
+    availabilityWindow,
+    submissionContext,
+    confidence: Math.min(confidence, 1.0)
   };
+}
+
+/**
+ * Backward compatibility - analyze assignment with basic data
+ */
+export function analyzeAssignment(title: string, description?: string): AssignmentIntelligence {
+  return analyzeAssignmentWithCanvas(title, description);
 }
 
 /**

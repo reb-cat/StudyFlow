@@ -9,16 +9,92 @@ export interface CanvasAssignment {
   submission_types: string[];
   points_possible?: number;
   courseName?: string; // Added for course name mapping
+  
   // Grading/submission information
   workflow_state?: string; // published, unpublished, etc.
   has_submitted_submissions?: boolean;
   graded_submissions_exist?: boolean;
+  
+  // Extended Canvas metadata
+  assignment_group_id?: number;
+  assignment_group?: {
+    id: number;
+    name: string;
+    position: number;
+    group_weight?: number;
+  };
+  
+  // Availability and timing
+  unlock_at?: string; // When assignment becomes available
+  lock_at?: string; // When assignment locks (different from due_at)
+  created_at?: string;
+  updated_at?: string;
+  
+  // Assignment classification
+  html_url?: string;
+  position?: number;
+  published?: boolean;
+  muted?: boolean;
+  only_visible_to_overrides?: boolean;
+  
+  // Submission configuration
+  allowed_extensions?: string[];
+  turnitin_enabled?: boolean;
+  vericite_enabled?: boolean;
+  grade_group_students_individually?: boolean;
+  anonymous_submissions?: boolean;
+  anonymous_grading?: boolean;
+  
+  // Canvas categorization
+  submission_types_display?: string;
+  external_tool_tag_attributes?: any;
+  peer_reviews?: boolean;
+  automatic_peer_reviews?: boolean;
+  
+  // Custom metadata for our processing
+  canvas_category?: 'assignments' | 'discussions' | 'quizzes' | 'syllabus' | 'other';
+  is_recurring?: boolean;
+  academic_year?: string;
+  course_start_date?: string;
+  course_end_date?: string;
 }
 
 export interface CanvasCourse {
   id: number;
   name: string;
   course_code?: string;
+  account_id?: number;
+  root_account_id?: number;
+  enrollment_term_id?: number;
+  grading_standard_id?: number;
+  created_at?: string;
+  start_at?: string;
+  end_at?: string;
+  locale?: string;
+  enrollments?: any[];
+  total_students?: number;
+  calendar?: any;
+  default_view?: string;
+  syllabus_body?: string;
+  public_syllabus?: boolean;
+  public_syllabus_to_auth?: boolean;
+  storage_quota_mb?: number;
+  is_public?: boolean;
+  is_public_to_auth_users?: boolean;
+  public_description?: string;
+  allow_student_wiki_edits?: boolean;
+  allow_wiki_comments?: boolean;
+  allow_student_forum_attachments?: boolean;
+  open_enrollment?: boolean;
+  self_enrollment?: boolean;
+  restrict_enrollments_to_course_dates?: boolean;
+  course_format?: string;
+  access_restricted_by_date?: boolean;
+  time_zone?: string;
+  blueprint?: boolean;
+  blueprint_restrictions?: any;
+  blueprint_restrictions_by_object_type?: any;
+  template?: boolean;
 }
 
 // Canvas API client for a specific student
@@ -87,17 +163,27 @@ export class CanvasClient {
       
       for (const course of courses) {
         try {
-          // Request maximum assignments per page and include submission details for grading status
-          const assignments = await this.makeRequest<CanvasAssignment[]>(`/courses/${course.id}/assignments?per_page=100&include[]=all_dates&include[]=submission&order_by=due_at`);
+          // Request comprehensive assignment data including all metadata
+          const assignments = await this.makeRequest<CanvasAssignment[]>(
+            `/courses/${course.id}/assignments?per_page=100&include[]=all_dates&include[]=submission&include[]=assignment_group&include[]=overrides&order_by=due_at`
+          );
           console.log(`  📖 Course "${course.name}" (${course.id}): ${assignments.length} assignments`);
           
-          // Add course name to each assignment for easy reference
-          const assignmentsWithCourseName = assignments.map(assignment => ({
+          // Enhance assignments with comprehensive metadata
+          const assignmentsWithMetadata = assignments.map(assignment => ({
             ...assignment,
-            courseName: course.name
+            courseName: course.name,
+            course_start_date: course.start_at,
+            course_end_date: course.end_at,
+            // Determine Canvas category based on assignment group or submission types
+            canvas_category: this.determineCanvasCategory(assignment),
+            // Detect if this is a recurring assignment
+            is_recurring: this.isRecurringAssignment(assignment),
+            // Determine academic year from course or assignment dates
+            academic_year: this.determineAcademicYear(assignment, course)
           }));
           
-          allAssignments.push(...assignmentsWithCourseName);
+          allAssignments.push(...assignmentsWithMetadata);
         } catch (error) {
           console.warn(`Failed to get assignments for course ${course.id} (${course.name}):`, error);
         }
@@ -119,6 +205,105 @@ export class CanvasClient {
       const dueDate = new Date(assignment.due_at);
       return dueDate >= now && dueDate <= future;
     });
+  }
+
+  /**
+   * Determine Canvas assignment category based on metadata
+   */
+  private determineCanvasCategory(assignment: CanvasAssignment): 'assignments' | 'discussions' | 'quizzes' | 'syllabus' | 'other' {
+    const name = assignment.name.toLowerCase();
+    const groupName = assignment.assignment_group?.name?.toLowerCase() || '';
+    
+    // Check assignment group name first (most reliable)
+    if (groupName.includes('syllabus') || groupName.includes('course info')) {
+      return 'syllabus';
+    }
+    if (groupName.includes('discussion') || groupName.includes('forum')) {
+      return 'discussions';
+    }
+    if (groupName.includes('quiz') || groupName.includes('test') || groupName.includes('exam')) {
+      return 'quizzes';
+    }
+    
+    // Check submission types
+    if (assignment.submission_types?.includes('discussion_topic')) {
+      return 'discussions';
+    }
+    if (assignment.submission_types?.includes('online_quiz')) {
+      return 'quizzes';
+    }
+    
+    // Check assignment name patterns
+    if (name.includes('syllabus') || name.includes('honor code') || name.includes('fee')) {
+      return 'syllabus';
+    }
+    if (name.includes('discussion') || name.includes('forum') || name.includes('post')) {
+      return 'discussions';
+    }
+    if (name.includes('quiz') || name.includes('test') || name.includes('exam')) {
+      return 'quizzes';
+    }
+    
+    // Default to assignments
+    return 'assignments';
+  }
+
+  /**
+   * Detect if assignment is recurring (like attendance, participation)
+   */
+  private isRecurringAssignment(assignment: CanvasAssignment): boolean {
+    const name = assignment.name.toLowerCase();
+    const description = assignment.description?.toLowerCase() || '';
+    
+    const recurringPatterns = [
+      'roll call',
+      'attendance',
+      'participation',
+      'daily',
+      'weekly',
+      'monthly',
+      'ongoing',
+      'semester',
+      'year-long',
+      'continuous'
+    ];
+    
+    return recurringPatterns.some(pattern => 
+      name.includes(pattern) || description.includes(pattern)
+    );
+  }
+
+  /**
+   * Determine academic year from assignment/course data
+   */
+  private determineAcademicYear(assignment: CanvasAssignment, course: CanvasCourse): string {
+    const currentYear = new Date().getFullYear();
+    
+    // Try to extract year from course name
+    const courseNameMatch = course.name.match(/(\d{2})\/(\d{2})/);
+    if (courseNameMatch) {
+      const startYear = parseInt(`20${courseNameMatch[1]}`, 10);
+      const endYear = parseInt(`20${courseNameMatch[2]}`, 10);
+      return `${startYear}-${endYear}`;
+    }
+    
+    // Try course start date
+    if (course.start_at) {
+      const courseStart = new Date(course.start_at);
+      const academicYearStart = courseStart.getFullYear();
+      return `${academicYearStart}-${academicYearStart + 1}`;
+    }
+    
+    // Try assignment creation date
+    if (assignment.created_at) {
+      const assignmentYear = new Date(assignment.created_at).getFullYear();
+      return `${assignmentYear}-${assignmentYear + 1}`;
+    }
+    
+    // Default to current academic year
+    const isFirstHalf = new Date().getMonth() < 6; // Before July
+    const academicStart = isFirstHalf ? currentYear - 1 : currentYear;
+    return `${academicStart}-${academicStart + 1}`;
   }
 }
 

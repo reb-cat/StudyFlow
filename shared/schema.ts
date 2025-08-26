@@ -124,6 +124,17 @@ export const assignments = pgTable("assignments", {
   canvasId: integer("canvas_id"), // Canvas assignment ID for sync tracking
   canvasInstance: integer("canvas_instance"), // 1 or 2 for multi-instance support
   isCanvasImport: boolean("is_canvas_import").default(false), // Track Canvas vs manual assignments
+  
+  // Enhanced Canvas metadata fields (safe additions to existing schema)
+  canvasCategory: text("canvas_category"), // 'assignments' | 'discussions' | 'quizzes' | 'syllabus' | 'other'
+  submissionTypes: text("submission_types").array().default(sql`ARRAY[]::text[]`),
+  pointsValue: integer("points_value"),
+  availableFrom: timestamp("available_from"),
+  availableUntil: timestamp("available_until"),
+  isRecurring: boolean("is_recurring").default(false),
+  academicYear: text("academic_year"),
+  confidenceScore: text("confidence_score"), // Store as text to avoid precision issues
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -1,6 +1,6 @@
 import { getAllAssignmentsForStudent } from './canvas';
 import { storage } from '../storage';
-import { analyzeAssignment, getSmartSchedulingDate } from './assignmentIntelligence';
+import { analyzeAssignmentWithCanvas, getSmartSchedulingDate } from './assignmentIntelligence';
 
 interface ScheduledJob {
   name: string;
@@ -70,8 +70,22 @@ class JobScheduler {
               );
               
               if (!alreadyExists) {
-                // Apply intelligent assignment processing
-                const intelligence = analyzeAssignment(canvasAssignment.name, canvasAssignment.description);
+                // Apply comprehensive intelligent assignment processing with Canvas metadata
+                const intelligence = analyzeAssignmentWithCanvas(
+                  canvasAssignment.name, 
+                  canvasAssignment.description,
+                  {
+                    assignment_group: canvasAssignment.assignment_group,
+                    submission_types: canvasAssignment.submission_types,
+                    points_possible: canvasAssignment.points_possible,
+                    unlock_at: canvasAssignment.unlock_at,
+                    lock_at: canvasAssignment.lock_at,
+                    is_recurring: canvasAssignment.is_recurring,
+                    academic_year: canvasAssignment.academic_year,
+                    course_start_date: canvasAssignment.course_start_date,
+                    course_end_date: canvasAssignment.course_end_date
+                  }
+                );
                 
                 // Determine completion status based on Canvas grading info
                 let completionStatus = 'pending';
@@ -87,12 +101,26 @@ class JobScheduler {
                 // Smart scheduling based on assignment type
                 const smartScheduledDate = getSmartSchedulingDate(intelligence, this.getNextAssignmentDate());
                 
-                // Log intelligent processing results
+                // Log comprehensive intelligent processing results
+                console.log(`🔍 Assignment Analysis: "${canvasAssignment.name}"`);
+                console.log(`   📊 Category: ${intelligence.canvasCategory} | Confidence: ${Math.round(intelligence.confidence * 100)}%`);
                 if (intelligence.extractedDueDate) {
-                  console.log(`🧠 Smart due date extracted: ${intelligence.extractedDueDate.toDateString()}`);
+                  console.log(`   🧠 Smart due date extracted: ${intelligence.extractedDueDate.toDateString()}`);
                 }
                 if (intelligence.isInClassActivity) {
-                  console.log(`🏫 Detected in-class activity: ${intelligence.isSchedulable ? 'schedulable' : 'fixed co-op block'}`);
+                  console.log(`   🏫 In-class activity: ${intelligence.isSchedulable ? 'schedulable makeup' : 'fixed co-op block'}`);
+                }
+                if (intelligence.isRecurring) {
+                  console.log(`   🔄 Recurring assignment detected`);
+                }
+                if (intelligence.isFromPreviousYear) {
+                  console.log(`   ⚠️ Previous year/template data detected`);
+                }
+                if (intelligence.submissionContext.pointsValue) {
+                  console.log(`   📝 Worth ${intelligence.submissionContext.pointsValue} points`);
+                }
+                if (intelligence.availabilityWindow.availableFrom || intelligence.availabilityWindow.availableUntil) {
+                  console.log(`   ⏰ Availability: ${intelligence.availabilityWindow.availableFrom?.toDateString() || 'open'} → ${intelligence.availabilityWindow.availableUntil?.toDateString() || 'no limit'}`);
                 }
 
                 await storage.createAssignment({
@@ -111,7 +139,17 @@ class JobScheduler {
                   isAssignmentBlock: intelligence.isSchedulable,
                   canvasId: canvasAssignment.id,
                   canvasInstance: 1,
-                  isCanvasImport: true
+                  isCanvasImport: true,
+                  
+                  // Enhanced Canvas metadata
+                  canvasCategory: intelligence.canvasCategory,
+                  submissionTypes: intelligence.submissionContext.submissionTypes,
+                  pointsValue: intelligence.submissionContext.pointsValue,
+                  availableFrom: intelligence.availabilityWindow.availableFrom,
+                  availableUntil: intelligence.availabilityWindow.availableUntil,
+                  isRecurring: intelligence.isRecurring,
+                  academicYear: canvasAssignment.academic_year,
+                  confidenceScore: intelligence.confidence.toString()
                 });
                 totalImported++;
               } else {
@@ -149,9 +187,23 @@ class JobScheduler {
               );
               
               if (!alreadyExists) {
-                // Apply intelligent assignment processing for Canvas 2
+                // Apply comprehensive intelligent assignment processing for Canvas 2 with metadata
                 const title = `${canvasAssignment.name} (Canvas 2)`;
-                const intelligence = analyzeAssignment(title, canvasAssignment.description);
+                const intelligence = analyzeAssignmentWithCanvas(
+                  title, 
+                  canvasAssignment.description,
+                  {
+                    assignment_group: canvasAssignment.assignment_group,
+                    submission_types: canvasAssignment.submission_types,
+                    points_possible: canvasAssignment.points_possible,
+                    unlock_at: canvasAssignment.unlock_at,
+                    lock_at: canvasAssignment.lock_at,
+                    is_recurring: canvasAssignment.is_recurring,
+                    academic_year: canvasAssignment.academic_year,
+                    course_start_date: canvasAssignment.course_start_date,
+                    course_end_date: canvasAssignment.course_end_date
+                  }
+                );
                 
                 // Determine completion status based on Canvas grading info
                 let completionStatus = 'pending';
@@ -167,12 +219,20 @@ class JobScheduler {
                 // Smart scheduling based on assignment type
                 const smartScheduledDate = getSmartSchedulingDate(intelligence, this.getNextAssignmentDate());
                 
-                // Log intelligent processing results for Canvas 2
+                // Log comprehensive intelligent processing results for Canvas 2
+                console.log(`🔍 Assignment Analysis (Canvas 2): "${title}"`);
+                console.log(`   📊 Category: ${intelligence.canvasCategory} | Confidence: ${Math.round(intelligence.confidence * 100)}%`);
                 if (intelligence.extractedDueDate) {
-                  console.log(`🧠 Smart due date extracted (Canvas 2): ${intelligence.extractedDueDate.toDateString()}`);
+                  console.log(`   🧠 Smart due date extracted: ${intelligence.extractedDueDate.toDateString()}`);
                 }
                 if (intelligence.isInClassActivity) {
-                  console.log(`🏫 Detected in-class activity (Canvas 2): ${intelligence.isSchedulable ? 'schedulable' : 'fixed co-op block'}`);
+                  console.log(`   🏫 In-class activity: ${intelligence.isSchedulable ? 'schedulable makeup' : 'fixed co-op block'}`);
+                }
+                if (intelligence.isRecurring) {
+                  console.log(`   🔄 Recurring assignment detected`);
+                }
+                if (intelligence.isFromPreviousYear) {
+                  console.log(`   ⚠️ Previous year/template data detected`);
                 }
 
                 await storage.createAssignment({
@@ -191,7 +251,17 @@ class JobScheduler {
                   isAssignmentBlock: intelligence.isSchedulable,
                   canvasId: canvasAssignment.id,
                   canvasInstance: 2,
-                  isCanvasImport: true
+                  isCanvasImport: true,
+                  
+                  // Enhanced Canvas metadata for instance 2
+                  canvasCategory: intelligence.canvasCategory,
+                  submissionTypes: intelligence.submissionContext.submissionTypes,
+                  pointsValue: intelligence.submissionContext.pointsValue,
+                  availableFrom: intelligence.availabilityWindow.availableFrom,
+                  availableUntil: intelligence.availabilityWindow.availableUntil,
+                  isRecurring: intelligence.isRecurring,
+                  academicYear: canvasAssignment.academic_year,
+                  confidenceScore: intelligence.confidence.toString()
                 });
                 totalImported++;
               } else {
