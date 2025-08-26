@@ -756,6 +756,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test pattern extraction endpoint
+  app.post('/api/test-pattern-extraction', async (req, res) => {
+    try {
+      const { titles } = req.body;
+      
+      if (!Array.isArray(titles)) {
+        return res.status(400).json({ message: 'titles must be an array' });
+      }
+      
+      const { extractDueDateFromTitle } = await import('./lib/assignmentIntelligence.js');
+      
+      const results = titles.map(title => {
+        const extractedDate = extractDueDateFromTitle(title);
+        return {
+          title,
+          extractedDate: extractedDate?.toISOString() || null,
+          success: !!extractedDate
+        };
+      });
+      
+      const summary = {
+        total: results.length,
+        successful: results.filter(r => r.success).length,
+        failed: results.filter(r => !r.success).length,
+        successRate: `${Math.round((results.filter(r => r.success).length / results.length) * 100)}%`
+      };
+      
+      res.json({
+        summary,
+        results,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Pattern testing failed:', error);
+      res.status(500).json({ 
+        message: 'Pattern testing failed', 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
   // Schedule template bulk upload endpoint
   app.post('/api/schedule-templates/bulk-upload', async (req, res) => {
     try {

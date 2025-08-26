@@ -30,25 +30,67 @@ export interface AssignmentIntelligence {
 }
 
 /**
- * Extract due dates from assignment titles like "Homework Due 9/1" or "Assignment Due 10/15"
+ * COMPREHENSIVE due date extraction from assignment titles
+ * Handles ALL patterns found in dataset analysis
  */
 export function extractDueDateFromTitle(title: string): Date | null {
-  // Common patterns for due dates in titles
+  // Comprehensive patterns ordered by specificity
   const patterns = [
-    /due\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,           // "Due 9/1" or "Due 9/1/24"
-    /due\s+(\d{1,2}-\d{1,2}(?:-\d{2,4})?)/i,            // "Due 9-1" or "Due 9-1-24"
-    /(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*due/i,          // "9/1 Due"
-    /homework\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,     // "Homework 9/1"
-    /assignment\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,   // "Assignment 9/1"
+    // === EXPLICIT DUE PATTERNS ===
+    /due\s*:?\s*(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,           // "Due 9/1", "Due: 9/1"
+    /due\s*:?\s*(\d{1,2}-\d{1,2}(?:-\d{2,4})?)/i,            // "Due 9-1", "Due: 9-1"
+    /homework\s+due\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,     // "Homework Due 9/1"
+    /assignment\s+due\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,   // "Assignment Due 9/1"
+    /project\s+due\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,      // "Project Due 9/1"
+    /quiz\s+due\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,         // "Quiz Due 9/1"
+    /test\s+due\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,         // "Test Due 9/1"
+    
+    // === EMBEDDED DATE PATTERNS (THE MISSING ONES!) ===
+    /(?:test|quiz|exam|homework|assignment|project)\s+(?:on|for|by)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i, // "test on 9/11" !!!
+    /on\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,                 // "on 9/11"
+    /by\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,                 // "by 9/11" 
+    /for\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,                // "for 9/11"
+    
+    // === CLASS-SPECIFIC PATTERNS ===
+    /class\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,              // "Class 10/6", "In Class 10/6"
+    /in\s+class\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,         // "In Class 10/6"
+    
+    // === REVERSED DATE PATTERNS ===
+    /(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*due/i,                // "9/1 Due"
+    /(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*homework/i,           // "9/1 Homework"
+    /(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*assignment/i,         // "9/1 Assignment"
+    
+    // === MONTH NAME PATTERNS ===
+    /due\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:,?\s*(\d{4}))?/i,
+    /on\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:,?\s*(\d{4}))?/i,
+    
+    // === ACADEMIC PATTERNS ===
+    /week\s+of\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,          // "Week of 9/11"
+    
+    // === STANDALONE DATE PATTERNS (FALLBACK) ===
+    /\b(\d{1,2}\/\d{1,2}\/\d{2,4})\b/,                        // "9/11/2025" anywhere in title
+    /\b(\d{1,2}\/\d{1,2})\b/,                                 // "9/11" anywhere in title (fallback)
   ];
 
-  for (const pattern of patterns) {
+  for (const [index, pattern] of patterns.entries()) {
     const match = title.match(pattern);
     if (match) {
-      const dateStr = match[1];
+      let dateStr: string;
+      
+      // Handle month name patterns specially
+      if (pattern.source.includes('january|february')) {
+        const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+        const monthIndex = monthNames.indexOf(match[1].toLowerCase()) + 1;
+        const day = match[2];
+        const year = match[3] || new Date().getFullYear();
+        dateStr = `${monthIndex}/${day}/${year}`;
+      } else {
+        dateStr = match[1];
+      }
+      
       const parsedDate = parseDateString(dateStr);
       if (parsedDate) {
-        console.log(`📅 Extracted due date from "${title}": ${parsedDate.toDateString()}`);
+        console.log(`📅 COMPREHENSIVE: Extracted due date from "${title}" using pattern ${index + 1}: ${parsedDate.toDateString()}`);
         return parsedDate;
       }
     }
