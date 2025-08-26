@@ -1,4 +1,9 @@
-import { type User, type InsertUser, type Assignment, type InsertAssignment, type UpdateAssignment } from "@shared/schema";
+import { 
+  type User, type InsertUser, 
+  type Assignment, type InsertAssignment, type UpdateAssignment,
+  type ScheduleTemplate, type InsertScheduleTemplate,
+  type BibleCurriculum, type InsertBibleCurriculum 
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 import { supabase } from "./lib/supabase";
 
@@ -16,6 +21,15 @@ export interface IStorage {
   createAssignment(assignment: InsertAssignment & { userId: string }): Promise<Assignment>;
   updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined>;
   deleteAssignment(id: string): Promise<boolean>;
+  
+  // Schedule template operations
+  getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]>;
+  createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate>;
+  
+  // Bible curriculum operations
+  getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]>;
+  getBibleCurrentWeek(): Promise<BibleCurriculum[]>;
+  updateBibleCompletion(weekNumber: number, dayOfWeek: number, completed: boolean): Promise<BibleCurriculum | undefined>;
 }
 
 // Database storage implementation using Supabase
@@ -139,7 +153,7 @@ export class DatabaseStorage implements IStorage {
         completion_status: data.completionStatus || 'pending',
         block_type: data.blockType || 'assignment',
         is_assignment_block: data.isAssignmentBlock ?? true,
-        priority: data.priority || 'medium',
+        priority: data.priority || 'B',
         difficulty: data.difficulty || 'medium',
         time_spent: data.timeSpent || 0,
         notes: data.notes || null,
@@ -220,6 +234,122 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting assignment:', error);
       return false;
+    }
+  }
+
+  // Schedule template operations
+  async getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]> {
+    try {
+      let query = supabase
+        .from('schedule_template')
+        .select('*')
+        .eq('student_name', studentName);
+      
+      if (weekday) {
+        query = query.eq('weekday', weekday);
+      }
+      
+      const { data, error } = await query.order('start_time');
+      
+      if (error) {
+        console.error('Error getting schedule template:', error);
+        return [];
+      }
+      
+      return (data || []) as ScheduleTemplate[];
+    } catch (error) {
+      console.error('Error getting schedule template:', error);
+      return [];
+    }
+  }
+
+  async createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate> {
+    try {
+      const { data, error } = await supabase
+        .from('schedule_template')
+        .insert({
+          student_name: template.studentName,
+          weekday: template.weekday,
+          block_number: template.blockNumber,
+          start_time: template.startTime,
+          end_time: template.endTime,
+          subject: template.subject,
+          block_type: template.blockType
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating schedule template:', error);
+        throw new Error('Failed to create schedule template');
+      }
+      
+      return data as ScheduleTemplate;
+    } catch (error) {
+      console.error('Error creating schedule template:', error);
+      throw new Error('Failed to create schedule template');
+    }
+  }
+
+  // Bible curriculum operations
+  async getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]> {
+    try {
+      let query = supabase.from('bible_curriculum').select('*');
+      
+      if (weekNumber !== undefined) {
+        query = query.eq('week_number', weekNumber);
+      }
+      
+      const { data, error } = await query.order('week_number').order('day_of_week');
+      
+      if (error) {
+        console.error('Error getting bible curriculum:', error);
+        return [];
+      }
+      
+      return (data || []) as BibleCurriculum[];
+    } catch (error) {
+      console.error('Error getting bible curriculum:', error);
+      return [];
+    }
+  }
+
+  async getBibleCurrentWeek(): Promise<BibleCurriculum[]> {
+    try {
+      // Get the current week based on date - for now, use week 1
+      // TODO: Implement proper week calculation based on start date
+      const currentWeek = 1;
+      return this.getBibleCurriculum(currentWeek);
+    } catch (error) {
+      console.error('Error getting current bible week:', error);
+      return [];
+    }
+  }
+
+  async updateBibleCompletion(weekNumber: number, dayOfWeek: number, completed: boolean): Promise<BibleCurriculum | undefined> {
+    try {
+      const updateData: any = {
+        completed,
+        completed_at: completed ? new Date().toISOString() : null
+      };
+      
+      const { data, error } = await supabase
+        .from('bible_curriculum')
+        .update(updateData)
+        .eq('week_number', weekNumber)
+        .eq('day_of_week', dayOfWeek)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating bible completion:', error);
+        return undefined;
+      }
+      
+      return data as BibleCurriculum;
+    } catch (error) {
+      console.error('Error updating bible completion:', error);
+      return undefined;
     }
   }
 }
@@ -325,6 +455,38 @@ export class MemStorage implements IStorage {
     return this.assignments.delete(id);
   }
 
+  // Schedule template operations (MemStorage stub)
+  async getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]> {
+    return [];
+  }
+
+  async createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate> {
+    const scheduleTemplate: ScheduleTemplate = {
+      id: randomUUID(),
+      studentName: template.studentName,
+      weekday: template.weekday,
+      blockNumber: template.blockNumber,
+      startTime: template.startTime,
+      endTime: template.endTime,
+      subject: template.subject,
+      blockType: template.blockType
+    };
+    return scheduleTemplate;
+  }
+
+  // Bible curriculum operations (MemStorage stub)
+  async getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]> {
+    return [];
+  }
+
+  async getBibleCurrentWeek(): Promise<BibleCurriculum[]> {
+    return [];
+  }
+
+  async updateBibleCompletion(weekNumber: number, dayOfWeek: number, completed: boolean): Promise<BibleCurriculum | undefined> {
+    return undefined;
+  }
+
   private initializeSampleData() {
     const sampleUserId = "demo-user-1";
     const today = new Date().toISOString().split('T')[0];
@@ -358,7 +520,7 @@ export class MemStorage implements IStorage {
         blockEnd: "09:45",
         actualEstimatedMinutes: 45,
         completionStatus: "pending",
-        priority: "high",
+        priority: "A",
         difficulty: "medium"
       },
       {
@@ -374,7 +536,7 @@ export class MemStorage implements IStorage {
         blockEnd: "11:30",
         actualEstimatedMinutes: 90,
         completionStatus: "pending",
-        priority: "medium",
+        priority: "B",
         difficulty: "hard"
       },
       {
@@ -390,7 +552,7 @@ export class MemStorage implements IStorage {
         blockEnd: "13:30",
         actualEstimatedMinutes: 30,
         completionStatus: "in_progress",
-        priority: "medium",
+        priority: "B",
         difficulty: "medium"
       },
       {
@@ -406,7 +568,7 @@ export class MemStorage implements IStorage {
         blockEnd: "14:45",
         actualEstimatedMinutes: 45,
         completionStatus: "pending",
-        priority: "low",
+        priority: "C",
         difficulty: "easy"
       }
     ];
@@ -428,7 +590,7 @@ export class MemStorage implements IStorage {
         completionStatus: assignment.completionStatus || 'pending',
         blockType: assignment.blockType || 'assignment',
         isAssignmentBlock: assignment.isAssignmentBlock ?? true,
-        priority: assignment.priority || 'medium',
+        priority: assignment.priority || 'B',
         difficulty: assignment.difficulty || 'medium',
         timeSpent: assignment.timeSpent || 0,
         notes: assignment.notes || null,

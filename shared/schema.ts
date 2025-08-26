@@ -116,7 +116,7 @@ export const assignments = pgTable("assignments", {
   }).default("pending"),
   blockType: text("block_type").default("assignment"), // assignment, co-op, travel, prep, etc.
   isAssignmentBlock: boolean("is_assignment_block").default(true),
-  priority: text("priority", { enum: ["low", "medium", "high", "urgent"] }).default("medium"),
+  priority: text("priority", { enum: ["A", "B", "C"] }).default("B"), // A=Critical, B=Important, C=Flexible
   difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }).default("medium"),
   timeSpent: integer("time_spent").default(0), // actual minutes spent
   notes: text("notes"),
@@ -124,16 +124,29 @@ export const assignments = pgTable("assignments", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Schedule templates for admin management
-export const scheduleTemplates = pgTable("schedule_templates", {
+// Schedule template table - fixed schedule blocks (uploaded via CSV)
+export const scheduleTemplate = pgTable("schedule_template", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  description: text("description"),
-  isActive: boolean("is_active").default(true),
-  templateData: text("template_data"), // JSON string of template structure
-  createdBy: uuid("created_by").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  studentName: text("student_name").notNull(), // "Abigail" or "Khalil"
+  weekday: text("weekday").notNull(), // "Monday", "Tuesday", etc.
+  blockNumber: integer("block_number"), // null for fixed blocks, 1,2,3... for assignment blocks
+  startTime: text("start_time").notNull(), // "09:00:00" format
+  endTime: text("end_time").notNull(), // "09:30:00" format
+  subject: text("subject").notNull(), // "Bible", "Assignment", "Math", etc.
+  blockType: text("block_type", {
+    enum: ["Bible", "Assignment", "Travel", "Co-op", "Prep/Load", "Movement", "Lunch"]
+  }).notNull(),
+});
+
+// Bible curriculum - week/day progression
+export const bibleCurriculum = pgTable("bible_curriculum", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  weekNumber: integer("week_number").notNull(),
+  dayOfWeek: integer("day_of_week").notNull(), // 1-5 for Mon-Fri
+  readingTitle: text("reading_title"),
+  readingType: text("reading_type"), // "lesson", "memory_verse", etc.
+  completed: boolean("completed").default(false),
+  completedAt: timestamp("completed_at"),
 });
 
 // Progress tracking for executive function support
@@ -164,11 +177,14 @@ export const insertAssignmentSchema = createInsertSchema(assignments).omit({
 export const updateAssignmentSchema = insertAssignmentSchema.partial();
 
 // Schedule template schemas
-export const insertScheduleTemplateSchema = createInsertSchema(scheduleTemplates).omit({
+export const insertScheduleTemplateSchema = createInsertSchema(scheduleTemplate).omit({
   id: true,
-  createdBy: true,
-  createdAt: true,
-  updatedAt: true,
+});
+
+// Bible curriculum schemas
+export const insertBibleCurriculumSchema = createInsertSchema(bibleCurriculum).omit({
+  id: true,
+  completedAt: true,
 });
 
 // Progress session schemas
@@ -199,7 +215,10 @@ export type UpdateAssignment = z.infer<typeof updateAssignmentSchema>;
 export type Assignment = typeof assignments.$inferSelect;
 
 export type InsertScheduleTemplate = z.infer<typeof insertScheduleTemplateSchema>;
-export type ScheduleTemplate = typeof scheduleTemplates.$inferSelect;
+export type ScheduleTemplate = typeof scheduleTemplate.$inferSelect;
+
+export type InsertBibleCurriculum = z.infer<typeof insertBibleCurriculumSchema>;
+export type BibleCurriculum = typeof bibleCurriculum.$inferSelect;
 
 export type InsertProgressSession = z.infer<typeof insertProgressSessionSchema>;
 export type ProgressSession = typeof progressSessions.$inferSelect;
