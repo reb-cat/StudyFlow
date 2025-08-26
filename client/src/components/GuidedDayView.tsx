@@ -34,10 +34,10 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   const allScheduleBlocks = scheduleTemplate.map((block) => ({
     id: block.id,
     title: block.subject,
-    blockType: block.block_type?.toLowerCase() || 'unknown',
-    startTime: block.start_time?.substring(0, 5) || '00:00', // Remove seconds from HH:MM:SS
-    endTime: block.end_time?.substring(0, 5) || '00:00',
-    blockNumber: block.block_number,
+    blockType: block.blockType?.toLowerCase() || 'unknown',
+    startTime: block.startTime?.substring(0, 5) || '00:00', // Remove seconds from HH:MM:SS
+    endTime: block.endTime?.substring(0, 5) || '00:00',
+    blockNumber: block.blockNumber,
     subject: block.subject
   }));
 
@@ -114,6 +114,19 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     return () => clearInterval(timer);
   }, [phase, timeRemaining]);
 
+  // Time formatting function
+  const formatTime = (start: string, end: string) => {
+    const formatTimeString = (timeStr: string) => {
+      if (!timeStr || timeStr === '00:00') return '12:00 AM';
+      const [hours, minutes] = timeStr.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      return `${displayHour}:${minutes} ${ampm}`;
+    };
+    return `${formatTimeString(start)} – ${formatTimeString(end)}`;
+  };
+
   const handleAction = (action: 'completed' | 'stuck' | 'needs_more_time') => {
     if (!currentBlock) return;
 
@@ -147,7 +160,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     }
   };
 
-  const formatTime = (seconds: number) => {
+  const formatTimeRemaining = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
@@ -203,7 +216,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl">{currentBlock.title}</CardTitle>
             <Badge variant="outline">
-              {currentBlock.startTime} - {currentBlock.endTime}
+              {formatTime(currentBlock.startTime, currentBlock.endTime)}
             </Badge>
           </div>
         </CardHeader>
@@ -245,7 +258,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
           {phase === 'running' && (
             <div className="text-center py-8">
               <div className="text-6xl font-mono font-bold text-primary mb-4">
-                {formatTime(timeRemaining)}
+                {formatTimeRemaining(timeRemaining)}
               </div>
               <div className="text-sm text-muted-foreground">
                 Time remaining for {currentBlock.title}
@@ -300,7 +313,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                 <div key={block.id} className="flex items-center justify-between text-sm">
                   <span>{block.title}</span>
                   <span className="text-muted-foreground">
-                    {block.startTime} - {block.endTime}
+                    {formatTime(block.startTime, block.endTime)}
                   </span>
                 </div>
               ))}

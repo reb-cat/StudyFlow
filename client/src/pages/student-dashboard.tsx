@@ -142,10 +142,10 @@ export default function StudentDashboard() {
   const allScheduleBlocks = scheduleTemplate.map((block) => ({
     id: block.id,
     title: block.subject,
-    blockType: block.block_type?.toLowerCase() || 'unknown',
-    startTime: block.start_time?.substring(0, 5) || '00:00', // Remove seconds from HH:MM:SS
-    endTime: block.end_time?.substring(0, 5) || '00:00',
-    blockNumber: block.block_number,
+    blockType: block.blockType?.toLowerCase() || 'unknown',
+    startTime: block.startTime?.substring(0, 5) || '00:00', // Remove seconds from HH:MM:SS
+    endTime: block.endTime?.substring(0, 5) || '00:00',
+    blockNumber: block.blockNumber,
     subject: block.subject
   }));
 
@@ -388,13 +388,14 @@ export default function StudentDashboard() {
                         
                         const formatTime = (start: string, end: string) => {
                           const formatTimeString = (timeStr: string) => {
+                            if (!timeStr || timeStr === '00:00') return '12:00 AM';
                             const [hours, minutes] = timeStr.split(':');
                             const hour = parseInt(hours);
                             const ampm = hour >= 12 ? 'PM' : 'AM';
-                            const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+                            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
                             return `${displayHour}:${minutes} ${ampm}`;
                           };
-                          return `${formatTimeString(start)}–${formatTimeString(end)}`;
+                          return `${formatTimeString(start)} – ${formatTimeString(end)}`;
                         };
                         
                         // Get block title and details
