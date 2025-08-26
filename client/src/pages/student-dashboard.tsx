@@ -174,7 +174,7 @@ export default function StudentDashboard() {
       <div className="max-w-5xl mx-auto">
         
         {/* Header - Student name left, action buttons right */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 px-4">
           <h1 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight" data-testid="student-name">
             {studentName}
           </h1>
@@ -207,7 +207,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Second row - Date/Co-op + Mode toggles */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 px-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-foreground">
               <Calendar className="h-5 w-5" />
