@@ -2,6 +2,13 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema } from "@shared/schema";
+import { 
+  getBibleSubjectForSchedule, 
+  getCurrentBibleCurriculum, 
+  markBibleCurriculumCompleted, 
+  getWeeklyBibleProgress,
+  getCurrentCurriculumWeek 
+} from './lib/bibleCurriculum';
 import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas"; 
 // Email config moved inline since Supabase removed
 const emailConfig = {
@@ -397,7 +404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get schedule template for a specific student and date
+  // Get schedule template for a specific student and date with Bible curriculum integration
   app.get('/api/schedule/:studentName/:date', async (req, res) => {
     try {
       const { studentName, date } = req.params;
@@ -412,9 +419,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get schedule template for this student and weekday
       const scheduleBlocks = await storage.getScheduleTemplate(studentName, weekday);
       
-      console.log(`Found ${scheduleBlocks.length} schedule blocks:`, scheduleBlocks);
+      // BIBLE CURRICULUM INTEGRATION: Replace generic "Bible" entries with specific curriculum content
+      const enhancedScheduleBlocks = await Promise.all(
+        scheduleBlocks.map(async (block) => {
+          if (block.subject === 'Bible' || block.blockType === 'Bible') {
+            try {
+              const bibleSubject = await getBibleSubjectForSchedule(dateObj);
+              return {
+                ...block,
+                subject: bibleSubject, // Replace "Bible" with specific reading like "Genesis 1-2"
+                originalSubject: 'Bible' // Keep track of original for reference
+              };
+            } catch (error) {
+              console.warn('Error getting Bible curriculum, using fallback:', error);
+              return block; // Return original if Bible curriculum fails
+            }
+          }
+          return block; // Non-Bible blocks remain unchanged
+        })
+      );
       
-      res.json(scheduleBlocks);
+      console.log(`Found ${enhancedScheduleBlocks.length} schedule blocks:`, scheduleBlocks);
+      
+      res.json(enhancedScheduleBlocks);
     } catch (error) {
       console.error("Error fetching schedule:", error);
       res.status(500).json({ message: "Failed to fetch schedule" });
@@ -822,6 +849,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error uploading schedule templates:', error);
       res.status(400).json({ message: 'Failed to upload schedule templates', error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
+  // BIBLE CURRICULUM API ENDPOINTS
+
+  // GET /api/bible-curriculum/current - Get current Bible curriculum for today
+  app.get('/api/bible-curriculum/current', async (req, res) => {
+    try {
+      const { date } = req.query;
+      const targetDate = date ? new Date(date as string) : new Date();
+      
+      const curriculum = await getCurrentBibleCurriculum(targetDate);
+      const weekNumber = getCurrentCurriculumWeek(targetDate);
+      
+      res.json({
+        weekNumber,
+        curriculum,
+        date: targetDate.toISOString().split('T')[0],
+        weekday: targetDate.toLocaleDateString('en-US', { weekday: 'long' })
+      });
+    } catch (error) {
+      console.error('Error fetching current Bible curriculum:', error);
+      res.status(500).json({ message: 'Failed to fetch Bible curriculum' });
+    }
+  });
+
+  // GET /api/bible-curriculum/week/:weekNumber - Get full week curriculum
+  app.get('/api/bible-curriculum/week/:weekNumber', async (req, res) => {
+    try {
+      const { weekNumber } = req.params;
+      const week = parseInt(weekNumber);
+      
+      if (week < 1 || week > 52) {
+        return res.status(400).json({ message: 'Week number must be between 1 and 52' });
+      }
+      
+      const progress = await getWeeklyBibleProgress(week);
+      
+      res.json(progress);
+    } catch (error) {
+      console.error('Error fetching weekly Bible curriculum:', error);
+      res.status(500).json({ message: 'Failed to fetch weekly Bible curriculum' });
+    }
+  });
+
+  // POST /api/bible-curriculum/complete - Mark curriculum item as completed
+  app.post('/api/bible-curriculum/complete', async (req, res) => {
+    try {
+      const { weekNumber, dayOfWeek, readingType } = req.body;
+      
+      if (!weekNumber || !readingType) {
+        return res.status(400).json({ 
+          message: 'Week number and reading type are required' 
+        });
+      }
+      
+      const success = await markBibleCurriculumCompleted(
+        weekNumber, 
+        dayOfWeek || null, 
+        readingType
+      );
+      
+      if (success) {
+        res.json({ 
+          message: 'Bible curriculum item marked as completed',
+          weekNumber,
+          dayOfWeek,
+          readingType,
+          completedAt: new Date().toISOString()
+        });
+      } else {
+        res.status(500).json({ message: 'Failed to mark curriculum item as completed' });
+      }
+    } catch (error) {
+      console.error('Error marking Bible curriculum completed:', error);
+      res.status(500).json({ message: 'Failed to mark curriculum item as completed' });
+    }
+  });
+
+  // GET /api/bible-curriculum/progress - Get overall curriculum progress
+  app.get('/api/bible-curriculum/progress', async (req, res) => {
+    try {
+      const currentWeek = getCurrentCurriculumWeek();
+      
+      if (!currentWeek) {
+        return res.json({
+          message: 'School year not currently active',
+          currentWeek: null,
+          progress: null
+        });
+      }
+      
+      // Get progress for current week and a few surrounding weeks
+      const weekNumbers = [
+        Math.max(1, currentWeek - 1),
+        currentWeek,
+        Math.min(52, currentWeek + 1)
+      ];
+      
+      const weeklyProgress = await Promise.all(
+        weekNumbers.map(week => getWeeklyBibleProgress(week))
+      );
+      
+      res.json({
+        currentWeek,
+        weeklyProgress: weeklyProgress.filter(Boolean),
+        schoolYearStartDate: process.env.SCHOOL_YEAR_START_DATE || '2025-08-14'
+      });
+    } catch (error) {
+      console.error('Error fetching Bible curriculum progress:', error);
+      res.status(500).json({ message: 'Failed to fetch curriculum progress' });
     }
   });
 

@@ -157,9 +157,9 @@ export const scheduleTemplate = pgTable("schedule_template", {
 export const bibleCurriculum = pgTable("bible_curriculum", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   weekNumber: integer("week_number").notNull(),
-  dayOfWeek: integer("day_of_week").notNull(), // 1-5 for Mon-Fri
+  dayOfWeek: integer("day_of_week"), // 1-5 for Mon-Fri, null for weekly memory verses
   readingTitle: text("reading_title"),
-  readingType: text("reading_type"), // "lesson", "memory_verse", etc.
+  readingType: text("reading_type"), // "daily_reading", "memory_verse", etc.
   completed: boolean("completed").default(false),
   completedAt: timestamp("completed_at"),
 });
