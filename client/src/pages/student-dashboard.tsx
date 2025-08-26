@@ -2,7 +2,23 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { 
+  RefreshCw, 
+  ChevronLeft, 
+  ChevronRight, 
+  Calendar,
+  Home,
+  Settings,
+  Moon,
+  BookOpen,
+  FileText,
+  Users,
+  Utensils,
+  Package,
+  Car,
+  Building2
+} from 'lucide-react';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
 import { BibleBlock } from '@/components/BibleBlock';
@@ -132,32 +148,40 @@ export default function StudentDashboard() {
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
         
-        {/* Clean Header with Date Navigation */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground" data-testid="welcome-message">
-              Welcome, {studentName}!
-            </h1>
-            <div className="flex items-center gap-3 mt-1">
-              <p className="text-lg text-muted-foreground" data-testid="date-display">
-                {dateDisplay}
-              </p>
-              {!isToday && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToToday}
-                  className="text-xs"
-                  data-testid="button-go-to-today"
-                >
-                  Go to Today
-                </Button>
-              )}
+        {/* Header - Student name left, action buttons right */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-foreground" data-testid="student-name">
+            {studentName}
+          </h1>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" data-testid="button-home">
+              <Home className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" data-testid="button-settings">
+              <Settings className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" data-testid="button-theme">
+              <Moon className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Second row - Date/Co-op + Mode toggles */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span data-testid="date-display">{dateDisplay}</span>
             </div>
+            {isThursday && (
+              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                Co-op Day
+              </Badge>
+            )}
           </div>
           
-          <div className="flex items-center gap-2">
-            {/* Date Navigation */}
+          <div className="flex items-center gap-4">
+            {/* Date Navigation for testing (will be removed later) */}
             <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
               <Button
                 variant="ghost"
@@ -181,18 +205,8 @@ export default function StudentDashboard() {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              className="flex items-center gap-2"
-              data-testid="button-refresh"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Refresh
-            </Button>
-            
-            {/* Simple Toggle - Just like your dashboards */}
+
+            {/* Overview/Guided Mode Toggle */}
             <div className="flex items-center bg-muted rounded-lg p-1">
               <Button
                 variant={!isGuidedMode ? "default" : "ghost"}
@@ -201,7 +215,7 @@ export default function StudentDashboard() {
                 className="text-sm"
                 data-testid="button-overview-mode"
               >
-                Overview
+                👁 Overview Mode
               </Button>
               <Button
                 variant={isGuidedMode ? "default" : "ghost"}
@@ -210,7 +224,7 @@ export default function StudentDashboard() {
                 className="text-sm"
                 data-testid="button-guided-mode"
               >
-                Guided
+                ▶ Guided Day
               </Button>
             </div>
           </div>
@@ -229,39 +243,41 @@ export default function StudentDashboard() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Daily Schedule - Fixed Blocks & Assignments */}
-            <div>
-              <h2 className="text-xl font-semibold text-foreground mb-4">
-                {isToday ? "Today's" : `${dayName}'s`} Complete Schedule
-                {!isToday && (
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({selectedDateObj.toLocaleDateString()})
-                  </span>
-                )}
-              </h2>
-              {/* Single card with compact list layout matching screenshot */}
-              <Card className="bg-card border border-border">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-4">
-                    {isToday ? "Today's" : `${dayName}'s`} Schedule ({allScheduleBlocks.length} blocks)
-                  </h3>
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                <span>0 of {allScheduleBlocks.length} blocks completed</span>
+                <span>0%</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div className="bg-primary h-2 rounded-full" style={{ width: '0%' }}></div>
+              </div>
+            </div>
+
+            {/* Single card with compact list layout matching screenshot */}
+            <Card className="bg-card border border-border">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">
+                  {isToday ? "Today's" : `${dayName}'s`} Schedule
+                </h3>
                   
                   <div className="space-y-3">
                     {/* Show ALL schedule blocks in chronological order with compact layout */}
                     {allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((block) => {
-                        // Get appropriate icon and format time
+                        // Get appropriate icon component (simple, ADHD-friendly)
                         const getBlockIcon = (blockType: string) => {
+                          const iconClass = "h-4 w-4 text-muted-foreground";
                           switch(blockType) {
-                            case 'bible': return '📖';
-                            case 'assignment': return '📚';
-                            case 'movement': return '🏃';
-                            case 'lunch': return '🍽️';
-                            case 'prep/load': return '📦';
-                            case 'travel': return '🚗';
-                            case 'co-op': return '🏢';
-                            default: return '📋';
+                            case 'bible': return <BookOpen className={iconClass} />;
+                            case 'assignment': return <FileText className={iconClass} />;
+                            case 'movement': return <Users className={iconClass} />;
+                            case 'lunch': return <Utensils className={iconClass} />;
+                            case 'prep/load': return <Package className={iconClass} />;
+                            case 'travel': return <Car className={iconClass} />;
+                            case 'co-op': return <Building2 className={iconClass} />;
+                            default: return <FileText className={iconClass} />;
                           }
                         };
                         
@@ -299,25 +315,26 @@ export default function StudentDashboard() {
                         return (
                           <div key={block.id} className="flex items-center justify-between py-2">
                             <div className="flex items-center gap-3 flex-1">
-                              <div className="text-lg">{getBlockIcon(block.blockType)}</div>
-                              <div className="flex-1">
+                              <div className="flex-shrink-0">{getBlockIcon(block.blockType)}</div>
+                              <div className="flex-1 min-w-0">
                                 <div className="font-medium text-sm text-foreground">{blockTitle}</div>
                                 {blockDetails && (
-                                  <div className="text-sm text-muted-foreground">{blockDetails}</div>
+                                  <div className="text-sm text-muted-foreground truncate">{blockDetails}</div>
                                 )}
                               </div>
-                              <div className="text-sm text-muted-foreground mr-4">
+                              <div className="text-sm text-muted-foreground mr-4 flex-shrink-0">
                                 {formatTime(block.startTime, block.endTime)}
                               </div>
                             </div>
-                            <div className="text-sm text-muted-foreground">not started</div>
+                            <Badge variant="secondary" className="text-xs">
+                              not started
+                            </Badge>
                           </div>
                         );
                       })}
                   </div>
                 </CardContent>
               </Card>
-            </div>
           </div>
         )}
       </div>
