@@ -1,5 +1,20 @@
-// Note: Using Neon database with Drizzle ORM instead of Supabase REST API
-// The DATABASE_URL points to a Neon PostgreSQL database, not Supabase
+import { createClient } from '@supabase/supabase-js';
+
+// Environment validation
+if (!process.env.SUPABASE_ANON_KEY) {
+  throw new Error("SUPABASE_ANON_KEY is required. Please set your Supabase API key.");
+}
+
+// Extract Supabase URL from DATABASE_URL
+// Your DATABASE_URL contains the Supabase database connection
+let supabaseUrl = 'https://yusqctrtoskjtahtibwh.supabase.co'; // Extracted from your DATABASE_URL
+
+// Create Supabase client for your existing database
+export const supabase = createClient(supabaseUrl, process.env.SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false // Server-side usage
+  }
+});
 
 // Canvas configuration
 export const canvasConfig = {

@@ -5,9 +5,7 @@ import {
   type BibleCurriculum, type InsertBibleCurriculum 
 } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { db } from "./db";
-import { assignments, users, scheduleTemplate, bibleCurriculum } from "@shared/schema";
-import { eq, and } from 'drizzle-orm';
+import { supabase } from "./lib/supabase";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -86,16 +84,23 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignments(userId: string, date?: string): Promise<Assignment[]> {
     try {
+      let query = supabase
+        .from('assignments')
+        .select('*')
+        .eq('user_id', userId);
+      
       if (date) {
-        const result = await db.select().from(assignments).where(and(
-          eq(assignments.userId, userId),
-          eq(assignments.scheduledDate, date)
-        ));
-        return result as Assignment[];
-      } else {
-        const result = await db.select().from(assignments).where(eq(assignments.userId, userId));
-        return result as Assignment[];
+        query = query.eq('scheduled_date', date);
       }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error getting assignments:', error);
+        return [];
+      }
+      
+      return (data || []) as Assignment[];
     } catch (error) {
       console.error('Error getting assignments:', error);
       return [];
@@ -116,33 +121,40 @@ export class DatabaseStorage implements IStorage {
     try {
       const assignmentData = {
         id: randomUUID(),
-        userId: data.userId,
+        user_id: data.userId,
         title: data.title,
         subject: data.subject || null,
-        courseName: data.courseName || null,
+        course_name: data.courseName || null,
         instructions: data.instructions || null,
-        dueDate: data.dueDate || null,
-        scheduledDate: data.scheduledDate || null,
-        scheduledBlock: data.scheduledBlock || null,
-        blockStart: data.blockStart || null,
-        blockEnd: data.blockEnd || null,
-        actualEstimatedMinutes: data.actualEstimatedMinutes || 30,
-        completionStatus: data.completionStatus || 'pending',
-        blockType: data.blockType || 'assignment',
-        isAssignmentBlock: data.isAssignmentBlock ?? true,
+        due_date: data.dueDate || null,
+        scheduled_date: data.scheduledDate || null,
+        scheduled_block: data.scheduledBlock || null,
+        block_start: data.blockStart || null,
+        block_end: data.blockEnd || null,
+        actual_estimated_minutes: data.actualEstimatedMinutes || 30,
+        completion_status: data.completionStatus || 'pending',
+        block_type: data.blockType || 'assignment',
+        is_assignment_block: data.isAssignmentBlock ?? true,
         priority: data.priority || 'B',
         difficulty: data.difficulty || 'medium',
-        timeSpent: data.timeSpent || 0,
+        time_spent: data.timeSpent || 0,
         notes: data.notes || null,
+        created_at: new Date(),
+        updated_at: new Date()
       };
       
-      const result = await db.insert(assignments).values(assignmentData).returning();
+      const { data: assignment, error } = await supabase
+        .from('assignments')
+        .insert(assignmentData)
+        .select()
+        .single();
       
-      if (!result || result.length === 0) {
+      if (error) {
+        console.error('Error creating assignment:', error);
         throw new Error('Failed to create assignment');
       }
       
-      return result[0] as Assignment;
+      return assignment as Assignment;
     } catch (error) {
       console.error('Error creating assignment:', error);
       throw new Error('Failed to create assignment');
