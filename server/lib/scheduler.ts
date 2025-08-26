@@ -379,6 +379,7 @@ class JobScheduler {
     
     const students = ['Abigail', 'Khalil'];
     let totalCleaned = 0;
+    let totalFixed = 0;
     
     for (const studentName of students) {
       try {
@@ -387,6 +388,7 @@ class JobScheduler {
         
         for (const assignment of assignments) {
           let shouldDelete = false;
+          let shouldFix = false;
           let reason = '';
           
           // Check for assignments with old due dates that are clearly from previous academic years
@@ -413,10 +415,25 @@ class JobScheduler {
             reason = 'contains previous year date or template content';
           }
           
+          // Fix misclassified In Class assignments
+          if (assignment.title.toLowerCase().includes('in class') && 
+              assignment.blockType === 'assignment' && 
+              assignment.isAssignmentBlock === true) {
+            shouldFix = true;
+            reason = 'In Class assignment incorrectly categorized as schedulable';
+          }
+          
           if (shouldDelete) {
             console.log(`🗑️ Removing problematic assignment: "${assignment.title}" - ${reason}`);
             await storage.deleteAssignment(assignment.id);
             totalCleaned++;
+          } else if (shouldFix) {
+            console.log(`🔧 Fixing "${assignment.title}" - changing from schedulable assignment to fixed co-op block`);
+            await storage.updateAssignment(assignment.id, {
+              blockType: 'co-op',
+              isAssignmentBlock: false
+            });
+            totalFixed++;
           }
         }
       } catch (error) {
@@ -424,7 +441,7 @@ class JobScheduler {
       }
     }
     
-    console.log(`✅ Problematic assignment cleanup completed. Removed ${totalCleaned} assignments.`);
+    console.log(`✅ Problematic assignment cleanup completed. Removed ${totalCleaned} assignments, fixed ${totalFixed} assignments.`);
   }
 
   private parseCronToMs(cronPattern: string): number {

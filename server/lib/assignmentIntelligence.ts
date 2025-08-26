@@ -110,7 +110,20 @@ export function isInClassActivity(title: string): boolean {
     /class\s+work/i,                   // "Class Work"
   ];
 
-  return inClassPatterns.some(pattern => pattern.test(title));
+  const isInClass = inClassPatterns.some(pattern => pattern.test(title));
+  
+  // Enhanced debugging for in-class detection
+  if (title.toLowerCase().includes('class')) {
+    console.log(`🔍 Class activity check: "${title}" -> ${isInClass ? 'IN-CLASS' : 'NOT in-class'}`);
+    inClassPatterns.forEach((pattern, index) => {
+      const matches = pattern.test(title);
+      if (matches) {
+        console.log(`   ✅ Pattern ${index + 1} matched: ${pattern}`);
+      }
+    });
+  }
+
+  return isInClass;
 }
 
 /**
@@ -198,8 +211,12 @@ export function analyzeAssignmentWithCanvas(
     course_end_date?: string;
   }
 ): AssignmentIntelligence {
+  console.log(`🔬 Processing assignment: "${title}"`);
+  
   const isInClass = isInClassActivity(title);
   const extractedDueDate = extractDueDateFromTitle(title) || (isInClass ? extractClassDate(title) : null);
+  
+  console.log(`   🏫 Is in-class: ${isInClass}`);
   
   // Determine category
   let category: 'homework' | 'in-class' | 'makeup' | 'other' = 'other';
@@ -221,6 +238,8 @@ export function analyzeAssignmentWithCanvas(
   if (isInClass && category !== 'makeup') {
     blockType = 'co-op'; // Fixed co-op class time
   }
+  
+  console.log(`   📋 Category: ${category} | Schedulable: ${isSchedulable} | Block type: ${blockType}`);
 
   // Enhanced analysis with Canvas data
   const isRecurring = canvasData?.is_recurring || isRecurringAssignment(title, description);

@@ -597,6 +597,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Fix misclassified In Class assignments endpoint
+  app.post('/api/fix-in-class-assignments', async (req, res) => {
+    try {
+      console.log('🔧 Fixing misclassified In Class assignments via direct database update...');
+      
+      // Use direct SQL update for efficiency with large number of assignments
+      const result = await storage.executeDirectSQL(`
+        UPDATE assignments 
+        SET 
+          block_type = 'co-op',
+          is_assignment_block = false,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE 
+          LOWER(title) LIKE '%in class%' 
+          AND block_type = 'assignment' 
+          AND is_assignment_block = true
+        RETURNING id, title, block_type, is_assignment_block
+      `);
+      
+      const totalFixed = result?.length || 0;
+      
+      if (totalFixed > 0) {
+        console.log(`🎉 Successfully fixed ${totalFixed} In Class assignments`);
+        result.forEach(assignment => {
+          console.log(`   ✅ "${assignment.title}" -> co-op block (non-schedulable)`);
+        });
+      }
+      
+      res.json({ 
+        message: `Fixed ${totalFixed} In Class assignments`,
+        assignments: result,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Fix In Class assignments failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ 
+        message: 'Fix failed', 
+        error: errorMessage,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Test assignment processing endpoint  
+  app.post('/api/test-assignment-processing', async (req, res) => {
+    try {
+      const { title } = req.body;
+      
+      if (!title) {
+        return res.status(400).json({ message: 'Title is required' });
+      }
+      
+      // Import the processing function
+      const { analyzeAssignmentWithCanvas } = await import('./lib/assignmentIntelligence.js');
+      const result = analyzeAssignmentWithCanvas(title);
+      
+      res.json({
+        title,
+        processing: {
+          isInClassActivity: result.isInClassActivity,
+          blockType: result.blockType,
+          isSchedulable: result.isSchedulable,
+          category: result.category,
+          confidence: result.confidence
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Test processing failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ 
+        message: 'Test failed', 
+        error: errorMessage,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
 
   // Schedule template bulk upload endpoint
   app.post('/api/schedule-templates/bulk-upload', async (req, res) => {
