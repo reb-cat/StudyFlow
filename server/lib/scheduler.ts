@@ -62,8 +62,8 @@ class JobScheduler {
                 await storage.createAssignment({
                   userId: userId,
                   title: canvasAssignment.name,
-                  subject: 'Canvas Course',
-                  courseName: 'Canvas Course',
+                  subject: canvasAssignment.courseName || 'Unknown Course',
+                  courseName: canvasAssignment.courseName || 'Unknown Course',
                   instructions: canvasAssignment.description || 'Assignment from Canvas',
                   dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
                   scheduledDate: this.getNextAssignmentDate(),
@@ -93,8 +93,8 @@ class JobScheduler {
                 await storage.createAssignment({
                   userId: userId,
                   title: `${canvasAssignment.name} (Canvas 2)`,
-                  subject: 'Canvas Course 2',
-                  courseName: 'Canvas Course 2',
+                  subject: canvasAssignment.courseName || 'Unknown Course 2',
+                  courseName: canvasAssignment.courseName || 'Unknown Course 2',
                   instructions: canvasAssignment.description || 'Assignment from Canvas instance 2',
                   dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
                   scheduledDate: this.getNextAssignmentDate(),

@@ -8,6 +8,7 @@ export interface CanvasAssignment {
   course_id: number;
   submission_types: string[];
   points_possible?: number;
+  courseName?: string; // Added for course name mapping
 }
 
 export interface CanvasCourse {
@@ -85,7 +86,14 @@ export class CanvasClient {
           // Request maximum assignments per page and include completed assignments
           const assignments = await this.makeRequest<CanvasAssignment[]>(`/courses/${course.id}/assignments?per_page=100&include[]=all_dates&order_by=due_at`);
           console.log(`  📖 Course "${course.name}" (${course.id}): ${assignments.length} assignments`);
-          allAssignments.push(...assignments);
+          
+          // Add course name to each assignment for easy reference
+          const assignmentsWithCourseName = assignments.map(assignment => ({
+            ...assignment,
+            courseName: course.name
+          }));
+          
+          allAssignments.push(...assignmentsWithCourseName);
         } catch (error) {
           console.warn(`Failed to get assignments for course ${course.id} (${course.name}):`, error);
         }
