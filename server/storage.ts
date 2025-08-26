@@ -280,36 +280,50 @@ export class DatabaseStorage implements IStorage {
 
   async createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate> {
     try {
-      // Map camelCase field names to snake_case database column names
-      const dbRecord = {
-        student_name: template.studentName,
+      // BYPASS SUPABASE - Use direct database insert to avoid cached enum issue
+      const result = await db.insert(scheduleTemplate).values({
+        studentName: template.studentName,
         weekday: template.weekday,
-        block_number: template.blockNumber,
-        start_time: template.startTime,
-        end_time: template.endTime,
+        blockNumber: template.blockNumber,
+        startTime: template.startTime,
+        endTime: template.endTime,
         subject: template.subject,
-        block_type: template.blockType
-      };
+        blockType: template.blockType
+      }).returning();
       
-      console.log('📝 Attempting to insert:', dbRecord);
+      console.log('✅ Direct DB insert successful');
+      return result[0];
+    } catch (error) {
+      console.error('Error creating schedule template via Drizzle:', error);
       
-      const { data, error } = await supabase
-        .from('schedule_template')
-        .insert(dbRecord)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('❌ Supabase error response:', error);
-        console.error('❌ Record we tried to insert:', dbRecord);
+      // Fallback to Supabase (though it likely won't work due to cache)
+      try {
+        const dbRecord = {
+          student_name: template.studentName,
+          weekday: template.weekday,
+          block_number: template.blockNumber,
+          start_time: template.startTime,
+          end_time: template.endTime,
+          subject: template.subject,
+          block_type: template.blockType
+        };
+        
+        const { data, error: supabaseError } = await supabase
+          .from('schedule_template')
+          .insert(dbRecord)
+          .select()
+          .single();
+        
+        if (supabaseError) {
+          console.error('❌ Supabase also failed:', supabaseError);
+          throw new Error('Failed to create schedule template');
+        }
+        
+        return data as ScheduleTemplate;
+      } catch (fallbackError) {
+        console.error('Both methods failed');
         throw new Error('Failed to create schedule template');
       }
-      
-      console.log('✅ Successfully inserted:', data);
-      return data as ScheduleTemplate;
-    } catch (error) {
-      console.error('Error creating schedule template:', error);
-      throw new Error('Failed to create schedule template');
     }
   }
 
