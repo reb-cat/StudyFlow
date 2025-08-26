@@ -22,7 +22,7 @@ export default function StudentDashboard() {
   });
 
   // Fetch schedule template for the student and date
-  const { data: scheduleTemplate = [] } = useQuery({
+  const { data: scheduleTemplate = [] } = useQuery<any[]>({
     queryKey: ['/api/schedule', studentName, selectedDate],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -34,7 +34,6 @@ export default function StudentDashboard() {
 
   const todayAssignments = assignments as Assignment[];
   
-  console.log('Schedule template data:', { studentName, selectedDate, scheduleTemplate });
   
   // Date utilities
   const selectedDateObj = new Date(selectedDate);
@@ -70,23 +69,23 @@ export default function StudentDashboard() {
     setSelectedDate(new Date().toISOString().split('T')[0]);
   };
 
-  // Use real schedule template data from database
-  const allScheduleBlocks = scheduleTemplate.map((block: any) => ({
+  // Use real schedule template data from database (fix field mapping)
+  const allScheduleBlocks = scheduleTemplate.map((block) => ({
     id: block.id,
     title: block.subject,
-    blockType: block.blockType.toLowerCase(),
-    startTime: block.startTime.substring(0, 5), // Remove seconds from HH:MM:SS
-    endTime: block.endTime.substring(0, 5),
-    blockNumber: block.blockNumber,
+    blockType: block.block_type?.toLowerCase() || 'unknown',
+    startTime: block.start_time?.substring(0, 5) || '00:00', // Remove seconds from HH:MM:SS
+    endTime: block.end_time?.substring(0, 5) || '00:00',
+    blockNumber: block.block_number,
     subject: block.subject
   }));
 
-  // Separate Bible blocks from other fixed blocks
-  const bibleBlocks = allScheduleBlocks.filter((block: any) => block.blockType === 'bible');
-  const fixedBlocks = allScheduleBlocks.filter((block: any) => 
+  // Separate Bible blocks from other fixed blocks using real data
+  const bibleBlocks = allScheduleBlocks.filter((block) => block.blockType === 'bible');
+  const fixedBlocks = allScheduleBlocks.filter((block) => 
     ['travel', 'co-op', 'prep/load', 'movement', 'lunch'].includes(block.blockType)
   );
-  const assignmentBlocks = allScheduleBlocks.filter((block: any) => block.blockType === 'assignment');
+  const assignmentBlocks = allScheduleBlocks.filter((block) => block.blockType === 'assignment');
 
   if (isWeekend) {
     return (
@@ -241,27 +240,28 @@ export default function StudentDashboard() {
                 )}
               </h2>
               <div className="space-y-4">
-                {/* Bible Block - always first (except Thursday has different time) */}
-                <BibleBlock 
-                  date={selectedDate}
-                  blockStart={isThursday ? "8:30" : "9:00"}
-                  blockEnd={isThursday ? "8:50" : "9:20"}
-                />
+                {/* Bible Blocks from real schedule data */}
+                {bibleBlocks.map((block) => (
+                  <BibleBlock 
+                    key={block.id}
+                    date={selectedDate}
+                    blockStart={block.startTime}
+                    blockEnd={block.endTime}
+                  />
+                ))}
                 
-                {/* Fixed Blocks */}
-                {fixedBlocks
-                  .filter(block => !block.thursdayOnly || (block.thursdayOnly && isThursday))
-                  .map((block) => (
-                    <FixedBlock
-                      key={block.id}
-                      blockId={block.id}
-                      title={block.title}
-                      blockType={block.blockType}
-                      blockStart={block.startTime}
-                      blockEnd={block.endTime}
-                      date={selectedDate}
-                    />
-                  ))}
+                {/* Fixed Blocks from real schedule data */}
+                {fixedBlocks.map((block) => (
+                  <FixedBlock
+                    key={block.id}
+                    blockId={block.id}
+                    title={block.title}
+                    blockType={block.blockType}
+                    blockStart={block.startTime}
+                    blockEnd={block.endTime}
+                    date={selectedDate}
+                  />
+                ))}
                 
                 {/* Assignment Blocks */}
                 {todayAssignments.length === 0 ? (

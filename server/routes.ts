@@ -315,7 +315,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get schedule template for a specific student and date
   app.get('/api/schedule/:studentName/:date', async (req, res) => {
     try {
-      console.log('🔥 Schedule route hit!', req.params);
       const { studentName, date } = req.params;
       
       // Convert date to weekday name

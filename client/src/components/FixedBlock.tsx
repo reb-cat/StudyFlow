@@ -7,7 +7,7 @@ import { apiRequest } from '@/lib/queryClient';
 interface FixedBlockProps {
   blockId: string;
   title: string;
-  blockType: 'travel' | 'prep' | 'lunch' | 'coop' | 'break';
+  blockType: string; // Allow any block type from database
   blockStart: string;
   blockEnd: string;
   date: string;
@@ -15,20 +15,24 @@ interface FixedBlockProps {
   className?: string;
 }
 
-const blockIcons = {
+const blockIcons: Record<string, any> = {
   travel: Car,
-  prep: Clock,
+  'prep/load': Clock,
   lunch: Coffee,
   coop: Users,
-  break: Clock
+  break: Clock,
+  movement: Clock,
+  'co-op': Users
 };
 
-const blockColors = {
+const blockColors: Record<string, string> = {
   travel: 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800 text-orange-900 dark:text-orange-100',
-  prep: 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-100',
+  'prep/load': 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-100',
   lunch: 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100',
   coop: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-100',
-  break: 'bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100'
+  'co-op': 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-100',
+  break: 'bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100',
+  movement: 'bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100'
 };
 
 export function FixedBlock({ 
@@ -44,8 +48,8 @@ export function FixedBlock({
   const [isAttended, setIsAttended] = useState(attended);
   const queryClient = useQueryClient();
   
-  const Icon = blockIcons[blockType];
-  const colorClasses = blockColors[blockType];
+  const Icon = blockIcons[blockType] || Clock; // Default to Clock if not found
+  const colorClasses = blockColors[blockType] || blockColors.break;
 
   // Mutation to update attendance
   const attendanceMutation = useMutation({

@@ -31,13 +31,13 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   const { toast } = useToast();
   
   // Build complete schedule using real schedule template data (same as Overview mode)
-  const allScheduleBlocks = scheduleTemplate.map((block: any) => ({
+  const allScheduleBlocks = scheduleTemplate.map((block) => ({
     id: block.id,
     title: block.subject,
-    blockType: block.blockType.toLowerCase(),
-    startTime: block.startTime.substring(0, 5), // Remove seconds from HH:MM:SS
-    endTime: block.endTime.substring(0, 5),
-    blockNumber: block.blockNumber,
+    blockType: block.block_type?.toLowerCase() || 'unknown',
+    startTime: block.start_time?.substring(0, 5) || '00:00', // Remove seconds from HH:MM:SS
+    endTime: block.end_time?.substring(0, 5) || '00:00',
+    blockNumber: block.block_number,
     subject: block.subject
   }));
 
@@ -45,7 +45,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   const scheduleBlocks: ScheduleBlock[] = [
     // Bible blocks from schedule template
     ...allScheduleBlocks
-      .filter((block: any) => block.blockType === 'bible')
+      .filter((block) => block.blockType === 'bible')
       .map(block => ({
         id: block.id,
         type: 'bible' as const,
@@ -57,7 +57,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
       })),
     // Fixed blocks from schedule template
     ...allScheduleBlocks
-      .filter((block: any) => ['travel', 'co-op', 'prep/load', 'movement', 'lunch'].includes(block.blockType))
+      .filter((block) => ['travel', 'co-op', 'prep/load', 'movement', 'lunch'].includes(block.blockType))
       .map(block => ({
         id: block.id,
         type: 'fixed' as const,
