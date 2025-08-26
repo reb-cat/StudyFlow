@@ -3,28 +3,98 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Play, CheckCircle, Clock, HelpCircle, AlertTriangle } from 'lucide-react';
+import { Play, CheckCircle, Clock, HelpCircle, AlertTriangle, BookOpen, Car, Utensils, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Assignment } from '@shared/schema';
+import { BibleBlock } from './BibleBlock';
+import { FixedBlock } from './FixedBlock';
+
+interface ScheduleBlock {
+  id: string;
+  type: 'bible' | 'fixed' | 'assignment';
+  title: string;
+  startTime: string;
+  endTime: string;
+  estimatedMinutes?: number;
+  assignment?: Assignment;
+  blockType?: string;
+}
 
 interface GuidedDayViewProps {
   assignments: Assignment[];
   studentName: string;
+  selectedDate: string;
   onAssignmentUpdate?: () => void;
 }
 
-export function GuidedDayView({ assignments, studentName, onAssignmentUpdate }: GuidedDayViewProps) {
+export function GuidedDayView({ assignments, studentName, selectedDate, onAssignmentUpdate }: GuidedDayViewProps) {
   const { toast } = useToast();
   
-  // Filter out completed assignments
-  const incompleteAssignments = assignments.filter(a => a.completionStatus !== 'completed');
+  // Build complete schedule (same as Overview mode)
+  const selectedDateObj = new Date(selectedDate);
+  const isThursday = selectedDateObj.getDay() === 4;
+  
+  // Create complete schedule blocks in order
+  const scheduleBlocks: ScheduleBlock[] = [
+    // Bible block first
+    {
+      id: 'bible-block',
+      type: 'bible',
+      title: 'Bible Reading',
+      startTime: isThursday ? '8:30' : '9:00',
+      endTime: isThursday ? '8:50' : '9:20',
+      estimatedMinutes: 20
+    },
+    // Fixed blocks (these should come from schedule template)
+    {
+      id: 'travel-1',
+      type: 'fixed',
+      title: 'Travel to Co-op',
+      startTime: '8:00',
+      endTime: '8:30',
+      estimatedMinutes: 30,
+      blockType: 'travel'
+    },
+    {
+      id: 'lunch-1', 
+      type: 'fixed',
+      title: 'Lunch Break',
+      startTime: '12:00',
+      endTime: '12:30',
+      estimatedMinutes: 30,
+      blockType: 'lunch'
+    },
+    // Co-op only on Thursday
+    ...(isThursday ? [{
+      id: 'coop-1',
+      type: 'fixed' as const,
+      title: 'Co-op Classes',
+      startTime: '9:00',
+      endTime: '15:00', 
+      estimatedMinutes: 360,
+      blockType: 'coop'
+    }] : []),
+    // Assignment blocks
+    ...assignments
+      .sort((a, b) => (a.scheduledBlock || 0) - (b.scheduledBlock || 0))
+      .map(assignment => ({
+        id: assignment.id,
+        type: 'assignment' as const,
+        title: assignment.title,
+        startTime: assignment.blockStart || '10:00',
+        endTime: assignment.blockEnd || '10:45',
+        estimatedMinutes: assignment.actualEstimatedMinutes || 30,
+        assignment
+      }))
+  ].sort((a, b) => a.startTime.localeCompare(b.startTime));
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [phase, setPhase] = useState<'idle' | 'running' | 'break'>('idle');
   const [startedAt, setStartedAt] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [breakRemaining, setBreakRemaining] = useState(0);
 
-  const currentAssignment = incompleteAssignments[currentIndex];
+  const currentBlock = scheduleBlocks[currentIndex];
 
   // Timer for running phase
   useEffect(() => {

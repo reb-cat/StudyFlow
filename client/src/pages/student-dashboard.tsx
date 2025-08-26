@@ -231,6 +231,7 @@ export default function StudentDashboard() {
             <GuidedDayView
               assignments={todayAssignments}
               studentName={studentName}
+              selectedDate={selectedDate}
               onAssignmentUpdate={handleAssignmentUpdate}
             />
           </div>

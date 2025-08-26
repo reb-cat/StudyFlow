@@ -35,9 +35,18 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
   
   // Convert JavaScript day (0=Sunday) to our curriculum day (1=Monday, 2=Tuesday, etc.)
   // Skip weekends - only Monday (1) through Friday (5)
-  const curriculumDay = jsDay === 0 ? null : jsDay; // Sunday = null, Mon=1, Tue=2, etc.
+  const curriculumDay = jsDay === 0 || jsDay === 6 ? null : jsDay; // Weekend = null, Mon=1, Tue=2, etc.
   
-  const todaysReading = curriculumDay ? bibleData.find(reading => reading.dayOfWeek === curriculumDay) : null;
+  console.log('Bible curriculum debug:', { 
+    date, 
+    jsDay, 
+    curriculumDay, 
+    bibleDataLength: bibleData.length,
+    availableDays: bibleData.map(r => r.day_of_week),
+    sampleReading: bibleData[0]
+  });
+  
+  const todaysReading = curriculumDay ? bibleData.find(reading => reading.day_of_week === curriculumDay) : null;
 
   // Mutation to update completion status
   const completionMutation = useMutation({
