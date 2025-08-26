@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
+import { BibleBlock } from '@/components/BibleBlock';
+import { FixedBlock } from '@/components/FixedBlock';
 import type { Assignment } from '@shared/schema';
 
 export default function StudentDashboard() {
@@ -36,6 +38,40 @@ export default function StudentDashboard() {
     month: 'long', 
     day: 'numeric' 
   });
+
+  // Fixed blocks for the day (sample schedule)
+  const isThursday = today.getDay() === 4;
+  const fixedBlocks = [
+    // Bible is handled separately as it has special logic
+    // Travel/prep block
+    {
+      id: 'travel-1',
+      title: 'Travel to Co-op',
+      blockType: 'travel' as const,
+      startTime: '8:00',
+      endTime: '8:30',
+      showOnThursday: true
+    },
+    // Lunch break
+    {
+      id: 'lunch-1',
+      title: 'Lunch Break',
+      blockType: 'lunch' as const,
+      startTime: '12:00',
+      endTime: '12:30',
+      showOnThursday: true
+    },
+    // Co-op classes (Thursday only)
+    {
+      id: 'coop-1',
+      title: 'Co-op Classes',
+      blockType: 'coop' as const,
+      startTime: '9:00',
+      endTime: '15:00',
+      showOnThursday: true,
+      thursdayOnly: true
+    }
+  ];
 
   if (isWeekend) {
     return (
@@ -139,28 +175,55 @@ export default function StudentDashboard() {
             />
           </div>
         ) : (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Today's Schedule</h2>
-            
-            {todayAssignments.length === 0 ? (
-              <Card className="bg-card border border-border">
-                <CardContent className="p-8 text-center">
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No assignments for today</h3>
-                  <p className="text-muted-foreground">Great job staying on top of your work! 🎉</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {todayAssignments.map((assignment) => (
-                  <AssignmentCard
-                    key={assignment.id}
-                    assignment={assignment}
-                    onUpdate={handleAssignmentUpdate}
-                    variant="compact"
-                  />
-                ))}
+          <div className="space-y-6">
+            {/* Daily Schedule - Fixed Blocks & Assignments */}
+            <div>
+              <h2 className="text-xl font-semibold text-foreground mb-4">Today's Complete Schedule</h2>
+              <div className="space-y-4">
+                {/* Bible Block - always first (except Thursday has different time) */}
+                <BibleBlock 
+                  date={selectedDate}
+                  blockStart={isThursday ? "8:30" : "9:00"}
+                  blockEnd={isThursday ? "8:50" : "9:20"}
+                />
+                
+                {/* Fixed Blocks */}
+                {fixedBlocks
+                  .filter(block => !block.thursdayOnly || (block.thursdayOnly && isThursday))
+                  .map((block) => (
+                    <FixedBlock
+                      key={block.id}
+                      blockId={block.id}
+                      title={block.title}
+                      blockType={block.blockType}
+                      blockStart={block.startTime}
+                      blockEnd={block.endTime}
+                      date={selectedDate}
+                    />
+                  ))}
+                
+                {/* Assignment Blocks */}
+                {todayAssignments.length === 0 ? (
+                  <Card className="bg-card border border-border">
+                    <CardContent className="p-8 text-center">
+                      <h3 className="text-lg font-semibold text-foreground mb-2">No assignments for today</h3>
+                      <p className="text-muted-foreground">Great job staying on top of your work! 🎉</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  todayAssignments
+                    .sort((a, b) => (a.scheduledBlock || 0) - (b.scheduledBlock || 0))
+                    .map((assignment) => (
+                      <AssignmentCard
+                        key={assignment.id}
+                        assignment={assignment}
+                        onUpdate={handleAssignmentUpdate}
+                        variant="compact"
+                      />
+                    ))
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>

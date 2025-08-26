@@ -427,7 +427,7 @@ export class MemStorage implements IStorage {
       completionStatus: data.completionStatus || 'pending',
       blockType: data.blockType || 'assignment',
       isAssignmentBlock: data.isAssignmentBlock ?? true,
-      priority: data.priority || 'medium',
+      priority: data.priority || 'B',
       difficulty: data.difficulty || 'medium',
       timeSpent: data.timeSpent || 0,
       notes: data.notes || null,
@@ -465,7 +465,7 @@ export class MemStorage implements IStorage {
       id: randomUUID(),
       studentName: template.studentName,
       weekday: template.weekday,
-      blockNumber: template.blockNumber,
+      blockNumber: template.blockNumber ?? null,
       startTime: template.startTime,
       endTime: template.endTime,
       subject: template.subject,
@@ -607,7 +607,7 @@ try {
   storage = new DatabaseStorage();
   console.log('✓ Using database storage');
 } catch (error) {
-  console.warn('⚠ Database connection failed, using memory storage:', error.message);
+  console.warn('⚠ Database connection failed, using memory storage:', error instanceof Error ? error.message : String(error));
   storage = new MemStorage();
 }
 

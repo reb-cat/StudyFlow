@@ -111,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           blockStart: "09:00",
           blockEnd: "09:45",
           actualEstimatedMinutes: 45,
-          priority: "high" as const,
+          priority: "A" as const,
           difficulty: "medium" as const
         },
         {
@@ -124,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           blockStart: "10:00",
           blockEnd: "11:30",
           actualEstimatedMinutes: 90,
-          priority: "medium" as const,
+          priority: "B" as const,
           difficulty: "hard" as const
         },
         {
@@ -138,7 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           blockEnd: "13:30",
           actualEstimatedMinutes: 30,
           completionStatus: "in_progress" as const,
-          priority: "medium" as const,
+          priority: "B" as const,
           difficulty: "medium" as const
         }
       ];
@@ -204,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
             actualEstimatedMinutes: 60, // Default to 1 hour
             completionStatus: 'pending',
-            priority: 'medium',
+            priority: 'B',
             difficulty: 'medium',
             canvasId: canvasAssignment.id,
             canvasInstance: 1
@@ -222,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
             actualEstimatedMinutes: 60,
             completionStatus: 'pending',
-            priority: 'medium',
+            priority: 'B',
             difficulty: 'medium',
             canvasId: canvasAssignment.id,
             canvasInstance: 2
@@ -271,7 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             scheduledDate: today, // Schedule for today for testing
             actualEstimatedMinutes: 60,
             completionStatus: 'pending',
-            priority: 'medium',
+            priority: 'B',
             difficulty: 'medium'
           });
           importedAssignments.push(assignment);
@@ -290,7 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             scheduledDate: today,
             actualEstimatedMinutes: 60,
             completionStatus: 'pending',
-            priority: 'medium',
+            priority: 'B',
             difficulty: 'medium'
           });
           importedAssignments.push(assignment);
@@ -352,6 +352,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Database test failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Database connection failed', error: errorMessage });
+    }
+  });
+
+  // Bible curriculum routes
+  app.get('/api/bible/current-week', async (req, res) => {
+    try {
+      const bibleData = await storage.getBibleCurrentWeek();
+      res.json(bibleData);
+    } catch (error) {
+      console.error('Error fetching current Bible week:', error);
+      res.status(500).json({ message: 'Failed to fetch Bible curriculum' });
+    }
+  });
+
+  app.get('/api/bible/week/:weekNumber', async (req, res) => {
+    try {
+      const weekNumber = parseInt(req.params.weekNumber);
+      const bibleData = await storage.getBibleCurriculum(weekNumber);
+      res.json(bibleData);
+    } catch (error) {
+      console.error('Error fetching Bible week:', error);
+      res.status(500).json({ message: 'Failed to fetch Bible curriculum' });
+    }
+  });
+
+  app.patch('/api/bible/completion', async (req, res) => {
+    try {
+      const { weekNumber, dayOfWeek, completed } = req.body;
+      
+      if (typeof weekNumber !== 'number' || typeof dayOfWeek !== 'number' || typeof completed !== 'boolean') {
+        return res.status(400).json({ message: 'Invalid data provided' });
+      }
+      
+      const updated = await storage.updateBibleCompletion(weekNumber, dayOfWeek, completed);
+      
+      if (!updated) {
+        return res.status(404).json({ message: 'Bible curriculum entry not found' });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating Bible completion:', error);
+      res.status(500).json({ message: 'Failed to update Bible completion' });
+    }
+  });
+
+  // Attendance tracking routes for fixed blocks
+  app.get('/api/attendance/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const date = req.query.date as string;
+      
+      // For now, return empty array - will implement attendance storage later
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+      res.status(500).json({ message: 'Failed to fetch attendance' });
+    }
+  });
+
+  app.post('/api/attendance', async (req, res) => {
+    try {
+      const { userId, blockId, date, attended, blockType } = req.body;
+      
+      // For now, just return success - will implement attendance storage later
+      res.json({ 
+        id: `attendance-${Date.now()}`,
+        userId,
+        blockId,
+        date,
+        attended,
+        blockType,
+        createdAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error recording attendance:', error);
+      res.status(500).json({ message: 'Failed to record attendance' });
     }
   });
 
