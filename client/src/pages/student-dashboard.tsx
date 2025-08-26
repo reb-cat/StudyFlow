@@ -32,7 +32,11 @@ import type { Assignment } from '@shared/schema';
 export default function StudentDashboard() {
   const studentName = "Abigail"; // Use actual student name from database
   const [isGuidedMode, setIsGuidedMode] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Always start with today's date 
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
   const [isDarkMode, setIsDarkMode] = useState(false);
   const queryClient = useQueryClient();
 
@@ -90,17 +94,27 @@ export default function StudentDashboard() {
   const todayAssignments = assignments as Assignment[];
   
   
-  // Date utilities
-  const selectedDateObj = new Date(selectedDate);
+  // Date utilities - Fix timezone issue by using UTC
+  const selectedDateObj = new Date(selectedDate + 'T12:00:00.000Z'); // Noon UTC avoids timezone issues
   const today = new Date();
   const isToday = selectedDate === today.toISOString().split('T')[0];
   const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
-  const dayName = selectedDateObj.toLocaleDateString('en-US', { weekday: 'long' });
+  const dayName = selectedDateObj.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
   const dateDisplay = selectedDateObj.toLocaleDateString('en-US', { 
     weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
-    day: 'numeric' 
+    day: 'numeric',
+    timeZone: 'UTC'
+  });
+  
+  // Debug current date calculation
+  console.log('🗓️ Date Debug:', {
+    selectedDate,
+    selectedDateObj: selectedDateObj.toString(),
+    dayName,
+    dateDisplay,
+    today: new Date().toISOString().split('T')[0]
   });
 
   // Schedule template for the selected day
@@ -391,11 +405,11 @@ export default function StudentDashboard() {
                           // Use round-robin assignment from our populated blocks
                           const populatedBlock = populatedAssignmentBlocks.find(pb => pb.id === block.id);
                           if (populatedBlock && populatedBlock.assignment) {
-                            blockTitle = 'Assignment';
-                            blockDetails = populatedBlock.assignment.title;
+                            blockTitle = populatedBlock.assignment.title; // Show assignment title as the main title
+                            blockDetails = ''; // No subtitle needed
                           } else {
-                            blockTitle = 'Assignment';
-                            blockDetails = 'Available for scheduling';
+                            blockTitle = 'Open Assignment Block';
+                            blockDetails = '';
                           }
                         } else if (block.blockType === 'bible') {
                           blockTitle = 'Bible';

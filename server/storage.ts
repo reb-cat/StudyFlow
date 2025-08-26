@@ -263,7 +263,7 @@ export class DatabaseStorage implements IStorage {
         query = query.eq('weekday', weekday);
       }
       
-      const { data, error } = await query.order('start_time');
+      const { data, error } = await query.order('start_time').limit(1000); // Explicit limit to avoid Supabase defaults
       
       if (error) {
         console.error('Error getting schedule template:', error);
