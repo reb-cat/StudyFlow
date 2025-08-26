@@ -6,8 +6,7 @@ import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas";
 import { emailConfig } from "./lib/supabase";
 import { jobScheduler } from "./lib/scheduler";
 import multer from "multer";
-import csvParser from "csv-parser";
-import { Readable } from "stream";
+// Removed csv-parser to avoid CommonJS/ES module conflicts
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Assignment API routes
@@ -565,56 +564,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('📁 Processing CSV upload:', req.file.originalname);
 
-      const csvData: any[] = [];
+      // Helper function to normalize time format (HH:MM or HH:MM:SS)
+      const normalizeTime = (timeStr: string): string => {
+        const time = timeStr?.trim();
+        if (!time) return '';
+        
+        // If already in HH:MM:SS format, return as-is
+        if (time.match(/^\d{1,2}:\d{2}:\d{2}$/)) {
+          return time;
+        }
+        
+        // If in HH:MM format, add :00 for seconds
+        if (time.match(/^\d{1,2}:\d{2}$/)) {
+          return time + ':00';
+        }
+        
+        // Return original if unrecognized format
+        return time;
+      };
+
+      // Parse CSV manually (more reliable than csv-parser in ES modules)
       const csvString = req.file.buffer.toString('utf8');
+      const lines = csvString.split('\n').filter(line => line.trim());
       
-      // Parse CSV data
-      const parsePromise = new Promise<void>((resolve, reject) => {
-        const readable = new Readable();
-        readable.push(csvString);
-        readable.push(null);
+      if (lines.length === 0) {
+        return res.status(400).json({ message: 'CSV file is empty' });
+      }
 
-        readable
-          .pipe(csvParser({
-            mapHeaders: ({ header }: { header: string }) => header.trim().toLowerCase()
-          }))
-          .on('data', (row: any) => {
-            // Helper function to normalize time format (HH:MM or HH:MM:SS)
-            const normalizeTime = (timeStr: string): string => {
-              const time = timeStr?.trim();
-              if (!time) return '';
-              
-              // If already in HH:MM:SS format, return as-is
-              if (time.match(/^\d{1,2}:\d{2}:\d{2}$/)) {
-                return time;
-              }
-              
-              // If in HH:MM format, add :00 for seconds
-              if (time.match(/^\d{1,2}:\d{2}$/)) {
-                return time + ':00';
-              }
-              
-              // Return original if unrecognized format
-              return time;
-            };
+      // Parse header row
+      const headerRow = lines[0];
+      const headers = headerRow.split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      
+      console.log('📋 CSV Headers:', headers);
 
-            // Clean up the row data
-            const cleanRow = {
-              student_name: row.student_name?.trim(),
-              weekday: row.weekday?.trim(),
-              block_number: row.block_number?.trim() === '' ? null : parseInt(row.block_number?.trim()),
-              start_time: normalizeTime(row.start_time),
-              end_time: normalizeTime(row.end_time),
-              subject: row.subject?.trim(),
-              block_type: row.block_type?.trim()
-            };
-            csvData.push(cleanRow);
-          })
-          .on('end', resolve)
-          .on('error', reject);
-      });
+      // Parse data rows
+      const csvData: any[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
 
-      await parsePromise;
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        const row: any = {};
+        
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+
+        // Clean up the row data with proper field names
+        const cleanRow = {
+          student_name: row.student_name?.trim(),
+          weekday: row.weekday?.trim(),
+          block_number: row.block_number?.trim() === '' ? null : parseInt(row.block_number?.trim()),
+          start_time: normalizeTime(row.start_time),
+          end_time: normalizeTime(row.end_time),
+          subject: row.subject?.trim(),
+          block_type: row.block_type?.trim()
+        };
+        
+        csvData.push(cleanRow);
+      }
 
       if (csvData.length === 0) {
         return res.status(400).json({ message: 'CSV file is empty or invalid' });
