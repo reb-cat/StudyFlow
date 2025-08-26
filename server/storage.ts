@@ -291,6 +291,8 @@ export class DatabaseStorage implements IStorage {
         block_type: template.blockType
       };
       
+      console.log('📝 Attempting to insert:', dbRecord);
+      
       const { data, error } = await supabase
         .from('schedule_template')
         .insert(dbRecord)
@@ -298,10 +300,12 @@ export class DatabaseStorage implements IStorage {
         .single();
       
       if (error) {
-        console.error('Error creating schedule template:', error);
+        console.error('❌ Supabase error response:', error);
+        console.error('❌ Record we tried to insert:', dbRecord);
         throw new Error('Failed to create schedule template');
       }
       
+      console.log('✅ Successfully inserted:', data);
       return data as ScheduleTemplate;
     } catch (error) {
       console.error('Error creating schedule template:', error);
