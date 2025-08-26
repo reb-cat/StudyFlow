@@ -621,13 +621,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const row of studentRows) {
           try {
             await storage.createScheduleTemplate({
-              student_name: row.student_name,
+              studentName: row.student_name,
               weekday: row.weekday,
-              block_number: row.block_number,
-              start_time: row.start_time,
-              end_time: row.end_time,
+              blockNumber: row.block_number,
+              startTime: row.start_time,
+              endTime: row.end_time,
               subject: row.subject,
-              block_type: row.block_type
+              blockType: row.block_type
             });
             rowsAffected++;
           } catch (error) {
