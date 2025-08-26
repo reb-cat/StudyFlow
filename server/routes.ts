@@ -7,6 +7,7 @@ import { emailConfig } from "./lib/supabase";
 import { jobScheduler } from "./lib/scheduler";
 import multer from "multer";
 import csvParser from "csv-parser";
+import { Readable } from "stream";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Assignment API routes
@@ -569,8 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Parse CSV data
       const parsePromise = new Promise<void>((resolve, reject) => {
-        const stream = require('stream');
-        const readable = new stream.Readable();
+        const readable = new Readable();
         readable.push(csvString);
         readable.push(null);
 
