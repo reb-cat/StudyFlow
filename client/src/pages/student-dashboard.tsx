@@ -168,54 +168,54 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-3 sm:p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-background p-4 sm:p-6">
+      <div className="max-w-5xl mx-auto">
         
         {/* Header - Student name left, action buttons right */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent" data-testid="student-name">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight" data-testid="student-name">
             {studentName}
           </h1>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 
               size="icon" 
               data-testid="button-home"
               onClick={handleHomeClick}
-              className="hover:bg-primary/10 transition-colors"
+              className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105"
             >
-              <Home className="h-4 w-4" />
+              <Home className="h-5 w-5" />
             </Button>
             <Button 
               variant="ghost" 
               size="icon" 
               data-testid="button-settings"
               onClick={handleSettingsClick}
-              className="hover:bg-primary/10 transition-colors"
+              className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-5 w-5" />
             </Button>
             <Button 
               variant="ghost" 
               size="icon" 
               data-testid="button-theme"
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="hover:bg-primary/10 transition-colors"
+              className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105"
             >
-              <Moon className="h-4 w-4" />
+              <Moon className="h-5 w-5" />
             </Button>
           </div>
         </div>
 
         {/* Second row - Date/Co-op + Mode toggles */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <Calendar className="h-4 w-4" />
               <span data-testid="date-display" className="text-sm font-medium">{dateDisplay}</span>
             </div>
             {isThursday && (
-              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs">
+              <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800 rounded-full px-3 py-1">
                 Co-op Day
               </Badge>
             )}
@@ -223,24 +223,24 @@ export default function StudentDashboard() {
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
             {/* Date Navigation for testing (will be removed later) */}
-            <div className="flex items-center gap-1 bg-muted/50 backdrop-blur-sm rounded-lg p-1 border">
+            <div className="flex items-center gap-0 bg-muted/50 rounded-xl p-1">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={goToPreviousDay}
-                className="h-8 w-8 p-0 hover:bg-primary/10"
+                className="h-9 w-9 p-0 rounded-lg hover:bg-background/80"
                 data-testid="button-previous-day"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <div className="px-2 text-sm font-medium min-w-[80px] text-center">
+              <div className="px-4 text-sm font-medium min-w-[90px] text-center">
                 {isToday ? 'Today' : dayName}
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={goToNextDay}
-                className="h-8 w-8 p-0 hover:bg-primary/10"
+                className="h-9 w-9 p-0 rounded-lg hover:bg-background/80"
                 data-testid="button-next-day"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -248,27 +248,27 @@ export default function StudentDashboard() {
             </div>
 
             {/* Overview/Guided Mode Toggle */}
-            <div className="flex items-center bg-muted/50 backdrop-blur-sm rounded-lg p-1 border">
+            <div className="flex items-center bg-muted/50 rounded-xl p-1">
               <Button
                 variant={!isGuidedMode ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setIsGuidedMode(false)}
-                className="text-xs flex items-center gap-1 transition-all hover:scale-105"
+                className="text-sm flex items-center gap-2 rounded-lg px-4 py-2 transition-all"
                 data-testid="button-overview-mode"
               >
-                <Grid3X3 className="h-3 w-3" />
-                <span className="hidden sm:inline">Overview Mode</span>
+                <Grid3X3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Overview</span>
                 <span className="sm:hidden">Overview</span>
               </Button>
               <Button
                 variant={isGuidedMode ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setIsGuidedMode(true)}
-                className="text-xs flex items-center gap-1 transition-all hover:scale-105"
+                className="text-sm flex items-center gap-2 rounded-lg px-4 py-2 transition-all"
                 data-testid="button-guided-mode"
               >
-                <Play className="h-3 w-3" />
-                <span className="hidden sm:inline">Guided Day</span>
+                <Play className="h-4 w-4" />
+                <span className="hidden sm:inline">Guided</span>
                 <span className="sm:hidden">Guided</span>
               </Button>
             </div>
@@ -287,27 +287,27 @@ export default function StudentDashboard() {
             />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Progress Bar */}
-            <div className="mb-4">
-              <div className="flex justify-between text-xs text-muted-foreground mb-2">
+            <div className="bg-card rounded-2xl p-4 border border-border/50 shadow-sm">
+              <div className="flex justify-between text-sm text-muted-foreground mb-3">
                 <span className="font-medium">Daily Progress</span>
-                <span className="font-mono">0%</span>
+                <span className="font-medium">0%</span>
               </div>
-              <div className="w-full bg-muted/50 rounded-full h-2 shadow-inner">
-                <div className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full transition-all duration-500 shadow-sm" style={{ width: '0%' }}></div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div className="bg-primary h-2 rounded-full transition-all duration-500" style={{ width: '0%' }}></div>
               </div>
             </div>
 
-            {/* Single card with compact list layout */}
-            <Card className="bg-card/50 backdrop-blur-sm border border-border/50 shadow-lg">
-              <CardContent className="p-4 sm:p-5">
-                <h3 className="text-lg font-bold text-foreground mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            {/* Single card with Apple-style layout */}
+            <Card className="bg-card rounded-2xl border border-border/50 shadow-sm">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-semibold text-foreground mb-6">
                   {isToday ? "Today's" : `${dayName}'s`} Schedule
                 </h3>
                   
-                  <div className="space-y-1">
-                    {/* Show ALL schedule blocks in chronological order with compact layout */}
+                  <div className="space-y-3">
+                    {/* Show ALL schedule blocks in chronological order with Apple-style layout */}
                     {allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((block, index) => {
@@ -372,25 +372,23 @@ export default function StudentDashboard() {
                         return (
                           <div 
                             key={block.id} 
-                            className={`group flex items-center justify-between py-3 px-3 rounded-lg transition-all duration-200 hover:bg-gradient-to-r hover:from-muted/30 hover:to-muted/10 hover:shadow-sm hover:scale-[1.01] ${
-                              index % 2 === 0 ? 'bg-muted/10' : 'bg-background/50'
-                            }`}
+                            className="group flex items-center justify-between py-4 px-4 bg-muted/20 rounded-xl border border-border/30 hover:border-border/60 hover:bg-muted/30 transition-all duration-200"
                           >
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <div className="flex-shrink-0 p-2 bg-gradient-to-br from-background to-muted/30 rounded-lg border shadow-sm group-hover:shadow-md transition-shadow">
+                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                              <div className="flex-shrink-0 p-3 bg-background rounded-xl border shadow-sm">
                                 {getBlockIcon(block.blockType)}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-sm text-foreground truncate">{blockTitle}</div>
+                                <div className="font-semibold text-base text-foreground truncate">{blockTitle}</div>
                                 {blockDetails && (
-                                  <div className="text-xs text-muted-foreground truncate mt-0.5">{blockDetails}</div>
+                                  <div className="text-sm text-muted-foreground truncate mt-1">{blockDetails}</div>
                                 )}
                               </div>
-                              <div className="text-xs text-muted-foreground mr-3 flex-shrink-0 font-medium bg-muted/30 px-2 py-1 rounded">
+                              <div className="text-sm text-muted-foreground mr-4 flex-shrink-0 font-medium">
                                 {formatTime(block.startTime, block.endTime)}
                               </div>
                             </div>
-                            <Badge variant="outline" className="text-xs bg-gradient-to-r from-muted/50 to-muted/30 border-muted-foreground/20 hover:from-muted/70 hover:to-muted/50 transition-colors">
+                            <Badge variant="secondary" className="text-sm px-3 py-1 bg-muted/60 text-muted-foreground border-0 rounded-full">
                               not started
                             </Badge>
                           </div>
