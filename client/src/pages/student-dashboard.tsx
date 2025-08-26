@@ -19,7 +19,9 @@ import {
   Car,
   Building2,
   Grid3X3,
-  Play
+  Play,
+  Activity,
+  UtensilsCrossed
 } from 'lucide-react';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
@@ -311,26 +313,48 @@ export default function StudentDashboard() {
                     {allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((block, index) => {
-                        // Get appropriate icon component - smaller, muted gray (Apple style)
+                        // Get appropriate icon component with colored pill containers
                         const getBlockIcon = (blockType: string) => {
                           const iconClass = "h-4 w-4";
-                          // Only use color for movement (green) and current task highlights
-                          const colorClass = blockType === 'movement' 
-                            ? 'text-green-500' 
-                            : 'text-gray-400 dark:text-gray-500';
                           
-                          const fullClass = `${iconClass} ${colorClass}`;
+                          const configs = {
+                            'bible': { 
+                              icon: <BookOpen className={`${iconClass} text-purple-600`} />,
+                              bg: 'bg-purple-100 dark:bg-purple-900/30'
+                            },
+                            'assignment': { 
+                              icon: <FileText className={`${iconClass} text-blue-600`} />,
+                              bg: 'bg-blue-100 dark:bg-blue-900/30'
+                            },
+                            'movement': { 
+                              icon: <Activity className={`${iconClass} text-green-600`} />,
+                              bg: 'bg-green-100 dark:bg-green-900/30'
+                            },
+                            'lunch': { 
+                              icon: <UtensilsCrossed className={`${iconClass} text-orange-600`} />,
+                              bg: 'bg-orange-100 dark:bg-orange-900/30'
+                            },
+                            'prep/load': { 
+                              icon: <UtensilsCrossed className={`${iconClass} text-orange-600`} />,
+                              bg: 'bg-orange-100 dark:bg-orange-900/30'
+                            },
+                            'travel': { 
+                              icon: <Car className={`${iconClass} text-indigo-600`} />,
+                              bg: 'bg-indigo-100 dark:bg-indigo-900/30'
+                            },
+                            'co-op': { 
+                              icon: <Building2 className={`${iconClass} text-teal-600`} />,
+                              bg: 'bg-teal-100 dark:bg-teal-900/30'
+                            }
+                          };
                           
-                          switch(blockType) {
-                            case 'bible': return <BookOpen className={fullClass} />;
-                            case 'assignment': return <FileText className={fullClass} />;
-                            case 'movement': return <Users className={fullClass} />;
-                            case 'lunch': return <Utensils className={fullClass} />;
-                            case 'prep/load': return <Package className={fullClass} />;
-                            case 'travel': return <Car className={fullClass} />;
-                            case 'co-op': return <Building2 className={fullClass} />;
-                            default: return <FileText className={fullClass} />;
-                          }
+                          const config = configs[blockType as keyof typeof configs] || configs['assignment'];
+                          
+                          return (
+                            <div className={`p-2 rounded-full ${config.bg}`}>
+                              {config.icon}
+                            </div>
+                          );
                         };
                         
                         const formatTime = (start: string, end: string) => {
