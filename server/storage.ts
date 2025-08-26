@@ -138,19 +138,10 @@ export class DatabaseStorage implements IStorage {
   async createAssignment(data: InsertAssignment & { userId: string }): Promise<Assignment> {
     try {
       const assignmentData = {
-        id: randomUUID(),
         student_name: data.userId,
         title: data.title,
-        subject: data.subject || null,
-        course_name: data.courseName || null,
         due_date: data.dueDate || null,
-        scheduled_date: data.scheduledDate || null,
-        scheduled_block: data.scheduledBlock || null,
-        estimated_time_minutes: data.actualEstimatedMinutes || 30,
-        priority: data.priority || 'B',
-        notes: data.notes || null,
-        source: 'canvas',
-        assignment_type: 'task'
+        source: 'canvas'
       };
       
       const { data: assignment, error } = await supabase
