@@ -415,12 +415,20 @@ class JobScheduler {
             reason = 'contains previous year date or template content';
           }
           
-          // Fix misclassified In Class assignments
-          if (assignment.title.toLowerCase().includes('in class') && 
-              assignment.blockType === 'assignment' && 
-              assignment.isAssignmentBlock === true) {
-            shouldFix = true;
-            reason = 'In Class assignment incorrectly categorized as schedulable';
+          // Fix assignments with missing due dates that should be extracted from title
+          if (!assignment.dueDate && assignment.title.toLowerCase().includes('due ')) {
+            const { extractDueDateFromTitle } = await import('./assignmentIntelligence.js');
+            const extractedDate = extractDueDateFromTitle(assignment.title);
+            if (extractedDate) {
+              shouldFix = true;
+              reason = `Due date missing - should be extracted from title: ${extractedDate.toDateString()}`;
+            }
+          }
+          
+          // Handle In Class assignments - FILTER THEM OUT completely since they shouldn't be scheduled
+          if (assignment.title.toLowerCase().includes('in class')) {
+            shouldDelete = true;
+            reason = 'In Class assignment - removing from scheduling (fixed to class time)';
           }
           
           if (shouldDelete) {
@@ -428,11 +436,19 @@ class JobScheduler {
             await storage.deleteAssignment(assignment.id);
             totalCleaned++;
           } else if (shouldFix) {
-            console.log(`🔧 Fixing "${assignment.title}" - changing from schedulable assignment to fixed co-op block`);
-            await storage.updateAssignment(assignment.id, {
-              blockType: 'co-op',
-              isAssignmentBlock: false
-            });
+            console.log(`🔧 Fixing "${assignment.title}" - ${reason}`);
+            
+            // Extract due date and update assignment
+            const { extractDueDateFromTitle } = await import('./assignmentIntelligence.js');
+            const extractedDate = extractDueDateFromTitle(assignment.title);
+            
+            if (extractedDate) {
+              await storage.updateAssignment(assignment.id, {
+                dueDate: extractedDate
+              });
+              console.log(`   ✅ Updated due date to: ${extractedDate.toDateString()}`);
+            }
+            
             totalFixed++;
           }
         }

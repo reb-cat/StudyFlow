@@ -651,18 +651,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Title is required' });
       }
       
-      // Import the processing function
-      const { analyzeAssignmentWithCanvas } = await import('./lib/assignmentIntelligence.js');
-      const result = analyzeAssignmentWithCanvas(title);
+      // Import the processing functions directly
+      const { analyzeAssignmentWithCanvas, extractDueDateFromTitle, isInClassActivity } = await import('./lib/assignmentIntelligence.js');
+      
+      // Test individual functions
+      const extractedDate = extractDueDateFromTitle(title);
+      const isInClass = isInClassActivity(title);
+      const fullAnalysis = analyzeAssignmentWithCanvas(title);
       
       res.json({
         title,
-        processing: {
-          isInClassActivity: result.isInClassActivity,
-          blockType: result.blockType,
-          isSchedulable: result.isSchedulable,
-          category: result.category,
-          confidence: result.confidence
+        tests: {
+          extractedDate: extractedDate ? extractedDate.toISOString() : null,
+          isInClass,
+          fullAnalysis: {
+            extractedDueDate: fullAnalysis.extractedDueDate ? fullAnalysis.extractedDueDate.toISOString() : null,
+            isInClassActivity: fullAnalysis.isInClassActivity,
+            category: fullAnalysis.category,
+            blockType: fullAnalysis.blockType,
+            isSchedulable: fullAnalysis.isSchedulable
+          }
         },
         timestamp: new Date().toISOString()
       });
