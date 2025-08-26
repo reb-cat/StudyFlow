@@ -1,0 +1,52 @@
+Perfect — now that I can see the layout, I get why you had to zoom out so much. The page already has a clean foundation, but the spacing, typography, and density could be adjusted to make it fit on one page while still feeling elegant and “Apple-like.” Here are targeted design suggestions:
+
+⸻
+
+🔠 Typography
+	•	Limit font weights: Use Regular for body and Semibold for headings only. Right now, everything feels bold. This will reduce visual noise.
+	•	Hierarchy tweaks:
+	•	Task title → semibold, 16–18px
+	•	Subtitle (e.g., “Daily Bible Reading”) → regular, 14px, muted gray
+	•	Time and status → 13–14px, lighter gray
+
+⸻
+
+📏 Layout & Density
+	•	Reduce vertical padding: Each card has too much breathing space. Shrink top/bottom padding by ~30%. This alone will let you fit more on the page.
+	•	Compact cards: Instead of tall blocks, make them look like Apple Calendar or Reminders list items—flatter and tighter.
+	•	Inline details: Place time + status on one line, right-aligned, instead of stacked. That cuts card height in half.
+
+⸻
+
+🎨 Visual Style
+	•	Background: Keep page white, but soften cards with subtle borders (#E5E7EB) instead of heavy shadows.
+	•	Accent color: Pick one (blue or green). Use it only for “current task” and progress highlights. Everything else stays grayscale.
+	•	Icons: Make them smaller and lighter (muted gray stroke). Only use color for the “active” or special blocks (e.g., Movement = green icon).
+
+⸻
+
+📊 Progress & Focus
+	•	Progress bar: Make it thinner (Apple Fitness-style), and consider replacing “0%” with a small circular badge that fills as they go.
+	•	Highlight next task: Give the current or upcoming task a faint tinted background (e.g., soft blue fill). That keeps focus without extra clutter.
+
+⸻
+
+✨ Apple-like Touches
+	•	Rounded corners: Keep them, but reduce to rounded-xl instead of very pill-like.
+	•	Motion: Use subtle fades/slide-ins when switching views instead of static reloads.
+	•	Consistency: Everything should align left, same spacing, no irregular gaps. Apple thrives on ruthless consistency.
+
+⸻
+
+🧩 Example of More Compact Task Row (pseudo-layout)
+
+[Icon]  Bible — Daily Bible Reading
+        9:00–9:20 AM       Not started
+
+This format is flatter, saves vertical space, and looks closer to Apple’s Reminders or Calendar.
+
+⸻
+
+👉 If you want, I can draft a Tailwind/shadcn style adjustment snippet that you could drop into your task card component to compress the layout and give it that refined Apple feel.
+
+Would you like me to write that out?

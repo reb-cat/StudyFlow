@@ -287,42 +287,37 @@ export default function StudentDashboard() {
             />
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Progress Bar */}
-            <div className="bg-card rounded-2xl p-4 border border-border/50 shadow-sm">
-              <div className="flex justify-between text-sm text-muted-foreground mb-3">
+          <div className="space-y-4">
+            {/* Progress Bar - Apple Fitness style */}
+            <div className="bg-white dark:bg-card rounded-xl p-4 border border-gray-200 dark:border-border/50">
+              <div className="flex justify-between text-sm text-muted-foreground mb-2">
                 <span className="font-medium">Daily Progress</span>
                 <span className="font-medium">0%</span>
               </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div className="bg-primary h-2 rounded-full transition-all duration-500" style={{ width: '0%' }}></div>
+              <div className="w-full bg-gray-100 dark:bg-muted rounded-full h-1">
+                <div className="bg-blue-500 h-1 rounded-full transition-all duration-500" style={{ width: '0%' }}></div>
               </div>
             </div>
 
-            {/* Single card with Apple-style layout */}
-            <Card className="bg-card rounded-2xl border border-border/50 shadow-sm">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold text-foreground mb-6">
+            {/* Schedule Card - Compact Apple style */}
+            <Card className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/50">
+              <CardContent className="p-4">
+                <h3 className="text-lg font-semibold text-foreground mb-4">
                   {isToday ? "Today's" : `${dayName}'s`} Schedule
                 </h3>
                   
-                  <div className="space-y-3">
-                    {/* Show ALL schedule blocks in chronological order with Apple-style layout */}
+                  <div className="space-y-1">
+                    {/* Show ALL schedule blocks in chronological order with compact Apple-style layout */}
                     {allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((block, index) => {
-                        // Get appropriate icon component with theme colors
+                        // Get appropriate icon component - smaller, muted gray (Apple style)
                         const getBlockIcon = (blockType: string) => {
                           const iconClass = "h-4 w-4";
-                          const colorClass = {
-                            'bible': 'text-purple-600 dark:text-purple-400',
-                            'assignment': 'text-blue-600 dark:text-blue-400', 
-                            'movement': 'text-green-600 dark:text-green-400',
-                            'lunch': 'text-orange-600 dark:text-orange-400',
-                            'prep/load': 'text-gray-600 dark:text-gray-400',
-                            'travel': 'text-indigo-600 dark:text-indigo-400',
-                            'co-op': 'text-teal-600 dark:text-teal-400'
-                          }[blockType] || 'text-muted-foreground';
+                          // Only use color for movement (green) and current task highlights
+                          const colorClass = blockType === 'movement' 
+                            ? 'text-green-500' 
+                            : 'text-gray-400 dark:text-gray-500';
                           
                           const fullClass = `${iconClass} ${colorClass}`;
                           
@@ -372,25 +367,32 @@ export default function StudentDashboard() {
                         return (
                           <div 
                             key={block.id} 
-                            className="group flex items-center justify-between py-4 px-4 bg-muted/20 rounded-xl border border-border/30 hover:border-border/60 hover:bg-muted/30 transition-all duration-200"
+                            className="group flex items-center justify-between py-2.5 px-3 hover:bg-gray-50 dark:hover:bg-muted/30 rounded-lg transition-colors duration-150"
                           >
-                            <div className="flex items-center gap-4 flex-1 min-w-0">
-                              <div className="flex-shrink-0 p-3 bg-background rounded-xl border shadow-sm">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className="flex-shrink-0">
                                 {getBlockIcon(block.blockType)}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-base text-foreground truncate">{blockTitle}</div>
-                                {blockDetails && (
-                                  <div className="text-sm text-muted-foreground truncate mt-1">{blockDetails}</div>
-                                )}
-                              </div>
-                              <div className="text-sm text-muted-foreground mr-4 flex-shrink-0 font-medium">
-                                {formatTime(block.startTime, block.endTime)}
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-gray-900 dark:text-foreground text-base truncate">{blockTitle}</span>
+                                  {blockDetails && (
+                                    <>
+                                      <span className="text-gray-400">—</span>
+                                      <span className="text-gray-600 dark:text-muted-foreground text-sm truncate">{blockDetails}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-between mt-0.5">
+                                  <span className="text-gray-500 dark:text-muted-foreground text-sm">
+                                    {formatTime(block.startTime, block.endTime)}
+                                  </span>
+                                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gray-50 dark:bg-muted/30 text-gray-600 dark:text-muted-foreground border-gray-200 dark:border-border/50 rounded-md">
+                                    not started
+                                  </Badge>
+                                </div>
                               </div>
                             </div>
-                            <Badge variant="secondary" className="text-sm px-3 py-1 bg-muted/60 text-muted-foreground border-0 rounded-full">
-                              not started
-                            </Badge>
                           </div>
                         );
                       })}
