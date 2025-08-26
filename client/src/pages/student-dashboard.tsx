@@ -239,87 +239,84 @@ export default function StudentDashboard() {
                   </span>
                 )}
               </h2>
-              <div className="space-y-4">
-                {/* Show ALL schedule blocks in chronological order */}
-                {allScheduleBlocks
-                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                  .map((block) => {
-                    // Bible blocks
-                    if (block.blockType === 'bible') {
-                      return (
-                        <BibleBlock 
-                          key={block.id}
-                          date={selectedDate}
-                          blockStart={block.startTime}
-                          blockEnd={block.endTime}
-                        />
-                      );
-                    }
-                    
-                    // Fixed blocks (Movement, Lunch, etc.)
-                    if (['travel', 'co-op', 'prep/load', 'movement', 'lunch'].includes(block.blockType)) {
-                      return (
-                        <FixedBlock
-                          key={block.id}
-                          blockId={block.id}
-                          title={block.title}
-                          blockType={block.blockType}
-                          blockStart={block.startTime}
-                          blockEnd={block.endTime}
-                          date={selectedDate}
-                        />
-                      );
-                    }
-                    
-                    // Assignment time slots from schedule template
-                    if (block.blockType === 'assignment') {
-                      // Try to find a matching assignment for this time slot
-                      const matchingAssignment = todayAssignments.find(
-                        assignment => assignment.scheduledBlock === block.blockNumber
-                      );
-                      
-                      if (matchingAssignment) {
-                        return (
-                          <AssignmentCard
-                            key={`assignment-${block.id}`}
-                            assignment={matchingAssignment}
-                            onUpdate={handleAssignmentUpdate}
-                            variant="compact"
-                          />
-                        );
-                      } else {
-                        // Show empty assignment slot
-                        return (
-                          <Card key={`empty-${block.id}`} className="bg-card border border-dashed border-border">
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h3 className="font-medium text-foreground">Assignment Block {block.blockNumber}</h3>
-                                  <p className="text-sm text-muted-foreground">{block.startTime} - {block.endTime}</p>
-                                </div>
-                                <div className="text-sm text-muted-foreground">Available for assignment</div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      }
-                    }
-                    
-                    return null;
-                  })}
+              {/* Single card with compact list layout matching screenshot */}
+              <Card className="bg-card border border-border">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
+                    {isToday ? "Today's" : `${dayName}'s`} Schedule ({allScheduleBlocks.length} blocks)
+                  </h3>
                   
-                {/* Show unscheduled assignments at the bottom if any */}
-                {todayAssignments
-                  .filter(assignment => !assignment.scheduledBlock)
-                  .map((assignment) => (
-                    <AssignmentCard
-                      key={assignment.id}
-                      assignment={assignment}
-                      onUpdate={handleAssignmentUpdate}
-                      variant="compact"
-                    />
-                  ))}
-              </div>
+                  <div className="space-y-3">
+                    {/* Show ALL schedule blocks in chronological order with compact layout */}
+                    {allScheduleBlocks
+                      .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                      .map((block) => {
+                        // Get appropriate icon and format time
+                        const getBlockIcon = (blockType: string) => {
+                          switch(blockType) {
+                            case 'bible': return '📖';
+                            case 'assignment': return '📚';
+                            case 'movement': return '🏃';
+                            case 'lunch': return '🍽️';
+                            case 'prep/load': return '📦';
+                            case 'travel': return '🚗';
+                            case 'co-op': return '🏢';
+                            default: return '📋';
+                          }
+                        };
+                        
+                        const formatTime = (start: string, end: string) => {
+                          const formatTimeString = (timeStr: string) => {
+                            const [hours, minutes] = timeStr.split(':');
+                            const hour = parseInt(hours);
+                            const ampm = hour >= 12 ? 'PM' : 'AM';
+                            const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+                            return `${displayHour}:${minutes} ${ampm}`;
+                          };
+                          return `${formatTimeString(start)}–${formatTimeString(end)}`;
+                        };
+                        
+                        // Get block title and details
+                        let blockTitle = block.title;
+                        let blockDetails = '';
+                        
+                        if (block.blockType === 'assignment') {
+                          const matchingAssignment = todayAssignments.find(
+                            assignment => assignment.scheduledBlock === block.blockNumber
+                          );
+                          if (matchingAssignment) {
+                            blockTitle = 'Assignment';
+                            blockDetails = matchingAssignment.title;
+                          } else {
+                            blockTitle = 'Assignment';
+                            blockDetails = 'Assignment Assignment';
+                          }
+                        } else if (block.blockType === 'bible') {
+                          blockTitle = 'Bible';
+                          blockDetails = 'Daily Bible Reading';
+                        }
+                        
+                        return (
+                          <div key={block.id} className="flex items-center justify-between py-2">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="text-lg">{getBlockIcon(block.blockType)}</div>
+                              <div className="flex-1">
+                                <div className="font-medium text-sm text-foreground">{blockTitle}</div>
+                                {blockDetails && (
+                                  <div className="text-sm text-muted-foreground">{blockDetails}</div>
+                                )}
+                              </div>
+                              <div className="text-sm text-muted-foreground mr-4">
+                                {formatTime(block.startTime, block.endTime)}
+                              </div>
+                            </div>
+                            <div className="text-sm text-muted-foreground">not started</div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}
