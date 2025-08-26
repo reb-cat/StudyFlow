@@ -282,50 +282,32 @@ export class DatabaseStorage implements IStorage {
 
   async createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate> {
     try {
-      // BYPASS SUPABASE - Use direct database insert to avoid cached enum issue
-      const result = await db.insert(scheduleTemplate).values({
-        studentName: template.studentName,
+      // Simple Supabase insert with proper field mapping
+      const dbRecord = {
+        student_name: template.studentName,
         weekday: template.weekday,
-        blockNumber: template.blockNumber,
-        startTime: template.startTime,
-        endTime: template.endTime,
+        block_number: template.blockNumber,
+        start_time: template.startTime,
+        end_time: template.endTime,
         subject: template.subject,
-        blockType: template.blockType
-      }).returning();
+        block_type: template.blockType
+      };
       
-      console.log('✅ Direct DB insert successful');
-      return result[0];
-    } catch (error) {
-      console.error('Error creating schedule template via Drizzle:', error);
+      const { data, error } = await supabase
+        .from('schedule_template')
+        .insert(dbRecord)
+        .select()
+        .single();
       
-      // Fallback to Supabase (though it likely won't work due to cache)
-      try {
-        const dbRecord = {
-          student_name: template.studentName,
-          weekday: template.weekday,
-          block_number: template.blockNumber,
-          start_time: template.startTime,
-          end_time: template.endTime,
-          subject: template.subject,
-          block_type: template.blockType
-        };
-        
-        const { data, error: supabaseError } = await supabase
-          .from('schedule_template')
-          .insert(dbRecord)
-          .select()
-          .single();
-        
-        if (supabaseError) {
-          console.error('❌ Supabase also failed:', supabaseError);
-          throw new Error('Failed to create schedule template');
-        }
-        
-        return data as ScheduleTemplate;
-      } catch (fallbackError) {
-        console.error('Both methods failed');
+      if (error) {
+        console.error('Error creating schedule template:', error);
         throw new Error('Failed to create schedule template');
       }
+      
+      return data as ScheduleTemplate;
+    } catch (error) {
+      console.error('Error creating schedule template:', error);
+      throw new Error('Failed to create schedule template');
     }
   }
 

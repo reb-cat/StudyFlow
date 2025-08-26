@@ -633,12 +633,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
         
+        // Map CSV block types to simpler values that won't conflict with any enum
+        const mapBlockType = (csvType: string): string => {
+          const type = csvType?.trim().toLowerCase();
+          if (type?.includes('assignment')) return 'Assignment';
+          if (type?.includes('fixed_class')) return 'Co-op';  
+          if (type?.includes('fixed_nonclass')) return 'Movement';
+          return 'Assignment'; // Default fallback
+        };
+        
         const cleanRow = {
           studentName: values[0]?.trim(), // student
           weekday: values[1]?.trim(), // day  
           blockNumber: (values[2]?.trim() === '' || !values[2]) ? null : parseInt(values[2]?.trim()), // block
           subject: values[3]?.trim(), // subject
-          blockType: values[4]?.trim(), // type
+          blockType: mapBlockType(values[4]), // Map to allowed values
           startTime: normalizeTime(values[5]?.trim()), // start
           endTime: normalizeTime(values[6]?.trim()) // end
         };
