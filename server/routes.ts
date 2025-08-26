@@ -642,7 +642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Deep Canvas investigation endpoint
+  // Deep Canvas investigation endpoint with comprehensive timing analysis
   app.post('/api/investigate-canvas-assignment', async (req, res) => {
     try {
       const { title, studentName } = req.body;
@@ -679,26 +679,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Return comprehensive raw Canvas data
+      // Check our database to see what timing data we stored
+      const dbAssignment = await storage.getAssignments(`${studentName.toLowerCase()}-user`);
+      const dbMatch = dbAssignment.find(a => a.title === title);
+      
+      // Apply assignment intelligence to see what should be extracted
+      const { analyzeAssignmentWithCanvas } = await import('./lib/assignmentIntelligence.js');
+      const intelligence = analyzeAssignmentWithCanvas(
+        title,
+        targetAssignment.description,
+        {
+          assignment_group: targetAssignment.assignment_group,
+          submission_types: targetAssignment.submission_types,
+          points_possible: targetAssignment.points_possible,
+          unlock_at: targetAssignment.unlock_at,
+          lock_at: targetAssignment.lock_at,
+          is_recurring: targetAssignment.is_recurring,
+          academic_year: targetAssignment.academic_year,
+          course_start_date: targetAssignment.course_start_date,
+          course_end_date: targetAssignment.course_end_date,
+          inferred_start_date: targetAssignment.inferred_start_date,
+          inferred_end_date: targetAssignment.inferred_end_date,
+          module_data: targetAssignment.module_data
+        }
+      );
+      
+      // Return comprehensive analysis
       res.json({
         title,
         studentName,
         foundInInstance,
         rawCanvasData: targetAssignment,
-        timingAnalysis: {
-          due_at: targetAssignment.due_at,
-          unlock_at: targetAssignment.unlock_at,
-          lock_at: targetAssignment.lock_at,
-          created_at: targetAssignment.created_at,
-          updated_at: targetAssignment.updated_at,
-          course_start_date: targetAssignment.course_start_date,
-          course_end_date: targetAssignment.course_end_date,
-          assignment_group: targetAssignment.assignment_group,
-          points_possible: targetAssignment.points_possible,
-          submission_types: targetAssignment.submission_types,
-          workflow_state: targetAssignment.workflow_state
+        databaseData: dbMatch ? {
+          due_date: dbMatch.dueDate,
+          available_from: dbMatch.availableFrom,
+          available_until: dbMatch.availableUntil,
+          created_at: dbMatch.createdAt
+        } : null,
+        intelligenceAnalysis: {
+          extractedDueDate: intelligence.extractedDueDate?.toISOString() || null,
+          isInClassActivity: intelligence.isInClassActivity,
+          category: intelligence.category,
+          availabilityWindow: {
+            availableFrom: intelligence.availabilityWindow.availableFrom?.toISOString() || null,
+            availableUntil: intelligence.availabilityWindow.availableUntil?.toISOString() || null
+          }
         },
-        potentialTimingFields: Object.keys(targetAssignment).filter(key => 
+        moduleData: targetAssignment.module_data,
+        timingGaps: {
+          hasCanvasDueDate: !!targetAssignment.due_at,
+          hasCanvasUnlockDate: !!targetAssignment.unlock_at,
+          hasModuleData: !!targetAssignment.module_data,
+          hasInferredTiming: !!(targetAssignment.inferred_start_date || targetAssignment.inferred_end_date),
+          processingWorking: !!intelligence.extractedDueDate
+        },
+        allTimingFields: Object.keys(targetAssignment).filter(key => 
           key.includes('date') || 
           key.includes('time') || 
           key.includes('at') ||
@@ -706,10 +741,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           key.includes('lock') ||
           key.includes('available') ||
           key.includes('module') ||
-          key.includes('period') ||
-          key.includes('week')
+          key.includes('inferred')
         ),
-        allFields: Object.keys(targetAssignment).sort(),
         timestamp: new Date().toISOString()
       });
     } catch (error) {

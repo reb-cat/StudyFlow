@@ -210,6 +210,12 @@ export function analyzeAssignmentWithCanvas(
     console.log(`📅 Using module timing for "${title}": ${extractedDueDate.toDateString()}`);
   }
   
+  // For multi-week assignments like "Class Participation for Module 1", use module completion date if available
+  if (!extractedDueDate && canvasData?.module_data?.completed_at) {
+    extractedDueDate = new Date(canvasData.module_data.completed_at);
+    console.log(`📅 Using module completion timing for "${title}": ${extractedDueDate.toDateString()}`);
+  }
+  
   // Determine category
   let category: 'homework' | 'in-class' | 'makeup' | 'other' = 'other';
   if (isInClass) {
