@@ -29,24 +29,17 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
     queryKey: ['/api/bible/current-week'],
   });
 
-  // Get today's reading based on day of week
+  // Get today's reading based on sequential curriculum progression
   const today = new Date(date);
   const jsDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
   
-  // Convert JavaScript day (0=Sunday) to our curriculum day (1=Monday, 2=Tuesday, etc.)
-  // Skip weekends - only Monday (1) through Friday (5)
-  const curriculumDay = jsDay === 0 || jsDay === 6 ? null : jsDay; // Weekend = null, Mon=1, Tue=2, etc.
+  // Skip weekends - only show Bible on school days (Monday-Friday)
+  const isWeekend = jsDay === 0 || jsDay === 6;
   
-  console.log('Bible curriculum debug:', { 
-    date, 
-    jsDay, 
-    curriculumDay, 
-    bibleDataLength: bibleData.length,
-    availableDays: bibleData.map(r => r.day_of_week),
-    sampleReading: bibleData[0]
-  });
-  
-  const todaysReading = curriculumDay ? bibleData.find(reading => reading.day_of_week === curriculumDay) : null;
+  // TODO: This should track actual curriculum progress, not calendar days
+  // For now, use a simple sequential approach starting from day 1
+  // In production, this would be stored in user preferences/progress
+  const todaysReading = !isWeekend && bibleData.length > 0 ? bibleData[0] : null;
 
   // Mutation to update completion status
   const completionMutation = useMutation({
