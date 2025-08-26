@@ -170,7 +170,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 p-4 sm:p-6">
       <div className="max-w-5xl mx-auto">
         
         {/* Header - Student name left, action buttons right */}
@@ -186,7 +186,7 @@ export default function StudentDashboard() {
               onClick={handleHomeClick}
               className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105"
             >
-              <Home className="h-5 w-5" />
+              <Home className="h-6 w-6" />
             </Button>
             <Button 
               variant="ghost" 
@@ -195,7 +195,7 @@ export default function StudentDashboard() {
               onClick={handleSettingsClick}
               className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105"
             >
-              <Settings className="h-5 w-5" />
+              <Settings className="h-6 w-6" />
             </Button>
             <Button 
               variant="ghost" 
@@ -204,7 +204,7 @@ export default function StudentDashboard() {
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105"
             >
-              <Moon className="h-5 w-5" />
+              <Moon className="h-6 w-6" />
             </Button>
           </div>
         </div>
@@ -291,20 +291,20 @@ export default function StudentDashboard() {
         ) : (
           <div className="space-y-4">
             {/* Progress Bar - Apple Fitness style */}
-            <div className="bg-white dark:bg-card rounded-xl p-4 border border-gray-200 dark:border-border/50">
-              <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                <span className="font-medium">Daily Progress</span>
-                <span className="font-medium">0%</span>
+            <div className="bg-blue-600 dark:bg-blue-700 rounded-xl p-4 border border-blue-500 dark:border-blue-600 text-white">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="font-medium text-blue-100">Daily Progress</span>
+                <span className="font-medium text-blue-100">0%</span>
               </div>
-              <div className="w-full bg-gray-100 dark:bg-muted rounded-full h-1">
-                <div className="bg-blue-500 h-1 rounded-full transition-all duration-500" style={{ width: '0%' }}></div>
+              <div className="w-full bg-blue-500 dark:bg-blue-800 rounded-full h-1">
+                <div className="bg-white h-1 rounded-full transition-all duration-500" style={{ width: '0%' }}></div>
               </div>
             </div>
 
             {/* Schedule Card - Compact Apple style */}
-            <Card className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/50">
+            <Card className="bg-blue-600 dark:bg-blue-700 rounded-xl border border-blue-500 dark:border-blue-600">
               <CardContent className="p-4">
-                <h3 className="text-lg font-semibold text-foreground mb-4">
+                <h3 className="text-lg font-semibold text-white mb-4">
                   {isToday ? "Today's" : `${dayName}'s`} Schedule
                 </h3>
                   
@@ -384,7 +384,7 @@ export default function StudentDashboard() {
                         return (
                           <div 
                             key={block.id} 
-                            className="group flex items-center justify-between py-2.5 px-3 hover:bg-gray-50 dark:hover:bg-muted/30 rounded-lg transition-colors duration-150"
+                            className="group flex items-center justify-between py-2.5 px-3 hover:bg-blue-500 dark:hover:bg-blue-600 rounded-lg transition-colors duration-150"
                           >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <div className="flex-shrink-0">
@@ -392,19 +392,19 @@ export default function StudentDashboard() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-gray-900 dark:text-foreground text-base truncate">{blockTitle}</span>
+                                  <span className="font-semibold text-white text-base truncate">{blockTitle}</span>
                                   {blockDetails && (
                                     <>
-                                      <span className="text-gray-400">—</span>
-                                      <span className="text-gray-600 dark:text-muted-foreground text-sm truncate">{blockDetails}</span>
+                                      <span className="text-blue-200">—</span>
+                                      <span className="text-blue-100 text-sm truncate">{blockDetails}</span>
                                     </>
                                   )}
                                 </div>
                                 <div className="flex items-center justify-between mt-0.5">
-                                  <span className="text-gray-500 dark:text-muted-foreground text-sm">
+                                  <span className="text-blue-200 text-sm">
                                     {formatTime(block.startTime, block.endTime)}
                                   </span>
-                                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gray-50 dark:bg-muted/30 text-gray-600 dark:text-muted-foreground border-gray-200 dark:border-border/50 rounded-md">
+                                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-blue-500 text-blue-100 border-blue-400 rounded-md">
                                     not started
                                   </Badge>
                                 </div>
