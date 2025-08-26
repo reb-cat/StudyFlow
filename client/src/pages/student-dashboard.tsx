@@ -186,7 +186,7 @@ export default function StudentDashboard() {
               onClick={handleHomeClick}
               className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105"
             >
-              <Home className="h-6 w-6" />
+              <Home className="h-8 w-8" />
             </Button>
             <Button 
               variant="ghost" 
@@ -195,7 +195,7 @@ export default function StudentDashboard() {
               onClick={handleSettingsClick}
               className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105"
             >
-              <Settings className="h-6 w-6" />
+              <Settings className="h-8 w-8" />
             </Button>
             <Button 
               variant="ghost" 
@@ -204,7 +204,7 @@ export default function StudentDashboard() {
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105"
             >
-              <Moon className="h-6 w-6" />
+              <Moon className="h-8 w-8" />
             </Button>
           </div>
         </div>
