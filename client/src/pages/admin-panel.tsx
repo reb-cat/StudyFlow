@@ -21,16 +21,17 @@ export default function AdminPanel() {
   // Get all assignments for the selected student
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
     queryKey: ['/api/assignments', selectedStudent],
-    queryFn: () => apiRequest(`/api/assignments?studentName=${selectedStudent}`)
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/assignments?studentName=${selectedStudent}`);
+      return await response.json();
+    }
   });
 
   // Update assignment completion status
   const updateAssignmentMutation = useMutation({
     mutationFn: async ({ id, completionStatus }: { id: string; completionStatus: string }) => {
-      return apiRequest(`/api/assignments/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ completionStatus })
-      });
+      const response = await apiRequest('PATCH', `/api/assignments/${id}`, { completionStatus });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
@@ -48,8 +49,8 @@ export default function AdminPanel() {
     }
   });
 
-  // Filter assignments based on search and status
-  const filteredAssignments = assignments.filter(assignment => {
+  // Filter assignments based on search and status - with safety check
+  const filteredAssignments = Array.isArray(assignments) ? assignments.filter(assignment => {
     const matchesSearch = assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          assignment.subject?.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -57,11 +58,11 @@ export default function AdminPanel() {
                          assignment.completionStatus === filterStatus;
     
     return matchesSearch && matchesStatus;
-  });
+  }) : [];
 
-  // Group assignments by completion status
-  const pendingCount = assignments.filter(a => a.completionStatus === 'pending').length;
-  const completedCount = assignments.filter(a => a.completionStatus === 'completed').length;
+  // Group assignments by completion status - with safety check
+  const pendingCount = Array.isArray(assignments) ? assignments.filter(a => a.completionStatus === 'pending').length : 0;
+  const completedCount = Array.isArray(assignments) ? assignments.filter(a => a.completionStatus === 'completed').length : 0;
 
   const handleStatusUpdate = (assignmentId: string, newStatus: string) => {
     updateAssignmentMutation.mutate({ id: assignmentId, completionStatus: newStatus });
@@ -162,6 +163,9 @@ export default function AdminPanel() {
                 <div className="text-sm space-y-1">
                   <div>Pending: <span className="font-semibold">{pendingCount}</span></div>
                   <div>Completed: <span className="font-semibold">{completedCount}</span></div>
+                  <div className="text-xs text-muted-foreground">
+                    Total: {Array.isArray(assignments) ? assignments.length : 0}
+                  </div>
                 </div>
               </div>
             </div>
@@ -174,7 +178,7 @@ export default function AdminPanel() {
             <CardTitle>
               Assignments for {selectedStudent}
               <span className="text-sm font-normal text-muted-foreground ml-2">
-                ({filteredAssignments.length} of {assignments.length})
+                ({filteredAssignments.length} of {Array.isArray(assignments) ? assignments.length : 0})
               </span>
             </CardTitle>
           </CardHeader>
