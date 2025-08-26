@@ -3,7 +3,12 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema } from "@shared/schema";
 import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas"; 
-import { emailConfig } from "./lib/supabase";
+// Email config moved inline since Supabase removed
+const emailConfig = {
+  resendApiKey: process.env.RESEND_API_KEY || '',
+  resendFrom: process.env.RESEND_FROM || '',
+  parentEmail: process.env.PARENT_EMAIL || '',
+};
 import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {

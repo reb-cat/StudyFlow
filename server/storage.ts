@@ -174,7 +174,7 @@ export class DatabaseStorage implements IStorage {
       let whereCondition = eq(scheduleTemplate.studentName, studentName);
       
       if (weekday) {
-        whereCondition = and(eq(scheduleTemplate.studentName, studentName), eq(scheduleTemplate.weekday, weekday));
+        whereCondition = and(eq(scheduleTemplate.studentName, studentName), eq(scheduleTemplate.weekday, weekday))!;
       }
       
       const result = await db.select().from(scheduleTemplate).where(whereCondition).orderBy(scheduleTemplate.startTime);
@@ -199,22 +199,13 @@ export class DatabaseStorage implements IStorage {
   // Bible curriculum operations
   async getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]> {
     try {
-      let query = supabase
-        .from('bible_curriculum')
-        .select('*');
+      let whereCondition = weekNumber !== undefined ? eq(bibleCurriculum.weekNumber, weekNumber) : sql`1=1`;
       
-      if (weekNumber !== undefined) {
-        query = query.eq('week_number', weekNumber);
-      }
+      const result = await db.select().from(bibleCurriculum)
+        .where(whereCondition)
+        .orderBy(bibleCurriculum.weekNumber, bibleCurriculum.dayOfWeek);
       
-      const { data, error } = await query.order('week_number').order('day_of_week');
-      
-      if (error) {
-        console.error('Error getting bible curriculum:', error);
-        return [];
-      }
-      
-      return (data || []) as BibleCurriculum[];
+      return result || [];
     } catch (error) {
       console.error('Error getting bible curriculum:', error);
       return [];
@@ -235,25 +226,17 @@ export class DatabaseStorage implements IStorage {
 
   async updateBibleCompletion(weekNumber: number, dayOfWeek: number, completed: boolean): Promise<BibleCurriculum | undefined> {
     try {
-      const updateData: any = {
+      const updateData = {
         completed,
-        completed_at: completed ? new Date().toISOString() : null
+        completedAt: completed ? new Date() : null
       };
       
-      const { data, error } = await supabase
-        .from('bible_curriculum')
-        .update(updateData)
-        .eq('week_number', weekNumber)
-        .eq('day_of_week', dayOfWeek)
-        .select()
-        .single();
+      const result = await db.update(bibleCurriculum)
+        .set(updateData)
+        .where(and(eq(bibleCurriculum.weekNumber, weekNumber), eq(bibleCurriculum.dayOfWeek, dayOfWeek)))
+        .returning();
       
-      if (error) {
-        console.error('Error updating bible completion:', error);
-        return undefined;
-      }
-      
-      return data as BibleCurriculum;
+      return result[0] || undefined;
     } catch (error) {
       console.error('Error updating bible completion:', error);
       return undefined;
@@ -360,6 +343,21 @@ export class MemStorage implements IStorage {
 
   async deleteAssignment(id: string): Promise<boolean> {
     return this.assignments.delete(id);
+  }
+
+  async updateAdministrativeAssignments(): Promise<void> {
+    // Mark administrative assignments as completed for in-memory storage
+    for (const assignment of this.assignments.values()) {
+      const isAdministrative = assignment.title.toLowerCase().includes('fee') ||
+                              assignment.title.toLowerCase().includes('supply') ||
+                              assignment.title.toLowerCase().includes('syllabus') ||
+                              assignment.title.toLowerCase().includes('honor code');
+      
+      if (isAdministrative) {
+        assignment.completionStatus = 'completed';
+        console.log(`Updated admin assignment: ${assignment.title}`);
+      }
+    }
   }
 
   // Schedule template operations (MemStorage stub)
