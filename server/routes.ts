@@ -632,6 +632,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Clean up the row data with proper field names (camelCase for Drizzle schema)
         // Map your CSV headers: student, day, block, subject, type, start, end
+        
+        // Debug field access
+        console.log(`📋 Debug field access row ${i}:`);
+        console.log(`  row.student: "${row.student}"`);
+        console.log(`  row.day: "${row.day}"`);
+        console.log(`  row.start: "${row.start}"`);
+        console.log(`  row.end: "${row.end}"`);
+        console.log(`  row.type: "${row.type}"`);
+        
         const cleanRow = {
           studentName: row.student?.trim() || row.student_name?.trim() || row['student name']?.trim(),
           weekday: row.day?.trim() || row.weekday?.trim(),
@@ -641,6 +650,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           subject: row.subject?.trim(),
           blockType: row.type?.trim() || row.block_type?.trim() || row['block type']?.trim()
         };
+        
+        console.log(`📋 Direct mapping test row ${i}:`);
+        console.log(`  studentName should be: "${row.student}"`);
+        console.log(`  weekday should be: "${row.day}"`);
+        console.log(`  startTime should be: "${normalizeTime(row.start)}"`);
+        console.log(`  blockType should be: "${row.type}"`);
+        console.log(`  But cleanRow.studentName is: "${cleanRow.studentName}"`);
+        console.log(`  But cleanRow.weekday is: "${cleanRow.weekday}"`);
+        console.log(`  But cleanRow.startTime is: "${cleanRow.startTime}"`);
+        console.log(`  But cleanRow.blockType is: "${cleanRow.blockType}"`);
         
         console.log(`📋 Final clean row ${i}:`, cleanRow); // Debug log
         
