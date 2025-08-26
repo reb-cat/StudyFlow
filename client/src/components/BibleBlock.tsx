@@ -31,8 +31,13 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
 
   // Get today's reading based on day of week
   const today = new Date(date);
-  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  const todaysReading = bibleData.find(reading => reading.dayOfWeek === dayOfWeek);
+  const jsDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  
+  // Convert JavaScript day (0=Sunday) to our curriculum day (1=Monday, 2=Tuesday, etc.)
+  // Skip weekends - only Monday (1) through Friday (5)
+  const curriculumDay = jsDay === 0 ? null : jsDay; // Sunday = null, Mon=1, Tue=2, etc.
+  
+  const todaysReading = curriculumDay ? bibleData.find(reading => reading.dayOfWeek === curriculumDay) : null;
 
   // Mutation to update completion status
   const completionMutation = useMutation({

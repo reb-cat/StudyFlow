@@ -432,6 +432,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Schedule template routes - using real database data instead of hardcoded blocks
+  app.get('/api/schedule-template/:studentName', async (req, res) => {
+    try {
+      const { studentName } = req.params;
+      const weekday = req.query.weekday as string;
+      
+      const templateData = await storage.getScheduleTemplate(studentName, weekday);
+      res.json(templateData);
+    } catch (error) {
+      console.error('Error fetching schedule template:', error);
+      res.status(500).json({ message: 'Failed to fetch schedule template' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

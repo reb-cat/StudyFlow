@@ -41,8 +41,9 @@ export default function StudentDashboard() {
     day: 'numeric' 
   });
 
-  // Fixed blocks for the day (sample schedule)
+  // Schedule template for the selected day
   const isThursday = selectedDateObj.getDay() === 4;
+  const weekdayName = selectedDateObj.toLocaleDateString('en-US', { weekday: 'long' });
 
   // Date navigation functions
   const goToPreviousDay = () => {
@@ -60,6 +61,9 @@ export default function StudentDashboard() {
   const goToToday = () => {
     setSelectedDate(new Date().toISOString().split('T')[0]);
   };
+
+  // For now, use hardcoded blocks until schedule template API is working
+  // TODO: Replace with real schedule template data
   const fixedBlocks = [
     // Bible is handled separately as it has special logic
     // Travel/prep block
