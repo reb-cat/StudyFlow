@@ -315,36 +315,36 @@ export default function StudentDashboard() {
                       .map((block, index) => {
                         // Get appropriate icon component with colored pill containers
                         const getBlockIcon = (blockType: string) => {
-                          const iconClass = "h-4 w-4";
+                          const iconClass = "h-4 w-4 text-white";
                           
                           const configs = {
                             'bible': { 
-                              icon: <BookOpen className={`${iconClass} text-purple-600`} />,
-                              bg: 'bg-purple-100 dark:bg-purple-900/30'
+                              icon: <BookOpen className={iconClass} />,
+                              bg: 'bg-gradient-to-br from-purple-500 to-purple-600'
                             },
                             'assignment': { 
-                              icon: <FileText className={`${iconClass} text-blue-600`} />,
-                              bg: 'bg-blue-100 dark:bg-blue-900/30'
+                              icon: <FileText className={iconClass} />,
+                              bg: 'bg-gradient-to-br from-blue-500 to-blue-600'
                             },
                             'movement': { 
-                              icon: <Activity className={`${iconClass} text-green-600`} />,
-                              bg: 'bg-green-100 dark:bg-green-900/30'
+                              icon: <Activity className={iconClass} />,
+                              bg: 'bg-gradient-to-br from-green-500 to-green-600'
                             },
                             'lunch': { 
-                              icon: <UtensilsCrossed className={`${iconClass} text-orange-600`} />,
-                              bg: 'bg-orange-100 dark:bg-orange-900/30'
+                              icon: <UtensilsCrossed className={iconClass} />,
+                              bg: 'bg-gradient-to-br from-orange-500 to-orange-600'
                             },
                             'prep/load': { 
-                              icon: <UtensilsCrossed className={`${iconClass} text-orange-600`} />,
-                              bg: 'bg-orange-100 dark:bg-orange-900/30'
+                              icon: <UtensilsCrossed className={iconClass} />,
+                              bg: 'bg-gradient-to-br from-orange-500 to-orange-600'
                             },
                             'travel': { 
-                              icon: <Car className={`${iconClass} text-indigo-600`} />,
-                              bg: 'bg-indigo-100 dark:bg-indigo-900/30'
+                              icon: <Car className={iconClass} />,
+                              bg: 'bg-gradient-to-br from-indigo-500 to-indigo-600'
                             },
                             'co-op': { 
-                              icon: <Building2 className={`${iconClass} text-teal-600`} />,
-                              bg: 'bg-teal-100 dark:bg-teal-900/30'
+                              icon: <Building2 className={iconClass} />,
+                              bg: 'bg-gradient-to-br from-teal-500 to-teal-600'
                             }
                           };
                           
