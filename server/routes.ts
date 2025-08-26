@@ -12,6 +12,7 @@ const emailConfig = {
 import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+
   // Assignment API routes
   
   // GET /api/assignments - Get assignments for a user/date

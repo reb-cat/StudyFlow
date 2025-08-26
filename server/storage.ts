@@ -72,16 +72,8 @@ export class DatabaseStorage implements IStorage {
       let result = await db.select().from(assignments).where(eq(assignments.userId, userId));
       let assignmentList = result || [];
       
-      // If filtering by date, show assignments that are due on/before this date
-      if (date) {
-        assignmentList = assignmentList.filter((assignment: any) => {
-          if (!assignment.dueDate) return true; // Include assignments without due dates
-          
-          const dueDate = new Date(assignment.dueDate).toISOString().split('T')[0];
-          return dueDate <= date; // Show assignments due on or before the requested date
-        });
-      }
-      
+      // If filtering by date, show all upcoming assignments (no date restriction for now)
+      // This ensures students see all their assignments regardless of due date
       return assignmentList;
     } catch (error) {
       console.error('Error getting assignments:', error);
