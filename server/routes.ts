@@ -575,6 +575,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Canvas sync failed', error: errorMessage });
     }
   });
+  
+  // Manual cleanup endpoint for testing problematic assignments
+  app.post('/api/cleanup-assignments', async (req, res) => {
+    try {
+      console.log('🧹 Manual assignment cleanup triggered via API');
+      // Access the private method using bracket notation for testing
+      await (jobScheduler as any).cleanupProblematicAssignments();
+      
+      res.json({ 
+        message: 'Assignment cleanup completed successfully',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Manual cleanup failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ 
+        message: 'Cleanup failed', 
+        error: errorMessage,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
 
   // Schedule template bulk upload endpoint
   app.post('/api/schedule-templates/bulk-upload', async (req, res) => {

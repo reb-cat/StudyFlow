@@ -50,7 +50,7 @@ class JobScheduler {
         if (canvasData.instance1 && canvasData.instance1.length > 0) {
           for (const canvasAssignment of canvasData.instance1) {
             try {
-              // Skip assignments before June 15, 2025
+              // Skip assignments before June 15, 2025 (including assignments without due dates that are clearly old)
               if (canvasAssignment.due_at) {
                 const dueDate = new Date(canvasAssignment.due_at);
                 const cutoffDate = new Date('2025-06-15');
@@ -58,6 +58,12 @@ class JobScheduler {
                   console.log(`⏭️ Skipping old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
                   continue;
                 }
+              }
+              
+              // Special handling for recurring assignments that might not have due dates but are clearly from previous terms
+              if (!canvasAssignment.due_at && canvasAssignment.name.toLowerCase().includes('roll call')) {
+                console.log(`⏭️ Skipping recurring assignment without due date: "${canvasAssignment.name}" - likely template data`);
+                continue;
               }
               
               // Log the real Canvas assignment being processed
@@ -291,6 +297,9 @@ class JobScheduler {
     
     console.log(`🎉 Daily Canvas sync completed. Imported ${totalImported} new assignments.`);
     
+    // Clean up any problematic assignments that slipped through
+    await this.cleanupProblematicAssignments();
+    
     // Update administrative assignments with standard due dates (after Canvas sync) 
     await this.updateAdministrativeAssignments();
     
@@ -360,6 +369,62 @@ class JobScheduler {
     }
     
     return tomorrow.toISOString().split('T')[0];
+  }
+  
+  /**
+   * Clean up problematic assignments that should have been filtered out
+   */
+  private async cleanupProblematicAssignments() {
+    console.log('🧹 Cleaning up problematic assignments...');
+    
+    const students = ['Abigail', 'Khalil'];
+    let totalCleaned = 0;
+    
+    for (const studentName of students) {
+      try {
+        const userId = `${studentName.toLowerCase()}-user`;
+        const assignments = await storage.getAssignments(userId);
+        
+        for (const assignment of assignments) {
+          let shouldDelete = false;
+          let reason = '';
+          
+          // Check for assignments with old due dates that are clearly from previous academic years
+          if (assignment.dueDate) {
+            const dueDate = new Date(assignment.dueDate);
+            const cutoffDate = new Date('2025-06-15');
+            if (dueDate < cutoffDate) {
+              shouldDelete = true;
+              reason = `old due date (${dueDate.toDateString()})`;
+            }
+          }
+          
+          // Check for specific problematic recurring assignments without due dates
+          if (!assignment.dueDate && assignment.title.toLowerCase().includes('roll call')) {
+            shouldDelete = true;
+            reason = 'recurring assignment without due date (likely template data)';
+          }
+          
+          // Check for assignments with obvious template/previous year indicators
+          if (assignment.title.toLowerCase().includes('2024') || 
+              assignment.title.toLowerCase().includes('2023') ||
+              assignment.title.toLowerCase().includes('picking a theme')) {
+            shouldDelete = true;
+            reason = 'contains previous year date or template content';
+          }
+          
+          if (shouldDelete) {
+            console.log(`🗑️ Removing problematic assignment: "${assignment.title}" - ${reason}`);
+            await storage.deleteAssignment(assignment.id);
+            totalCleaned++;
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to cleanup assignments for ${studentName}:`, error);
+      }
+    }
+    
+    console.log(`✅ Problematic assignment cleanup completed. Removed ${totalCleaned} assignments.`);
   }
 
   private parseCronToMs(cronPattern: string): number {
