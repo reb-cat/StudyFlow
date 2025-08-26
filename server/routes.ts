@@ -510,6 +510,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin authentication endpoint
+  app.post('/api/admin/auth', async (req, res) => {
+    try {
+      const { accessKey } = req.body;
+      
+      if (!accessKey) {
+        return res.status(400).json({ message: 'Access key is required' });
+      }
+
+      // Simple access key validation - you can enhance this later with database lookup
+      const validKeys = [
+        'admin2025', // Simple fallback
+        // Add more keys or check against database users table
+      ];
+
+      // Optional: Check against users table for email/password if users exist
+      // const user = await storage.getUserByEmail(accessKey);
+      // if (user && user.email) { ... }
+
+      if (validKeys.includes(accessKey)) {
+        res.json({ message: 'Access granted', authenticated: true });
+      } else {
+        res.status(401).json({ message: 'Invalid access key' });
+      }
+    } catch (error) {
+      console.error('Admin auth error:', error);
+      res.status(500).json({ message: 'Authentication failed' });
+    }
+  });
+
   // Configure multer for file uploads
   const upload = multer({
     storage: multer.memoryStorage(),
@@ -577,7 +607,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let rowsAffected = 0;
       
       // Get unique students from CSV
-      const students = [...new Set(csvData.map(row => row.student_name))];
+      const studentSet = new Set(csvData.map(row => row.student_name));
+      const students = Array.from(studentSet);
       
       for (const studentName of students) {
         // Delete existing schedule for this student

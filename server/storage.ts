@@ -26,6 +26,7 @@ export interface IStorage {
   // Schedule template operations
   getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]>;
   createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate>;
+  clearScheduleTemplate(studentName: string): Promise<void>;
   
   // Bible curriculum operations
   getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]>;
