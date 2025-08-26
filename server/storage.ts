@@ -96,10 +96,10 @@ export class DatabaseStorage implements IStorage {
       let query = supabase
         .from('assignments')
         .select('*')
-        .eq('userId', userId);
+        .eq('student_name', userId);
       
       if (date) {
-        query = query.eq('scheduledDate', date);
+        query = query.eq('scheduled_date', date);
       }
       
       const { data, error } = await query;
@@ -139,22 +139,18 @@ export class DatabaseStorage implements IStorage {
     try {
       const assignmentData = {
         id: randomUUID(),
-        userId: data.userId,
+        student_name: data.userId,
         title: data.title,
         subject: data.subject || null,
-        courseName: data.courseName || null,
-        instructions: data.instructions || null,
-        dueDate: data.dueDate || null,
-        scheduledDate: data.scheduledDate || null,
-        scheduledBlock: data.scheduledBlock || null,
-        actualEstimatedMinutes: data.actualEstimatedMinutes || 30,
-        completionStatus: data.completionStatus || 'pending',
-        blockType: data.blockType || 'assignment',
-        isAssignmentBlock: data.isAssignmentBlock ?? true,
+        course_name: data.courseName || null,
+        due_date: data.dueDate || null,
+        scheduled_date: data.scheduledDate || null,
+        scheduled_block: data.scheduledBlock || null,
+        estimated_time_minutes: data.actualEstimatedMinutes || 30,
         priority: data.priority || 'B',
-        difficulty: data.difficulty || 'medium',
-        timeSpent: data.timeSpent || 0,
-        notes: data.notes || null
+        notes: data.notes || null,
+        source: 'canvas',
+        assignment_type: 'task'
       };
       
       const { data: assignment, error } = await supabase
@@ -169,7 +165,11 @@ export class DatabaseStorage implements IStorage {
       }
       
       return assignment as Assignment;
-    } catch (error) {\n      console.error('Error creating assignment:', error);\n      throw new Error('Failed to create assignment');\n    }\n  }"}
+    } catch (error) {
+      console.error('Error creating assignment:', error);
+      throw new Error('Failed to create assignment');
+    }
+  }
 
   async updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined> {
     try {
