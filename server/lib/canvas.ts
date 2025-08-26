@@ -71,21 +71,27 @@ export class CanvasClient {
 
   async getAssignments(courseId?: number): Promise<CanvasAssignment[]> {
     if (courseId) {
-      return this.makeRequest<CanvasAssignment[]>(`/courses/${courseId}/assignments`);
+      // Add pagination support for individual courses
+      return this.makeRequest<CanvasAssignment[]>(`/courses/${courseId}/assignments?per_page=100`);
     } else {
-      // Get assignments from all courses
+      // Get assignments from all courses with pagination
       const courses = await this.getCourses();
       const allAssignments: CanvasAssignment[] = [];
       
+      console.log(`📚 Found ${courses.length} active courses`);
+      
       for (const course of courses) {
         try {
-          const assignments = await this.makeRequest<CanvasAssignment[]>(`/courses/${course.id}/assignments`);
+          // Request maximum assignments per page and include completed assignments
+          const assignments = await this.makeRequest<CanvasAssignment[]>(`/courses/${course.id}/assignments?per_page=100&include[]=all_dates&order_by=due_at`);
+          console.log(`  📖 Course "${course.name}" (${course.id}): ${assignments.length} assignments`);
           allAssignments.push(...assignments);
         } catch (error) {
-          console.warn(`Failed to get assignments for course ${course.id}:`, error);
+          console.warn(`Failed to get assignments for course ${course.id} (${course.name}):`, error);
         }
       }
       
+      console.log(`📊 Total assignments across all courses: ${allAssignments.length}`);
       return allAssignments;
     }
   }
@@ -120,7 +126,9 @@ export async function getAllAssignmentsForStudent(studentName: string): Promise<
 
   try {
     const client1 = getCanvasClient(studentName, 1);
-    result.instance1 = await client1.getUpcomingAssignments();
+    // Get ALL assignments, not just upcoming ones - this is the key fix!
+    result.instance1 = await client1.getAssignments();
+    console.log(`✅ Canvas Instance 1: Retrieved ${result.instance1.length} assignments for ${studentName}`);
   } catch (error) {
     console.error(`Failed to get assignments from Canvas instance 1 for ${studentName}:`, error);
   }
@@ -129,12 +137,16 @@ export async function getAllAssignmentsForStudent(studentName: string): Promise<
   if (studentName.toLowerCase() === 'abigail' && canvasConfig.abigailToken2 && canvasConfig.baseUrl2) {
     try {
       const client2 = getCanvasClient(studentName, 2);
-      result.instance2 = await client2.getUpcomingAssignments();
+      // Get ALL assignments from instance 2 as well
+      result.instance2 = await client2.getAssignments();
+      console.log(`✅ Canvas Instance 2: Retrieved ${result.instance2?.length || 0} assignments for ${studentName}`);
     } catch (error) {
       console.error(`Failed to get assignments from Canvas instance 2 for ${studentName}:`, error);
       result.instance2 = [];
     }
   }
 
+  const totalCount = result.instance1.length + (result.instance2?.length || 0);
+  console.log(`📊 Total Canvas assignments for ${studentName}: ${totalCount}`);
   return result;
 }
