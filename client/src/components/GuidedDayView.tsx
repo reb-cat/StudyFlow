@@ -127,7 +127,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     return `${formatTimeString(start)} – ${formatTimeString(end)}`;
   };
 
-  const handleAction = (action: 'completed' | 'stuck' | 'needs_more_time') => {
+  const handleAction = (action: 'completed' | 'stuck') => {
     if (!currentBlock) return;
 
     // Move to next block
@@ -142,8 +142,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     // Show feedback
     const messages = {
       completed: `Great job completing ${currentBlock.title}! 🎉`,
-      stuck: `No worries! Help is on the way for ${currentBlock.title}. 💪`,
-      needs_more_time: `${currentBlock.title} will be continued later. ⏰`
+      stuck: `No worries! This will be reviewed for ${currentBlock.title}. 💪`
     };
 
     toast({
@@ -275,25 +274,22 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
               </Button>
             ) : (
               <>
-                <Button onClick={() => handleAction('completed')} className="flex-1">
+                <Button 
+                  onClick={() => handleAction('completed')} 
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  size="lg"
+                >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Complete
+                  Done!
                 </Button>
                 <Button 
                   onClick={() => handleAction('stuck')} 
                   variant="outline" 
-                  className="flex-1"
+                  className="flex-1 border-orange-200 text-orange-700 hover:bg-orange-50"
+                  size="lg"
                 >
                   <HelpCircle className="h-4 w-4 mr-2" />
                   Need Help
-                </Button>
-                <Button 
-                  onClick={() => handleAction('needs_more_time')} 
-                  variant="outline" 
-                  className="flex-1"
-                >
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  More Time
                 </Button>
               </>
             )}
