@@ -175,7 +175,7 @@ export default function StudentDashboard() {
         
         {/* Header - Student name left, action buttons right */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight" data-testid="student-name">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight" data-testid="student-name">
             {studentName}
           </h1>
           <div className="flex items-center gap-3">
