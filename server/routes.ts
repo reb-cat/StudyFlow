@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           blockStart: "13:00",
           blockEnd: "13:30",
           actualEstimatedMinutes: 30,
-          completionStatus: "in_progress" as const,
+          completionStatus: "pending" as const,
           priority: "B" as const,
           difficulty: "medium" as const
         }
@@ -307,6 +307,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import from instance 1
       if (canvasData.instance1) {
         for (const canvasAssignment of canvasData.instance1) {
+          // Determine completion status based on Canvas grading info
+          let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
+          if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
+            completionStatus = 'completed';
+          }
+
           const assignment = await storage.createAssignment({
             userId: userId,
             title: canvasAssignment.name,
@@ -316,9 +322,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
             scheduledDate: today, // Schedule for today for testing
             actualEstimatedMinutes: 60,
-            completionStatus: 'pending',
+            completionStatus: completionStatus,
             priority: 'B',
-            difficulty: 'medium'
+            difficulty: 'medium',
+            canvasId: canvasAssignment.id,
+            canvasInstance: 1,
+            isCanvasImport: true
           });
           importedAssignments.push(assignment);
         }
@@ -327,6 +336,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import from instance 2 (Abigail only)
       if (canvasData.instance2) {
         for (const canvasAssignment of canvasData.instance2) {
+          // Determine completion status based on Canvas grading info
+          let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
+          if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
+            completionStatus = 'completed';
+          }
+
           const assignment = await storage.createAssignment({
             userId: userId,
             title: `${canvasAssignment.name} (Canvas 2)`,
@@ -336,9 +351,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
             scheduledDate: today,
             actualEstimatedMinutes: 60,
-            completionStatus: 'pending',
+            completionStatus: completionStatus,
             priority: 'B',
-            difficulty: 'medium'
+            difficulty: 'medium',
+            canvasId: canvasAssignment.id,
+            canvasInstance: 2,
+            isCanvasImport: true
           });
           importedAssignments.push(assignment);
         }

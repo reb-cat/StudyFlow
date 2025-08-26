@@ -120,6 +120,10 @@ export const assignments = pgTable("assignments", {
   difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }).default("medium"),
   timeSpent: integer("time_spent").default(0), // actual minutes spent
   notes: text("notes"),
+  // Canvas integration fields
+  canvasId: integer("canvas_id"), // Canvas assignment ID for sync tracking
+  canvasInstance: integer("canvas_instance"), // 1 or 2 for multi-instance support
+  isCanvasImport: boolean("is_canvas_import").default(false), // Track Canvas vs manual assignments
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

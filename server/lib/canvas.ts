@@ -9,6 +9,10 @@ export interface CanvasAssignment {
   submission_types: string[];
   points_possible?: number;
   courseName?: string; // Added for course name mapping
+  // Grading/submission information
+  workflow_state?: string; // published, unpublished, etc.
+  has_submitted_submissions?: boolean;
+  graded_submissions_exist?: boolean;
 }
 
 export interface CanvasCourse {
@@ -83,8 +87,8 @@ export class CanvasClient {
       
       for (const course of courses) {
         try {
-          // Request maximum assignments per page and include completed assignments
-          const assignments = await this.makeRequest<CanvasAssignment[]>(`/courses/${course.id}/assignments?per_page=100&include[]=all_dates&order_by=due_at`);
+          // Request maximum assignments per page and include submission details for grading status
+          const assignments = await this.makeRequest<CanvasAssignment[]>(`/courses/${course.id}/assignments?per_page=100&include[]=all_dates&include[]=submission&order_by=due_at`);
           console.log(`  📖 Course "${course.name}" (${course.id}): ${assignments.length} assignments`);
           
           // Add course name to each assignment for easy reference

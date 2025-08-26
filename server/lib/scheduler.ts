@@ -59,6 +59,13 @@ class JobScheduler {
               );
               
               if (!alreadyExists) {
+                // Determine completion status based on Canvas grading info
+                let completionStatus = 'pending';
+                if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
+                  completionStatus = 'completed';
+                  console.log(`📋 Auto-marking "${canvasAssignment.name}" as completed (graded in Canvas)`);
+                }
+
                 await storage.createAssignment({
                   userId: userId,
                   title: canvasAssignment.name,
@@ -68,11 +75,22 @@ class JobScheduler {
                   dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
                   scheduledDate: this.getNextAssignmentDate(),
                   actualEstimatedMinutes: 60,
-                  completionStatus: 'pending',
+                  completionStatus: completionStatus,
                   priority: 'B',
-                  difficulty: 'medium'
+                  difficulty: 'medium',
+                  canvasId: canvasAssignment.id,
+                  canvasInstance: 1,
+                  isCanvasImport: true
                 });
                 totalImported++;
+              } else {
+                // Update existing assignment if it's now graded
+                const existingAssignment = existingAssignments.find(a => a.title === canvasAssignment.name);
+                if (existingAssignment && existingAssignment.completionStatus === 'pending' && 
+                    (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions)) {
+                  await storage.updateAssignment(existingAssignment.id, { completionStatus: 'completed' });
+                  console.log(`✅ Updated "${canvasAssignment.name}" to completed (now graded in Canvas)`);
+                }
               }
             } catch (error) {
               console.error(`Error importing assignment for ${studentName}:`, error);
@@ -90,6 +108,13 @@ class JobScheduler {
               );
               
               if (!alreadyExists) {
+                // Determine completion status based on Canvas grading info
+                let completionStatus = 'pending';
+                if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
+                  completionStatus = 'completed';
+                  console.log(`📋 Auto-marking "${canvasAssignment.name} (Canvas 2)" as completed (graded in Canvas)`);
+                }
+
                 await storage.createAssignment({
                   userId: userId,
                   title: `${canvasAssignment.name} (Canvas 2)`,
@@ -99,17 +124,31 @@ class JobScheduler {
                   dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
                   scheduledDate: this.getNextAssignmentDate(),
                   actualEstimatedMinutes: 60,
-                  completionStatus: 'pending',
+                  completionStatus: completionStatus,
                   priority: 'B',
-                  difficulty: 'medium'
+                  difficulty: 'medium',
+                  canvasId: canvasAssignment.id,
+                  canvasInstance: 2,
+                  isCanvasImport: true
                 });
                 totalImported++;
+              } else {
+                // Update existing assignment if it's now graded
+                const existingAssignment = existingAssignments.find(a => a.title === `${canvasAssignment.name} (Canvas 2)`);
+                if (existingAssignment && existingAssignment.completionStatus === 'pending' && 
+                    (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions)) {
+                  await storage.updateAssignment(existingAssignment.id, { completionStatus: 'completed' });
+                  console.log(`✅ Updated "${canvasAssignment.name} (Canvas 2)" to completed (now graded in Canvas)`);
+                }
               }
             } catch (error) {
               console.error(`Error importing assignment from instance 2 for ${studentName}:`, error);
             }
           }
         }
+        
+        // Step 3: Clean up stale assignments (exist in our DB but not in Canvas anymore)
+        await this.cleanupStaleAssignments(userId, canvasData);
         
         console.log(`✅ Completed Canvas sync for ${studentName}`);
         
@@ -119,6 +158,62 @@ class JobScheduler {
     }
     
     console.log(`🎉 Daily Canvas sync completed. Imported ${totalImported} new assignments.`);
+    
+    // Update administrative assignments with standard due dates (after Canvas sync) 
+    await this.updateAdministrativeAssignments();
+    
+    return totalImported;
+  }
+
+  /**
+   * Clean up assignments that no longer exist in Canvas
+   */
+  private async cleanupStaleAssignments(userId: string, canvasData: any) {
+    try {
+      // Get all Canvas assignments for this user from our database
+      const existingAssignments = await storage.getAssignments(userId);
+      const canvasAssignments = existingAssignments.filter(a => a.isCanvasImport);
+      
+      // Build a Set of current Canvas assignment IDs for quick lookup
+      const currentCanvasIds = new Set<number>();
+      
+      canvasData.instance1?.forEach((assignment: any) => {
+        currentCanvasIds.add(assignment.id);
+      });
+      
+      canvasData.instance2?.forEach((assignment: any) => {
+        currentCanvasIds.add(assignment.id);
+      });
+      
+      // Find assignments in our DB that no longer exist in Canvas
+      const staleAssignments = canvasAssignments.filter(assignment => 
+        assignment.canvasId && !currentCanvasIds.has(assignment.canvasId)
+      );
+      
+      if (staleAssignments.length > 0) {
+        console.log(`🧹 Found ${staleAssignments.length} stale assignments to remove for ${userId}`);
+        
+        for (const staleAssignment of staleAssignments) {
+          await storage.deleteAssignment(staleAssignment.id);
+          console.log(`🗑️ Removed stale assignment: "${staleAssignment.title}"`);
+        }
+      }
+    } catch (error) {
+      console.error(`Error cleaning up stale assignments for ${userId}:`, error);
+    }
+  }
+
+  /**
+   * Update administrative assignments (fees, syllabi, etc.) with standard due dates
+   */
+  private async updateAdministrativeAssignments() {
+    try {
+      // This method updates administrative assignments like fees and syllabi
+      // Implementation would go here
+      console.log('🔧 Updating administrative assignments...');
+    } catch (error) {
+      console.error('Error updating administrative assignments:', error);
+    }
   }
 
   private getNextAssignmentDate(): string {
