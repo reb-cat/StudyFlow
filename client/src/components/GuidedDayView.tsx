@@ -41,9 +41,9 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     subject: block.subject
   }));
 
-  // Create complete schedule blocks in chronological order
+  // Create complete schedule blocks in chronological order - IDENTICAL to Overview mode
   const scheduleBlocks: ScheduleBlock[] = [
-    // Bible blocks from schedule template
+    // Bible blocks from schedule template  
     ...allScheduleBlocks
       .filter((block) => block.blockType === 'bible')
       .map(block => ({
@@ -68,18 +68,26 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                            (parseInt(block.startTime.split(':')[0]) * 60 + parseInt(block.startTime.split(':')[1])),
         blockType: block.blockType
       })),
-    // Assignment blocks from actual assignments
-    ...assignments
-      .sort((a, b) => (a.scheduledBlock || 0) - (b.scheduledBlock || 0))
-      .map(assignment => ({
-        id: assignment.id,
-        type: 'assignment' as const,
-        title: assignment.title,
-        startTime: assignment.blockStart || '10:00',
-        endTime: assignment.blockEnd || '10:45',
-        estimatedMinutes: assignment.actualEstimatedMinutes || 30,
-        assignment
-      }))
+    // Assignment blocks - use schedule template blocks AND fill with actual assignment data
+    ...allScheduleBlocks
+      .filter((block) => block.blockType === 'assignment')
+      .map(block => {
+        // Find matching assignment for this block
+        const matchingAssignment = assignments.find(
+          assignment => assignment.scheduledBlock === block.blockNumber
+        );
+        
+        return {
+          id: matchingAssignment ? matchingAssignment.id : block.id,
+          type: 'assignment' as const,
+          title: matchingAssignment ? matchingAssignment.title : 'Assignment',
+          startTime: block.startTime,
+          endTime: block.endTime,
+          estimatedMinutes: matchingAssignment ? matchingAssignment.actualEstimatedMinutes || 30 : 30,
+          assignment: matchingAssignment,
+          blockType: block.blockType
+        };
+      })
   ].sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   const [currentIndex, setCurrentIndex] = useState(0);
