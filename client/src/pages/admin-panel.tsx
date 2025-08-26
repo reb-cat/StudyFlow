@@ -62,7 +62,10 @@ export default function AdminPanel() {
 
   // Group assignments by completion status - with safety check
   const pendingCount = Array.isArray(assignments) ? assignments.filter(a => a.completionStatus === 'pending').length : 0;
+  const inProgressCount = Array.isArray(assignments) ? assignments.filter(a => a.completionStatus === 'in_progress').length : 0;
   const completedCount = Array.isArray(assignments) ? assignments.filter(a => a.completionStatus === 'completed').length : 0;
+  const stuckCount = Array.isArray(assignments) ? assignments.filter(a => a.completionStatus === 'stuck').length : 0;
+  const nmtCount = Array.isArray(assignments) ? assignments.filter(a => a.completionStatus === 'needs_more_time').length : 0;
 
   const handleStatusUpdate = (assignmentId: string, newStatus: string) => {
     updateAssignmentMutation.mutate({ id: assignmentId, completionStatus: newStatus });
@@ -71,8 +74,10 @@ export default function AdminPanel() {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: { label: 'Pending', variant: 'outline' as const, icon: Circle },
-      completed: { label: 'Completed', variant: 'default' as const, icon: CheckCircle },
-      in_progress: { label: 'In Progress', variant: 'secondary' as const, icon: RefreshCw }
+      in_progress: { label: 'In Progress', variant: 'secondary' as const, icon: RefreshCw },
+      completed: { label: 'Done', variant: 'default' as const, icon: CheckCircle },
+      stuck: { label: 'Stuck', variant: 'destructive' as const, icon: Circle },
+      needs_more_time: { label: 'NMT', variant: 'secondary' as const, icon: RefreshCw }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
@@ -151,8 +156,10 @@ export default function AdminPanel() {
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="pending">Pending Only</SelectItem>
-                    <SelectItem value="completed">Completed Only</SelectItem>
                     <SelectItem value="in_progress">In Progress Only</SelectItem>
+                    <SelectItem value="completed">Done Only</SelectItem>
+                    <SelectItem value="stuck">Stuck Only</SelectItem>
+                    <SelectItem value="needs_more_time">NMT Only</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -162,8 +169,11 @@ export default function AdminPanel() {
                 <label className="text-sm font-medium mb-2 block">Summary</label>
                 <div className="text-sm space-y-1">
                   <div>Pending: <span className="font-semibold">{pendingCount}</span></div>
-                  <div>Completed: <span className="font-semibold">{completedCount}</span></div>
-                  <div className="text-xs text-muted-foreground">
+                  <div>In Progress: <span className="font-semibold">{inProgressCount}</span></div>
+                  <div>Done: <span className="font-semibold">{completedCount}</span></div>
+                  <div>Stuck: <span className="font-semibold text-red-600">{stuckCount}</span></div>
+                  <div>NMT: <span className="font-semibold text-orange-600">{nmtCount}</span></div>
+                  <div className="text-xs text-muted-foreground border-t pt-1 mt-1">
                     Total: {Array.isArray(assignments) ? assignments.length : 0}
                   </div>
                 </div>
@@ -209,8 +219,8 @@ export default function AdminPanel() {
                         </div>
                         
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{assignment.subject}</span>
-                          <span>Due: {formatDate(assignment.dueDate)}</span>
+                          <span>{assignment.subject || 'No subject'}</span>
+                          <span>Due: {formatDate(assignment.dueDate ? assignment.dueDate.toString() : null)}</span>
                           {assignment.priority && (
                             <Badge variant="outline" className="text-xs">
                               Priority: {assignment.priority}
@@ -221,7 +231,7 @@ export default function AdminPanel() {
 
                       <div className="flex items-center gap-2 ml-4">
                         <Select
-                          value={assignment.completionStatus}
+                          value={assignment.completionStatus || 'pending'}
                           onValueChange={(value) => handleStatusUpdate(assignment.id, value)}
                         >
                           <SelectTrigger className="w-32">
@@ -230,7 +240,9 @@ export default function AdminPanel() {
                           <SelectContent>
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="in_progress">In Progress</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="completed">Done</SelectItem>
+                            <SelectItem value="stuck">Stuck</SelectItem>
+                            <SelectItem value="needs_more_time">NMT</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
