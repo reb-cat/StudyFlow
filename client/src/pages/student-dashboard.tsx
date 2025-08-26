@@ -17,7 +17,9 @@ import {
   Utensils,
   Package,
   Car,
-  Building2
+  Building2,
+  Grid3X3,
+  Play
 } from 'lucide-react';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
@@ -145,36 +147,36 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
         
         {/* Header - Student name left, action buttons right */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-foreground" data-testid="student-name">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-foreground" data-testid="student-name">
             {studentName}
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" data-testid="button-home">
-              <Home className="h-5 w-5" />
+              <Home className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" data-testid="button-settings">
-              <Settings className="h-5 w-5" />
+              <Settings className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" data-testid="button-theme">
-              <Moon className="h-5 w-5" />
+              <Moon className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
         {/* Second row - Date/Co-op + Mode toggles */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
-              <span data-testid="date-display">{dateDisplay}</span>
+              <span data-testid="date-display" className="text-sm font-medium">{dateDisplay}</span>
             </div>
             {isThursday && (
-              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs">
                 Co-op Day
               </Badge>
             )}
@@ -212,19 +214,21 @@ export default function StudentDashboard() {
                 variant={!isGuidedMode ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setIsGuidedMode(false)}
-                className="text-sm"
+                className="text-xs flex items-center gap-1"
                 data-testid="button-overview-mode"
               >
-                👁 Overview Mode
+                <Grid3X3 className="h-3 w-3" />
+                Overview Mode
               </Button>
               <Button
                 variant={isGuidedMode ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setIsGuidedMode(true)}
-                className="text-sm"
+                className="text-xs flex items-center gap-1"
                 data-testid="button-guided-mode"
               >
-                ▶ Guided Day
+                <Play className="h-3 w-3" />
+                Guided Day
               </Button>
             </div>
           </div>
@@ -242,30 +246,30 @@ export default function StudentDashboard() {
             />
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {/* Progress Bar */}
-            <div className="mb-4">
-              <div className="flex justify-between text-sm text-muted-foreground mb-2">
+            <div className="mb-3">
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
                 <span>0 of {allScheduleBlocks.length} blocks completed</span>
                 <span>0%</span>
               </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div className="bg-primary h-2 rounded-full" style={{ width: '0%' }}></div>
+              <div className="w-full bg-muted rounded-full h-1.5">
+                <div className="bg-primary h-1.5 rounded-full transition-all duration-300" style={{ width: '0%' }}></div>
               </div>
             </div>
 
-            {/* Single card with compact list layout matching screenshot */}
-            <Card className="bg-card border border-border">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">
-                  {isToday ? "Today's" : `${dayName}'s`} Schedule
+            {/* Single card with compact list layout */}
+            <Card className="bg-card border border-border shadow-sm">
+              <CardContent className="p-4">
+                <h3 className="text-base font-semibold text-foreground mb-3 border-b border-border pb-2">
+                  {isToday ? "Today's" : `${dayName}'s`} Schedule ({allScheduleBlocks.length} blocks)
                 </h3>
                   
-                  <div className="space-y-3">
+                  <div className="space-y-1">
                     {/* Show ALL schedule blocks in chronological order with compact layout */}
                     {allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                      .map((block) => {
+                      .map((block, index) => {
                         // Get appropriate icon component (simple, ADHD-friendly)
                         const getBlockIcon = (blockType: string) => {
                           const iconClass = "h-4 w-4 text-muted-foreground";
@@ -313,20 +317,27 @@ export default function StudentDashboard() {
                         }
                         
                         return (
-                          <div key={block.id} className="flex items-center justify-between py-2">
+                          <div 
+                            key={block.id} 
+                            className={`flex items-center justify-between py-2 px-2 rounded-md transition-colors hover:bg-muted/50 ${
+                              index % 2 === 0 ? 'bg-muted/20' : ''
+                            }`}
+                          >
                             <div className="flex items-center gap-3 flex-1">
-                              <div className="flex-shrink-0">{getBlockIcon(block.blockType)}</div>
+                              <div className="flex-shrink-0 p-1 bg-background rounded-md border">
+                                {getBlockIcon(block.blockType)}
+                              </div>
                               <div className="flex-1 min-w-0">
                                 <div className="font-medium text-sm text-foreground">{blockTitle}</div>
                                 {blockDetails && (
-                                  <div className="text-sm text-muted-foreground truncate">{blockDetails}</div>
+                                  <div className="text-xs text-muted-foreground truncate">{blockDetails}</div>
                                 )}
                               </div>
-                              <div className="text-sm text-muted-foreground mr-4 flex-shrink-0">
+                              <div className="text-xs text-muted-foreground mr-3 flex-shrink-0 font-mono">
                                 {formatTime(block.startTime, block.endTime)}
                               </div>
                             </div>
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="outline" className="text-xs bg-muted/50">
                               not started
                             </Badge>
                           </div>
