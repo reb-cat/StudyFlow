@@ -246,16 +246,35 @@ export function analyzeAssignmentWithCanvas(
   const isInClass = isInClassActivity(title);
   let extractedDueDate = extractDueDateFromTitle(title) || (isInClass ? extractClassDate(title) : null);
   
-  // CRITICAL: Use module timing as fallback when assignment timing is missing
+  // COMPREHENSIVE MODULE TIMING EXTRACTION
+  // Priority 1: Use module timing from inferred_start_date (existing successful pattern)
   if (!extractedDueDate && canvasData?.inferred_start_date) {
     extractedDueDate = new Date(canvasData.inferred_start_date);
     console.log(`📅 Using module timing for "${title}": ${extractedDueDate.toDateString()}`);
   }
   
-  // For multi-week assignments like "Class Participation for Module 1", use module completion date if available
+  // Priority 2: Extract timing from lock_info.context_module (THE MISSING PIECE!)
+  if (!extractedDueDate && canvasData?.lock_info?.context_module?.unlock_at) {
+    extractedDueDate = new Date(canvasData.lock_info.context_module.unlock_at);
+    console.log(`📅 Using module lock/unlock timing for "${title}": ${extractedDueDate.toDateString()}`);
+  }
+  
+  // Priority 3: For multi-week assignments, use module completion date if available
   if (!extractedDueDate && canvasData?.module_data?.completed_at) {
     extractedDueDate = new Date(canvasData.module_data.completed_at);
     console.log(`📅 Using module completion timing for "${title}": ${extractedDueDate.toDateString()}`);
+  }
+  
+  // Priority 4: Extract from Canvas assignment unlock_at if available
+  if (!extractedDueDate && canvasData?.unlock_at) {
+    extractedDueDate = new Date(canvasData.unlock_at);
+    console.log(`📅 Using Canvas assignment unlock timing for "${title}": ${extractedDueDate.toDateString()}`);
+  }
+  
+  // Priority 5: Extract from Canvas assignment lock_at as availability window end
+  if (!extractedDueDate && canvasData?.lock_at) {
+    extractedDueDate = new Date(canvasData.lock_at);
+    console.log(`📅 Using Canvas assignment lock timing for "${title}": ${extractedDueDate.toDateString()}`);
   }
   
   // Determine category
@@ -293,12 +312,44 @@ export function analyzeAssignmentWithCanvas(
     canvasCategory = 'assignments';
   }
   
-  // Calculate availability window with module timing fallback
+  // COMPREHENSIVE availability window calculation with ALL Canvas module timing sources
+  let availableFrom: Date | null = null;
+  let availableUntil: Date | null = null;
+  
+  // Priority 1: Direct Canvas assignment timing
+  if (canvasData?.unlock_at) {
+    availableFrom = new Date(canvasData.unlock_at);
+  }
+  if (canvasData?.lock_at) {
+    availableUntil = new Date(canvasData.lock_at);
+  }
+  
+  // Priority 2: MODULE TIMING from lock_info.context_module (THE CRITICAL ADDITION!)
+  if (!availableFrom && canvasData?.lock_info?.context_module?.unlock_at) {
+    availableFrom = new Date(canvasData.lock_info.context_module.unlock_at);
+    console.log(`📅 Using module unlock for availability: ${availableFrom.toDateString()}`);
+  }
+  if (!availableUntil && canvasData?.lock_info?.context_module?.lock_at) {
+    availableUntil = new Date(canvasData.lock_info.context_module.lock_at);
+    console.log(`📅 Using module lock for availability: ${availableUntil.toDateString()}`);
+  }
+  
+  // Priority 3: Inferred module timing (existing successful pattern)
+  if (!availableFrom && canvasData?.inferred_start_date) {
+    availableFrom = new Date(canvasData.inferred_start_date);
+  }
+  if (!availableUntil && canvasData?.inferred_end_date) {
+    availableUntil = new Date(canvasData.inferred_end_date);
+  }
+  
+  // Priority 4: Module data timing (for assignments linked to modules)
+  if (!availableFrom && canvasData?.module_data?.unlock_at) {
+    availableFrom = new Date(canvasData.module_data.unlock_at);
+  }
+  
   const availabilityWindow = {
-    availableFrom: canvasData?.unlock_at ? new Date(canvasData.unlock_at) : 
-                   canvasData?.inferred_start_date ? new Date(canvasData.inferred_start_date) : null,
-    availableUntil: canvasData?.lock_at ? new Date(canvasData.lock_at) :
-                    canvasData?.inferred_end_date ? new Date(canvasData.inferred_end_date) : null
+    availableFrom,
+    availableUntil
   };
   
   // Submission context
