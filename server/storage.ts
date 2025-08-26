@@ -179,24 +179,24 @@ export class DatabaseStorage implements IStorage {
 
   async updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined> {
     try {
-      // Convert camelCase to snake_case for Supabase
+      // Use camelCase for Supabase (matching schema)
       const updateData: any = {};
       if (update.title !== undefined) updateData.title = update.title;
       if (update.subject !== undefined) updateData.subject = update.subject;
-      if (update.courseName !== undefined) updateData.course_name = update.courseName;
+      if (update.courseName !== undefined) updateData.courseName = update.courseName;
       if (update.instructions !== undefined) updateData.instructions = update.instructions;
-      if (update.dueDate !== undefined) updateData.due_date = update.dueDate;
-      if (update.scheduledDate !== undefined) updateData.scheduled_date = update.scheduledDate;
-      if (update.scheduledBlock !== undefined) updateData.scheduled_block = update.scheduledBlock;
-      if (update.blockStart !== undefined) updateData.block_start = update.blockStart;
-      if (update.blockEnd !== undefined) updateData.block_end = update.blockEnd;
-      if (update.actualEstimatedMinutes !== undefined) updateData.actual_estimated_minutes = update.actualEstimatedMinutes;
-      if (update.completionStatus !== undefined) updateData.completion_status = update.completionStatus;
-      if (update.blockType !== undefined) updateData.block_type = update.blockType;
-      if (update.isAssignmentBlock !== undefined) updateData.is_assignment_block = update.isAssignmentBlock;
+      if (update.dueDate !== undefined) updateData.dueDate = update.dueDate;
+      if (update.scheduledDate !== undefined) updateData.scheduledDate = update.scheduledDate;
+      if (update.scheduledBlock !== undefined) updateData.scheduledBlock = update.scheduledBlock;
+      if (update.blockStart !== undefined) updateData.blockStart = update.blockStart;
+      if (update.blockEnd !== undefined) updateData.blockEnd = update.blockEnd;
+      if (update.actualEstimatedMinutes !== undefined) updateData.actualEstimatedMinutes = update.actualEstimatedMinutes;
+      if (update.completionStatus !== undefined) updateData.completionStatus = update.completionStatus;
+      if (update.blockType !== undefined) updateData.blockType = update.blockType;
+      if (update.isAssignmentBlock !== undefined) updateData.isAssignmentBlock = update.isAssignmentBlock;
       if (update.priority !== undefined) updateData.priority = update.priority;
       if (update.difficulty !== undefined) updateData.difficulty = update.difficulty;
-      if (update.timeSpent !== undefined) updateData.time_spent = update.timeSpent;
+      if (update.timeSpent !== undefined) updateData.timeSpent = update.timeSpent;
       if (update.notes !== undefined) updateData.notes = update.notes;
       
       const { data, error } = await supabase
