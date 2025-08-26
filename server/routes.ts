@@ -244,7 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const canvasAssignment of canvasData.instance1) {
           transformedAssignments.push({
             title: canvasAssignment.name,
-            subject: 'Canvas Course',
+            subject: canvasAssignment.courseName || 'Unknown Course',
             instructions: canvasAssignment.description || '',
             dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
             actualEstimatedMinutes: 60, // Default to 1 hour
@@ -262,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const canvasAssignment of canvasData.instance2) {
           transformedAssignments.push({
             title: canvasAssignment.name,
-            subject: 'Canvas Course 2',
+            subject: canvasAssignment.courseName || 'Unknown Course 2',
             instructions: canvasAssignment.description || '',
             dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
             actualEstimatedMinutes: 60,
@@ -310,7 +310,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const assignment = await storage.createAssignment({
             userId: userId,
             title: canvasAssignment.name,
-            subject: 'Canvas Course',
+            subject: canvasAssignment.courseName || 'Unknown Course',
+            courseName: canvasAssignment.courseName || 'Unknown Course',
             instructions: canvasAssignment.description || 'Assignment from Canvas',
             dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
             scheduledDate: today, // Schedule for today for testing
@@ -329,7 +330,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const assignment = await storage.createAssignment({
             userId: userId,
             title: `${canvasAssignment.name} (Canvas 2)`,
-            subject: 'Canvas Course 2',
+            subject: canvasAssignment.courseName || 'Unknown Course 2',
+            courseName: canvasAssignment.courseName || 'Unknown Course 2',
             instructions: canvasAssignment.description || 'Assignment from Canvas instance 2',
             dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
             scheduledDate: today,
