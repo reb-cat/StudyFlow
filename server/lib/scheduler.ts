@@ -1,5 +1,6 @@
 import { getAllAssignmentsForStudent } from './canvas';
 import { storage } from '../storage';
+import { analyzeAssignment, getSmartSchedulingDate } from './assignmentIntelligence';
 
 interface ScheduledJob {
   name: string;
@@ -69,11 +70,29 @@ class JobScheduler {
               );
               
               if (!alreadyExists) {
+                // Apply intelligent assignment processing
+                const intelligence = analyzeAssignment(canvasAssignment.name, canvasAssignment.description);
+                
                 // Determine completion status based on Canvas grading info
                 let completionStatus = 'pending';
                 if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
                   completionStatus = 'completed';
                   console.log(`📋 Auto-marking "${canvasAssignment.name}" as completed (graded in Canvas)`);
+                }
+
+                // Use extracted due date if available, otherwise Canvas due date
+                const dueDate = intelligence.extractedDueDate || 
+                               (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null);
+                
+                // Smart scheduling based on assignment type
+                const smartScheduledDate = getSmartSchedulingDate(intelligence, this.getNextAssignmentDate());
+                
+                // Log intelligent processing results
+                if (intelligence.extractedDueDate) {
+                  console.log(`🧠 Smart due date extracted: ${intelligence.extractedDueDate.toDateString()}`);
+                }
+                if (intelligence.isInClassActivity) {
+                  console.log(`🏫 Detected in-class activity: ${intelligence.isSchedulable ? 'schedulable' : 'fixed co-op block'}`);
                 }
 
                 await storage.createAssignment({
@@ -82,12 +101,14 @@ class JobScheduler {
                   subject: canvasAssignment.courseName || 'Unknown Course',
                   courseName: canvasAssignment.courseName || 'Unknown Course',
                   instructions: canvasAssignment.description || 'Assignment from Canvas',
-                  dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
-                  scheduledDate: this.getNextAssignmentDate(),
+                  dueDate: dueDate,
+                  scheduledDate: smartScheduledDate,
                   actualEstimatedMinutes: 60,
                   completionStatus: completionStatus,
                   priority: 'B',
                   difficulty: 'medium',
+                  blockType: intelligence.blockType,
+                  isAssignmentBlock: intelligence.isSchedulable,
                   canvasId: canvasAssignment.id,
                   canvasInstance: 1,
                   isCanvasImport: true
@@ -128,25 +149,46 @@ class JobScheduler {
               );
               
               if (!alreadyExists) {
+                // Apply intelligent assignment processing for Canvas 2
+                const title = `${canvasAssignment.name} (Canvas 2)`;
+                const intelligence = analyzeAssignment(title, canvasAssignment.description);
+                
                 // Determine completion status based on Canvas grading info
                 let completionStatus = 'pending';
                 if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
                   completionStatus = 'completed';
-                  console.log(`📋 Auto-marking "${canvasAssignment.name} (Canvas 2)" as completed (graded in Canvas)`);
+                  console.log(`📋 Auto-marking "${title}" as completed (graded in Canvas)`);
+                }
+
+                // Use extracted due date if available, otherwise Canvas due date
+                const dueDate = intelligence.extractedDueDate || 
+                               (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null);
+                
+                // Smart scheduling based on assignment type
+                const smartScheduledDate = getSmartSchedulingDate(intelligence, this.getNextAssignmentDate());
+                
+                // Log intelligent processing results for Canvas 2
+                if (intelligence.extractedDueDate) {
+                  console.log(`🧠 Smart due date extracted (Canvas 2): ${intelligence.extractedDueDate.toDateString()}`);
+                }
+                if (intelligence.isInClassActivity) {
+                  console.log(`🏫 Detected in-class activity (Canvas 2): ${intelligence.isSchedulable ? 'schedulable' : 'fixed co-op block'}`);
                 }
 
                 await storage.createAssignment({
                   userId: userId,
-                  title: `${canvasAssignment.name} (Canvas 2)`,
+                  title: title,
                   subject: canvasAssignment.courseName || 'Unknown Course 2',
                   courseName: canvasAssignment.courseName || 'Unknown Course 2',
                   instructions: canvasAssignment.description || 'Assignment from Canvas instance 2',
-                  dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
-                  scheduledDate: this.getNextAssignmentDate(),
+                  dueDate: dueDate,
+                  scheduledDate: smartScheduledDate,
                   actualEstimatedMinutes: 60,
                   completionStatus: completionStatus,
                   priority: 'B',
                   difficulty: 'medium',
+                  blockType: intelligence.blockType,
+                  isAssignmentBlock: intelligence.isSchedulable,
                   canvasId: canvasAssignment.id,
                   canvasInstance: 2,
                   isCanvasImport: true

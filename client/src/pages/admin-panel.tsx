@@ -17,6 +17,7 @@ export default function AdminPanel() {
   const [selectedStudent, setSelectedStudent] = useState<string>('Abigail');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('upcoming');
 
   // Get all assignments for the selected student
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
@@ -49,8 +50,54 @@ export default function AdminPanel() {
     }
   });
 
-  // Filter assignments based on search and status - with safety check
-  const filteredAssignments = Array.isArray(assignments) ? assignments.filter(assignment => {
+  // Smart date filtering helper
+  const getDateFilteredAssignments = (assignments: Assignment[]) => {
+    const now = new Date();
+    const currentWeek = new Date(now);
+    currentWeek.setDate(now.getDate() - now.getDay()); // Start of current week
+    
+    const threeWeeksOut = new Date(now);
+    threeWeeksOut.setDate(now.getDate() + 21); // 3 weeks from now
+    
+    switch (dateFilter) {
+      case 'upcoming':
+        // Current week + next 3 weeks
+        return assignments.filter(assignment => {
+          if (!assignment.dueDate && !assignment.scheduledDate) return true; // Include assignments without dates
+          
+          const assignmentDate = assignment.dueDate ? new Date(assignment.dueDate) : 
+                                assignment.scheduledDate ? new Date(assignment.scheduledDate) : null;
+          
+          if (!assignmentDate) return true;
+          
+          return assignmentDate >= currentWeek && assignmentDate <= threeWeeksOut;
+        });
+      
+      case 'overdue':
+        return assignments.filter(assignment => {
+          if (!assignment.dueDate) return false;
+          const dueDate = new Date(assignment.dueDate);
+          return dueDate < now && assignment.completionStatus === 'pending';
+        });
+      
+      case 'this-week':
+        const endOfWeek = new Date(currentWeek);
+        endOfWeek.setDate(currentWeek.getDate() + 6);
+        return assignments.filter(assignment => {
+          const assignmentDate = assignment.dueDate ? new Date(assignment.dueDate) : 
+                                assignment.scheduledDate ? new Date(assignment.scheduledDate) : null;
+          if (!assignmentDate) return false;
+          return assignmentDate >= currentWeek && assignmentDate <= endOfWeek;
+        });
+        
+      case 'all':
+      default:
+        return assignments;
+    }
+  };
+
+  // Filter assignments based on search, status, and smart date filtering
+  const filteredAssignments = Array.isArray(assignments) ? getDateFilteredAssignments(assignments).filter(assignment => {
     const matchesSearch = assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          assignment.subject?.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -115,7 +162,7 @@ export default function AdminPanel() {
             <CardTitle>Controls</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {/* Student Selection */}
               <div>
                 <label className="text-sm font-medium mb-2 block">Student</label>
@@ -157,6 +204,22 @@ export default function AdminPanel() {
                     <SelectItem value="completed">Done Only</SelectItem>
                     <SelectItem value="needs_more_time">Need More Time Only</SelectItem>
                     <SelectItem value="stuck">Stuck Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date Filter */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Date Range</label>
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="upcoming">📅 Next 3 Weeks</SelectItem>
+                    <SelectItem value="this-week">📆 This Week Only</SelectItem>
+                    <SelectItem value="overdue">⚠️ Overdue Items</SelectItem>
+                    <SelectItem value="all">📋 All Assignments</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
