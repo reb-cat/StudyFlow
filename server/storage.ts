@@ -48,8 +48,17 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
-      const result = await db.select().from(users).where(eq(users.username, username));
-      return result[0] as User | undefined;
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .single();
+      
+      if (error) {
+        console.error('Error getting user by username:', error);
+        return undefined;
+      }
+      return data as User;
     } catch (error) {
       console.error('Error getting user by username:', error);
       return undefined;
@@ -58,8 +67,17 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
-      const result = await db.insert(users).values(insertUser).returning();
-      return result[0] as User;
+      const { data, error } = await supabase
+        .from('users')
+        .insert(insertUser)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating user:', error);
+        throw new Error('Failed to create user');
+      }
+      return data as User;
     } catch (error) {
       console.error('Error creating user:', error);
       throw new Error('Failed to create user');
@@ -98,7 +116,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const assignmentData = {
         id: randomUUID(),
-        userId: data.userId, // Now using text, so simple string user IDs work
+        userId: data.userId,
         title: data.title,
         subject: data.subject || null,
         courseName: data.courseName || null,
@@ -143,7 +161,16 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAssignment(id: string): Promise<boolean> {
     try {
-      await db.delete(assignments).where(eq(assignments.id, id));
+      const { error } = await supabase
+        .from('assignments')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting assignment:', error);
+        return false;
+      }
+      
       return true;
     } catch (error) {
       console.error('Error deleting assignment:', error);
@@ -154,18 +181,23 @@ export class DatabaseStorage implements IStorage {
   // Schedule template operations
   async getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]> {
     try {
+      let query = supabase
+        .from('schedule_template')
+        .select('*')
+        .eq('student_name', studentName);
+      
       if (weekday) {
-        const result = await db.select().from(scheduleTemplate).where(and(
-          eq(scheduleTemplate.studentName, studentName),
-          eq(scheduleTemplate.weekday, weekday)
-        )).orderBy(scheduleTemplate.startTime);
-        return result as ScheduleTemplate[];
-      } else {
-        const result = await db.select().from(scheduleTemplate).where(
-          eq(scheduleTemplate.studentName, studentName)
-        ).orderBy(scheduleTemplate.startTime);
-        return result as ScheduleTemplate[];
+        query = query.eq('weekday', weekday);
       }
+      
+      const { data, error } = await query.order('start_time');
+      
+      if (error) {
+        console.error('Error getting schedule template:', error);
+        return [];
+      }
+      
+      return (data || []) as ScheduleTemplate[];
     } catch (error) {
       console.error('Error getting schedule template:', error);
       return [];
