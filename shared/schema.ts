@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, uuid, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -97,6 +97,87 @@ export const insertUserPreferencesSchema = createInsertSchema(userPreferences).o
   updatedAt: true,
 });
 
+// Advanced assignment management (integrated from learning-schedule)
+export const assignments = pgTable("assignments", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  subject: text("subject"),
+  courseName: text("course_name"),
+  instructions: text("instructions"),
+  dueDate: timestamp("due_date"),
+  scheduledDate: text("scheduled_date"), // yyyy-mm-dd format
+  scheduledBlock: integer("scheduled_block"),
+  blockStart: text("block_start"), // HH:mm format
+  blockEnd: text("block_end"), // HH:mm format
+  actualEstimatedMinutes: integer("actual_estimated_minutes").default(30),
+  completionStatus: text("completion_status", { 
+    enum: ["pending", "in_progress", "completed", "stuck", "needs_more_time"] 
+  }).default("pending"),
+  blockType: text("block_type").default("assignment"), // assignment, co-op, travel, prep, etc.
+  isAssignmentBlock: boolean("is_assignment_block").default(true),
+  priority: text("priority", { enum: ["low", "medium", "high", "urgent"] }).default("medium"),
+  difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }).default("medium"),
+  timeSpent: integer("time_spent").default(0), // actual minutes spent
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Schedule templates for admin management
+export const scheduleTemplates = pgTable("schedule_templates", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  templateData: text("template_data"), // JSON string of template structure
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Progress tracking for executive function support
+export const progressSessions = pgTable("progress_sessions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  assignmentId: uuid("assignment_id").references(() => assignments.id),
+  sessionType: text("session_type", { 
+    enum: ["focus", "break", "stuck_help", "continuation"] 
+  }).default("focus"),
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  timeSpent: integer("time_spent"), // minutes
+  difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }),
+  notes: text("notes"),
+  needsHelp: boolean("needs_help").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Assignment schemas
+export const insertAssignmentSchema = createInsertSchema(assignments).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateAssignmentSchema = insertAssignmentSchema.partial();
+
+// Schedule template schemas
+export const insertScheduleTemplateSchema = createInsertSchema(scheduleTemplates).omit({
+  id: true,
+  createdBy: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Progress session schemas
+export const insertProgressSessionSchema = createInsertSchema(progressSessions).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+});
+
 // Export types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
@@ -111,3 +192,14 @@ export type StudySession = typeof studySessions.$inferSelect;
 
 export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
 export type UserPreferences = typeof userPreferences.$inferSelect;
+
+// New advanced types
+export type InsertAssignment = z.infer<typeof insertAssignmentSchema>;
+export type UpdateAssignment = z.infer<typeof updateAssignmentSchema>;
+export type Assignment = typeof assignments.$inferSelect;
+
+export type InsertScheduleTemplate = z.infer<typeof insertScheduleTemplateSchema>;
+export type ScheduleTemplate = typeof scheduleTemplates.$inferSelect;
+
+export type InsertProgressSession = z.infer<typeof insertProgressSessionSchema>;
+export type ProgressSession = typeof progressSessions.$inferSelect;

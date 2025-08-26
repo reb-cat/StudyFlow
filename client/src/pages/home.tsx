@@ -88,8 +88,9 @@ export default function Home() {
                   size="lg" 
                   className="h-11 px-8"
                   data-testid="button-get-started"
+                  onClick={() => window.location.href = '/student'}
                 >
-                  Get Started
+                  Try Student Dashboard Demo
                 </Button>
                 <Button 
                   variant="outline" 
