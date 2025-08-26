@@ -514,6 +514,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Schedule template bulk upload endpoint
+  app.post('/api/schedule-templates/bulk-upload', async (req, res) => {
+    try {
+      const { templates } = req.body;
+      
+      if (!Array.isArray(templates)) {
+        return res.status(400).json({ message: 'Templates must be an array' });
+      }
+      
+      console.log(`📅 Uploading ${templates.length} schedule templates...`);
+      
+      const insertedTemplates = [];
+      for (const template of templates) {
+        const validatedTemplate = insertScheduleTemplateSchema.parse(template);
+        const inserted = await storage.createScheduleTemplate(validatedTemplate);
+        insertedTemplates.push(inserted);
+      }
+      
+      res.status(201).json({
+        message: `Successfully uploaded ${insertedTemplates.length} schedule templates`,
+        count: insertedTemplates.length
+      });
+    } catch (error) {
+      console.error('Error uploading schedule templates:', error);
+      res.status(400).json({ message: 'Failed to upload schedule templates', error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
