@@ -110,20 +110,7 @@ export function isInClassActivity(title: string): boolean {
     /class\s+work/i,                   // "Class Work"
   ];
 
-  const isInClass = inClassPatterns.some(pattern => pattern.test(title));
-  
-  // Enhanced debugging for in-class detection
-  if (title.toLowerCase().includes('class')) {
-    console.log(`🔍 Class activity check: "${title}" -> ${isInClass ? 'IN-CLASS' : 'NOT in-class'}`);
-    inClassPatterns.forEach((pattern, index) => {
-      const matches = pattern.test(title);
-      if (matches) {
-        console.log(`   ✅ Pattern ${index + 1} matched: ${pattern}`);
-      }
-    });
-  }
-
-  return isInClass;
+  return inClassPatterns.some(pattern => pattern.test(title));
 }
 
 /**
@@ -211,12 +198,8 @@ export function analyzeAssignmentWithCanvas(
     course_end_date?: string;
   }
 ): AssignmentIntelligence {
-  console.log(`🔬 Processing assignment: "${title}"`);
-  
   const isInClass = isInClassActivity(title);
   const extractedDueDate = extractDueDateFromTitle(title) || (isInClass ? extractClassDate(title) : null);
-  
-  console.log(`   🏫 Is in-class: ${isInClass}`);
   
   // Determine category
   let category: 'homework' | 'in-class' | 'makeup' | 'other' = 'other';
@@ -228,18 +211,11 @@ export function analyzeAssignmentWithCanvas(
     category = 'makeup';
   }
 
-  // Determine schedulability
-  // In-class activities are normally not schedulable (fixed to class time)
-  // BUT makeup work becomes schedulable
-  const isSchedulable = !isInClass || category === 'makeup';
-  
-  // Determine block type
-  let blockType: 'assignment' | 'co-op' | 'travel' | 'prep' = 'assignment';
-  if (isInClass && category !== 'makeup') {
-    blockType = 'co-op'; // Fixed co-op class time
-  }
-  
-  console.log(`   📋 Category: ${category} | Schedulable: ${isSchedulable} | Block type: ${blockType}`);
+  // Determine schedulability and block type
+  // In-class activities remain as regular assignments but get special category handling
+  // The UI can filter/handle them based on the 'in-class' category rather than blockType
+  const isSchedulable = true; // All assignments remain schedulable for flexibility
+  const blockType: 'assignment' | 'co-op' | 'travel' | 'prep' = 'assignment'; // Keep all as assignments
 
   // Enhanced analysis with Canvas data
   const isRecurring = canvasData?.is_recurring || isRecurringAssignment(title, description);
