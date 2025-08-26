@@ -90,15 +90,16 @@ export default function Home() {
                   data-testid="button-get-started"
                   onClick={() => window.location.href = '/student'}
                 >
-                  Try Student Dashboard Demo
+                  Student Dashboard
                 </Button>
                 <Button 
                   variant="outline" 
                   size="lg" 
                   className="h-11 px-8"
-                  data-testid="button-learn-more"
+                  data-testid="button-admin-panel"
+                  onClick={() => window.location.href = '/admin'}
                 >
-                  Learn More
+                  Admin Panel
                 </Button>
               </div>
             </div>

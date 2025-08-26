@@ -22,6 +22,7 @@ export interface IStorage {
   getAssignment(id: string): Promise<Assignment | undefined>;
   createAssignment(assignment: InsertAssignment & { userId: string }): Promise<Assignment>;
   updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined>;
+  updateAssignmentStatus(id: string, completionStatus: string): Promise<Assignment | undefined>;
   deleteAssignment(id: string): Promise<boolean>;
   updateAdministrativeAssignments(): Promise<void>;
   
@@ -72,8 +73,17 @@ export class DatabaseStorage implements IStorage {
       let result = await db.select().from(assignments).where(eq(assignments.userId, userId));
       let assignmentList = result || [];
       
-      // For daily scheduling: only show assignments due within the next 12 days
+      // For daily scheduling: exclude completed assignments and filter by date
       // This keeps the daily view focused while the database contains the full Canvas dataset
+      
+      // FIRST: Always exclude completed assignments from daily planning
+      const beforeCompletionFilter = assignmentList.length;
+      assignmentList = assignmentList.filter((assignment: any) => 
+        assignment.completionStatus !== 'completed'
+      );
+      console.log(`📝 Completion filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed)`);
+      
+      // SECOND: Apply date filtering for daily scheduling
       if (date) {
         const requestDate = new Date(date);
         const futureLimit = new Date(requestDate);
@@ -81,12 +91,11 @@ export class DatabaseStorage implements IStorage {
         
         console.log(`🗓️ Date filtering: ${date} (${requestDate.toISOString()}) to ${futureLimit.toISOString()}`);
         
-        const beforeFilter = assignmentList.length;
+        const beforeDateFilter = assignmentList.length;
         assignmentList = assignmentList.filter((assignment: any) => {
-          // For assignments without due dates, include them but limit quantity for daily planning
+          // For assignments without due dates, include them (they're always relevant)
           if (!assignment.dueDate) {
-            // Don't flood daily view with undated assignments - maybe limit or categorize
-            return true; // For now, include all (we can refine this logic)
+            return true;
           }
           
           const dueDate = new Date(assignment.dueDate);
@@ -101,7 +110,7 @@ export class DatabaseStorage implements IStorage {
           return isInRange;
         });
         
-        console.log(`📊 Date filtering: ${beforeFilter} → ${assignmentList.length} assignments`);
+        console.log(`📊 Date filtering: ${beforeDateFilter} → ${assignmentList.length} assignments`);
       }
       
       return assignmentList;
@@ -152,6 +161,22 @@ export class DatabaseStorage implements IStorage {
       return result[0] || undefined;
     } catch (error) {
       console.error('Error updating assignment:', error);
+      return undefined;
+    }
+  }
+
+  async updateAssignmentStatus(id: string, completionStatus: string): Promise<Assignment | undefined> {
+    try {
+      const result = await db.update(assignments)
+        .set({ 
+          completionStatus,
+          updatedAt: new Date()
+        })
+        .where(eq(assignments.id, id))
+        .returning();
+      return result[0] || undefined;
+    } catch (error) {
+      console.error('Error updating assignment status:', error);
       return undefined;
     }
   }
@@ -357,6 +382,19 @@ export class MemStorage implements IStorage {
     const updated: Assignment = {
       ...existing,
       ...update,
+      updatedAt: new Date()
+    };
+    this.assignments.set(id, updated);
+    return updated;
+  }
+
+  async updateAssignmentStatus(id: string, completionStatus: string): Promise<Assignment | undefined> {
+    const existing = this.assignments.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Assignment = {
+      ...existing,
+      completionStatus,
       updatedAt: new Date()
     };
     this.assignments.set(id, updated);

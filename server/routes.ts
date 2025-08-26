@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAssignmentSchema, updateAssignmentSchema } from "@shared/schema";
+import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema } from "@shared/schema";
 import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas"; 
 // Email config moved inline since Supabase removed
 const emailConfig = {
@@ -15,6 +15,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Assignment API routes
   
+  // PATCH /api/assignments/:id - Update assignment status
+  app.patch('/api/assignments/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { completionStatus } = req.body;
+      
+      if (!id || !completionStatus) {
+        return res.status(400).json({ message: 'Assignment ID and completion status are required' });
+      }
+
+      const assignment = await storage.updateAssignmentStatus(id, completionStatus);
+      if (!assignment) {
+        return res.status(404).json({ message: 'Assignment not found' });
+      }
+      
+      res.json({ message: 'Assignment status updated successfully', assignment });
+    } catch (error) {
+      console.error('Error updating assignment status:', error);
+      res.status(500).json({ message: 'Failed to update assignment status' });
+    }
+  });
+
   // GET /api/assignments - Get assignments for a user/date
   app.get('/api/assignments', async (req, res) => {
     try {
