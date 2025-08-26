@@ -595,7 +595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const headerRow = lines[0];
       const headers = headerRow.split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
       
-      console.log('📋 CSV Headers:', headers);
+      console.log('📋 CSV Headers found:', headers);
 
       // Parse data rows
       const csvData: any[] = [];
@@ -604,24 +604,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!line) continue;
 
         const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        
+        console.log(`📋 Row ${i}:`, values); // Debug log
+        
         const row: any = {};
         
         headers.forEach((header, index) => {
           row[header] = values[index] || '';
         });
 
-        // Clean up the row data with proper field names
+        console.log(`📋 Parsed row ${i}:`, row); // Debug log
+
+        // Clean up the row data with proper field names  
         const cleanRow = {
-          student_name: row.student_name?.trim(),
+          student_name: row.student_name?.trim() || row['student name']?.trim(),
           weekday: row.weekday?.trim(),
-          block_number: row.block_number?.trim() === '' ? null : parseInt(row.block_number?.trim()),
-          start_time: normalizeTime(row.start_time),
-          end_time: normalizeTime(row.end_time),
+          block_number: (row.block_number?.trim() === '' || !row.block_number) ? null : parseInt(row.block_number?.trim()),
+          start_time: normalizeTime(row.start_time?.trim() || row['start time']?.trim()),
+          end_time: normalizeTime(row.end_time?.trim() || row['end time']?.trim()),
           subject: row.subject?.trim(),
-          block_type: row.block_type?.trim()
+          block_type: row.block_type?.trim() || row['block type']?.trim()
         };
         
-        csvData.push(cleanRow);
+        console.log(`📋 Final clean row ${i}:`, cleanRow); // Debug log
+        
+        // Only add if we have essential data
+        if (cleanRow.student_name && cleanRow.weekday && cleanRow.subject) {
+          csvData.push(cleanRow);
+        } else {
+          console.log(`⚠️ Skipping invalid row ${i}:`, cleanRow);
+        }
       }
 
       if (csvData.length === 0) {
