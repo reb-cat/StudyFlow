@@ -2,10 +2,12 @@ import {
   type User, type InsertUser, 
   type Assignment, type InsertAssignment, type UpdateAssignment,
   type ScheduleTemplate, type InsertScheduleTemplate,
-  type BibleCurriculum, type InsertBibleCurriculum 
+  type BibleCurriculum, type InsertBibleCurriculum,
+  users, assignments, scheduleTemplate, bibleCurriculum
 } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { supabase } from "./lib/supabase";
+import { db } from "./db";
+import { eq, and, sql, desc } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -33,21 +35,12 @@ export interface IStorage {
   updateBibleCompletion(weekNumber: number, dayOfWeek: number, completed: boolean): Promise<BibleCurriculum | undefined>;
 }
 
-// Database storage implementation using Supabase
+// Database storage implementation using local Replit database
 export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) {
-        console.error('Error getting user:', error);
-        return undefined;
-      }
-      return data as User;
+      const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+      return result[0] || undefined;
     } catch (error) {
       console.error('Error getting user:', error);
       return undefined;
@@ -56,17 +49,8 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('username', username)
-        .single();
-      
-      if (error) {
-        console.error('Error getting user by username:', error);
-        return undefined;
-      }
-      return data as User;
+      const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+      return result[0] || undefined;
     } catch (error) {
       console.error('Error getting user by username:', error);
       return undefined;
@@ -75,17 +59,8 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .insert(insertUser)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating user:', error);
-        throw new Error('Failed to create user');
-      }
-      return data as User;
+      const result = await db.insert(users).values(insertUser).returning();
+      return result[0];
     } catch (error) {
       console.error('Error creating user:', error);
       throw new Error('Failed to create user');
@@ -94,32 +69,20 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignments(userId: string, date?: string): Promise<Assignment[]> {
     try {
-      let query = supabase
-        .from('assignments')
-        .select('*')
-        .eq('student_name', userId);
+      let result = await db.select().from(assignments).where(eq(assignments.userId, userId));
+      let assignmentList = result || [];
       
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error getting assignments:', error);
-        return [];
-      }
-      
-      let assignments = (data || []) as Assignment[];
-      
-      // If filtering by date, show assignments that are due on/before this date and eligible for scheduling
+      // If filtering by date, show assignments that are due on/before this date
       if (date) {
-        assignments = assignments.filter((assignment: any) => {
-          if (!assignment.eligible_for_scheduling) return false;
-          if (!assignment.due_date) return true; // Include assignments without due dates
+        assignmentList = assignmentList.filter((assignment: any) => {
+          if (!assignment.dueDate) return true; // Include assignments without due dates
           
-          const dueDate = new Date(assignment.due_date).toISOString().split('T')[0];
+          const dueDate = new Date(assignment.dueDate).toISOString().split('T')[0];
           return dueDate <= date; // Show assignments due on or before the requested date
         });
       }
       
-      return assignments;
+      return assignmentList;
     } catch (error) {
       console.error('Error getting assignments:', error);
       return [];
@@ -128,17 +91,8 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignment(id: string): Promise<Assignment | undefined> {
     try {
-      const { data, error } = await supabase
-        .from('assignments')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) {
-        console.error('Error getting assignment:', error);
-        return undefined;
-      }
-      return data as Assignment;
+      const result = await db.select().from(assignments).where(eq(assignments.id, id)).limit(1);
+      return result[0] || undefined;
     } catch (error) {
       console.error('Error getting assignment:', error);
       return undefined;
@@ -154,25 +108,16 @@ export class DatabaseStorage implements IStorage {
                               data.title.toLowerCase().includes('honor code');
       
       const assignmentData = {
-        student_name: data.userId,
+        userId: data.userId,
         title: data.title,
-        due_date: data.dueDate || null,
-        source: 'canvas',
-        eligible_for_scheduling: !isAdministrative
+        dueDate: data.dueDate || null,
+        subject: data.subject,
+        courseName: data.courseName,
+        instructions: data.instructions
       };
       
-      const { data: assignment, error } = await supabase
-        .from('assignments')
-        .insert(assignmentData)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating assignment:', error);
-        throw new Error('Failed to create assignment');
-      }
-      
-      return assignment as Assignment;
+      const result = await db.insert(assignments).values(assignmentData).returning();
+      return result[0];
     } catch (error) {
       console.error('Error creating assignment:', error);
       throw new Error('Failed to create assignment');
@@ -181,19 +126,8 @@ export class DatabaseStorage implements IStorage {
 
   async updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined> {
     try {
-      const { data, error } = await supabase
-        .from('assignments')
-        .update(update)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error updating assignment:', error);
-        return undefined;
-      }
-      
-      return data as Assignment;
+      const result = await db.update(assignments).set(update).where(eq(assignments.id, id)).returning();
+      return result[0] || undefined;
     } catch (error) {
       console.error('Error updating assignment:', error);
       return undefined;
@@ -203,26 +137,18 @@ export class DatabaseStorage implements IStorage {
   async updateAdministrativeAssignments(): Promise<void> {
     try {
       // Get all assignments and update administrative ones
-      const { data: assignments, error } = await supabase
-        .from('assignments')
-        .select('*');
+      const allAssignments = await db.select().from(assignments);
       
-      if (error || !assignments) {
-        console.error('Error fetching assignments for admin update:', error);
-        return;
-      }
-      
-      for (const assignment of assignments) {
+      for (const assignment of allAssignments) {
         const isAdministrative = assignment.title.toLowerCase().includes('fee') ||
                                 assignment.title.toLowerCase().includes('supply') ||
                                 assignment.title.toLowerCase().includes('syllabus') ||
                                 assignment.title.toLowerCase().includes('honor code');
         
-        if (isAdministrative && assignment.eligible_for_scheduling !== false) {
-          await supabase
-            .from('assignments')
-            .update({ eligible_for_scheduling: false })
-            .eq('id', assignment.id);
+        if (isAdministrative) {
+          await db.update(assignments)
+            .set({ completionStatus: 'completed' })
+            .where(eq(assignments.id, assignment.id));
           
           console.log(`Updated admin assignment: ${assignment.title}`);
         }
@@ -234,16 +160,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAssignment(id: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('assignments')
-        .delete()
-        .eq('id', id);
-      
-      if (error) {
-        console.error('Error deleting assignment:', error);
-        return false;
-      }
-      
+      await db.delete(assignments).where(eq(assignments.id, id));
       return true;
     } catch (error) {
       console.error('Error deleting assignment:', error);
@@ -254,23 +171,15 @@ export class DatabaseStorage implements IStorage {
   // Schedule template operations
   async getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]> {
     try {
-      let query = supabase
-        .from('schedule_template')
-        .select('*')
-        .eq('student_name', studentName);
+      let whereCondition = eq(scheduleTemplate.studentName, studentName);
       
       if (weekday) {
-        query = query.eq('weekday', weekday);
+        whereCondition = and(eq(scheduleTemplate.studentName, studentName), eq(scheduleTemplate.weekday, weekday));
       }
       
-      const { data, error } = await query.order('start_time').limit(1000); // Explicit limit to avoid Supabase defaults
+      const result = await db.select().from(scheduleTemplate).where(whereCondition).orderBy(scheduleTemplate.startTime);
       
-      if (error) {
-        console.error('Error getting schedule template:', error);
-        return [];
-      }
-      
-      return (data || []) as ScheduleTemplate[];
+      return result || [];
     } catch (error) {
       console.error('Error getting schedule template:', error);
       return [];
@@ -279,18 +188,8 @@ export class DatabaseStorage implements IStorage {
 
   async createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate> {
     try {
-      const { data, error } = await supabase
-        .from('schedule_template')
-        .insert(template)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating schedule template:', error);
-        throw new Error('Failed to create schedule template');
-      }
-      
-      return data as ScheduleTemplate;
+      const result = await db.insert(scheduleTemplate).values(template).returning();
+      return result[0];
     } catch (error) {
       console.error('Error creating schedule template:', error);
       throw new Error('Failed to create schedule template');

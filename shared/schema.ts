@@ -127,7 +127,7 @@ export const assignments = pgTable("assignments", {
 // Schedule template table - fixed schedule blocks (uploaded via CSV)
 export const scheduleTemplate = pgTable("schedule_template", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  studentName: text("student_name").notNull(), // "Abigail" or "Khalil"
+  studentName: text("student_name").notNull(), // "Abigail" or "Khalil" - maps to student_name column
   weekday: text("weekday").notNull(), // "Monday", "Tuesday", etc.
   blockNumber: integer("block_number"), // null for fixed blocks, 1,2,3... for assignment blocks
   startTime: text("start_time").notNull(), // "09:00:00" format
