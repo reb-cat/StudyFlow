@@ -58,7 +58,16 @@ export default function StudentDashboard() {
 
   // Fetch assignments for today
   const { data: assignments = [], isLoading, refetch } = useQuery({
-    queryKey: ['/api/assignments', selectedDate],
+    queryKey: ['/api/assignments', selectedDate, studentName],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        date: selectedDate,
+        studentName: studentName
+      });
+      const response = await fetch(`/api/assignments?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch assignments');
+      return response.json();
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
@@ -70,7 +79,7 @@ export default function StudentDashboard() {
 
   const handleAssignmentUpdate = () => {
     refetch();
-    queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/assignments', selectedDate, studentName] });
   };
 
   const todayAssignments = assignments as Assignment[];

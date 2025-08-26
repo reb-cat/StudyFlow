@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema } from "@shared/schema";
 import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas"; 
 import { emailConfig } from "./lib/supabase";
+import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Assignment API routes
@@ -11,15 +12,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/assignments - Get assignments for a user/date
   app.get('/api/assignments', async (req, res) => {
     try {
-      const { date } = req.query;
-      // For demo, always use demo user
-      let userId = "demo-user-1";
+      const { date, studentName } = req.query;
       
-      // Try to find user first
-      let user = await storage.getUser(userId);
-      if (!user) {
-        user = await storage.getUserByUsername("demo-student");
-        userId = user?.id || userId;
+      // Use student-specific user ID
+      let userId = "demo-user-1"; // fallback
+      
+      if (studentName && typeof studentName === 'string') {
+        // Map student names to user IDs
+        const studentUserMap: Record<string, string> = {
+          'abigail': 'abigail-user',
+          'khalil': 'khalil-user'
+        };
+        
+        const normalizedStudentName = studentName.toLowerCase();
+        userId = studentUserMap[normalizedStudentName] || userId;
       }
       
       const assignments = await storage.getAssignments(userId, date as string);
@@ -34,11 +40,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/assignments - Create new assignment
   app.post('/api/assignments', async (req, res) => {
     try {
-      const assignmentData = insertAssignmentSchema.parse(req.body);
-      // For demo, always use demo user
-      const userId = "demo-user-1";
+      const { studentName, ...assignmentData } = req.body;
+      const validatedAssignmentData = insertAssignmentSchema.parse(assignmentData);
       
-      const assignment = await storage.createAssignment({ ...assignmentData, userId });
+      // Use student-specific user ID or fallback
+      let userId = "demo-user-1";
+      if (studentName) {
+        const studentUserMap: Record<string, string> = {
+          'abigail': 'abigail-user',
+          'khalil': 'khalil-user'
+        };
+        userId = studentUserMap[studentName.toLowerCase()] || userId;
+      }
+      
+      const assignment = await storage.createAssignment({ ...validatedAssignmentData, userId });
       res.status(201).json(assignment);
     } catch (error) {
       console.error('Error creating assignment:', error);
@@ -467,6 +482,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching schedule template:', error);
       res.status(500).json({ message: 'Failed to fetch schedule template' });
+    }
+  });
+
+  // Manual Canvas sync trigger (for testing)
+  app.post('/api/sync-canvas', async (req, res) => {
+    try {
+      console.log('🔧 Manual Canvas sync triggered via API');
+      await jobScheduler.runSyncNow();
+      res.json({ 
+        message: 'Canvas sync completed successfully',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Manual Canvas sync failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Canvas sync failed', error: errorMessage });
     }
   });
 
