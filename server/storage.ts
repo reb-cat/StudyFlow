@@ -108,12 +108,15 @@ export class DatabaseStorage implements IStorage {
       
       let assignments = (data || []) as Assignment[];
       
-      // If filtering by date, include assignments scheduled for that date OR unscheduled but eligible
+      // If filtering by date, show assignments that are due on/before this date and eligible for scheduling
       if (date) {
-        assignments = assignments.filter((assignment: any) => 
-          assignment.scheduled_date === date || 
-          (assignment.scheduled_date === null && assignment.eligible_for_scheduling === true)
-        );
+        assignments = assignments.filter((assignment: any) => {
+          if (!assignment.eligible_for_scheduling) return false;
+          if (!assignment.due_date) return true; // Include assignments without due dates
+          
+          const dueDate = new Date(assignment.due_date).toISOString().split('T')[0];
+          return dueDate <= date; // Show assignments due on or before the requested date
+        });
       }
       
       return assignments;
