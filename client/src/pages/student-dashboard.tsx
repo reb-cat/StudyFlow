@@ -56,12 +56,17 @@ export default function StudentDashboard() {
     alert('Settings panel coming soon!');
   };
 
-  // Fetch assignments for today
+  // Fetch assignments for today (get assignments due on or before this date)
   const { data: assignments = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/assignments', selectedDate, studentName],
     queryFn: async () => {
+      // For scheduling purposes, show assignments due in the next few days
+      const currentDate = new Date(selectedDate);
+      const targetDate = new Date(currentDate);
+      targetDate.setDate(currentDate.getDate() + 2); // Show assignments due within 2 days
+      
       const params = new URLSearchParams({
-        date: selectedDate,
+        date: targetDate.toISOString().split('T')[0],
         studentName: studentName
       });
       const response = await fetch(`/api/assignments?${params}`);
@@ -136,6 +141,17 @@ export default function StudentDashboard() {
     ['travel', 'co-op', 'prep/load', 'movement', 'lunch'].includes(block.blockType)
   );
   const assignmentBlocks = allScheduleBlocks.filter((block) => block.blockType === 'assignment');
+
+  // Fill assignment blocks with available assignments (round-robin if more blocks than assignments)
+  const populatedAssignmentBlocks = assignmentBlocks.map((block, index) => {
+    const assignmentIndex = assignments.length > 0 ? index % assignments.length : -1;
+    const assignment = assignmentIndex >= 0 ? assignments[assignmentIndex] : null;
+    
+    return {
+      ...block,
+      assignment: assignment
+    };
+  });
 
   if (isWeekend) {
     return (

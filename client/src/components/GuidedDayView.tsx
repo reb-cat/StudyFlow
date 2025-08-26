@@ -71,11 +71,10 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     // Assignment blocks - use schedule template blocks AND fill with actual assignment data
     ...allScheduleBlocks
       .filter((block) => block.blockType === 'assignment')
-      .map(block => {
-        // Find matching assignment for this block
-        const matchingAssignment = assignments.find(
-          assignment => assignment.scheduledBlock === block.blockNumber
-        );
+      .map((block, index) => {
+        // Fill assignment blocks with available assignments (round-robin if more blocks than assignments)
+        const assignmentIndex = assignments.length > 0 ? index % assignments.length : -1;
+        const matchingAssignment = assignmentIndex >= 0 ? assignments[assignmentIndex] : null;
         
         return {
           id: matchingAssignment ? matchingAssignment.id : block.id,
@@ -84,7 +83,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
           startTime: block.startTime,
           endTime: block.endTime,
           estimatedMinutes: matchingAssignment ? matchingAssignment.actualEstimatedMinutes || 30 : 30,
-          assignment: matchingAssignment,
+          assignment: matchingAssignment || undefined,
           blockType: block.blockType
         };
       })
