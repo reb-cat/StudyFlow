@@ -215,13 +215,8 @@ export default function AdminPanel() {
                         </div>
                         
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{assignment.subject || 'No subject'}</span>
+                          <span>{assignment.courseName || assignment.subject || 'No course'}</span>
                           <span>Due: {formatDate(assignment.dueDate ? assignment.dueDate.toString() : null)}</span>
-                          {assignment.priority && (
-                            <Badge variant="outline" className="text-xs">
-                              Priority: {assignment.priority}
-                            </Badge>
-                          )}
                         </div>
                       </div>
 
