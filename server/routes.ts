@@ -311,6 +311,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to import Canvas assignments', error: errorMessage });
     }
   });
+
+  // Get schedule template for a specific student and date
+  app.get('/api/schedule/:studentName/:date', async (req, res) => {
+    try {
+      console.log('🔥 Schedule route hit!', req.params);
+      const { studentName, date } = req.params;
+      
+      // Convert date to weekday name
+      const dateObj = new Date(date);
+      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const weekday = weekdays[dateObj.getDay()];
+      
+      console.log(`Fetching schedule for ${studentName} on ${weekday} (${date})`);
+      
+      // Get schedule template for this student and weekday
+      const scheduleBlocks = await storage.getScheduleTemplate(studentName, weekday);
+      
+      console.log(`Found ${scheduleBlocks.length} schedule blocks:`, scheduleBlocks);
+      
+      res.json(scheduleBlocks);
+    } catch (error) {
+      console.error("Error fetching schedule:", error);
+      res.status(500).json({ message: "Failed to fetch schedule" });
+    }
+  });
   
   // Parent notification endpoint (when student clicks "Stuck")
   app.post('/api/notify-parent', async (req, res) => {

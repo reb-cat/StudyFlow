@@ -10,7 +10,7 @@ import { FixedBlock } from '@/components/FixedBlock';
 import type { Assignment } from '@shared/schema';
 
 export default function StudentDashboard() {
-  const studentName = "Demo Student";
+  const studentName = "Abigail"; // Use actual student name from database
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const queryClient = useQueryClient();
@@ -21,12 +21,20 @@ export default function StudentDashboard() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // Fetch schedule template for the student and date
+  const { data: scheduleTemplate = [] } = useQuery({
+    queryKey: ['/api/schedule', studentName, selectedDate],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
   const handleAssignmentUpdate = () => {
     refetch();
     queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
   };
 
   const todayAssignments = assignments as Assignment[];
+  
+  console.log('Schedule template data:', { studentName, selectedDate, scheduleTemplate });
   
   // Date utilities
   const selectedDateObj = new Date(selectedDate);
@@ -62,39 +70,23 @@ export default function StudentDashboard() {
     setSelectedDate(new Date().toISOString().split('T')[0]);
   };
 
-  // For now, use hardcoded blocks until schedule template API is working
-  // TODO: Replace with real schedule template data
-  const fixedBlocks = [
-    // Bible is handled separately as it has special logic
-    // Travel/prep block
-    {
-      id: 'travel-1',
-      title: 'Travel to Co-op',
-      blockType: 'travel' as const,
-      startTime: '8:00',
-      endTime: '8:30',
-      showOnThursday: true
-    },
-    // Lunch break
-    {
-      id: 'lunch-1',
-      title: 'Lunch Break',
-      blockType: 'lunch' as const,
-      startTime: '12:00',
-      endTime: '12:30',
-      showOnThursday: true
-    },
-    // Co-op classes (Thursday only)
-    {
-      id: 'coop-1',
-      title: 'Co-op Classes',
-      blockType: 'coop' as const,
-      startTime: '9:00',
-      endTime: '15:00',
-      showOnThursday: true,
-      thursdayOnly: true
-    }
-  ];
+  // Use real schedule template data from database
+  const allScheduleBlocks = scheduleTemplate.map((block: any) => ({
+    id: block.id,
+    title: block.subject,
+    blockType: block.blockType.toLowerCase(),
+    startTime: block.startTime.substring(0, 5), // Remove seconds from HH:MM:SS
+    endTime: block.endTime.substring(0, 5),
+    blockNumber: block.blockNumber,
+    subject: block.subject
+  }));
+
+  // Separate Bible blocks from other fixed blocks
+  const bibleBlocks = allScheduleBlocks.filter((block: any) => block.blockType === 'bible');
+  const fixedBlocks = allScheduleBlocks.filter((block: any) => 
+    ['travel', 'co-op', 'prep/load', 'movement', 'lunch'].includes(block.blockType)
+  );
+  const assignmentBlocks = allScheduleBlocks.filter((block: any) => block.blockType === 'assignment');
 
   if (isWeekend) {
     return (
@@ -232,6 +224,7 @@ export default function StudentDashboard() {
               assignments={todayAssignments}
               studentName={studentName}
               selectedDate={selectedDate}
+              scheduleTemplate={scheduleTemplate}
               onAssignmentUpdate={handleAssignmentUpdate}
             />
           </div>
