@@ -307,6 +307,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import from instance 1
       if (canvasData.instance1) {
         for (const canvasAssignment of canvasData.instance1) {
+          // Skip assignments before June 15, 2025
+          if (canvasAssignment.due_at) {
+            const dueDate = new Date(canvasAssignment.due_at);
+            const cutoffDate = new Date('2025-06-15');
+            if (dueDate < cutoffDate) {
+              console.log(`⏭️ Skipping old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
+              continue;
+            }
+          }
+          
           // Determine completion status based on Canvas grading info
           let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
           if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
@@ -336,6 +346,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import from instance 2 (Abigail only)
       if (canvasData.instance2) {
         for (const canvasAssignment of canvasData.instance2) {
+          // Skip assignments before June 15, 2025
+          if (canvasAssignment.due_at) {
+            const dueDate = new Date(canvasAssignment.due_at);
+            const cutoffDate = new Date('2025-06-15');
+            if (dueDate < cutoffDate) {
+              console.log(`⏭️ Skipping old assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
+              continue;
+            }
+          }
+          
           // Determine completion status based on Canvas grading info
           let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
           if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {

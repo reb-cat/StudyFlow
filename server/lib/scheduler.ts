@@ -49,6 +49,16 @@ class JobScheduler {
         if (canvasData.instance1 && canvasData.instance1.length > 0) {
           for (const canvasAssignment of canvasData.instance1) {
             try {
+              // Skip assignments before June 15, 2025
+              if (canvasAssignment.due_at) {
+                const dueDate = new Date(canvasAssignment.due_at);
+                const cutoffDate = new Date('2025-06-15');
+                if (dueDate < cutoffDate) {
+                  console.log(`⏭️ Skipping old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
+                  continue;
+                }
+              }
+              
               // Log the real Canvas assignment being processed
               console.log(`📝 Real Canvas Assignment Found: "${canvasAssignment.name}" for ${studentName}`);
               
@@ -102,6 +112,16 @@ class JobScheduler {
         if (studentName.toLowerCase() === 'abigail' && canvasData.instance2 && canvasData.instance2.length > 0) {
           for (const canvasAssignment of canvasData.instance2) {
             try {
+              // Skip assignments before June 15, 2025
+              if (canvasAssignment.due_at) {
+                const dueDate = new Date(canvasAssignment.due_at);
+                const cutoffDate = new Date('2025-06-15');
+                if (dueDate < cutoffDate) {
+                  console.log(`⏭️ Skipping old assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
+                  continue;
+                }
+              }
+              
               const existingAssignments = await storage.getAssignments(userId);
               const alreadyExists = existingAssignments.some(
                 assignment => assignment.title === `${canvasAssignment.name} (Canvas 2)`
