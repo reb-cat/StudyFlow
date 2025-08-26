@@ -642,43 +642,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test assignment processing endpoint  
-  app.post('/api/test-assignment-processing', async (req, res) => {
+  // Deep Canvas investigation endpoint
+  app.post('/api/investigate-canvas-assignment', async (req, res) => {
     try {
-      const { title } = req.body;
+      const { title, studentName } = req.body;
       
-      if (!title) {
-        return res.status(400).json({ message: 'Title is required' });
+      if (!title || !studentName) {
+        return res.status(400).json({ message: 'Title and studentName are required' });
       }
       
-      // Import the processing functions directly
-      const { analyzeAssignmentWithCanvas, extractDueDateFromTitle, isInClassActivity } = await import('./lib/assignmentIntelligence.js');
+      // Get all Canvas assignments for the student
+      const { getAllAssignmentsForStudent } = await import('./lib/canvas.js');
+      const canvasData = await getAllAssignmentsForStudent(studentName);
       
-      // Test individual functions
-      const extractedDate = extractDueDateFromTitle(title);
-      const isInClass = isInClassActivity(title);
-      const fullAnalysis = analyzeAssignmentWithCanvas(title);
+      // Find the specific assignment
+      let targetAssignment = null;
+      let foundInInstance = null;
       
+      if (canvasData.instance1) {
+        targetAssignment = canvasData.instance1.find(a => a.name === title);
+        if (targetAssignment) foundInInstance = 1;
+      }
+      
+      if (!targetAssignment && canvasData.instance2) {
+        targetAssignment = canvasData.instance2.find(a => a.name === title);
+        if (targetAssignment) foundInInstance = 2;
+      }
+      
+      if (!targetAssignment) {
+        return res.status(404).json({ 
+          message: `Assignment "${title}" not found in Canvas for ${studentName}`,
+          searchedInstances: {
+            instance1Count: canvasData.instance1?.length || 0,
+            instance2Count: canvasData.instance2?.length || 0
+          }
+        });
+      }
+      
+      // Return comprehensive raw Canvas data
       res.json({
         title,
-        tests: {
-          extractedDate: extractedDate ? extractedDate.toISOString() : null,
-          isInClass,
-          fullAnalysis: {
-            extractedDueDate: fullAnalysis.extractedDueDate ? fullAnalysis.extractedDueDate.toISOString() : null,
-            isInClassActivity: fullAnalysis.isInClassActivity,
-            category: fullAnalysis.category,
-            blockType: fullAnalysis.blockType,
-            isSchedulable: fullAnalysis.isSchedulable
-          }
+        studentName,
+        foundInInstance,
+        rawCanvasData: targetAssignment,
+        timingAnalysis: {
+          due_at: targetAssignment.due_at,
+          unlock_at: targetAssignment.unlock_at,
+          lock_at: targetAssignment.lock_at,
+          created_at: targetAssignment.created_at,
+          updated_at: targetAssignment.updated_at,
+          course_start_date: targetAssignment.course_start_date,
+          course_end_date: targetAssignment.course_end_date,
+          assignment_group: targetAssignment.assignment_group,
+          points_possible: targetAssignment.points_possible,
+          submission_types: targetAssignment.submission_types,
+          workflow_state: targetAssignment.workflow_state
         },
+        potentialTimingFields: Object.keys(targetAssignment).filter(key => 
+          key.includes('date') || 
+          key.includes('time') || 
+          key.includes('at') ||
+          key.includes('unlock') ||
+          key.includes('lock') ||
+          key.includes('available') ||
+          key.includes('module') ||
+          key.includes('period') ||
+          key.includes('week')
+        ),
+        allFields: Object.keys(targetAssignment).sort(),
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Test processing failed:', error);
+      console.error('Canvas investigation failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ 
-        message: 'Test failed', 
+        message: 'Investigation failed', 
         error: errorMessage,
         timestamp: new Date().toISOString()
       });

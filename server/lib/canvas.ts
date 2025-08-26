@@ -57,6 +57,11 @@ export interface CanvasAssignment {
   academic_year?: string;
   course_start_date?: string;
   course_end_date?: string;
+  
+  // Module timing extraction (when assignment timing is null)
+  module_data?: any;
+  inferred_start_date?: string;
+  inferred_end_date?: string;
 }
 
 export interface CanvasCourse {
@@ -163,25 +168,56 @@ export class CanvasClient {
       
       for (const course of courses) {
         try {
-          // Request comprehensive assignment data including all metadata
-          const assignments = await this.makeRequest<CanvasAssignment[]>(
-            `/courses/${course.id}/assignments?per_page=100&include[]=all_dates&include[]=submission&include[]=assignment_group&include[]=overrides&order_by=due_at`
-          );
-          console.log(`  📖 Course "${course.name}" (${course.id}): ${assignments.length} assignments`);
+          // Fetch assignments AND modules for comprehensive timing data
+          const [assignments, modules] = await Promise.all([
+            this.makeRequest<CanvasAssignment[]>(
+              `/courses/${course.id}/assignments?per_page=100&include[]=all_dates&include[]=submission&include[]=assignment_group&include[]=overrides&include[]=assessment_question_bank&include[]=discussion_topic&include[]=module_items&order_by=due_at`
+            ),
+            this.makeRequest<any[]>(`/courses/${course.id}/modules?per_page=100`)
+          ]);
           
-          // Enhance assignments with comprehensive metadata
-          const assignmentsWithMetadata = assignments.map(assignment => ({
-            ...assignment,
-            courseName: course.name,
-            course_start_date: course.start_at,
-            course_end_date: course.end_at,
-            // Determine Canvas category based on assignment group or submission types
-            canvas_category: this.determineCanvasCategory(assignment),
-            // Detect if this is a recurring assignment
-            is_recurring: this.isRecurringAssignment(assignment),
-            // Determine academic year from course or assignment dates
-            academic_year: this.determineAcademicYear(assignment, course)
-          }));
+          console.log(`  📖 Course "${course.name}" (${course.id}): ${assignments.length} assignments, ${modules.length} modules`);
+          
+          // Create module lookup for timing resolution
+          const moduleMap = new Map();
+          modules.forEach(module => {
+            moduleMap.set(module.id, module);
+            
+            // Also create name-based lookup for module references in assignment titles
+            const moduleNumber = this.extractModuleNumber(module.name);
+            if (moduleNumber) {
+              moduleMap.set(`module_${moduleNumber}`, module);
+            }
+          });
+          
+          // Enhance assignments with comprehensive metadata including module timing
+          const assignmentsWithMetadata = assignments.map(assignment => {
+            const enhanced = {
+              ...assignment,
+              courseName: course.name,
+              course_start_date: course.start_at,
+              course_end_date: course.end_at,
+              // Determine Canvas category based on assignment group or submission types
+              canvas_category: this.determineCanvasCategory(assignment),
+              // Detect if this is a recurring assignment
+              is_recurring: this.isRecurringAssignment(assignment),
+              // Determine academic year from course or assignment dates
+              academic_year: this.determineAcademicYear(assignment, course)
+            };
+            
+            // CRITICAL: Extract module timing when assignment timing is missing
+            if (!enhanced.due_at && !enhanced.unlock_at && !enhanced.lock_at) {
+              const moduleData = this.findModuleForAssignment(enhanced, moduleMap);
+              if (moduleData) {
+                console.log(`🔗 "${enhanced.name}" linked to module: "${moduleData.name}" (unlock: ${moduleData.unlock_at})`);
+                enhanced.module_data = moduleData;
+                enhanced.inferred_start_date = moduleData.unlock_at;
+                enhanced.inferred_end_date = moduleData.end_at;
+              }
+            }
+            
+            return enhanced;
+          });
           
           allAssignments.push(...assignmentsWithMetadata);
         } catch (error) {
@@ -304,6 +340,47 @@ export class CanvasClient {
     const isFirstHalf = new Date().getMonth() < 6; // Before July
     const academicStart = isFirstHalf ? currentYear - 1 : currentYear;
     return `${academicStart}-${academicStart + 1}`;
+  }
+
+  /**
+   * Extract module number from module name (e.g., "Module 1" -> 1)
+   */
+  private extractModuleNumber(moduleName: string): number | null {
+    const match = moduleName.match(/module\s+(\d+)/i);
+    return match ? parseInt(match[1], 10) : null;
+  }
+
+  /**
+   * Find associated module data for assignment based on title references
+   */
+  private findModuleForAssignment(assignment: CanvasAssignment, moduleMap: Map<any, any>): any | null {
+    const title = assignment.name.toLowerCase();
+    
+    // Look for "Module X" patterns in assignment title
+    const moduleMatch = title.match(/module\s+(\d+)/i);
+    if (moduleMatch) {
+      const moduleNumber = parseInt(moduleMatch[1], 10);
+      const moduleData = moduleMap.get(`module_${moduleNumber}`);
+      if (moduleData) {
+        return moduleData;
+      }
+    }
+    
+    // Look for other module indicators
+    if (title.includes('module') && title.match(/\d+/)) {
+      // Try to find any module that might be related
+      const numbers = title.match(/\d+/g);
+      if (numbers) {
+        for (const num of numbers) {
+          const moduleData = moduleMap.get(`module_${parseInt(num, 10)}`);
+          if (moduleData) {
+            return moduleData;
+          }
+        }
+      }
+    }
+    
+    return null;
   }
 }
 

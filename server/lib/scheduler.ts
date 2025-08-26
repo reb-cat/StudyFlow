@@ -76,7 +76,7 @@ class JobScheduler {
               );
               
               if (!alreadyExists) {
-                // Apply comprehensive intelligent assignment processing with Canvas metadata
+                // Apply comprehensive intelligent assignment processing with Canvas metadata INCLUDING MODULE TIMING
                 const intelligence = analyzeAssignmentWithCanvas(
                   canvasAssignment.name, 
                   canvasAssignment.description,
@@ -89,7 +89,10 @@ class JobScheduler {
                     is_recurring: canvasAssignment.is_recurring,
                     academic_year: canvasAssignment.academic_year,
                     course_start_date: canvasAssignment.course_start_date,
-                    course_end_date: canvasAssignment.course_end_date
+                    course_end_date: canvasAssignment.course_end_date,
+                    inferred_start_date: canvasAssignment.inferred_start_date,
+                    inferred_end_date: canvasAssignment.inferred_end_date,
+                    module_data: canvasAssignment.module_data
                   }
                 );
                 
@@ -100,9 +103,10 @@ class JobScheduler {
                   console.log(`📋 Auto-marking "${canvasAssignment.name}" as completed (graded in Canvas)`);
                 }
 
-                // Use extracted due date if available, otherwise Canvas due date
+                // Use extracted due date if available, otherwise Canvas due date, otherwise module timing
                 const dueDate = intelligence.extractedDueDate || 
-                               (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null);
+                               (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null) ||
+                               (canvasAssignment.inferred_start_date ? new Date(canvasAssignment.inferred_start_date) : null);
                 
                 // Smart scheduling based on assignment type
                 const smartScheduledDate = getSmartSchedulingDate(intelligence, this.getNextAssignmentDate());
@@ -218,9 +222,10 @@ class JobScheduler {
                   console.log(`📋 Auto-marking "${title}" as completed (graded in Canvas)`);
                 }
 
-                // Use extracted due date if available, otherwise Canvas due date
+                // Use extracted due date if available, otherwise Canvas due date, otherwise module timing
                 const dueDate = intelligence.extractedDueDate || 
-                               (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null);
+                               (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null) ||
+                               (canvasAssignment.inferred_start_date ? new Date(canvasAssignment.inferred_start_date) : null);
                 
                 // Smart scheduling based on assignment type
                 const smartScheduledDate = getSmartSchedulingDate(intelligence, this.getNextAssignmentDate());

@@ -196,10 +196,19 @@ export function analyzeAssignmentWithCanvas(
     academic_year?: string;
     course_start_date?: string;
     course_end_date?: string;
+    inferred_start_date?: string;
+    inferred_end_date?: string;
+    module_data?: any;
   }
 ): AssignmentIntelligence {
   const isInClass = isInClassActivity(title);
-  const extractedDueDate = extractDueDateFromTitle(title) || (isInClass ? extractClassDate(title) : null);
+  let extractedDueDate = extractDueDateFromTitle(title) || (isInClass ? extractClassDate(title) : null);
+  
+  // CRITICAL: Use module timing as fallback when assignment timing is missing
+  if (!extractedDueDate && canvasData?.inferred_start_date) {
+    extractedDueDate = new Date(canvasData.inferred_start_date);
+    console.log(`📅 Using module timing for "${title}": ${extractedDueDate.toDateString()}`);
+  }
   
   // Determine category
   let category: 'homework' | 'in-class' | 'makeup' | 'other' = 'other';
@@ -236,10 +245,12 @@ export function analyzeAssignmentWithCanvas(
     canvasCategory = 'assignments';
   }
   
-  // Calculate availability window
+  // Calculate availability window with module timing fallback
   const availabilityWindow = {
-    availableFrom: canvasData?.unlock_at ? new Date(canvasData.unlock_at) : null,
-    availableUntil: canvasData?.lock_at ? new Date(canvasData.lock_at) : null
+    availableFrom: canvasData?.unlock_at ? new Date(canvasData.unlock_at) : 
+                   canvasData?.inferred_start_date ? new Date(canvasData.inferred_start_date) : null,
+    availableUntil: canvasData?.lock_at ? new Date(canvasData.lock_at) :
+                    canvasData?.inferred_end_date ? new Date(canvasData.inferred_end_date) : null
   };
   
   // Submission context
