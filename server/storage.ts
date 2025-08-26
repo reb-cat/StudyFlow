@@ -2,7 +2,7 @@ import {
   type User, type InsertUser, 
   type Assignment, type InsertAssignment, type UpdateAssignment,
   type ScheduleTemplate, type InsertScheduleTemplate,
-  type BibleCurriculum, type InsertBibleCurriculum
+  type BibleCurriculum, type InsertBibleCurriculum 
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { supabase } from "./lib/supabase";
@@ -26,7 +26,6 @@ export interface IStorage {
   // Schedule template operations
   getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]>;
   createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate>;
-  clearScheduleTemplate(studentName: string): Promise<void>;
   
   // Bible curriculum operations
   getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]>;
@@ -280,20 +279,9 @@ export class DatabaseStorage implements IStorage {
 
   async createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate> {
     try {
-      // Simple Supabase insert with proper field mapping
-      const dbRecord = {
-        student_name: template.studentName,
-        weekday: template.weekday,
-        block_number: template.blockNumber,
-        start_time: template.startTime,
-        end_time: template.endTime,
-        subject: template.subject,
-        block_type: template.blockType
-      };
-      
       const { data, error } = await supabase
         .from('schedule_template')
-        .insert(dbRecord)
+        .insert(template)
         .select()
         .single();
       
@@ -306,23 +294,6 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error creating schedule template:', error);
       throw new Error('Failed to create schedule template');
-    }
-  }
-
-  async clearScheduleTemplate(studentName: string): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('schedule_template')
-        .delete()
-        .eq('student_name', studentName);
-      
-      if (error) {
-        console.error('Error clearing schedule template:', error);
-        throw new Error('Failed to clear schedule template');
-      }
-    } catch (error) {
-      console.error('Error clearing schedule template:', error);
-      throw new Error('Failed to clear schedule template');
     }
   }
 
