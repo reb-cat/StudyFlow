@@ -388,15 +388,14 @@ export default function StudentDashboard() {
                         let blockDetails = '';
                         
                         if (block.blockType === 'assignment') {
-                          const matchingAssignment = todayAssignments.find(
-                            assignment => assignment.scheduledBlock === block.blockNumber
-                          );
-                          if (matchingAssignment) {
+                          // Use round-robin assignment from our populated blocks
+                          const populatedBlock = populatedAssignmentBlocks.find(pb => pb.id === block.id);
+                          if (populatedBlock && populatedBlock.assignment) {
                             blockTitle = 'Assignment';
-                            blockDetails = matchingAssignment.title;
+                            blockDetails = populatedBlock.assignment.title;
                           } else {
                             blockTitle = 'Assignment';
-                            blockDetails = 'Assignment Assignment';
+                            blockDetails = 'Available for scheduling';
                           }
                         } else if (block.blockType === 'bible') {
                           blockTitle = 'Bible';
