@@ -280,9 +280,20 @@ export class DatabaseStorage implements IStorage {
 
   async createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate> {
     try {
+      // Map camelCase field names to snake_case database column names
+      const dbRecord = {
+        student_name: template.studentName,
+        weekday: template.weekday,
+        block_number: template.blockNumber,
+        start_time: template.startTime,
+        end_time: template.endTime,
+        subject: template.subject,
+        block_type: template.blockType
+      };
+      
       const { data, error } = await supabase
         .from('schedule_template')
-        .insert(template)
+        .insert(dbRecord)
         .select()
         .single();
       
