@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, CheckCircle, Clock, HelpCircle, AlertTriangle } from 'lucide-react';
+import { Play, CheckCircle, Clock, HelpCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Assignment } from '@shared/schema';
 import { BibleBlock } from './BibleBlock';
@@ -127,7 +127,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     return `${formatTimeString(start)} – ${formatTimeString(end)}`;
   };
 
-  const handleAction = (action: 'completed' | 'stuck') => {
+  const handleAction = (action: 'completed' | 'needs_more_time' | 'stuck') => {
     if (!currentBlock) return;
 
     // Move to next block
@@ -142,7 +142,8 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     // Show feedback
     const messages = {
       completed: `Great job completing ${currentBlock.title}! 🎉`,
-      stuck: `No worries! This will be reviewed for ${currentBlock.title}. 💪`
+      needs_more_time: `${currentBlock.title} will be continued later. ⏰`,
+      stuck: `No worries! Help is on the way for ${currentBlock.title}. 💪`
     };
 
     toast({
@@ -280,16 +281,25 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                   size="lg"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Done!
+                  Done
+                </Button>
+                <Button 
+                  onClick={() => handleAction('needs_more_time')} 
+                  variant="outline" 
+                  className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
+                  size="lg"
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  Need More Time
                 </Button>
                 <Button 
                   onClick={() => handleAction('stuck')} 
                   variant="outline" 
-                  className="flex-1 border-orange-200 text-orange-700 hover:bg-orange-50"
+                  className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
                   size="lg"
                 >
-                  <HelpCircle className="h-4 w-4 mr-2" />
-                  Need Help
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Stuck
                 </Button>
               </>
             )}

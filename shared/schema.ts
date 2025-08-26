@@ -112,7 +112,7 @@ export const assignments = pgTable("assignments", {
   blockEnd: text("block_end"), // HH:mm format
   actualEstimatedMinutes: integer("actual_estimated_minutes").default(30),
   completionStatus: text("completion_status", { 
-    enum: ["pending", "completed", "stuck"] 
+    enum: ["pending", "completed", "needs_more_time", "stuck"] 
   }).default("pending"),
   blockType: text("block_type").default("assignment"), // assignment, co-op, travel, prep, etc.
   isAssignmentBlock: boolean("is_assignment_block").default(true),

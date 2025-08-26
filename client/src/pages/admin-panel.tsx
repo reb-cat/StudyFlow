@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, Circle, RefreshCw, Search, Filter } from 'lucide-react';
+import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { Assignment } from '@shared/schema';
@@ -63,6 +63,7 @@ export default function AdminPanel() {
   // Group assignments by completion status - with safety check
   const pendingCount = Array.isArray(assignments) ? assignments.filter(a => a.completionStatus === 'pending').length : 0;
   const completedCount = Array.isArray(assignments) ? assignments.filter(a => a.completionStatus === 'completed').length : 0;
+  const needsMoreTimeCount = Array.isArray(assignments) ? assignments.filter(a => a.completionStatus === 'needs_more_time').length : 0;
   const stuckCount = Array.isArray(assignments) ? assignments.filter(a => a.completionStatus === 'stuck').length : 0;
 
   const handleStatusUpdate = (assignmentId: string, newStatus: string) => {
@@ -73,7 +74,8 @@ export default function AdminPanel() {
     const statusConfig = {
       pending: { label: 'Pending', variant: 'outline' as const, icon: Circle },
       completed: { label: 'Done', variant: 'default' as const, icon: CheckCircle },
-      stuck: { label: 'Need Help', variant: 'destructive' as const, icon: AlertCircle }
+      needs_more_time: { label: 'Need More Time', variant: 'secondary' as const, icon: Clock },
+      stuck: { label: 'Stuck', variant: 'destructive' as const, icon: AlertCircle }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
@@ -153,7 +155,8 @@ export default function AdminPanel() {
                     <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="pending">Pending Only</SelectItem>
                     <SelectItem value="completed">Done Only</SelectItem>
-                    <SelectItem value="stuck">Need Help Only</SelectItem>
+                    <SelectItem value="needs_more_time">Need More Time Only</SelectItem>
+                    <SelectItem value="stuck">Stuck Only</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -164,7 +167,8 @@ export default function AdminPanel() {
                 <div className="text-sm space-y-1">
                   <div>Pending: <span className="font-semibold">{pendingCount}</span></div>
                   <div>Done: <span className="font-semibold text-green-600">{completedCount}</span></div>
-                  <div>Need Help: <span className="font-semibold text-orange-600">{stuckCount}</span></div>
+                  <div>Need More Time: <span className="font-semibold text-blue-600">{needsMoreTimeCount}</span></div>
+                  <div>Stuck: <span className="font-semibold text-red-600">{stuckCount}</span></div>
                   <div className="text-xs text-muted-foreground border-t pt-1 mt-1">
                     Total: {Array.isArray(assignments) ? assignments.length : 0}
                   </div>
@@ -207,7 +211,7 @@ export default function AdminPanel() {
                           <h3 className="font-semibold text-foreground truncate">
                             {assignment.title}
                           </h3>
-                          {getStatusBadge(assignment.completionStatus)}
+                          {getStatusBadge(assignment.completionStatus || 'pending')}
                         </div>
                         
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -232,7 +236,8 @@ export default function AdminPanel() {
                           <SelectContent>
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="completed">Done</SelectItem>
-                            <SelectItem value="stuck">Need Help</SelectItem>
+                            <SelectItem value="needs_more_time">Need More Time</SelectItem>
+                            <SelectItem value="stuck">Stuck</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

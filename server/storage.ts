@@ -76,13 +76,13 @@ export class DatabaseStorage implements IStorage {
       // For daily scheduling: exclude completed assignments and filter by date
       // This keeps the daily view focused while the database contains the full Canvas dataset
       
-      // FIRST: Always exclude completed and stuck assignments from daily planning
-      // Only show assignments that are actively workable (pending)
+      // FIRST: Always exclude completed assignments from daily planning
+      // Only show assignments that are actively workable (pending, needs_more_time, stuck)
       const beforeCompletionFilter = assignmentList.length;
       assignmentList = assignmentList.filter((assignment: any) => 
-        assignment.completionStatus === 'pending'
+        assignment.completionStatus !== 'completed'
       );
-      console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (only showing pending assignments)`);
+      console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments)`);
       
       // SECOND: Apply date filtering for daily scheduling
       if (date) {
@@ -518,7 +518,7 @@ export class MemStorage implements IStorage {
         blockStart: "13:00",
         blockEnd: "13:30",
         actualEstimatedMinutes: 30,
-        completionStatus: "in_progress",
+        completionStatus: "pending",
         priority: "B",
         difficulty: "medium"
       },
