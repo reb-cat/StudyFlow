@@ -1,5 +1,8 @@
 import { type User, type InsertUser, type Assignment, type InsertAssignment, type UpdateAssignment } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./lib/supabase";
+import { users, assignments } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -17,6 +20,123 @@ export interface IStorage {
   deleteAssignment(id: string): Promise<boolean>;
 }
 
+// Database storage implementation using Supabase
+export class DatabaseStorage implements IStorage {
+  async getUser(id: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error('Error getting user:', error);
+      return undefined;
+    }
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user;
+    } catch (error) {
+      console.error('Error getting user by username:', error);
+      return undefined;
+    }
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    try {
+      const [user] = await db.insert(users).values(insertUser).returning();
+      return user;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw new Error('Failed to create user');
+    }
+  }
+
+  async getAssignments(userId: string, date?: string): Promise<Assignment[]> {
+    try {
+      let query = db.select().from(assignments).where(eq(assignments.userId, userId));
+      
+      if (date) {
+        // Use and() to combine conditions
+        const { and } = await import('drizzle-orm');
+        query = db.select().from(assignments).where(
+          and(
+            eq(assignments.userId, userId),
+            eq(assignments.scheduledDate, date)
+          )
+        );
+      }
+      
+      const result = await query;
+      return result;
+    } catch (error) {
+      console.error('Error getting assignments:', error);
+      return [];
+    }
+  }
+
+  async getAssignment(id: string): Promise<Assignment | undefined> {
+    try {
+      const [assignment] = await db.select().from(assignments).where(eq(assignments.id, id));
+      return assignment;
+    } catch (error) {
+      console.error('Error getting assignment:', error);
+      return undefined;
+    }
+  }
+
+  async createAssignment(data: InsertAssignment & { userId: string }): Promise<Assignment> {
+    try {
+      const [assignment] = await db.insert(assignments).values({
+        id: randomUUID(),
+        userId: data.userId,
+        title: data.title,
+        subject: data.subject || null,
+        courseName: data.courseName || null,
+        instructions: data.instructions || null,
+        dueDate: data.dueDate || null,
+        scheduledDate: data.scheduledDate || null,
+        scheduledBlock: data.scheduledBlock || null,
+        blockStart: data.blockStart || null,
+        blockEnd: data.blockEnd || null,
+        actualEstimatedMinutes: data.actualEstimatedMinutes || 30,
+        completionStatus: data.completionStatus || 'pending',
+        blockType: data.blockType || 'assignment',
+        isAssignmentBlock: data.isAssignmentBlock ?? true,
+        priority: data.priority || 'medium',
+        difficulty: data.difficulty || 'medium',
+        timeSpent: data.timeSpent || 0,
+        notes: data.notes || null,
+      }).returning();
+      return assignment;
+    } catch (error) {
+      console.error('Error creating assignment:', error);
+      throw new Error('Failed to create assignment');
+    }
+  }
+
+  async updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined> {
+    try {
+      const [assignment] = await db.update(assignments).set(update).where(eq(assignments.id, id)).returning();
+      return assignment;
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      return undefined;
+    }
+  }
+
+  async deleteAssignment(id: string): Promise<boolean> {
+    try {
+      await db.delete(assignments).where(eq(assignments.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      return false;
+    }
+  }
+}
+
+// Keep MemStorage for fallback
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private assignments: Map<string, Assignment>;
@@ -231,4 +351,17 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Use real database storage when available, fallback to memory for now
+let storage: IStorage;
+try {
+  storage = new DatabaseStorage();
+  console.log('✓ Using database storage');
+} catch (error) {
+  console.warn('⚠ Database connection failed, using memory storage:', error.message);
+  storage = new MemStorage();
+}
+
+export { storage };
+
+// Keep MemStorage as backup
+export const memStorage = new MemStorage();
