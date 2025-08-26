@@ -5,6 +5,8 @@ import { insertAssignmentSchema, updateAssignmentSchema } from "@shared/schema";
 import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas"; 
 import { emailConfig } from "./lib/supabase";
 import { jobScheduler } from "./lib/scheduler";
+import multer from "multer";
+import csvParser from "csv-parser";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Assignment API routes
@@ -505,6 +507,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Manual Canvas sync failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Canvas sync failed', error: errorMessage });
+    }
+  });
+
+  // Configure multer for file uploads
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only CSV files are allowed'));
+      }
+    }
+  });
+
+  // Admin CSV Upload endpoint
+  app.post('/api/admin/upload-schedule', upload.single('csvFile'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No CSV file uploaded' });
+      }
+
+      console.log('📁 Processing CSV upload:', req.file.originalname);
+
+      const csvData: any[] = [];
+      const csvString = req.file.buffer.toString('utf8');
+      
+      // Parse CSV data
+      const parsePromise = new Promise<void>((resolve, reject) => {
+        const stream = require('stream');
+        const readable = new stream.Readable();
+        readable.push(csvString);
+        readable.push(null);
+
+        readable
+          .pipe(csvParser({
+            mapHeaders: ({ header }: { header: string }) => header.trim().toLowerCase()
+          }))
+          .on('data', (row: any) => {
+            // Clean up the row data
+            const cleanRow = {
+              student_name: row.student_name?.trim(),
+              weekday: row.weekday?.trim(),
+              block_number: row.block_number?.trim() === '' ? null : parseInt(row.block_number?.trim()),
+              start_time: row.start_time?.trim(),
+              end_time: row.end_time?.trim(),
+              subject: row.subject?.trim(),
+              block_type: row.block_type?.trim()
+            };
+            csvData.push(cleanRow);
+          })
+          .on('end', resolve)
+          .on('error', reject);
+      });
+
+      await parsePromise;
+
+      if (csvData.length === 0) {
+        return res.status(400).json({ message: 'CSV file is empty or invalid' });
+      }
+
+      console.log(`📊 Parsed ${csvData.length} rows from CSV`);
+
+      // Clear existing schedule template data and insert new data
+      let rowsAffected = 0;
+      
+      // Get unique students from CSV
+      const students = [...new Set(csvData.map(row => row.student_name))];
+      
+      for (const studentName of students) {
+        // Delete existing schedule for this student
+        await storage.clearScheduleTemplate(studentName);
+        console.log(`🗑️ Cleared existing schedule for ${studentName}`);
+        
+        // Insert new schedule entries for this student
+        const studentRows = csvData.filter(row => row.student_name === studentName);
+        
+        for (const row of studentRows) {
+          try {
+            await storage.createScheduleTemplate({
+              student_name: row.student_name,
+              weekday: row.weekday,
+              block_number: row.block_number,
+              start_time: row.start_time,
+              end_time: row.end_time,
+              subject: row.subject,
+              block_type: row.block_type
+            });
+            rowsAffected++;
+          } catch (error) {
+            console.error('Error inserting row:', row, error);
+            // Continue with other rows even if one fails
+          }
+        }
+      }
+
+      console.log(`✅ Successfully updated ${rowsAffected} schedule entries`);
+
+      res.json({
+        message: 'Schedule template updated successfully',
+        rowsAffected,
+        studentsProcessed: students,
+        totalRowsParsed: csvData.length
+      });
+
+    } catch (error) {
+      console.error('CSV upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ 
+        message: 'Failed to process CSV upload',
+        error: errorMessage
+      });
     }
   });
 

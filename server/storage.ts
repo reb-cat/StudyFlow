@@ -297,6 +297,23 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async clearScheduleTemplate(studentName: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('schedule_template')
+        .delete()
+        .eq('student_name', studentName);
+      
+      if (error) {
+        console.error('Error clearing schedule template:', error);
+        throw new Error('Failed to clear schedule template');
+      }
+    } catch (error) {
+      console.error('Error clearing schedule template:', error);
+      throw new Error('Failed to clear schedule template');
+    }
+  }
+
   // Bible curriculum operations
   async getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]> {
     try {
