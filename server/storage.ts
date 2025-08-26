@@ -2,12 +2,10 @@ import {
   type User, type InsertUser, 
   type Assignment, type InsertAssignment, type UpdateAssignment,
   type ScheduleTemplate, type InsertScheduleTemplate,
-  type BibleCurriculum, type InsertBibleCurriculum,
-  scheduleTemplate 
+  type BibleCurriculum, type InsertBibleCurriculum
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { supabase } from "./lib/supabase";
-import { db } from "./db";
 
 // modify the interface with any CRUD methods
 // you might need
