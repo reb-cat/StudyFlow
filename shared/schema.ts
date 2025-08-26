@@ -133,9 +133,7 @@ export const scheduleTemplate = pgTable("schedule_template", {
   startTime: text("start_time").notNull(), // "09:00:00" format
   endTime: text("end_time").notNull(), // "09:30:00" format
   subject: text("subject").notNull(), // "Bible", "Assignment", "Math", etc.
-  blockType: text("block_type", {
-    enum: ["Bible", "Assignment", "Travel", "Co-op", "Prep/Load", "Movement", "Lunch"]
-  }).notNull(),
+  blockType: text("block_type").notNull(), // Any block type from CSV (Assignment_capable, Fixed_class, etc.)
 });
 
 // Bible curriculum - week/day progression
