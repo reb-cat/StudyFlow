@@ -277,6 +277,20 @@ export function analyzeAssignmentWithCanvas(
     console.log(`📅 Using Canvas assignment lock timing for "${title}": ${extractedDueDate.toDateString()}`);
   }
   
+  // FALLBACK: If no due date found but we have availability window, use availability start as due date
+  // This handles cases like "End of Year Project" with module unlock dates
+  if (!extractedDueDate) {
+    const availableFromDate = canvasData?.lock_info?.context_module?.unlock_at ||
+                              canvasData?.unlock_at || 
+                              canvasData?.inferred_start_date ||
+                              canvasData?.module_data?.unlock_at;
+    
+    if (availableFromDate) {
+      extractedDueDate = new Date(availableFromDate);
+      console.log(`📅 Using availability window as due date for "${title}": ${extractedDueDate.toDateString()}`);
+    }
+  }
+  
   // Determine category
   let category: 'homework' | 'in-class' | 'makeup' | 'other' = 'other';
   if (isInClass) {
