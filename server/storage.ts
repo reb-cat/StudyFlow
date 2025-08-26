@@ -72,8 +72,38 @@ export class DatabaseStorage implements IStorage {
       let result = await db.select().from(assignments).where(eq(assignments.userId, userId));
       let assignmentList = result || [];
       
-      // If filtering by date, show all upcoming assignments (no date restriction for now)
-      // This ensures students see all their assignments regardless of due date
+      // For daily scheduling: only show assignments due within the next 12 days
+      // This keeps the daily view focused while the database contains the full Canvas dataset
+      if (date) {
+        const requestDate = new Date(date);
+        const futureLimit = new Date(requestDate);
+        futureLimit.setDate(requestDate.getDate() + 12); // 12 days ahead
+        
+        console.log(`🗓️ Date filtering: ${date} (${requestDate.toISOString()}) to ${futureLimit.toISOString()}`);
+        
+        const beforeFilter = assignmentList.length;
+        assignmentList = assignmentList.filter((assignment: any) => {
+          // For assignments without due dates, include them but limit quantity for daily planning
+          if (!assignment.dueDate) {
+            // Don't flood daily view with undated assignments - maybe limit or categorize
+            return true; // For now, include all (we can refine this logic)
+          }
+          
+          const dueDate = new Date(assignment.dueDate);
+          const isInRange = dueDate >= requestDate && dueDate <= futureLimit;
+          
+          if (isInRange) {
+            console.log(`✅ Including assignment due ${dueDate.toISOString().split('T')[0]}: ${assignment.title}`);
+          } else {
+            console.log(`❌ Excluding assignment due ${dueDate.toISOString().split('T')[0]}: ${assignment.title}`);
+          }
+          
+          return isInRange;
+        });
+        
+        console.log(`📊 Date filtering: ${beforeFilter} → ${assignmentList.length} assignments`);
+      }
+      
       return assignmentList;
     } catch (error) {
       console.error('Error getting assignments:', error);
@@ -339,7 +369,8 @@ export class MemStorage implements IStorage {
 
   async updateAdministrativeAssignments(): Promise<void> {
     // Mark administrative assignments as completed for in-memory storage
-    for (const assignment of this.assignments.values()) {
+    const assignmentArray = Array.from(this.assignments.values());
+    for (const assignment of assignmentArray) {
       const isAdministrative = assignment.title.toLowerCase().includes('fee') ||
                               assignment.title.toLowerCase().includes('supply') ||
                               assignment.title.toLowerCase().includes('syllabus') ||

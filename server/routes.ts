@@ -34,9 +34,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId = studentUserMap[normalizedStudentName] || userId;
       }
       
-      // Get real assignments from database (no mock data)
+      // Get assignments for daily scheduling (filtered to next 12 days when date provided)
       const assignments = await storage.getAssignments(userId, date as string);
-      console.log(`📚 Retrieved ${assignments.length} real assignments for ${studentName} on ${date}`);
+      console.log(`📚 Retrieved ${assignments.length} assignments for daily planning for ${studentName} on ${date}`);
       res.json(assignments);
     } catch (error) {
       console.error('Error fetching assignments:', error);
