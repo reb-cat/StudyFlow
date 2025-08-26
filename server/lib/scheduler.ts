@@ -49,6 +49,9 @@ class JobScheduler {
         if (canvasData.instance1 && canvasData.instance1.length > 0) {
           for (const canvasAssignment of canvasData.instance1) {
             try {
+              // Log the real Canvas assignment being processed
+              console.log(`📝 Real Canvas Assignment Found: "${canvasAssignment.name}" for ${studentName}`);
+              
               // Check if assignment already exists to avoid duplicates
               const existingAssignments = await storage.getAssignments(userId);
               const alreadyExists = existingAssignments.some(
