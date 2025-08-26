@@ -240,49 +240,85 @@ export default function StudentDashboard() {
                 )}
               </h2>
               <div className="space-y-4">
-                {/* Bible Blocks from real schedule data */}
-                {bibleBlocks.map((block) => (
-                  <BibleBlock 
-                    key={block.id}
-                    date={selectedDate}
-                    blockStart={block.startTime}
-                    blockEnd={block.endTime}
-                  />
-                ))}
-                
-                {/* Fixed Blocks from real schedule data */}
-                {fixedBlocks.map((block) => (
-                  <FixedBlock
-                    key={block.id}
-                    blockId={block.id}
-                    title={block.title}
-                    blockType={block.blockType}
-                    blockStart={block.startTime}
-                    blockEnd={block.endTime}
-                    date={selectedDate}
-                  />
-                ))}
-                
-                {/* Assignment Blocks */}
-                {todayAssignments.length === 0 ? (
-                  <Card className="bg-card border border-border">
-                    <CardContent className="p-8 text-center">
-                      <h3 className="text-lg font-semibold text-foreground mb-2">No assignments for today</h3>
-                      <p className="text-muted-foreground">Great job staying on top of your work! 🎉</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  todayAssignments
-                    .sort((a, b) => (a.scheduledBlock || 0) - (b.scheduledBlock || 0))
-                    .map((assignment) => (
-                      <AssignmentCard
-                        key={assignment.id}
-                        assignment={assignment}
-                        onUpdate={handleAssignmentUpdate}
-                        variant="compact"
-                      />
-                    ))
-                )}
+                {/* Show ALL schedule blocks in chronological order */}
+                {allScheduleBlocks
+                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                  .map((block) => {
+                    // Bible blocks
+                    if (block.blockType === 'bible') {
+                      return (
+                        <BibleBlock 
+                          key={block.id}
+                          date={selectedDate}
+                          blockStart={block.startTime}
+                          blockEnd={block.endTime}
+                        />
+                      );
+                    }
+                    
+                    // Fixed blocks (Movement, Lunch, etc.)
+                    if (['travel', 'co-op', 'prep/load', 'movement', 'lunch'].includes(block.blockType)) {
+                      return (
+                        <FixedBlock
+                          key={block.id}
+                          blockId={block.id}
+                          title={block.title}
+                          blockType={block.blockType}
+                          blockStart={block.startTime}
+                          blockEnd={block.endTime}
+                          date={selectedDate}
+                        />
+                      );
+                    }
+                    
+                    // Assignment time slots from schedule template
+                    if (block.blockType === 'assignment') {
+                      // Try to find a matching assignment for this time slot
+                      const matchingAssignment = todayAssignments.find(
+                        assignment => assignment.scheduledBlock === block.blockNumber
+                      );
+                      
+                      if (matchingAssignment) {
+                        return (
+                          <AssignmentCard
+                            key={`assignment-${block.id}`}
+                            assignment={matchingAssignment}
+                            onUpdate={handleAssignmentUpdate}
+                            variant="compact"
+                          />
+                        );
+                      } else {
+                        // Show empty assignment slot
+                        return (
+                          <Card key={`empty-${block.id}`} className="bg-card border border-dashed border-border">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h3 className="font-medium text-foreground">Assignment Block {block.blockNumber}</h3>
+                                  <p className="text-sm text-muted-foreground">{block.startTime} - {block.endTime}</p>
+                                </div>
+                                <div className="text-sm text-muted-foreground">Available for assignment</div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      }
+                    }
+                    
+                    return null;
+                  })}
+                  
+                {/* Show unscheduled assignments at the bottom if any */}
+                {todayAssignments
+                  .filter(assignment => !assignment.scheduledBlock)
+                  .map((assignment) => (
+                    <AssignmentCard
+                      key={assignment.id}
+                      assignment={assignment}
+                      onUpdate={handleAssignmentUpdate}
+                      variant="compact"
+                    />
+                  ))}
               </div>
             </div>
           </div>
