@@ -1,8 +1,6 @@
 import { type User, type InsertUser, type Assignment, type InsertAssignment, type UpdateAssignment } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { db } from "./lib/supabase";
-import { users, assignments } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { supabase } from "./lib/supabase";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -24,8 +22,17 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, id));
-      return user;
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        console.error('Error getting user:', error);
+        return undefined;
+      }
+      return data as User;
     } catch (error) {
       console.error('Error getting user:', error);
       return undefined;
@@ -34,8 +41,17 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.username, username));
-      return user;
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .single();
+      
+      if (error) {
+        console.error('Error getting user by username:', error);
+        return undefined;
+      }
+      return data as User;
     } catch (error) {
       console.error('Error getting user by username:', error);
       return undefined;
@@ -44,8 +60,17 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
-      const [user] = await db.insert(users).values(insertUser).returning();
-      return user;
+      const { data, error } = await supabase
+        .from('users')
+        .insert(insertUser)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating user:', error);
+        throw new Error('Failed to create user');
+      }
+      return data as User;
     } catch (error) {
       console.error('Error creating user:', error);
       throw new Error('Failed to create user');
@@ -54,21 +79,23 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignments(userId: string, date?: string): Promise<Assignment[]> {
     try {
-      let query = db.select().from(assignments).where(eq(assignments.userId, userId));
+      let query = supabase
+        .from('assignments')
+        .select('*')
+        .eq('user_id', userId);
       
       if (date) {
-        // Use and() to combine conditions
-        const { and } = await import('drizzle-orm');
-        query = db.select().from(assignments).where(
-          and(
-            eq(assignments.userId, userId),
-            eq(assignments.scheduledDate, date)
-          )
-        );
+        query = query.eq('scheduled_date', date);
       }
       
-      const result = await query;
-      return result;
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error getting assignments:', error);
+        return [];
+      }
+      
+      return (data || []) as Assignment[];
     } catch (error) {
       console.error('Error getting assignments:', error);
       return [];
@@ -77,8 +104,17 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignment(id: string): Promise<Assignment | undefined> {
     try {
-      const [assignment] = await db.select().from(assignments).where(eq(assignments.id, id));
-      return assignment;
+      const { data, error } = await supabase
+        .from('assignments')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        console.error('Error getting assignment:', error);
+        return undefined;
+      }
+      return data as Assignment;
     } catch (error) {
       console.error('Error getting assignment:', error);
       return undefined;
@@ -87,28 +123,40 @@ export class DatabaseStorage implements IStorage {
 
   async createAssignment(data: InsertAssignment & { userId: string }): Promise<Assignment> {
     try {
-      const [assignment] = await db.insert(assignments).values({
+      const assignmentData = {
         id: randomUUID(),
-        userId: data.userId,
+        user_id: data.userId,
         title: data.title,
         subject: data.subject || null,
-        courseName: data.courseName || null,
+        course_name: data.courseName || null,
         instructions: data.instructions || null,
-        dueDate: data.dueDate || null,
-        scheduledDate: data.scheduledDate || null,
-        scheduledBlock: data.scheduledBlock || null,
-        blockStart: data.blockStart || null,
-        blockEnd: data.blockEnd || null,
-        actualEstimatedMinutes: data.actualEstimatedMinutes || 30,
-        completionStatus: data.completionStatus || 'pending',
-        blockType: data.blockType || 'assignment',
-        isAssignmentBlock: data.isAssignmentBlock ?? true,
+        due_date: data.dueDate || null,
+        scheduled_date: data.scheduledDate || null,
+        scheduled_block: data.scheduledBlock || null,
+        block_start: data.blockStart || null,
+        block_end: data.blockEnd || null,
+        actual_estimated_minutes: data.actualEstimatedMinutes || 30,
+        completion_status: data.completionStatus || 'pending',
+        block_type: data.blockType || 'assignment',
+        is_assignment_block: data.isAssignmentBlock ?? true,
         priority: data.priority || 'medium',
         difficulty: data.difficulty || 'medium',
-        timeSpent: data.timeSpent || 0,
+        time_spent: data.timeSpent || 0,
         notes: data.notes || null,
-      }).returning();
-      return assignment;
+      };
+      
+      const { data: assignment, error } = await supabase
+        .from('assignments')
+        .insert(assignmentData)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating assignment:', error);
+        throw new Error('Failed to create assignment');
+      }
+      
+      return assignment as Assignment;
     } catch (error) {
       console.error('Error creating assignment:', error);
       throw new Error('Failed to create assignment');
@@ -117,8 +165,39 @@ export class DatabaseStorage implements IStorage {
 
   async updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined> {
     try {
-      const [assignment] = await db.update(assignments).set(update).where(eq(assignments.id, id)).returning();
-      return assignment;
+      // Convert camelCase to snake_case for Supabase
+      const updateData: any = {};
+      if (update.title !== undefined) updateData.title = update.title;
+      if (update.subject !== undefined) updateData.subject = update.subject;
+      if (update.courseName !== undefined) updateData.course_name = update.courseName;
+      if (update.instructions !== undefined) updateData.instructions = update.instructions;
+      if (update.dueDate !== undefined) updateData.due_date = update.dueDate;
+      if (update.scheduledDate !== undefined) updateData.scheduled_date = update.scheduledDate;
+      if (update.scheduledBlock !== undefined) updateData.scheduled_block = update.scheduledBlock;
+      if (update.blockStart !== undefined) updateData.block_start = update.blockStart;
+      if (update.blockEnd !== undefined) updateData.block_end = update.blockEnd;
+      if (update.actualEstimatedMinutes !== undefined) updateData.actual_estimated_minutes = update.actualEstimatedMinutes;
+      if (update.completionStatus !== undefined) updateData.completion_status = update.completionStatus;
+      if (update.blockType !== undefined) updateData.block_type = update.blockType;
+      if (update.isAssignmentBlock !== undefined) updateData.is_assignment_block = update.isAssignmentBlock;
+      if (update.priority !== undefined) updateData.priority = update.priority;
+      if (update.difficulty !== undefined) updateData.difficulty = update.difficulty;
+      if (update.timeSpent !== undefined) updateData.time_spent = update.timeSpent;
+      if (update.notes !== undefined) updateData.notes = update.notes;
+      
+      const { data, error } = await supabase
+        .from('assignments')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating assignment:', error);
+        return undefined;
+      }
+      
+      return data as Assignment;
     } catch (error) {
       console.error('Error updating assignment:', error);
       return undefined;
@@ -127,7 +206,16 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAssignment(id: string): Promise<boolean> {
     try {
-      await db.delete(assignments).where(eq(assignments.id, id));
+      const { error } = await supabase
+        .from('assignments')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting assignment:', error);
+        return false;
+      }
+      
       return true;
     } catch (error) {
       console.error('Error deleting assignment:', error);
