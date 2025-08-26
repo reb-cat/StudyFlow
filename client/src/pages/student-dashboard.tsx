@@ -174,40 +174,40 @@ export default function StudentDashboard() {
       <div className="max-w-5xl mx-auto">
         
         {/* Header - Student name left, action buttons right */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight" data-testid="student-name">
             {studentName}
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
               data-testid="button-home"
               onClick={handleHomeClick}
-              className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-16 w-16 p-0 [&_svg]:!size-8"
+              className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
             >
-              <Home className="h-8 w-8" />
+              <Home className="h-6 w-6" />
             </Button>
             <Button 
               variant="ghost" 
               data-testid="button-settings"
               onClick={handleSettingsClick}
-              className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-16 w-16 p-0 [&_svg]:!size-8"
+              className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
             >
-              <Settings className="h-8 w-8" />
+              <Settings className="h-6 w-6" />
             </Button>
             <Button 
               variant="ghost" 
               data-testid="button-theme"
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-16 w-16 p-0 [&_svg]:!size-8"
+              className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
             >
-              <Moon className="h-8 w-8" />
+              <Moon className="h-6 w-6" />
             </Button>
           </div>
         </div>
 
         {/* Second row - Date/Co-op + Mode toggles */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-foreground">
               <Calendar className="h-5 w-5" />
