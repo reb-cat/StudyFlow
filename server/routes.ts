@@ -492,6 +492,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🔧 Manual Canvas sync triggered via API');
       await jobScheduler.runSyncNow();
+      
+      // Update administrative assignments
+      console.log('🔧 Updating administrative assignments...');
+      await storage.updateAdministrativeAssignments();
+      
       res.json({ 
         message: 'Canvas sync completed successfully',
         timestamp: new Date().toISOString()

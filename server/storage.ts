@@ -21,6 +21,7 @@ export interface IStorage {
   createAssignment(assignment: InsertAssignment & { userId: string }): Promise<Assignment>;
   updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined>;
   deleteAssignment(id: string): Promise<boolean>;
+  updateAdministrativeAssignments(): Promise<void>;
   
   // Schedule template operations
   getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]>;
@@ -98,10 +99,6 @@ export class DatabaseStorage implements IStorage {
         .select('*')
         .eq('student_name', userId);
       
-      if (date) {
-        query = query.eq('scheduled_date', date);
-      }
-      
       const { data, error } = await query;
       
       if (error) {
@@ -109,7 +106,17 @@ export class DatabaseStorage implements IStorage {
         return [];
       }
       
-      return (data || []) as Assignment[];
+      let assignments = (data || []) as Assignment[];
+      
+      // If filtering by date, include assignments scheduled for that date OR unscheduled but eligible
+      if (date) {
+        assignments = assignments.filter((assignment: any) => 
+          assignment.scheduled_date === date || 
+          (assignment.scheduled_date === null && assignment.eligible_for_scheduling === true)
+        );
+      }
+      
+      return assignments;
     } catch (error) {
       console.error('Error getting assignments:', error);
       return [];
@@ -137,11 +144,18 @@ export class DatabaseStorage implements IStorage {
 
   async createAssignment(data: InsertAssignment & { userId: string }): Promise<Assignment> {
     try {
+      // Check if this is an administrative assignment that shouldn't be scheduled
+      const isAdministrative = data.title.toLowerCase().includes('fee') || 
+                              data.title.toLowerCase().includes('supply') ||
+                              data.title.toLowerCase().includes('syllabus') ||
+                              data.title.toLowerCase().includes('honor code');
+      
       const assignmentData = {
         student_name: data.userId,
         title: data.title,
         due_date: data.dueDate || null,
-        source: 'canvas'
+        source: 'canvas',
+        eligible_for_scheduling: !isAdministrative
       };
       
       const { data: assignment, error } = await supabase
@@ -180,6 +194,38 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error updating assignment:', error);
       return undefined;
+    }
+  }
+
+  async updateAdministrativeAssignments(): Promise<void> {
+    try {
+      // Get all assignments and update administrative ones
+      const { data: assignments, error } = await supabase
+        .from('assignments')
+        .select('*');
+      
+      if (error || !assignments) {
+        console.error('Error fetching assignments for admin update:', error);
+        return;
+      }
+      
+      for (const assignment of assignments) {
+        const isAdministrative = assignment.title.toLowerCase().includes('fee') ||
+                                assignment.title.toLowerCase().includes('supply') ||
+                                assignment.title.toLowerCase().includes('syllabus') ||
+                                assignment.title.toLowerCase().includes('honor code');
+        
+        if (isAdministrative && assignment.eligible_for_scheduling !== false) {
+          await supabase
+            .from('assignments')
+            .update({ eligible_for_scheduling: false })
+            .eq('id', assignment.id);
+          
+          console.log(`Updated admin assignment: ${assignment.title}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating administrative assignments:', error);
     }
   }
 
