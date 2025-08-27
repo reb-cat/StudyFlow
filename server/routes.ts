@@ -468,24 +468,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/login - User login endpoint
   app.post('/api/login', async (req, res) => {
+    const loginId = Date.now().toString();
+    console.log(`[Login-${loginId}] Login attempt for email:`, req.body.email);
+    
     try {
       const { email, password } = req.body;
       
       if (!email || !password) {
+        console.log(`[Login-${loginId}] Missing email or password`);
         return res.status(400).json({ message: 'Email and password are required' });
       }
       
+      // Normalize email to lowercase (same as registration)
+      const normalizedEmail = email.toLowerCase().trim();
+      console.log(`[Login-${loginId}] Normalized email:`, normalizedEmail);
+      
       // Get user by email
-      const user = await storage.getUserByEmail(email);
+      const user = await storage.getUserByEmail(normalizedEmail);
       
       if (!user) {
+        console.log(`[Login-${loginId}] No user found with email:`, normalizedEmail);
         return res.status(401).json({ message: 'Invalid email or password' });
       }
+      
+      console.log(`[Login-${loginId}] User found, checking password...`);
       
       // Check password (in production, this should use bcrypt)
       if (user.password !== password) {
+        console.log(`[Login-${loginId}] Password mismatch`);
         return res.status(401).json({ message: 'Invalid email or password' });
       }
+      
+      console.log(`[Login-${loginId}] Authentication successful for user:`, user.id);
       
       // Create session for authenticated user
       (req.session as any).userId = user.id;
@@ -494,12 +508,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return user without password
       const { password: _, ...userWithoutPassword } = user;
       
+      console.log(`[Login-${loginId}] Login completed successfully`);
       res.json({
         message: 'Login successful',
         user: userWithoutPassword
       });
     } catch (error) {
-      console.error('Error logging in:', error);
+      console.error(`[Login-${loginId}] Error during login:`, error);
       res.status(500).json({ message: 'Failed to login' });
     }
   });
