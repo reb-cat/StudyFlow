@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import session from "express-session";
-import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, registerUserSchema } from "@shared/schema";
 import { z } from "zod";
@@ -27,18 +26,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Trust proxy for secure cookies in production
   app.set('trust proxy', 1);
   
-  // FIXED session configuration for cookie persistence
+  // NUCLEAR APPROACH - Minimal session configuration
   app.use(session({
-    secret: 'simple-dev-secret-key',
+    secret: process.env.SESSION_SECRET || 'dev-secret',
     resave: false,
-    saveUninitialized: true, // CHANGED: Create session even if empty
+    saveUninitialized: false,
     cookie: {
+      maxAge: 24 * 60 * 60 * 1000,
       secure: false,
-      httpOnly: false, // CHANGED: Allow JS access for debugging  
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax',
-      domain: undefined, // ADDED: Don't restrict domain
-      path: '/' // ADDED: Ensure cookie works for all paths
+      httpOnly: true,
+      sameSite: 'lax'
     }
   }));
 
