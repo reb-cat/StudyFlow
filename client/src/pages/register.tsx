@@ -20,7 +20,7 @@ const registerSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
-  role: z.enum(["student", "parent", "admin"]).default("student"),
+  role: z.enum(["student", "parent"]).default("student"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -259,7 +259,7 @@ export default function RegisterPage() {
                 </Label>
                 <Select 
                   value={form.watch("role")} 
-                  onValueChange={(value) => form.setValue("role", value as "student" | "parent" | "admin")}
+                  onValueChange={(value) => form.setValue("role", value as "student" | "parent")}
                   data-testid="select-role"
                 >
                   <SelectTrigger style={{
@@ -275,7 +275,6 @@ export default function RegisterPage() {
                   }}>
                     <SelectItem value="student">Student</SelectItem>
                     <SelectItem value="parent">Parent/Guardian</SelectItem>
-                    <SelectItem value="admin">Administrator</SelectItem>
                   </SelectContent>
                 </Select>
                 {form.formState.errors.role && (
