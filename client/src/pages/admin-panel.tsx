@@ -23,7 +23,7 @@ export default function AdminPanel() {
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
     queryKey: ['/api/assignments', selectedStudent],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/assignments?studentName=${selectedStudent}&includeCompleted=true`);
+      const response = await apiRequest('GET', `/api/assignments?studentName=${selectedStudent}`);
       return await response.json();
     }
   });
