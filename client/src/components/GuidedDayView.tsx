@@ -298,8 +298,8 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
         {/* Pure Focus Card - No Navigation */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 space-y-8">
           {/* Current Task - Minimal */}
-          <div className="text-center space-y-3">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="text-center space-y-2">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white !text-xl">
               {currentBlock.title}
             </h2>
             
@@ -315,13 +315,13 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
 
                   if (hasRealInstructions) {
                     return (
-                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed !text-base">
                         {instructions}
                       </p>
                     );
                   } else {
                     return (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 italic leading-relaxed">
+                      <p className="text-base text-gray-500 dark:text-gray-400 italic leading-relaxed !text-base">
                         No additional instructions provided. Work on this assignment based on your course materials and previous lessons.
                       </p>
                     );
