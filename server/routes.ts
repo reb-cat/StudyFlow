@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, registerUserSchema } from "@shared/schema";
 import { z } from "zod";
@@ -51,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/stats - Get overall assignment statistics
-  app.get('/api/stats', async (req, res) => {
+  app.get('/api/stats', requireAuth, async (req, res) => {
     try {
       const stats = await storage.getAssignmentStats();
       // Prevent caching to ensure fresh data
@@ -159,8 +160,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Database test and setup endpoint
-  app.post('/api/setup-demo', async (req, res) => {
+  // Database test and setup endpoint - ADMIN ONLY
+  app.post('/api/setup-demo', requireAuth, async (req, res) => {
     try {
       // Create demo user
       const demoUser = await storage.createUser({
@@ -356,6 +357,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Hash password before storing
+      console.log(`[Registration-${requestId}] Hashing password...`);
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      
       // Create user
       console.log(`[Registration-${requestId}] Creating user with username:`, username);
       let newUser;
@@ -363,7 +369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newUser = await storage.createUser({
           username,
           email: email.toLowerCase().trim(),
-          password, // In production, this should be hashed
+          password: hashedPassword, // Store hashed password
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           role: 'user', // Default all new users to 'user' role
@@ -469,7 +475,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const normalizedEmail = email.toLowerCase().trim();
       const user = await storage.getUserByEmail(normalizedEmail);
       
-      if (!user || user.password !== password) {
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+      
+      // Verify password with bcrypt
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
         return res.status(401).json({ message: 'Invalid email or password' });
       }
       
