@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, Home, Users, UserCheck, Printer, LogIn, UserPlus, Grid3X3 } from 'lucide-react';
+import { Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { Assignment } from '@shared/schema';
@@ -148,6 +149,60 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
       <div className="max-w-7xl mx-auto p-6">
+        
+        {/* Quick Navigation */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Grid3X3 className="h-5 w-5" />
+              Quick Navigation
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <Link href="/" className="block">
+                <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
+                  <Home className="h-4 w-4" />
+                  <span className="text-xs">Home</span>
+                </Button>
+              </Link>
+              
+              <Link href="/student" className="block">
+                <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
+                  <Users className="h-4 w-4" />
+                  <span className="text-xs">Students</span>
+                </Button>
+              </Link>
+              
+              <Link href="/student/abigail" className="block">
+                <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
+                  <UserCheck className="h-4 w-4" />
+                  <span className="text-xs">Abigail</span>
+                </Button>
+              </Link>
+              
+              <Link href="/student/khalil" className="block">
+                <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
+                  <UserCheck className="h-4 w-4" />
+                  <span className="text-xs">Khalil</span>
+                </Button>
+              </Link>
+              
+              <Link href="/print-queue" className="block">
+                <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
+                  <Printer className="h-4 w-4" />
+                  <span className="text-xs">Print Queue</span>
+                </Button>
+              </Link>
+              
+              <Button variant="secondary" className="w-full h-16 flex flex-col gap-1" disabled>
+                <Grid3X3 className="h-4 w-4" />
+                <span className="text-xs">Admin</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2" style={{ 
