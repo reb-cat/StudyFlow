@@ -225,34 +225,19 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 flex flex-col">
-      <div className="max-w-xl mx-auto w-full flex-1 flex flex-col">
-        {/* Minimal top bar - just back to overview */}
-        <div className="flex justify-end mb-4">
-          <Button
-            variant="ghost"
-            onClick={onModeToggle}
-            className="text-gray-500 hover:text-gray-700"
-            data-testid="button-mode-toggle"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-        </div>
-
-        {/* Focus Card - Timer Centered */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex-1 flex flex-col justify-center">
-          {/* Current Task */}
-          <div className="text-center mb-8">
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        {/* Pure Focus Card - No Navigation */}
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 space-y-8">
+          {/* Current Task - Minimal */}
+          <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               {currentBlock.title}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
-              {currentBlock.startTime} - {currentBlock.endTime}
-            </p>
           </div>
 
-          {/* HUGE Timer - Auto-starts */}
-          <div className="flex justify-center mb-12">
+          {/* HUGE Timer - Dominant Element */}
+          <div className="flex justify-center">
             <CircularTimer
               durationMinutes={currentBlock.estimatedMinutes || 20}
               isRunning={isTimerRunning}
@@ -267,14 +252,13 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
             />
           </div>
 
-          {/* Essential Action Buttons - All Three Required */}
+          {/* Essential Actions Only */}
           <div className="space-y-3">
             <Button 
               onClick={handleBlockComplete}
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-full font-medium"
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-medium text-lg"
               data-testid="button-block-complete"
             >
-              <CheckCircle className="w-5 h-5 mr-2" />
               Done
             </Button>
             
@@ -282,21 +266,31 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
               <Button 
                 onClick={handleNeedMoreTime}
                 variant="outline"
-                className="flex-1 py-3 rounded-full"
+                className="flex-1 py-3 rounded-2xl"
                 data-testid="button-need-more-time"
               >
-                <Clock className="w-4 h-4 mr-2" />
                 Need More Time
               </Button>
               
               <Button 
                 onClick={handleStuck}
                 variant="outline"
-                className="flex-1 py-3 rounded-full"
+                className="flex-1 py-3 rounded-2xl"
                 data-testid="button-stuck"
               >
-                <HelpCircle className="w-4 h-4 mr-2" />
                 Stuck
+              </Button>
+            </div>
+            
+            {/* Exit Option - Very Subtle */}
+            <div className="pt-4 text-center">
+              <Button
+                variant="ghost"
+                onClick={onModeToggle}
+                className="text-xs text-gray-400 hover:text-gray-600"
+                data-testid="button-mode-toggle"
+              >
+                Exit Focus Mode
               </Button>
             </div>
           </div>
