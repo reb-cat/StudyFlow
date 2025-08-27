@@ -282,15 +282,16 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
               </Button>
             </div>
             
-            {/* Exit Option - Very Subtle */}
-            <div className="pt-4 text-center">
+            {/* Emergency Exit - Requires Double Tap */}
+            <div className="pt-6 text-center">
               <Button
                 variant="ghost"
-                onClick={onModeToggle}
-                className="text-xs text-gray-400 hover:text-gray-600"
+                onDoubleClick={onModeToggle}
+                className="text-xs text-gray-300 hover:text-gray-400 transition-colors"
                 data-testid="button-mode-toggle"
+                title="Double-tap to exit (emergency only)"
               >
-                Exit Focus Mode
+                Emergency Exit
               </Button>
             </div>
           </div>
