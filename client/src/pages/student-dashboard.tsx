@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -125,17 +126,18 @@ export default function StudentDashboard() {
         date: targetDate.toISOString().split('T')[0],
         studentName: studentName
       });
-      const response = await fetch(`/api/assignments?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch assignments');
+      const response = await apiRequest('GET', `/api/assignments?${params}`);
       return response.json();
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!user, // Only run query when user is authenticated
   });
 
   // Fetch schedule template for the student and date
   const { data: scheduleTemplate = [] } = useQuery<any[]>({
     queryKey: ['/api/schedule', studentName, selectedDate],
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!user, // Only run query when user is authenticated
   });
 
   const handleAssignmentUpdate = () => {
