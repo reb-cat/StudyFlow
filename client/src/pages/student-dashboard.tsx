@@ -339,6 +339,7 @@ export default function StudentDashboard({ student }: StudentDashboardProps) {
               selectedDate={selectedDate}
               scheduleTemplate={scheduleTemplate}
               onAssignmentUpdate={handleAssignmentUpdate}
+              onModeToggle={() => setIsGuidedMode(false)}
             />
           </div>
         ) : (
