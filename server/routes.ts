@@ -605,6 +605,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Print Queue Management API for Parent Dashboard
+  app.get('/api/print-queue', async (req, res) => {
+    try {
+      const { date } = req.query;
+      const targetDate = date ? new Date(date as string) : new Date();
+      
+      // Get tomorrow's date in YYYY-MM-DD format for proactive printing
+      const tomorrow = new Date(targetDate);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      
+      console.log(`📋 Fetching print queue for ${tomorrowStr}`);
+      
+      // Get assignments scheduled for tomorrow
+      const allAssignments = await db.select().from(assignments).where(
+        eq(assignments.scheduledDate, tomorrowStr)
+      );
+      
+      const { detectPrintNeeds, estimatePageCount } = await import('./lib/printQueue.js');
+      
+      // Process assignments and detect print needs
+      const printQueue: any[] = [];
+      for (const assignment of allAssignments) {
+        const printDetection = detectPrintNeeds({
+          title: assignment.title,
+          instructions: assignment.instructions,
+          canvasId: assignment.canvasId,
+          canvasInstance: assignment.canvasInstance,
+          submissionTypes: assignment.submissionTypes,
+          courseName: assignment.courseName,
+          subject: assignment.subject
+        });
+        
+        if (printDetection.needsPrinting) {
+          printQueue.push({
+            id: assignment.id,
+            studentName: assignment.userId,
+            title: assignment.title,
+            courseName: assignment.courseName,
+            subject: assignment.subject,
+            dueDate: assignment.dueDate,
+            scheduledDate: assignment.scheduledDate,
+            printReason: printDetection.printReason,
+            priority: printDetection.priority,
+            canvasUrl: printDetection.canvasUrl,
+            printStatus: 'needs_printing',
+            estimatedPages: estimatePageCount(assignment.instructions)
+          });
+        }
+      }
+      
+      // Sort by priority (high first) then by student name
+      printQueue.sort((a, b) => {
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+        if (priorityDiff !== 0) return priorityDiff;
+        
+        return a.studentName.localeCompare(b.studentName);
+      });
+      
+      console.log(`📋 Found ${printQueue.length} items needing printing for ${tomorrowStr}`);
+      res.json(printQueue);
+      
+    } catch (error) {
+      console.error('Print queue fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch print queue' });
+    }
+  });
+  
+  app.post('/api/print-queue/:assignmentId/status', async (req, res) => {
+    try {
+      const { assignmentId } = req.params;
+      const { status } = req.body;
+      
+      if (!['printed', 'skipped', 'needs_printing'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status' });
+      }
+      
+      console.log(`📋 Updated print status for assignment ${assignmentId}: ${status}`);
+      res.json({ success: true, status, assignmentId });
+      
+    } catch (error) {
+      console.error('Print status update error:', error);
+      res.status(500).json({ error: 'Failed to update print status' });
+    }
+  });
+
   // ElevenLabs TTS route (Khalil only)
   app.post('/api/tts/generate', async (req, res) => {
     try {

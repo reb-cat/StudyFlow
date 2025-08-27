@@ -12,7 +12,8 @@ import {
   BookOpen,
   CheckCircle,
   Shield,
-  Zap
+  Zap,
+  Printer
 } from "lucide-react";
 
 const features = [
@@ -100,6 +101,16 @@ export default function Home() {
                   onClick={() => window.location.href = '/admin'}
                 >
                   Admin Panel
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  size="lg" 
+                  className="h-11 px-8 bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-200"
+                  data-testid="button-print-queue"
+                  onClick={() => window.location.href = '/print-queue'}
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  Print Queue
                 </Button>
               </div>
             </div>

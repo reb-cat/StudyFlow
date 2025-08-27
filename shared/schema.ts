@@ -135,6 +135,15 @@ export const assignments = pgTable("assignments", {
   academicYear: text("academic_year"),
   confidenceScore: text("confidence_score"), // Store as text to avoid precision issues
   
+  // Print Queue Management for Parent Dashboard
+  needsPrinting: boolean("needs_printing").default(false), // Detected automatically
+  printStatus: text("print_status", { 
+    enum: ["not_needed", "needs_printing", "printed", "skipped"] 
+  }).default("not_needed"),
+  printReason: text("print_reason"), // Why it needs printing: "long_instructions", "contains_table", "worksheet", etc.
+  printedAt: timestamp("printed_at"), // When parent marked as printed
+  canvasUrl: text("canvas_url"), // Direct Canvas assignment link for easy printing
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

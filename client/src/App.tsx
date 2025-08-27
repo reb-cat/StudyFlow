@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import StudentSelection from "@/pages/student-selection";
 import StudentDashboard from "@/pages/student-dashboard";
 import AdminPanel from "@/pages/admin-panel";
+import PrintQueue from "@/pages/print-queue";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/student" component={StudentSelection} />
       <Route path="/student/:student" component={StudentDashboard} />
       <Route path="/admin" component={AdminPanel} />
+      <Route path="/print-queue" component={PrintQueue} />
       <Route component={NotFound} />
     </Switch>
   );
