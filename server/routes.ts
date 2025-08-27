@@ -46,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/assignments - Get assignments for a user/date
   app.get('/api/assignments', async (req, res) => {
     try {
-      const { date, studentName } = req.query;
+      const { date, studentName, includeCompleted } = req.query;
       
       // Use student-specific user ID mapping  
       let userId = "demo-user-1"; // fallback
@@ -63,7 +63,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get assignments for daily scheduling (filtered to next 12 days when date provided)
-      const assignments = await storage.getAssignments(userId, date as string);
+      // Admin mode can include completed assignments
+      const includeCompletedBool = includeCompleted === 'true';
+      const assignments = await storage.getAssignments(userId, date as string, includeCompletedBool);
       console.log(`📚 Retrieved ${assignments.length} assignments for daily planning for ${studentName} on ${date}`);
       res.json(assignments);
     } catch (error) {

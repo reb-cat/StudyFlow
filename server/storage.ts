@@ -18,7 +18,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   
   // Assignment operations
-  getAssignments(userId: string, date?: string): Promise<Assignment[]>;
+  getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]>;
   getAssignment(id: string): Promise<Assignment | undefined>;
   createAssignment(assignment: InsertAssignment & { userId: string }): Promise<Assignment>;
   updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined>;
@@ -68,21 +68,26 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getAssignments(userId: string, date?: string): Promise<Assignment[]> {
+  async getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]> {
     try {
       let result = await db.select().from(assignments).where(eq(assignments.userId, userId));
       let assignmentList = result || [];
       
       // For daily scheduling: exclude completed assignments and filter by date
       // This keeps the daily view focused while the database contains the full Canvas dataset
+      // Admin mode can include completed assignments by setting includeCompleted = true
       
-      // FIRST: Always exclude completed assignments from daily planning
+      // FIRST: Exclude completed assignments from daily planning (unless admin mode)
       // Only show assignments that are actively workable (pending, needs_more_time, stuck)
-      const beforeCompletionFilter = assignmentList.length;
-      assignmentList = assignmentList.filter((assignment: any) => 
-        assignment.completionStatus !== 'completed'
-      );
-      console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments)`);
+      if (!includeCompleted) {
+        const beforeCompletionFilter = assignmentList.length;
+        assignmentList = assignmentList.filter((assignment: any) => 
+          assignment.completionStatus !== 'completed'
+        );
+        console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments)`);
+      } else {
+        console.log(`🔧 Admin mode: Including all assignments (${assignmentList.length} total)`);
+      }
       
       // SECOND: Apply date filtering for daily scheduling
       if (date) {
