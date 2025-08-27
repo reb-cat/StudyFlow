@@ -19,7 +19,7 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/login" component={Login} />
       <Route path="/student" component={StudentSelection} />
-      <Route path="/student/:student" component={StudentDashboard} />
+      <Route path="/student/:student/:date?" component={StudentDashboard} />
       <Route path="/admin" component={AdminPanel} />
       <Route path="/print-queue" component={PrintQueue} />
       <Route component={NotFound} />
