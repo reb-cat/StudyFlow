@@ -5,7 +5,7 @@ StudyFlow is an executive function-friendly productivity platform designed to he
 **Current Version**: 1.0.0 (Released: August 27, 2025)
 **Status**: Complete and fully functional with Canvas integration and Bible curriculum system
 
-# Recent Changes (v1.0.0 Release)
+# Recent Changes (v1.0.0 Stable Release)
 
 ## Core System Fixes
 - **Bible Curriculum Integration**: Fixed critical UI duplication and implemented clean sequential progression system
@@ -13,11 +13,19 @@ StudyFlow is an executive function-friendly productivity platform designed to he
 - **Admin Panel**: Restored proper functionality showing active assignments for management
 - **Database Cleanup**: Removed unused tables and streamlined schema for production readiness
 
+## Executive Function UI Optimizations (August 27, 2025)
+- **Font Hierarchy**: Refined assignment titles to `text-xl` and instructions to `text-base` with closer spacing (`space-y-2`)
+- **Smart Content Detection**: Fixed instruction filtering to properly display detailed Canvas content (50+ chars) vs. placeholder messages
+- **Scrolling Behavior**: Implemented vertical-only navigation (`overflow-y-auto overflow-x-hidden`) to prevent horizontal confusion
+- **HTML Rendering**: Added proper HTML instruction display using `dangerouslySetInnerHTML` for rich Canvas content
+- **CSS Override Protection**: Added `!important` modifiers to prevent universal styles from breaking custom sizing
+
 ## Major Technical Achievements  
 - **Sequential Bible Curriculum**: Week 1 Day 1 → Day 2 → Day 3 progression (no complex calendar math)
 - **Canvas Integration**: Full assignment import and management for both students (349 total assignments)
 - **Position Tracking**: Both students now have Bible curriculum position tracking (currently at Genesis 1-2)
 - **Executive Function Support**: Concrete task specification with specific readings instead of vague entries
+- **AI Integration Ready**: Anthropic SDK installed, prepared for Eleven Labs TTS and Claude tutoring features
 
 ## System Statistics
 - Total Assignments: 349 (Abigail: 117, Khalil: 232)  
