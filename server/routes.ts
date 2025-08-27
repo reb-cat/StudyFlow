@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, registerUserSchema } from "@shared/schema";
 import { z } from "zod";
+import { requireAuth } from "./authMiddleware";
 import { getElevenLabsService } from "./lib/elevenlabs";
 import { 
   getBibleSubjectForSchedule, 
@@ -24,7 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Assignment API routes
   
   // PATCH /api/assignments/:id - Update assignment status
-  app.patch('/api/assignments/:id', async (req, res) => {
+  app.patch('/api/assignments/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { completionStatus } = req.body;
@@ -59,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/assignments - Get assignments for a user/date
-  app.get('/api/assignments', async (req, res) => {
+  app.get('/api/assignments', requireAuth, async (req, res) => {
     try {
       const { date, studentName, includeCompleted } = req.query;
       
@@ -91,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // POST /api/assignments - Create new assignment
-  app.post('/api/assignments', async (req, res) => {
+  app.post('/api/assignments', requireAuth, async (req, res) => {
     try {
       const { studentName, ...assignmentData } = req.body;
       const validatedAssignmentData = insertAssignmentSchema.parse(assignmentData);
@@ -115,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // PATCH /api/assignments - Update assignment
-  app.patch('/api/assignments', async (req, res) => {
+  app.patch('/api/assignments', requireAuth, async (req, res) => {
     try {
       const { id, ...updateData } = req.body;
       
@@ -138,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // DELETE /api/assignments/:id - Delete assignment
-  app.delete('/api/assignments/:id', async (req, res) => {
+  app.delete('/api/assignments/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteAssignment(id);
@@ -324,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get demo user route
-  app.get('/api/user', async (req, res) => {
+  app.get('/api/user', requireAuth, async (req, res) => {
     try {
       let user = await storage.getUser("demo-user-1");
       if (!user) {
@@ -343,7 +344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Canvas integration endpoints
-  app.get('/api/canvas/:studentName', async (req, res) => {
+  app.get('/api/canvas/:studentName', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       
@@ -409,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Import Canvas assignments for a student
-  app.post('/api/import-canvas/:studentName', async (req, res) => {
+  app.post('/api/import-canvas/:studentName', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       const today = new Date().toISOString().split('T')[0];
@@ -515,7 +516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get schedule template for a specific student and date with Bible curriculum integration
-  app.get('/api/schedule/:studentName/:date', async (req, res) => {
+  app.get('/api/schedule/:studentName/:date', requireAuth, async (req, res) => {
     try {
       const { studentName, date } = req.params;
       
@@ -559,7 +560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Parent notification endpoint (when student clicks "Stuck")
-  app.post('/api/notify-parent', async (req, res) => {
+  app.post('/api/notify-parent', requireAuth, async (req, res) => {
     try {
       const { studentName, assignmentTitle, message } = req.body;
       
@@ -586,7 +587,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Database connection test
-  app.get('/api/db-test', async (req, res) => {
+  app.get('/api/db-test', requireAuth, async (req, res) => {
     try {
       const assignments = await storage.getAssignments('demo-user-1');
       res.json({ 
@@ -602,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bible curriculum routes
-  app.get('/api/bible/current-week', async (req, res) => {
+  app.get('/api/bible/current-week', requireAuth, async (req, res) => {
     try {
       const bibleData = await storage.getBibleCurrentWeek();
       res.json(bibleData);
@@ -612,7 +613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/bible/week/:weekNumber', async (req, res) => {
+  app.get('/api/bible/week/:weekNumber', requireAuth, async (req, res) => {
     try {
       const weekNumber = parseInt(req.params.weekNumber);
       const bibleData = await storage.getBibleCurriculum(weekNumber);
@@ -623,7 +624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/bible/completion', async (req, res) => {
+  app.patch('/api/bible/completion', requireAuth, async (req, res) => {
     try {
       const { weekNumber, dayOfWeek, completed } = req.body;
       
@@ -645,7 +646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Attendance tracking routes for fixed blocks
-  app.get('/api/attendance/:userId', async (req, res) => {
+  app.get('/api/attendance/:userId', requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
       const date = req.query.date as string;
@@ -658,7 +659,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/attendance', async (req, res) => {
+  app.post('/api/attendance', requireAuth, async (req, res) => {
     try {
       const { userId, blockId, date, attended, blockType } = req.body;
       
@@ -679,7 +680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schedule template routes - using real database data instead of hardcoded blocks
-  app.get('/api/schedule-template/:studentName', async (req, res) => {
+  app.get('/api/schedule-template/:studentName', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       const weekday = req.query.weekday as string;
@@ -693,7 +694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Manual Canvas sync trigger (for testing)
-  app.post('/api/sync-canvas', async (req, res) => {
+  app.post('/api/sync-canvas', requireAuth, async (req, res) => {
     try {
       console.log('🔧 Manual Canvas sync triggered via API');
       await jobScheduler.runSyncNow();
@@ -714,7 +715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Print Queue Management API for Parent Dashboard
-  app.get('/api/print-queue', async (req, res) => {
+  app.get('/api/print-queue', requireAuth, async (req, res) => {
     try {
       const { startDate, endDate, days } = req.query;
       
@@ -829,7 +830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/print-queue/:assignmentId/status', async (req, res) => {
+  app.post('/api/print-queue/:assignmentId/status', requireAuth, async (req, res) => {
     try {
       const { assignmentId } = req.params;
       const { status } = req.body;
@@ -848,7 +849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ElevenLabs TTS route (Khalil only)
-  app.post('/api/tts/generate', async (req, res) => {
+  app.post('/api/tts/generate', requireAuth, async (req, res) => {
     try {
       const { text, studentName, voiceId } = req.body;
       
@@ -886,7 +887,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Manual cleanup endpoint for testing problematic assignments
-  app.post('/api/cleanup-assignments', async (req, res) => {
+  app.post('/api/cleanup-assignments', requireAuth, async (req, res) => {
     try {
       console.log('🧹 Manual assignment cleanup triggered via API');
       // Access the private method using bracket notation for testing
@@ -908,7 +909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Fix misclassified In Class assignments endpoint
-  app.post('/api/fix-in-class-assignments', async (req, res) => {
+  app.post('/api/fix-in-class-assignments', requireAuth, async (req, res) => {
     try {
       console.log('🔧 Fixing misclassified In Class assignments via direct database update...');
       
@@ -952,7 +953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Deep Canvas investigation endpoint with comprehensive timing analysis
-  app.post('/api/investigate-canvas-assignment', async (req, res) => {
+  app.post('/api/investigate-canvas-assignment', requireAuth, async (req, res) => {
     try {
       const { title, studentName } = req.body;
       
@@ -1066,7 +1067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test pattern extraction endpoint
-  app.post('/api/test-pattern-extraction', async (req, res) => {
+  app.post('/api/test-pattern-extraction', requireAuth, async (req, res) => {
     try {
       const { titles } = req.body;
       
@@ -1107,7 +1108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schedule template bulk upload endpoint
-  app.post('/api/schedule-templates/bulk-upload', async (req, res) => {
+  app.post('/api/schedule-templates/bulk-upload', requireAuth, async (req, res) => {
     try {
       const { templates } = req.body;
       
@@ -1137,7 +1138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // BIBLE CURRICULUM API ENDPOINTS
 
   // GET /api/bible-curriculum/current - Get current Bible curriculum for today
-  app.get('/api/bible-curriculum/current', async (req, res) => {
+  app.get('/api/bible-curriculum/current', requireAuth, async (req, res) => {
     try {
       const { date } = req.query;
       const targetDate = date ? new Date(date as string) : new Date();
@@ -1158,7 +1159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/bible-curriculum/week/:weekNumber - Get full week curriculum
-  app.get('/api/bible-curriculum/week/:weekNumber', async (req, res) => {
+  app.get('/api/bible-curriculum/week/:weekNumber', requireAuth, async (req, res) => {
     try {
       const { weekNumber } = req.params;
       const week = parseInt(weekNumber);
@@ -1177,7 +1178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/bible-curriculum/complete - Mark curriculum item as completed
-  app.post('/api/bible-curriculum/complete', async (req, res) => {
+  app.post('/api/bible-curriculum/complete', requireAuth, async (req, res) => {
     try {
       const { weekNumber, dayOfWeek, readingType } = req.body;
       
@@ -1211,7 +1212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/bible-curriculum/progress - Get overall curriculum progress
-  app.get('/api/bible-curriculum/progress', async (req, res) => {
+  app.get('/api/bible-curriculum/progress', requireAuth, async (req, res) => {
     try {
       const currentWeek = 1; // Simplified for sequential approach
       
