@@ -10,6 +10,8 @@ interface CircularTimerProps {
   onReset?: () => void;
   extraTime?: number;
   hideControls?: boolean;
+  externalTimeRemaining?: number | null;
+  onTimeUpdate?: (timeRemaining: number) => void;
 }
 
 export function CircularTimer({ 
@@ -19,32 +21,47 @@ export function CircularTimer({
   onToggle, 
   onReset,
   extraTime = 0,
-  hideControls = false
+  hideControls = false,
+  externalTimeRemaining = null,
+  onTimeUpdate
 }: CircularTimerProps) {
-  const [timeRemaining, setTimeRemaining] = useState(durationMinutes * 60 + extraTime * 60);
+  const [internalTimeRemaining, setInternalTimeRemaining] = useState(durationMinutes * 60 + extraTime * 60);
+  
+  // Use external time if provided, otherwise use internal
+  const timeRemaining = externalTimeRemaining !== null ? externalTimeRemaining : internalTimeRemaining;
   const totalTime = durationMinutes * 60 + extraTime * 60;
 
   useEffect(() => {
-    setTimeRemaining(durationMinutes * 60 + extraTime * 60);
-  }, [durationMinutes, extraTime]);
+    if (externalTimeRemaining === null) {
+      setInternalTimeRemaining(durationMinutes * 60 + extraTime * 60);
+    }
+  }, [durationMinutes, extraTime, externalTimeRemaining]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
     if (isRunning && timeRemaining > 0) {
       interval = setInterval(() => {
-        setTimeRemaining(prev => {
-          if (prev <= 1) {
-            onComplete?.();
-            return 0;
+        const newTime = timeRemaining - 1;
+        if (newTime <= 0) {
+          onComplete?.();
+          if (onTimeUpdate) {
+            onTimeUpdate(0);
+          } else {
+            setInternalTimeRemaining(0);
           }
-          return prev - 1;
-        });
+        } else {
+          if (onTimeUpdate) {
+            onTimeUpdate(newTime);
+          } else {
+            setInternalTimeRemaining(newTime);
+          }
+        }
       }, 1000);
     }
     
     return () => clearInterval(interval);
-  }, [isRunning, timeRemaining, onComplete]);
+  }, [isRunning, timeRemaining, onComplete, onTimeUpdate]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);

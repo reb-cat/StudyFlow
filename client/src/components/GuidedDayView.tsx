@@ -31,6 +31,9 @@ interface GuidedDayViewProps {
 export function GuidedDayView({ assignments, studentName, selectedDate, onAssignmentUpdate, scheduleTemplate = [], onModeToggle }: GuidedDayViewProps) {
   const { toast } = useToast();
   
+  // Persistence key for this student's session
+  const persistenceKey = `guidedMode_${studentName}_${selectedDate}`;
+  
   // Build complete schedule using real schedule template data (same as Overview mode)
   const allScheduleBlocks = scheduleTemplate.map((block) => ({
     id: block.id,
@@ -90,10 +93,40 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
       })
   ].sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
-  const [extraTime, setExtraTime] = useState(0);
-  const [completedBlocks, setCompletedBlocks] = useState<Set<string>>(new Set());
+  // Load persisted state or use defaults
+  const loadPersistedState = () => {
+    try {
+      const saved = localStorage.getItem(persistenceKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          currentIndex: parsed.currentIndex || 0,
+          isTimerRunning: parsed.isTimerRunning || true,
+          extraTime: parsed.extraTime || 0,
+          completedBlocks: new Set(parsed.completedBlocks || []),
+          timeRemaining: parsed.timeRemaining || null,
+          lastSaved: parsed.lastSaved || Date.now()
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to load guided mode state:', error);
+    }
+    return {
+      currentIndex: 0,
+      isTimerRunning: true,
+      extraTime: 0,
+      completedBlocks: new Set(),
+      timeRemaining: null,
+      lastSaved: Date.now()
+    };
+  };
+
+  const persistedState = loadPersistedState();
+  const [currentIndex, setCurrentIndex] = useState(persistedState.currentIndex);
+  const [isTimerRunning, setIsTimerRunning] = useState(persistedState.isTimerRunning);
+  const [extraTime, setExtraTime] = useState(persistedState.extraTime);
+  const [completedBlocks, setCompletedBlocks] = useState<Set<string>>(persistedState.completedBlocks);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(persistedState.timeRemaining);
 
   const currentBlock = scheduleBlocks[currentIndex];
   const totalBlocks = scheduleBlocks.length;
@@ -108,13 +141,38 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     timeZone: 'UTC'
   });
 
-  // Auto-start timer when block changes
+  // Persist state whenever it changes
+  useEffect(() => {
+    const stateToSave = {
+      currentIndex,
+      isTimerRunning,
+      extraTime,
+      completedBlocks: Array.from(completedBlocks),
+      timeRemaining,
+      lastSaved: Date.now()
+    };
+    localStorage.setItem(persistenceKey, JSON.stringify(stateToSave));
+  }, [currentIndex, isTimerRunning, extraTime, completedBlocks, timeRemaining, persistenceKey]);
+
+  // Auto-start timer when block changes (only for new blocks)
   useEffect(() => {
     if (currentBlock && !completedBlocks.has(currentBlock.id)) {
-      setIsTimerRunning(true);
-      setExtraTime(0);
+      // Only reset timer if we don't have saved time remaining for this block
+      if (timeRemaining === null) {
+        setIsTimerRunning(true);
+        setExtraTime(0);
+        setTimeRemaining((currentBlock.estimatedMinutes || 20) * 60);
+      }
     }
   }, [currentIndex, currentBlock]);
+  
+  // Clear persistence when exiting guided mode
+  useEffect(() => {
+    return () => {
+      // Only clear if we're completing the entire day or user explicitly exits
+      // Individual block completions shouldn't clear the state
+    };
+  }, []);
 
   // Time formatting function
   const formatTime = (start: string, end: string) => {
@@ -147,6 +205,9 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
       nextIndex++;
     }
     setCurrentIndex(nextIndex);
+    
+    // Reset timer for next block
+    setTimeRemaining(null);
   };
 
   const handleNeedMoreTime = () => {
@@ -167,7 +228,10 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
       setCurrentIndex(prev => prev + 1);
       setIsTimerRunning(true); // Auto-start next block
       setExtraTime(0);
+      setTimeRemaining(null); // Reset timer for next block
     } else {
+      // Clear persistence when day is actually completed
+      localStorage.removeItem(persistenceKey);
       toast({
         title: 'Day Complete',
         description: 'Great job! You\'ve finished today\'s schedule.',
@@ -191,6 +255,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
       setCurrentIndex(prev => prev + 1);
       setIsTimerRunning(true); // Auto-start next block
       setExtraTime(0);
+      setTimeRemaining(null); // Reset timer for next block
     } else {
       toast({
         title: 'Day Complete',
@@ -246,9 +311,12 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
               onReset={() => {
                 setIsTimerRunning(false);
                 setExtraTime(0);
+                setTimeRemaining((currentBlock.estimatedMinutes || 20) * 60);
               }}
               hideControls={true}
               extraTime={extraTime}
+              externalTimeRemaining={timeRemaining}
+              onTimeUpdate={setTimeRemaining}
             />
           </div>
 
@@ -286,7 +354,11 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
             <div className="pt-6 text-center">
               <Button
                 variant="ghost"
-                onDoubleClick={onModeToggle}
+                onDoubleClick={() => {
+                  // Clear the persistence when emergency exiting 
+                  // (they can come back and resume if needed)
+                  onModeToggle?.();
+                }}
                 className="text-xs text-gray-300 hover:text-gray-400 transition-colors"
                 data-testid="button-mode-toggle"
                 title="Double-tap to exit (emergency only)"
