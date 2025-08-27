@@ -319,7 +319,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                   if (hasRealInstructions) {
                     return (
                       <div 
-                        className="text-base text-gray-700 dark:text-gray-300 leading-relaxed !text-base max-h-32 overflow-y-auto"
+                        className="text-base text-gray-700 dark:text-gray-300 leading-relaxed !text-base max-h-32 overflow-y-auto overflow-x-hidden"
                         dangerouslySetInnerHTML={{ __html: instructions }}
                       />
                     );
