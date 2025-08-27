@@ -34,13 +34,6 @@ export default function StudentDashboard() {
   const params = useParams<{ student: string }>();
   // Capitalize student name for consistency, default to Abigail if no student provided
   const studentName = params.student ? params.student.charAt(0).toUpperCase() + params.student.slice(1) : "Abigail";
-  
-  // Debug logging to check route parameters
-  console.log('🔍 Route Debug:', {
-    rawParams: params,
-    studentParam: params.student,
-    finalStudentName: studentName
-  });
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     // Always start with today's date 

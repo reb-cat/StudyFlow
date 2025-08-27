@@ -59,7 +59,7 @@ export function CircularTimer({
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center space-y-6">
+    <div className="flex flex-col items-center space-y-3">
       {/* Circular Progress Timer */}
       <div className="relative">
         <svg
@@ -101,33 +101,35 @@ export function CircularTimer({
         {/* Time display in center */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">
               {formatTime(timeRemaining)}
             </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {extraTime > 0 && `+${extraTime}min`}
-            </div>
+            {extraTime > 0 && (
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                +{extraTime}min
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Timer Controls */}
-      <div className="flex items-center space-x-3">
+      {/* Compact Timer Controls */}
+      <div className="flex items-center space-x-2">
         <Button
           variant="outline"
           size="sm"
           onClick={onToggle}
-          className="flex items-center space-x-2"
+          className="flex items-center space-x-1 px-2 py-1 text-xs"
           data-testid="button-timer-toggle"
         >
           {isRunning ? (
             <>
-              <Pause className="w-4 h-4" />
+              <Pause className="w-3 h-3" />
               <span>Pause</span>
             </>
           ) : (
             <>
-              <Play className="w-4 h-4" />
+              <Play className="w-3 h-3" />
               <span>Start</span>
             </>
           )}
@@ -137,10 +139,10 @@ export function CircularTimer({
           variant="outline"
           size="sm"
           onClick={onReset}
-          className="flex items-center space-x-2"
+          className="flex items-center space-x-1 px-2 py-1 text-xs"
           data-testid="button-timer-reset"
         >
-          <RotateCcw className="w-4 h-4" />
+          <RotateCcw className="w-3 h-3" />
           <span>Reset</span>
         </Button>
       </div>

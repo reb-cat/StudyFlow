@@ -194,18 +194,18 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 p-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header - Student name, date, toggle */}
-        <div className="flex items-center justify-between mb-8 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+    <div className="h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 p-3 flex flex-col">
+      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
+        {/* Compressed Header - Student name, date, toggle */}
+        <div className="flex items-center justify-between mb-3 bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+              <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{studentName}</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">{studentName}</h1>
               <div className="flex items-center text-gray-600 dark:text-gray-400 text-sm">
-                <Calendar className="w-4 h-4 mr-1" />
+                <Calendar className="w-3 h-3 mr-1" />
                 {dayName}, {dateDisplay}
               </div>
             </div>
@@ -214,118 +214,111 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
           <Button
             variant="outline"
             onClick={onModeToggle}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 px-3 py-2 text-sm"
             data-testid="button-mode-toggle"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Overview Mode</span>
+            <span>Overview</span>
           </Button>
         </div>
 
-        {/* Progress Bar */}
-        <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
+        {/* Compact Progress Bar */}
+        <div className="mb-3 bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Block {currentIndex + 1} of {totalBlocks}
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                Block {currentIndex + 1} of {totalBlocks} • {progressPercentage}% complete
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                {progressPercentage}% complete
-              </p>
             </div>
           </div>
           
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
             <div 
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full h-3 transition-all duration-500"
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full h-2 transition-all duration-500"
               style={{ width: `${(completedBlocks.size / totalBlocks) * 100}%` }}
             />
           </div>
         </div>
 
-        {/* Activity Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 space-y-8">
+        {/* Compact Activity Card */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 flex-1 flex flex-col justify-between">
           {/* Block Header */}
-          <div className="text-center">
-            <Badge variant="secondary" className="mb-4">
+          <div className="text-center mb-3">
+            <Badge variant="secondary" className="mb-2 text-xs">
               {currentBlock.startTime} - {currentBlock.endTime}
             </Badge>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
               {currentBlock.title}
             </h2>
             
-            {/* Block Description */}
-            <div className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+            {/* Compact Block Description */}
+            <div className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
               {currentBlock.type === 'bible' && (
-                <p>Time for your daily Bible reading. Focus and reflect on today's passage.</p>
+                <p>Daily Bible reading - focus and reflect</p>
               )}
               {currentBlock.type === 'assignment' && currentBlock.assignment && (
                 <div>
-                  <p className="mb-3">Work on your assignment:</p>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h4 className="font-medium text-gray-900 dark:text-white">{currentBlock.assignment.title}</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Subject: {currentBlock.assignment.subject}</p>
-                    {currentBlock.assignment.dueDate && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Due: {new Date(currentBlock.assignment.dueDate).toLocaleDateString()}
-                      </p>
-                    )}
+                  <div className="bg-gray-50 dark:bg-gray-700 p-2 rounded text-left">
+                    <h4 className="font-medium text-sm text-gray-900 dark:text-white">{currentBlock.assignment.title}</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Subject: {currentBlock.assignment.subject}</p>
                   </div>
                 </div>
               )}
               {currentBlock.type === 'fixed' && currentBlock.blockType === 'movement' && (
-                <p>Movement break! Stretch, walk, or do light exercise to refresh your mind.</p>
+                <p>Movement break - stretch and refresh</p>
               )}
               {currentBlock.type === 'fixed' && currentBlock.blockType === 'lunch' && (
-                <p>Lunch time! Take a proper break and enjoy your meal.</p>
+                <p>Lunch time - enjoy your meal</p>
               )}
             </div>
           </div>
 
-          {/* Timer Display */}
-          <div className="flex justify-center">
-            <CircularTimer
-              durationMinutes={currentBlock.estimatedMinutes || 20}
-              isRunning={isTimerRunning}
-              onComplete={handleTimerComplete}
-              onToggle={() => setIsTimerRunning(!isTimerRunning)}
-              onReset={() => {
-                setIsTimerRunning(false);
-                setExtraTime(0);
-              }}
-              extraTime={extraTime}
-            />
+          {/* Compact Timer Display */}
+          <div className="flex justify-center mb-3">
+            <div className="scale-75">
+              <CircularTimer
+                durationMinutes={currentBlock.estimatedMinutes || 20}
+                isRunning={isTimerRunning}
+                onComplete={handleTimerComplete}
+                onToggle={() => setIsTimerRunning(!isTimerRunning)}
+                onReset={() => {
+                  setIsTimerRunning(false);
+                  setExtraTime(0);
+                }}
+                extraTime={extraTime}
+              />
+            </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-3">
+          {/* Compact Action Buttons */}
+          <div className="space-y-2">
             <Button 
               onClick={handleBlockComplete}
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-medium"
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 text-base font-medium"
               data-testid="button-block-complete"
             >
-              <CheckCircle className="w-5 h-5 mr-2" />
+              <CheckCircle className="w-4 h-4 mr-2" />
               Done
             </Button>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <Button 
                 onClick={handleNeedMoreTime}
                 variant="outline"
-                className="py-3"
+                className="py-2 text-sm"
                 data-testid="button-need-more-time"
               >
-                <Clock className="w-4 h-4 mr-2" />
-                Need More Time
+                <Clock className="w-3 h-3 mr-1" />
+                More Time
               </Button>
               
               <Button 
                 onClick={handleStuck}
                 variant="outline"
-                className="py-3"
+                className="py-2 text-sm"
                 data-testid="button-stuck"
               >
-                <HelpCircle className="w-4 h-4 mr-2" />
+                <HelpCircle className="w-3 h-3 mr-1" />
                 Stuck
               </Button>
             </div>
@@ -334,7 +327,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
             {currentBlock.type === 'assignment' && currentBlock.assignment && (
               <Button 
                 variant="outline" 
-                className="w-full py-3"
+                className="w-full py-2 text-sm"
                 onClick={() => {
                   // Create Canvas URL from assignment data
                   const canvasUrl = `https://canvas.instructure.com/courses/${currentBlock.assignment?.courseName}/assignments/${currentBlock.assignment?.id}`;
@@ -342,7 +335,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                 }}
                 data-testid="button-open-canvas"
               >
-                <ExternalLink className="w-4 h-4 mr-2" />
+                <ExternalLink className="w-3 h-3 mr-1" />
                 Open in Canvas
               </Button>
             )}
