@@ -52,7 +52,7 @@ export default function LoginPage() {
       if (user?.role === 'admin' || user?.role === 'parent') {
         window.location.href = "/admin";
       } else {
-        window.location.href = "/student-selection"; // Redirect to student selection page
+        window.location.href = "/student"; // Redirect to student selection page
       }
     },
     onError: (error) => {
