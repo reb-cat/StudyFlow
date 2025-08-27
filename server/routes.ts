@@ -311,6 +311,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Authentication check route - returns current user if authenticated
+  app.get('/api/auth/user', async (req, res) => {
+    try {
+      // For now, return null if no session/user - frontend will handle redirect
+      // In a full implementation, this would check session/JWT
+      res.status(401).json({ message: 'Not authenticated' });
+    } catch (error) {
+      console.error('Error checking auth:', error);
+      res.status(500).json({ message: 'Failed to check authentication' });
+    }
+  });
+
   // Get demo user route
   app.get('/api/user', async (req, res) => {
     try {
