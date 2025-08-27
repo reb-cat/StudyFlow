@@ -176,34 +176,62 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
       const audioBlob = await response.blob();
       console.log('Audio blob created:', audioBlob.size, 'bytes, type:', audioBlob.type);
       
+      // Validate blob before proceeding
+      if (audioBlob.size === 0) {
+        throw new Error('Received empty audio blob');
+      }
+      
+      if (!audioBlob.type || !audioBlob.type.startsWith('audio/')) {
+        console.warn('Unexpected blob type:', audioBlob.type, 'proceeding anyway...');
+      }
+      
       const audioUrl = URL.createObjectURL(audioBlob);
+      console.log('Created blob URL:', audioUrl);
+      
       const audio = new Audio();
       
-      // Set up event handlers before setting src
+      // Set up comprehensive error handling
       const cleanup = () => {
+        console.log('Cleaning up audio resources');
         setIsPlaying(false);
         setCurrentSpeech(null);
-        URL.revokeObjectURL(audioUrl);
+        // Delay URL revocation to ensure audio has finished using it
+        setTimeout(() => URL.revokeObjectURL(audioUrl), 1000);
       };
       
+      // Set preload to ensure audio loads properly
+      audio.preload = 'auto';
+      
+      audio.onloadstart = () => console.log('Audio load started');
+      audio.onloadedmetadata = () => console.log('Audio metadata loaded');
+      audio.oncanplay = () => console.log('Audio can start playing');
       audio.oncanplaythrough = () => {
         console.log('Audio can play through, starting playback...');
-        audio.play().catch(err => {
+        audio.play().then(() => {
+          console.log('Audio playback started successfully');
+        }).catch(err => {
           console.error('Audio play failed:', err);
           cleanup();
         });
       };
       
-      audio.onended = cleanup;
+      audio.onended = () => {
+        console.log('Audio playback ended');
+        cleanup();
+      };
       
       audio.onerror = (e) => {
-        console.error('Audio loading/playback error:', e);
+        console.error('Audio error event:', e);
+        console.error('Audio error code:', audio.error?.code, 'message:', audio.error?.message);
         cleanup();
       };
       
       setCurrentSpeech(audio);
-      // Set source after handlers are ready
+      
+      // Set source and start loading
+      console.log('Setting audio source...');
       audio.src = audioUrl;
+      audio.load(); // Explicitly trigger loading
       
     } catch (error) {
       console.error('TTS error:', error);
