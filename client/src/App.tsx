@@ -10,12 +10,14 @@ import StudentDashboard from "@/pages/student-dashboard";
 import AdminPanel from "@/pages/admin-panel";
 import PrintQueue from "@/pages/print-queue";
 import Register from "@/pages/register";
+import Login from "@/pages/login";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/register" component={Register} />
+      <Route path="/login" component={Login} />
       <Route path="/student" component={StudentSelection} />
       <Route path="/student/:student" component={StudentDashboard} />
       <Route path="/admin" component={AdminPanel} />

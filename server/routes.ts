@@ -275,6 +275,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/login - User login endpoint
+  app.post('/api/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required' });
+      }
+      
+      // Get user by email
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+      
+      // Check password (in production, this should use bcrypt)
+      if (user.password !== password) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+      
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.json({
+        message: 'Login successful',
+        user: userWithoutPassword
+      });
+    } catch (error) {
+      console.error('Error logging in:', error);
+      res.status(500).json({ message: 'Failed to login' });
+    }
+  });
+
   // Get demo user route
   app.get('/api/user', async (req, res) => {
     try {
