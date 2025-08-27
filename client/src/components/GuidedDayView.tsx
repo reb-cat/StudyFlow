@@ -304,11 +304,29 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
             </h2>
             
             {/* Assignment Instructions - Only for assignment blocks */}
-            {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
+            {currentBlock.type === 'assignment' && (
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mx-4">
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {currentBlock.assignment.instructions}
-                </p>
+                {(() => {
+                  const instructions = currentBlock.assignment?.instructions;
+                  const hasRealInstructions = instructions && 
+                    instructions.trim() !== '' &&
+                    instructions !== 'Assignment from Canvas' &&
+                    !instructions.toLowerCase().includes('no additional details were added');
+
+                  if (hasRealInstructions) {
+                    return (
+                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {instructions}
+                      </p>
+                    );
+                  } else {
+                    return (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 italic leading-relaxed">
+                        No additional instructions provided. Work on this assignment based on your course materials and previous lessons.
+                      </p>
+                    );
+                  }
+                })()}
               </div>
             )}
           </div>
