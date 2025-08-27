@@ -39,14 +39,21 @@ export default function LoginPage() {
       return await response.json(); // Parse JSON response
     },
     onSuccess: (response) => {
-      console.log("Login response:", response); // Debug log
+      console.log("=== FRONTEND LOGIN SUCCESS ===");
+      console.log("Full login response:", response);
       const user = response?.user;
       const token = response?.token;
+      
+      console.log("User:", user);
+      console.log("Token received:", token ? `${token.substring(0, 50)}...` : 'NONE');
       
       // Store JWT token in localStorage
       if (token) {
         localStorage.setItem('authToken', token);
         console.log('JWT token stored in localStorage');
+        console.log('Verifying storage - token in localStorage:', localStorage.getItem('authToken') ? 'EXISTS' : 'MISSING');
+      } else {
+        console.error('NO TOKEN RECEIVED IN LOGIN RESPONSE!');
       }
       
       toast({
