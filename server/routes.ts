@@ -462,7 +462,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/login - JWT Token Authentication
   app.post('/api/login', async (req, res) => {
-    
     try {
       const { email, password } = req.body;
       
@@ -500,7 +499,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         token: token
       });
       
-      console.log('=== JWT LOGIN SUCCESS ===');
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ message: 'Failed to login' });
