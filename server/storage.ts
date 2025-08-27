@@ -19,6 +19,7 @@ export interface IStorage {
   
   // Assignment operations
   getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]>;
+  getAllAssignments(): Promise<Assignment[]>; // For print queue - gets all assignments across all users
   getAssignment(id: string): Promise<Assignment | undefined>;
   createAssignment(assignment: InsertAssignment & { userId: string }): Promise<Assignment>;
   updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined>;
@@ -122,6 +123,17 @@ export class DatabaseStorage implements IStorage {
       return assignmentList;
     } catch (error) {
       console.error('Error getting assignments:', error);
+      return [];
+    }
+  }
+
+  async getAllAssignments(): Promise<Assignment[]> {
+    try {
+      // Get ALL assignments across all users for print queue
+      const result = await db.select().from(assignments);
+      return result || [];
+    } catch (error) {
+      console.error('Error getting all assignments:', error);
       return [];
     }
   }

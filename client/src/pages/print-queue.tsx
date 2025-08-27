@@ -179,7 +179,7 @@ export default function PrintQueue() {
               All Set! 🎉
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              No printing needed for {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}. 
+              No printing needed for {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}. 
               <br />The kids can focus on learning without any prep work!
             </p>
           </Card>

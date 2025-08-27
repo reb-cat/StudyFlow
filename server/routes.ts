@@ -616,22 +616,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`📋 Fetching print queue for ${selectedDateStr}`);
       
-      // Get assignments due on selected date (fallback to due_date if no scheduled_date)
-      const allAssignments = await db.select().from(assignments).where(
-        or(
-          eq(assignments.scheduledDate, selectedDateStr),
-          and(
-            sql`scheduled_date IS NULL`,
-            sql`DATE(due_date) = ${selectedDateStr}`
-          )
-        )
-      );
+      // Get ALL assignments (including completed ones for print queue)
+      const allAssignments = await storage.getAllAssignments();
       
       const { detectPrintNeeds, estimatePageCount } = await import('./lib/printQueue.js');
       
+      // Filter assignments by date and process for print detection
+      const filteredAssignments = allAssignments.filter(assignment => {
+        if (assignment.scheduledDate) {
+          return assignment.scheduledDate === selectedDateStr;
+        }
+        // Fallback to due date if no scheduled date
+        if (assignment.dueDate) {
+          const dueDate = new Date(assignment.dueDate);
+          const dueDateStr = dueDate.toISOString().split('T')[0];
+          return dueDateStr === selectedDateStr;
+        }
+        return false;
+      });
+
+      console.log(`📋 Found ${filteredAssignments.length} assignments for ${selectedDateStr}`);
+
       // Process assignments and detect print needs
       const printQueue: any[] = [];
-      for (const assignment of allAssignments) {
+      for (const assignment of filteredAssignments) {
         const printDetection = detectPrintNeeds({
           title: assignment.title,
           instructions: assignment.instructions,
