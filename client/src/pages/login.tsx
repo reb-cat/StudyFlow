@@ -38,14 +38,16 @@ export default function LoginPage() {
       return await apiRequest('POST', '/api/login', data);
     },
     onSuccess: (response) => {
-      const user = response.user;
+      console.log("Login response:", response); // Debug log
+      const user = response?.user;
+      
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
       
-      // Redirect based on user role
-      if (user.role === 'admin' || user.role === 'parent') {
+      // Redirect based on user role with safe property access
+      if (user?.role === 'admin' || user?.role === 'parent') {
         navigate("/admin");
       } else {
         navigate("/student"); // Default for students
