@@ -52,10 +52,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let userId = "demo-user-1"; // fallback
       
       if (studentName && typeof studentName === 'string') {
-        // Map student names to user IDs
+        // Map student names to standardized user IDs
         const studentUserMap: Record<string, string> = {
-          'abigail': 'abigail-user',
-          'khalil': 'khalil-user'
+          'abigail': 'Abigail',
+          'khalil': 'Khalil'
         };
         
         const normalizedStudentName = studentName.toLowerCase();
