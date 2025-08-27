@@ -35,7 +35,8 @@ export default function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
-      return await apiRequest('POST', '/api/login', data);
+      const response = await apiRequest('POST', '/api/login', data);
+      return await response.json(); // Parse JSON response
     },
     onSuccess: (response) => {
       console.log("Login response:", response); // Debug log
@@ -46,11 +47,12 @@ export default function LoginPage() {
         description: "You have successfully signed in.",
       });
       
+      // Force a page refresh to ensure session is recognized
       // Redirect based on user role with safe property access
       if (user?.role === 'admin' || user?.role === 'parent') {
-        navigate("/admin");
+        window.location.href = "/admin";
       } else {
-        navigate("/student"); // Default for students
+        window.location.href = "/student-selection"; // Redirect to student selection page
       }
     },
     onError: (error) => {

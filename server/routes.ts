@@ -23,6 +23,9 @@ import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Trust proxy for secure cookies in production
+  app.set('trust proxy', 1);
+  
   // Session configuration
   const isProduction = process.env.NODE_ENV === 'production';
   app.use(session({
@@ -505,13 +508,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       (req.session as any).userId = user.id;
       (req.session as any).user = user;
       
-      // Return user without password
-      const { password: _, ...userWithoutPassword } = user;
-      
-      console.log(`[Login-${loginId}] Login completed successfully`);
-      res.json({
-        message: 'Login successful',
-        user: userWithoutPassword
+      // Save session to ensure it persists
+      req.session.save((err) => {
+        if (err) {
+          console.error(`[Login-${loginId}] Session save error:`, err);
+          return res.status(500).json({ message: 'Failed to save session' });
+        }
+        
+        console.log(`[Login-${loginId}] Session saved successfully for userId:`, user.id);
+        
+        // Return user without password
+        const { password: _, ...userWithoutPassword } = user;
+        
+        console.log(`[Login-${loginId}] Login completed successfully`);
+        res.json({
+          message: 'Login successful',
+          user: userWithoutPassword
+        });
       });
     } catch (error) {
       console.error(`[Login-${loginId}] Error during login:`, error);
@@ -522,16 +535,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication check route - returns current user if authenticated
   app.get('/api/auth/user', async (req, res) => {
     try {
+      console.log('[Auth Check] Session ID:', req.sessionID);
+      console.log('[Auth Check] Session data:', req.session);
+      
       const userId = (req.session as any)?.userId;
       if (!userId) {
+        console.log('[Auth Check] No userId in session');
         return res.status(401).json({ message: 'Not authenticated' });
       }
+      
+      console.log('[Auth Check] Found userId in session:', userId);
       
       // Get current user from database
       const user = await storage.getUser(userId);
       if (!user) {
+        console.log('[Auth Check] User not found in database:', userId);
         return res.status(401).json({ message: 'Not authenticated' });
       }
+      
+      console.log('[Auth Check] User authenticated:', user.email);
       
       // Return user without password
       const { password: _, ...userWithoutPassword } = user;
