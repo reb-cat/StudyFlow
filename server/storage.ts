@@ -216,17 +216,49 @@ export class DatabaseStorage implements IStorage {
   async getScheduledAssignments(userId: string, date?: string, scheduleBlocks?: ScheduleTemplate[]): Promise<Assignment[]> {
     try {
       // Get intelligently filtered assignments
-      const assignments = await this.getAssignments(userId, date, false);
+      let assignments = await this.getAssignments(userId, date, false);
       
       if (!scheduleBlocks || scheduleBlocks.length === 0) {
         console.log(`📅 No schedule blocks provided, returning ${assignments.length} assignments without block distribution`);
         return assignments.slice(0, 6); // Limit to 6 assignments max
       }
 
-      // SUBJECT DIVERSITY ALGORITHM - Distribute assignments across blocks with no consecutive same subjects
-      console.log(`🧠 SUBJECT DIVERSITY ALGORITHM: Distributing ${assignments.length} assignments across ${scheduleBlocks.length} blocks`);
+      // ENHANCED INTELLIGENT SCHEDULING with A/B/C Priority Classification
+      console.log(`🎯 ENHANCED INTELLIGENT SCHEDULING: Processing ${assignments.length} assignments`);
       
-      // Group assignments by subject/course for diversity logic
+      // Step 1: Classify assignments with A/B/C priority based on due dates
+      assignments = assignments.map(assignment => ({
+        ...assignment,
+        priority: this.classifyAssignmentPriority(assignment),
+        difficulty: this.detectAssignmentDifficulty(assignment),
+        estimatedMinutes: this.estimateAssignmentTime(assignment)
+      }));
+      
+      // Step 2: Sort by priority (A first), then difficulty (heavy first), then due date
+      assignments.sort((a: any, b: any) => {
+        // Priority: A > B > C
+        const priorityOrder = { 'A': 0, 'B': 1, 'C': 2 };
+        const priorityDiff = priorityOrder[a.priority as keyof typeof priorityOrder] - priorityOrder[b.priority as keyof typeof priorityOrder];
+        if (priorityDiff !== 0) return priorityDiff;
+        
+        // Within same priority: Heavy tasks first (mental effort distribution)
+        if (a.difficulty === 'hard' && b.difficulty !== 'hard') return -1;
+        if (a.difficulty !== 'hard' && b.difficulty === 'hard') return 1;
+        
+        // Then by due date
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        }
+        return 0;
+      });
+      
+      console.log(`📊 Priority distribution: A=${assignments.filter(a => a.priority === 'A').length}, B=${assignments.filter(a => a.priority === 'B').length}, C=${assignments.filter(a => a.priority === 'C').length}`);
+      
+      // Step 3: Detect student-specific needs
+      const studentName = this.getStudentNameFromUserId(userId);
+      const isKhalil = studentName.toLowerCase() === 'khalil';
+      
+      // Step 4: Group assignments by subject for diversity logic
       const assignmentsBySubject = new Map<string, any[]>();
       for (const assignment of assignments) {
         const subject = this.getAssignmentSubject(assignment);
@@ -236,53 +268,74 @@ export class DatabaseStorage implements IStorage {
         assignmentsBySubject.get(subject)?.push(assignment);
       }
 
-      console.log(`📚 Subject groups identified:`, Array.from(assignmentsBySubject.keys()));
+      console.log(`📚 Subject groups:`, Array.from(assignmentsBySubject.keys()));
 
-      // Get assignment blocks only (exclude Bible, Movement, Lunch)
-      const assignmentBlocks = scheduleBlocks.filter(block => 
+      // Step 5: Get assignment blocks and apply student-specific preferences
+      let assignmentBlocks = scheduleBlocks.filter(block => 
         block.blockType === 'Assignment' && block.blockNumber
       ).sort((a, b) => (a.blockNumber || 0) - (b.blockNumber || 0));
+      
+      // Khalil preference: Use fewer blocks for shorter focused sessions
+      if (isKhalil && assignmentBlocks.length > 4) {
+        assignmentBlocks = assignmentBlocks.slice(0, 4); // Limit Khalil to 4 blocks max
+        console.log(`👦 Khalil preference: Limited to ${assignmentBlocks.length} blocks for shorter focus sessions`);
+      }
 
       console.log(`🏗️ Available assignment blocks: ${assignmentBlocks.length}`);
 
+      // Step 6: SMART BLOCK FILLING with Mental Effort Distribution
       const scheduledAssignments: any[] = [];
       const usedSubjects: string[] = [];
 
-      // Distribute assignments with subject diversity
       for (let i = 0; i < assignmentBlocks.length && scheduledAssignments.length < assignments.length; i++) {
         const block = assignmentBlocks[i];
+        const isEarlyBlock = i < Math.ceil(assignmentBlocks.length / 2); // First half = early blocks
         let assignmentAssigned = false;
 
-        // Try to find an assignment from a different subject than the previous one
-        for (const [subject, subjectAssignments] of assignmentsBySubject) {
-          if (subjectAssignments.length === 0) continue;
+        // Early blocks: Prefer heavy/difficult assignments (mental effort distribution)
+        // Later blocks: Prefer lighter assignments
+        let candidateAssignments = [];
+        
+        if (isEarlyBlock) {
+          // Early blocks: Prioritize A-priority and heavy assignments
+          candidateAssignments = assignments.filter(a => 
+            (a.priority === 'A' || a.difficulty === 'hard') && 
+            !scheduledAssignments.includes(a)
+          );
+        }
+        
+        if (candidateAssignments.length === 0) {
+          // Fallback: Any unscheduled assignment
+          candidateAssignments = assignments.filter(a => !scheduledAssignments.includes(a));
+        }
 
-          // Check if this subject would create consecutive same subjects
+        // Apply subject diversity within candidates
+        for (const assignment of candidateAssignments) {
+          const subject = this.getAssignmentSubject(assignment);
           const lastSubject = usedSubjects[usedSubjects.length - 1];
           const isConsecutiveSameSubject = lastSubject === subject;
 
-          // If we can avoid consecutive same subjects, do so
-          if (!isConsecutiveSameSubject || assignmentsBySubject.size === 1) {
-            const assignment = subjectAssignments.shift(); // Take first assignment from this subject
-            if (assignment) {
-              scheduledAssignments.push(assignment);
-              usedSubjects.push(subject);
-              assignmentAssigned = true;
-              console.log(`📍 Block ${block.blockNumber}: Assigned "${assignment.title}" (${subject})`);
-              break;
-            }
+          // Avoid consecutive same subjects unless no other option
+          if (!isConsecutiveSameSubject || candidateAssignments.length === 1) {
+            scheduledAssignments.push(assignment);
+            usedSubjects.push(subject);
+            assignmentAssigned = true;
+            
+            const blockLabel = isEarlyBlock ? '🌅 Early' : '🌆 Later';
+            console.log(`📍 Block ${block.blockNumber} ${blockLabel}: "${assignment.title}" [${assignment.priority}-priority, ${assignment.difficulty}, ~${assignment.estimatedMinutes}min]`);
+            break;
           }
         }
 
-        // If no assignment was assigned due to subject diversity constraints, 
-        // leave the block empty rather than violate diversity
+        // Strategic break: Leave block empty to maintain quality vs quantity
         if (!assignmentAssigned) {
-          console.log(`⚪ Block ${block.blockNumber}: Left empty to maintain subject diversity`);
+          console.log(`⚪ Block ${block.blockNumber}: Strategic break - maintaining focus quality`);
         }
       }
 
-      console.log(`🎯 SUBJECT DIVERSITY COMPLETE: ${scheduledAssignments.length} assignments distributed across blocks`);
+      console.log(`🎯 ENHANCED SCHEDULING COMPLETE: ${scheduledAssignments.length} intelligently distributed assignments`);
       console.log(`📋 Subject sequence: ${usedSubjects.join(' → ')}`);
+      console.log(`🧠 Mental effort distribution: Heavy tasks in early blocks, lighter tasks later`);
 
       return scheduledAssignments;
     } catch (error) {
@@ -327,6 +380,93 @@ export class DatabaseStorage implements IStorage {
     
     // Default grouping by course name or generic
     return assignment.courseName || 'General';
+  }
+  
+  private classifyAssignmentPriority(assignment: any): 'A' | 'B' | 'C' {
+    const now = new Date();
+    const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
+    
+    if (!dueDate) return 'C'; // No due date = flexible
+    
+    const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // A Priority: Overdue or due today/tomorrow (Critical)
+    if (daysUntilDue <= 1) return 'A';
+    
+    // B Priority: Due this week (Important)
+    if (daysUntilDue <= 7) return 'B';
+    
+    // C Priority: Due later (Flexible)
+    return 'C';
+  }
+  
+  private detectAssignmentDifficulty(assignment: any): 'easy' | 'medium' | 'hard' {
+    const title = assignment.title.toLowerCase();
+    const subject = this.getAssignmentSubject(assignment).toLowerCase();
+    const instructions = (assignment.instructions || '').toLowerCase();
+    
+    // Hard: Math/Science subjects are cognitively demanding
+    if (subject.includes('math') || subject.includes('science') || subject.includes('geometry')) {
+      return 'hard';
+    }
+    
+    // Hard: Complex assignments based on keywords
+    if (title.includes('essay') || title.includes('research') || title.includes('analysis') || 
+        title.includes('project') || instructions.length > 500) {
+      return 'hard';
+    }
+    
+    // Easy: Short tasks like recipes, reading, simple worksheets
+    if (title.includes('recipe') || title.includes('read') || title.includes('vocabulary') || 
+        (instructions.length > 0 && instructions.length < 100)) {
+      return 'easy';
+    }
+    
+    // Default to medium
+    return 'medium';
+  }
+  
+  private estimateAssignmentTime(assignment: any): number {
+    // Use existing estimate if available
+    if (assignment.actualEstimatedMinutes && assignment.actualEstimatedMinutes > 0) {
+      return assignment.actualEstimatedMinutes;
+    }
+    
+    const title = assignment.title.toLowerCase();
+    const subject = this.getAssignmentSubject(assignment).toLowerCase();
+    const difficulty = this.detectAssignmentDifficulty(assignment);
+    
+    // Recipe assignments: 5-7 minutes (can share blocks)
+    if (title.includes('recipe')) return 7;
+    
+    // Math/Science: Longer focused work
+    if (subject.includes('math') || subject.includes('science')) {
+      return difficulty === 'hard' ? 45 : 30;
+    }
+    
+    // Reading assignments
+    if (title.includes('read')) return 15;
+    
+    // Writing assignments
+    if (title.includes('writing') || title.includes('essay')) {
+      return difficulty === 'hard' ? 40 : 25;
+    }
+    
+    // Worksheets
+    if (title.includes('worksheet')) return 20;
+    
+    // Default estimates by difficulty
+    switch (difficulty) {
+      case 'easy': return 15;
+      case 'hard': return 40;
+      default: return 25;
+    }
+  }
+  
+  private getStudentNameFromUserId(userId: string): string {
+    if (userId === 'abigail-user') return 'Abigail';
+    if (userId === 'khalil-user') return 'Khalil';
+    return 'Unknown';
   }
 
   async getAllAssignments(): Promise<Assignment[]> {
