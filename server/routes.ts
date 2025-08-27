@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema } from "@shared/schema";
+import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, registerUserSchema } from "@shared/schema";
 import { getElevenLabsService } from "./lib/elevenlabs";
 import { 
   getBibleSubjectForSchedule, 
@@ -225,6 +225,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error setting up demo:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to setup demo data', error: errorMessage });
+    }
+  });
+
+  // POST /api/register - Create new user account
+  app.post('/api/register', async (req, res) => {
+    try {
+      const { firstName, lastName, email, password } = registerUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: 'An account with this email already exists' });
+      }
+      
+      // Create username from email (before @ symbol)
+      const username = email.split('@')[0];
+      
+      // Create user (password hashing would be done here in production)
+      const newUser = await storage.createUser({
+        username,
+        email,
+        password, // In production, this should be hashed
+        firstName,
+        lastName,
+      });
+      
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = newUser;
+      
+      res.status(201).json({
+        message: 'Account created successfully',
+        user: userWithoutPassword
+      });
+    } catch (error) {
+      console.error('Error registering user:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Invalid registration data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to create account' });
     }
   });
 
