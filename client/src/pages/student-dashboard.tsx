@@ -212,21 +212,138 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 p-4 sm:p-6">
       <div className="max-w-5xl mx-auto">
         
-        {/* Minimal Header - Just Theme Toggle */}
-        <div className="flex justify-end mb-4">
-          <Button 
-            variant="ghost" 
-            data-testid="button-theme"
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="rounded-full hover:bg-muted/60 transition-all h-10 w-10 p-0"
-            title="Toggle theme"
-          >
-            <Moon className="h-5 w-5" />
-          </Button>
-        </div>
+        {/* Header - Full navigation for Overview, minimal for Guided */}
+        {isGuidedMode ? (
+          // Minimal header for Guided mode - just theme toggle
+          <div className="flex justify-end mb-4">
+            <Button 
+              variant="ghost" 
+              data-testid="button-theme"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="rounded-full hover:bg-muted/60 transition-all h-10 w-10 p-0"
+              title="Toggle theme"
+            >
+              <Moon className="h-5 w-5" />
+            </Button>
+          </div>
+        ) : (
+          // Full header for Overview mode
+          <>
+            <div className="flex items-center justify-between mb-6 px-4">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight" data-testid="student-name">
+                {studentName}
+              </h1>
+              <div className="flex items-center gap-3">
+                <Link href="/student">
+                  <Button 
+                    variant="ghost" 
+                    data-testid="button-student-selection"
+                    className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
+                    title="Back to Student Selection"
+                  >
+                    <ArrowLeft className="h-6 w-6" />
+                  </Button>
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  data-testid="button-home"
+                  onClick={handleHomeClick}
+                  className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
+                  title="Today's Overview"
+                >
+                  <Home className="h-6 w-6" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  data-testid="button-settings"
+                  onClick={handleSettingsClick}
+                  className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
+                >
+                  <Settings className="h-6 w-6" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  data-testid="button-theme"
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
+                >
+                  <Moon className="h-6 w-6" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Second row - Date/Co-op + Mode toggles */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 px-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Calendar className="h-5 w-5" />
+                  <span data-testid="date-display" className="text-base font-semibold">{dateDisplay}</span>
+                </div>
+                {isThursday && (
+                  <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800 rounded-full px-4 py-1.5 text-sm font-medium">
+                    Co-op Day
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+                {/* Date Navigation for testing (will be removed later) */}
+                <div className="flex items-center gap-0 bg-muted/50 rounded-xl p-1.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={goToPreviousDay}
+                    className="h-10 w-10 p-0 rounded-lg hover:bg-background/80"
+                    data-testid="button-previous-day"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <div className="px-4 text-base font-semibold min-w-[90px] text-center">
+                    {isToday ? 'Today' : dayName}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={goToNextDay}
+                    className="h-10 w-10 p-0 rounded-lg hover:bg-background/80"
+                    data-testid="button-next-day"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {/* Overview/Guided Mode Toggle */}
+                <div className="flex items-center bg-muted/50 rounded-xl p-1.5">
+                  <Button
+                    variant={!isGuidedMode ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setIsGuidedMode(false)}
+                    className="text-base flex items-center gap-2 rounded-lg px-5 py-2.5 transition-all font-semibold"
+                    data-testid="button-overview-mode"
+                  >
+                    <Grid3X3 className="h-5 w-5" />
+                    <span className="hidden sm:inline">Overview</span>
+                    <span className="sm:hidden">Overview</span>
+                  </Button>
+                  <Button
+                    variant={isGuidedMode ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setIsGuidedMode(true)}
+                    className="text-base flex items-center gap-2 rounded-lg px-5 py-2.5 transition-all font-semibold"
+                    data-testid="button-guided-mode"
+                  >
+                    <Play className="h-5 w-5" />
+                    <span className="hidden sm:inline">Guided</span>
+                    <span className="sm:hidden">Guided</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Content */}
         {isGuidedMode ? (
