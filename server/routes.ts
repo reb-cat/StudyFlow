@@ -239,7 +239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: z.string().min(1, "Last name is required"),
         email: z.string().email("Please enter a valid email address"),
         password: z.string().min(8, "Password must be at least 8 characters"),
-        role: z.enum(["student", "parent", "admin"]).default("student"),
+        role: z.enum(["student", "parent"]).default("student"),
       });
       const { firstName, lastName, email, password, role } = serverRegisterSchema.parse(req.body);
       
