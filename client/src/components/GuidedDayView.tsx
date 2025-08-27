@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, CheckCircle, Clock, HelpCircle, AlertCircle, Calendar, User, ArrowLeft, ExternalLink } from 'lucide-react';
+import { Play, CheckCircle, Clock, HelpCircle, AlertCircle, Calendar, User, ArrowLeft, ExternalLink, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Assignment } from '@shared/schema';
 import { FixedBlock } from './FixedBlock';
@@ -36,6 +36,11 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   
   // Emergency exit state
   const [exitClickCount, setExitClickCount] = useState(0);
+  
+  // TTS state (only for Khalil)
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentSpeech, setCurrentSpeech] = useState<SpeechSynthesisUtterance | null>(null);
+  
   
   // Build complete schedule using real schedule template data (same as Overview mode)
   const allScheduleBlocks = scheduleTemplate.map((block) => ({
@@ -134,6 +139,54 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   const currentBlock = scheduleBlocks[currentIndex];
   const totalBlocks = scheduleBlocks.length;
   const progressPercentage = Math.round((completedBlocks.size / totalBlocks) * 100);
+  
+  // TTS Functions (Khalil only)
+  const speakText = (text: string) => {
+    if (studentName !== 'Khalil') return;
+    
+    // Stop any current speech
+    if (currentSpeech) {
+      speechSynthesis.cancel();
+    }
+    
+    // Create new speech
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 0.8;
+    
+    utterance.onstart = () => setIsPlaying(true);
+    utterance.onend = () => {
+      setIsPlaying(false);
+      setCurrentSpeech(null);
+    };
+    utterance.onerror = () => {
+      setIsPlaying(false);
+      setCurrentSpeech(null);
+    };
+    
+    setCurrentSpeech(utterance);
+    speechSynthesis.speak(utterance);
+  };
+  
+  const stopSpeech = () => {
+    if (currentSpeech) {
+      speechSynthesis.cancel();
+      setIsPlaying(false);
+      setCurrentSpeech(null);
+    }
+  };
+  
+  const toggleSpeech = () => {
+    if (isPlaying) {
+      stopSpeech();
+    } else {
+      if (currentBlock?.type === 'assignment' && currentBlock.assignment) {
+        const textToSpeak = `${currentBlock.assignment.name}. ${currentBlock.assignment.instructions || 'No additional instructions provided.'}`;
+        speakText(textToSpeak);
+      }
+    }
+  };
 
   // Format date for display
   const dateObj = new Date(selectedDate + 'T12:00:00.000Z');
@@ -298,7 +351,23 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
         {/* Pure Focus Card - No Navigation */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 space-y-8">
           {/* Current Task - Minimal */}
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-2 relative">
+            {/* TTS Speaker Icon - Only for Khalil on assignment blocks */}
+            {studentName === 'Khalil' && currentBlock.type === 'assignment' && (
+              <button
+                onClick={toggleSpeech}
+                className="absolute top-0 right-0 p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                title={isPlaying ? "Stop reading" : "Read assignment aloud"}
+                data-testid="button-tts-toggle"
+              >
+                {isPlaying ? (
+                  <VolumeX className="w-5 h-5" />
+                ) : (
+                  <Volume2 className="w-5 h-5" />
+                )}
+              </button>
+            )}
+            
             <h2 className="text-xl font-bold text-gray-900 dark:text-white !text-xl">
               {currentBlock.title}
             </h2>
