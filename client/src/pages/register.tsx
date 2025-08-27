@@ -13,26 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, UserPlus, ArrowLeft } from "lucide-react";
 
-// Enhanced registration form schema with comprehensive validation
+// Registration form schema
 const registerSchema = z.object({
-  firstName: z.string()
-    .min(1, "First name is required")
-    .max(50, "First name must be less than 50 characters")
-    .regex(/^[a-zA-Z\s-']+$/, "First name can only contain letters, spaces, hyphens and apostrophes"),
-  lastName: z.string()
-    .min(1, "Last name is required")
-    .max(50, "Last name must be less than 50 characters")
-    .regex(/^[a-zA-Z\s-']+$/, "Last name can only contain letters, spaces, hyphens and apostrophes"),
-  email: z.string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address")
-    .max(100, "Email must be less than 100 characters")
-    .toLowerCase()
-    .trim(),
-  password: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .max(100, "Password must be less than 100 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
+  role: z.enum(["student", "parent", "admin"]).default("student"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -54,110 +42,32 @@ export default function RegisterPage() {
       email: "",
       password: "",
       confirmPassword: "",
+      role: "student",
     },
   });
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterForm) => {
-      // Log validation data for debugging
-      console.log("[Registration] Submitting form data:", {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        passwordLength: data.password.length,
-        timestamp: new Date().toISOString()
-      });
-
-      // Validate all fields before submission
-      const validationErrors: string[] = [];
-      
-      if (!data.firstName?.trim()) validationErrors.push("First name is empty");
-      if (!data.lastName?.trim()) validationErrors.push("Last name is empty");
-      if (!data.email?.trim()) validationErrors.push("Email is empty");
-      if (!data.password) validationErrors.push("Password is empty");
-      
-      if (validationErrors.length > 0) {
-        const errorMsg = `Client validation failed: ${validationErrors.join(", ")}`;
-        console.error("[Registration]", errorMsg);
-        throw new Error(errorMsg);
-      }
-
       const { confirmPassword, ...userData } = data;
-      
-      // Clean and normalize data
-      const cleanedData = {
-        firstName: userData.firstName.trim(),
-        lastName: userData.lastName.trim(),
-        email: userData.email.toLowerCase().trim(),
-        password: userData.password
-      };
-      
-      console.log("[Registration] Sending cleaned data to server");
-      
-      try {
-        const response = await apiRequest('POST', '/api/register', cleanedData);
-        console.log("[Registration] Success response:", response);
-        return response;
-      } catch (error: any) {
-        console.error("[Registration] Server error:", {
-          message: error.message,
-          status: error.status,
-          response: error.response,
-          timestamp: new Date().toISOString()
-        });
-        throw error;
-      }
+      return await apiRequest('POST', '/api/register', userData);
     },
-    onSuccess: (response) => {
-      console.log("[Registration] Account created successfully:", response);
+    onSuccess: () => {
       toast({
         title: "Registration successful!",
         description: "Your account has been created. Please sign in.",
       });
       navigate("/login");
     },
-    onError: (error: any) => {
-      console.error("[Registration] Final error handler:", error);
-      
-      // Parse different error types
-      let errorMessage = "Something went wrong. Please try again.";
-      
-      if (error.message?.includes("email already exists") || error.message?.includes("account with this email")) {
-        errorMessage = "An account with this email already exists. Please use a different email or sign in.";
-      } else if (error.message?.includes("validation")) {
-        errorMessage = error.message;
-      } else if (error.message?.includes("network") || error.message?.includes("fetch")) {
-        errorMessage = "Network error. Please check your connection and try again.";
-      } else if (error.message?.includes("400")) {
-        errorMessage = "Invalid registration data. Please check all fields and try again.";
-      } else if (error.message?.includes("500")) {
-        errorMessage = "Server error. Please try again later.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
+    onError: (error) => {
       toast({
         title: "Registration failed",
-        description: errorMessage,
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = (data: RegisterForm) => {
-    console.log("[Registration] Form submitted with data:", {
-      fields: Object.keys(data),
-      hasAllFields: !!(data.firstName && data.lastName && data.email && data.password && data.confirmPassword),
-      formErrors: form.formState.errors,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Additional client-side checks
-    if (form.formState.errors && Object.keys(form.formState.errors).length > 0) {
-      console.error("[Registration] Form has validation errors:", form.formState.errors);
-      return;
-    }
-    
     registerMutation.mutate(data);
   };
 
@@ -338,6 +248,39 @@ export default function RegisterPage() {
                 {form.formState.errors.confirmPassword && (
                   <p className="text-sm text-red-500" data-testid="error-confirm-password">
                     {form.formState.errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Role Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="role" style={{ color: 'var(--text-primary)' }}>
+                  Account Type *
+                </Label>
+                <Select 
+                  value={form.watch("role")} 
+                  onValueChange={(value) => form.setValue("role", value as "student" | "parent" | "admin")}
+                  data-testid="select-role"
+                >
+                  <SelectTrigger style={{
+                    background: 'var(--surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)'
+                  }}>
+                    <SelectValue placeholder="Select account type" />
+                  </SelectTrigger>
+                  <SelectContent style={{
+                    background: 'var(--surface-elevated)',
+                    borderColor: 'var(--border-subtle)'
+                  }}>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="parent">Parent/Guardian</SelectItem>
+                    <SelectItem value="admin">Administrator</SelectItem>
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.role && (
+                  <p className="text-sm text-red-500" data-testid="error-role">
+                    {form.formState.errors.role.message}
                   </p>
                 )}
               </div>

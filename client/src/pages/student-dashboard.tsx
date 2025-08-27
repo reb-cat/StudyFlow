@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +24,7 @@ import {
   UtensilsCrossed,
   ArrowLeft
 } from 'lucide-react';
-import { Link, useParams, useLocation } from 'wouter';
+import { Link, useParams } from 'wouter';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
 import { FixedBlock } from '@/components/FixedBlock';
@@ -33,9 +32,8 @@ import type { Assignment } from '@shared/schema';
 
 export default function StudentDashboard() {
   const params = useParams<{ student: string }>();
-  const [, navigate] = useLocation();
-  
-  // ALL HOOKS MUST BE CALLED FIRST - before any conditional logic
+  // Capitalize student name for consistency, default to Abigail if no student provided
+  const studentName = params.student ? params.student.charAt(0).toUpperCase() + params.student.slice(1) : "Abigail";
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     // Always start with today's date 
@@ -45,18 +43,7 @@ export default function StudentDashboard() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const queryClient = useQueryClient();
 
-  // Check authentication
-  const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: ['/api/auth/user'],
-    retry: false,
-  });
-
-  // SECURITY: Only allow access to specific students and only if user is admin
-  const allowedStudents = ['abigail', 'khalil'];
-  const studentParam = params.student?.toLowerCase();
-  const studentName = studentParam ? studentParam.charAt(0).toUpperCase() + studentParam.slice(1) : '';
-
-  // Theme toggle functionality - MOVED UP BEFORE EARLY RETURNS
+  // Theme toggle functionality
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -65,7 +52,18 @@ export default function StudentDashboard() {
     }
   }, [isDarkMode]);
 
-  // Fetch assignments for today (get assignments due on or before this date) - MOVED UP
+  const handleHomeClick = () => {
+    // Reset to today and overview mode
+    setSelectedDate(new Date().toISOString().split('T')[0]);
+    setIsGuidedMode(false);
+  };
+
+  const handleSettingsClick = () => {
+    // For now, just show an alert - can be expanded later
+    alert('Settings panel coming soon!');
+  };
+
+  // Fetch assignments for today (get assignments due on or before this date)
   const { data: assignments = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/assignments', selectedDate, studentName],
     queryFn: async () => {
@@ -78,67 +76,18 @@ export default function StudentDashboard() {
         date: targetDate.toISOString().split('T')[0],
         studentName: studentName
       });
-      const response = await apiRequest('GET', `/api/assignments?${params}`);
+      const response = await fetch(`/api/assignments?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch assignments');
       return response.json();
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!user && !!studentName, // Only run query when user is authenticated and student is valid
   });
 
-  // Fetch schedule template for the student and date - MOVED UP
+  // Fetch schedule template for the student and date
   const { data: scheduleTemplate = [] } = useQuery<any[]>({
     queryKey: ['/api/schedule', studentName, selectedDate],
     staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!user && !!studentName, // Only run query when user is authenticated and student is valid
   });
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!userLoading && !user) {
-      navigate('/login');
-      return;
-    }
-  }, [user, userLoading, navigate]);
-
-  // Show loading while checking auth
-  if (userLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render if not authenticated
-  if (!user) {
-    return null;
-  }
-
-  if (!studentParam || !allowedStudents.includes(studentParam)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="mb-4">Student not found or access not allowed.</p>
-          <Link href="/student" className="text-primary underline">← Back to Student Selection</Link>
-        </div>
-      </div>
-    );
-  }
-
-  const handleHomeClick = () => {
-    // Reset to today and overview mode
-    setSelectedDate(new Date().toISOString().split('T')[0]);
-    setIsGuidedMode(false);
-  };
-
-  const handleSettingsClick = () => {
-    // For now, just show an alert - can be expanded later
-    alert('Settings panel coming soon!');
-  };
 
   const handleAssignmentUpdate = () => {
     refetch();

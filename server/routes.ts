@@ -1,11 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, registerUserSchema } from "@shared/schema";
 import { z } from "zod";
-import { requireAuth } from "./authMiddleware";
 import { getElevenLabsService } from "./lib/elevenlabs";
 import { 
   getBibleSubjectForSchedule, 
@@ -23,14 +20,11 @@ const emailConfig = {
 import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
-  // JWT token secret
-  const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret';
 
   // Assignment API routes
   
   // PATCH /api/assignments/:id - Update assignment status
-  app.patch('/api/assignments/:id', requireAuth, async (req, res) => {
+  app.patch('/api/assignments/:id', async (req, res) => {
     try {
       const { id } = req.params;
       const { completionStatus } = req.body;
@@ -52,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/stats - Get overall assignment statistics
-  app.get('/api/stats', requireAuth, async (req, res) => {
+  app.get('/api/stats', async (req, res) => {
     try {
       const stats = await storage.getAssignmentStats();
       // Prevent caching to ensure fresh data
@@ -65,7 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/assignments - Get assignments for a user/date
-  app.get('/api/assignments', requireAuth, async (req, res) => {
+  app.get('/api/assignments', async (req, res) => {
     try {
       const { date, studentName, includeCompleted } = req.query;
       
@@ -97,7 +91,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // POST /api/assignments - Create new assignment
-  app.post('/api/assignments', requireAuth, async (req, res) => {
+  app.post('/api/assignments', async (req, res) => {
     try {
       const { studentName, ...assignmentData } = req.body;
       const validatedAssignmentData = insertAssignmentSchema.parse(assignmentData);
@@ -121,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // PATCH /api/assignments - Update assignment
-  app.patch('/api/assignments', requireAuth, async (req, res) => {
+  app.patch('/api/assignments', async (req, res) => {
     try {
       const { id, ...updateData } = req.body;
       
@@ -144,7 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // DELETE /api/assignments/:id - Delete assignment
-  app.delete('/api/assignments/:id', requireAuth, async (req, res) => {
+  app.delete('/api/assignments/:id', async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteAssignment(id);
@@ -160,8 +154,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Database test and setup endpoint - ADMIN ONLY
-  app.post('/api/setup-demo', requireAuth, async (req, res) => {
+  // Database test and setup endpoint
+  app.post('/api/setup-demo', async (req, res) => {
     try {
       // Create demo user
       const demoUser = await storage.createUser({
@@ -235,232 +229,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/register - Create new user account with comprehensive error handling
+  // POST /api/register - Create new user account
   app.post('/api/register', async (req, res) => {
-    const requestId = Date.now().toString();
-    console.log(`[Registration-${requestId}] Received registration request:`, {
-      bodyKeys: Object.keys(req.body || {}),
-      hasBody: !!req.body,
-      contentType: req.headers['content-type'],
-      timestamp: new Date().toISOString()
-    });
-
     try {
-      // Check request body exists
-      if (!req.body) {
-        console.error(`[Registration-${requestId}] Empty request body`);
-        return res.status(400).json({ 
-          message: 'Request body is required',
-          errorCode: 'EMPTY_BODY' 
-        });
-      }
-
-      // Check Content-Type header
-      if (!req.headers['content-type']?.includes('application/json')) {
-        console.warn(`[Registration-${requestId}] Invalid content-type:`, req.headers['content-type']);
-      }
-
-      // Enhanced validation schema with detailed requirements
+      // Create server-side validation schema (without confirmPassword)
       const serverRegisterSchema = z.object({
-        firstName: z.string()
-          .min(1, "First name is required")
-          .max(50, "First name must be less than 50 characters")
-          .regex(/^[a-zA-Z\s-']+$/, "First name contains invalid characters"),
-        lastName: z.string()
-          .min(1, "Last name is required")
-          .max(50, "Last name must be less than 50 characters")
-          .regex(/^[a-zA-Z\s-']+$/, "Last name contains invalid characters"),
-        email: z.string()
-          .min(1, "Email is required")
-          .email("Please enter a valid email address")
-          .max(100, "Email must be less than 100 characters")
-          .toLowerCase()
-          .trim(),
-        password: z.string()
-          .min(8, "Password must be at least 8 characters")
-          .max(100, "Password must be less than 100 characters"),
+        firstName: z.string().min(1, "First name is required"),
+        lastName: z.string().min(1, "Last name is required"),
+        email: z.string().email("Please enter a valid email address"),
+        password: z.string().min(8, "Password must be at least 8 characters"),
+        role: z.enum(["student", "parent", "admin"]).default("student"),
       });
-
-      // Parse and validate input
-      console.log(`[Registration-${requestId}] Validating input...`);
-      let validatedData;
-      try {
-        validatedData = serverRegisterSchema.parse(req.body);
-        console.log(`[Registration-${requestId}] Validation passed for:`, {
-          email: validatedData.email,
-          firstName: validatedData.firstName,
-          lastName: validatedData.lastName,
-          passwordLength: validatedData.password.length
-        });
-      } catch (zodError) {
-        console.error(`[Registration-${requestId}] Validation failed:`, zodError.errors);
-        if (zodError.name === 'ZodError') {
-          const fieldErrors = zodError.errors.map(e => `${e.path.join('.')}: ${e.message}`);
-          return res.status(400).json({ 
-            message: `Validation failed: ${fieldErrors[0]}`,
-            errors: zodError.errors,
-            errorCode: 'VALIDATION_ERROR'
-          });
-        }
-        throw zodError;
-      }
-
-      const { firstName, lastName, email, password } = validatedData;
+      const { firstName, lastName, email, password, role } = serverRegisterSchema.parse(req.body);
       
-      // Test database connection
-      console.log(`[Registration-${requestId}] Testing database connection...`);
-      const dbConnected = await storage.checkDatabaseConnection();
-      if (!dbConnected) {
-        console.error(`[Registration-${requestId}] Database connection failed`);
-        return res.status(503).json({ 
-          message: 'Database connection unavailable. Please try again later.',
-          errorCode: 'DB_CONNECTION_ERROR'
-        });
-      }
-      console.log(`[Registration-${requestId}] Database connection OK`);
-
       // Check if user already exists
-      console.log(`[Registration-${requestId}] Checking for existing user with email:`, email);
-      try {
-        const existingUser = await storage.getUserByEmail(email);
-        if (existingUser) {
-          console.log(`[Registration-${requestId}] User already exists with email:`, email);
-          return res.status(400).json({ 
-            message: 'An account with this email already exists',
-            errorCode: 'EMAIL_EXISTS'
-          });
-        }
-      } catch (checkError) {
-        console.error(`[Registration-${requestId}] Error checking existing user:`, checkError);
-        // Continue - might be a connection issue
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: 'An account with this email already exists' });
       }
       
       // Create username from email (before @ symbol)
-      const baseUsername = email.split('@')[0];
-      let username = baseUsername;
-      let attempts = 0;
+      const username = email.split('@')[0];
       
-      // Handle potential username conflicts
-      console.log(`[Registration-${requestId}] Checking username availability:`, username);
-      while (attempts < 5) {
-        try {
-          const existingUsername = await storage.getUserByUsername(username);
-          if (!existingUsername) {
-            break; // Username is available
-          }
-          attempts++;
-          username = `${baseUsername}${Math.floor(Math.random() * 10000)}`;
-          console.log(`[Registration-${requestId}] Username conflict, trying:`, username);
-        } catch (usernameError) {
-          console.warn(`[Registration-${requestId}] Error checking username:`, usernameError);
-          break; // Proceed with current username
-        }
-      }
-      
-      // Hash password before storing
-      console.log(`[Registration-${requestId}] Hashing password...`);
-      const saltRounds = 12;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-      
-      // Create user
-      console.log(`[Registration-${requestId}] Creating user with username:`, username);
-      let newUser;
-      try {
-        newUser = await storage.createUser({
-          username,
-          email: email.toLowerCase().trim(),
-          password: hashedPassword, // Store hashed password
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          role: 'user', // Default all new users to 'user' role
-        });
-        console.log(`[Registration-${requestId}] User created successfully:`, {
-          id: newUser.id,
-          email: newUser.email,
-          username: newUser.username
-        });
-      } catch (createError: any) {
-        console.error(`[Registration-${requestId}] Failed to create user:`, {
-          error: createError.message,
-          code: createError.code,
-          constraint: createError.constraint,
-          detail: createError.detail
-        });
-        
-        // Handle specific database errors
-        if (createError.code === '23505' || createError.constraint?.includes('unique')) {
-          if (createError.constraint?.includes('email')) {
-            return res.status(400).json({ 
-              message: 'An account with this email already exists',
-              errorCode: 'EMAIL_CONSTRAINT'
-            });
-          }
-          if (createError.constraint?.includes('username')) {
-            return res.status(400).json({ 
-              message: 'This username is already taken',
-              errorCode: 'USERNAME_CONSTRAINT'
-            });
-          }
-          return res.status(400).json({ 
-            message: 'Duplicate account detected',
-            errorCode: 'UNIQUE_CONSTRAINT'
-          });
-        }
-        
-        if (createError.code === '23502') {
-          return res.status(400).json({ 
-            message: 'Required fields are missing',
-            errorCode: 'NULL_CONSTRAINT'
-          });
-        }
-        
-        if (createError.code === '23514') {
-          return res.status(400).json({ 
-            message: 'Invalid field values provided',
-            errorCode: 'CHECK_CONSTRAINT'
-          });
-        }
-        
-        // Generic database error
-        return res.status(500).json({ 
-          message: 'Database error while creating account',
-          errorCode: 'DATABASE_ERROR'
-        });
-      }
+      // Create user (password hashing would be done here in production)
+      const newUser = await storage.createUser({
+        username,
+        email,
+        password, // In production, this should be hashed
+        firstName,
+        lastName,
+        role,
+      });
       
       // Return user without password
       const { password: _, ...userWithoutPassword } = newUser;
       
-      console.log(`[Registration-${requestId}] Registration completed successfully`);
       res.status(201).json({
         message: 'Account created successfully',
         user: userWithoutPassword
       });
-    } catch (error: any) {
-      console.error(`[Registration-${requestId}] Unexpected error:`, {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
-      
-      // Handle any uncaught errors
+    } catch (error) {
+      console.error('Error registering user:', error);
       if (error.name === 'ZodError') {
-        return res.status(400).json({ 
-          message: 'Invalid registration data',
-          errors: error.errors,
-          errorCode: 'VALIDATION_ERROR'
-        });
+        return res.status(400).json({ message: 'Invalid registration data', errors: error.errors });
       }
-      
-      res.status(500).json({ 
-        message: 'An unexpected error occurred during registration',
-        errorCode: 'INTERNAL_ERROR',
-        requestId
-      });
+      res.status(500).json({ message: 'Failed to create account' });
     }
   });
 
-  // POST /api/login - JWT Token Authentication
+  // POST /api/login - User login endpoint
   app.post('/api/login', async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -470,78 +287,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get user by email
-      const normalizedEmail = email.toLowerCase().trim();
-      const user = await storage.getUserByEmail(normalizedEmail);
+      const user = await storage.getUserByEmail(email);
       
       if (!user) {
         return res.status(401).json({ message: 'Invalid email or password' });
       }
       
-      // Verify password with bcrypt
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
+      // Check password (in production, this should use bcrypt)
+      if (user.password !== password) {
         return res.status(401).json({ message: 'Invalid email or password' });
-      }
-      
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: user.id, email: user.email },
-        JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-      
-      
-      // Return user and token
-      const { password: _, ...userWithoutPassword } = user;
-      res.json({
-        message: 'Login successful',
-        user: userWithoutPassword,
-        token: token
-      });
-      
-    } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ message: 'Failed to login' });
-    }
-  });
-
-  // Authentication check route - JWT Token verification
-  app.get('/api/auth/user', async (req, res) => {
-    console.log('=== JWT AUTH CHECK ===');
-    
-    try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        console.log('No JWT token provided');
-        return res.status(401).json({ message: 'Not authenticated' });
-      }
-      
-      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-      console.log('JWT token received, verifying...');
-      
-      // Verify JWT token
-      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
-      console.log('JWT token verified for user:', decoded.userId);
-      
-      // Get current user from database
-      const user = await storage.getUser(decoded.userId);
-      if (!user) {
-        return res.status(401).json({ message: 'User not found' });
       }
       
       // Return user without password
       const { password: _, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
       
-      console.log('=== JWT AUTH SUCCESS ===');
+      res.json({
+        message: 'Login successful',
+        user: userWithoutPassword
+      });
     } catch (error) {
-      console.error('JWT verification error:', error);
-      res.status(401).json({ message: 'Invalid token' });
+      console.error('Error logging in:', error);
+      res.status(500).json({ message: 'Failed to login' });
     }
   });
 
   // Get demo user route
-  app.get('/api/user', requireAuth, async (req, res) => {
+  app.get('/api/user', async (req, res) => {
     try {
       let user = await storage.getUser("demo-user-1");
       if (!user) {
@@ -560,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Canvas integration endpoints
-  app.get('/api/canvas/:studentName', requireAuth, async (req, res) => {
+  app.get('/api/canvas/:studentName', async (req, res) => {
     try {
       const { studentName } = req.params;
       
@@ -626,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Import Canvas assignments for a student
-  app.post('/api/import-canvas/:studentName', requireAuth, async (req, res) => {
+  app.post('/api/import-canvas/:studentName', async (req, res) => {
     try {
       const { studentName } = req.params;
       const today = new Date().toISOString().split('T')[0];
@@ -732,7 +503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get schedule template for a specific student and date with Bible curriculum integration
-  app.get('/api/schedule/:studentName/:date', requireAuth, async (req, res) => {
+  app.get('/api/schedule/:studentName/:date', async (req, res) => {
     try {
       const { studentName, date } = req.params;
       
@@ -746,74 +517,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get schedule template for this student and weekday
       const scheduleBlocks = await storage.getScheduleTemplate(studentName, weekday);
       
-      // Get assignments for this student and date for intelligent distribution
-      const userId = `${studentName.toLowerCase()}-user`;
-      const assignments = await storage.getAssignments(userId, date);
-      console.log(`📋 Found ${assignments.length} assignments for intelligent distribution`);
-      
-      // INTELLIGENT SUBJECT DISTRIBUTION: Group assignments by subject to prevent consecutive duplicates
-      const assignmentsBySubject = assignments.reduce((groups: Record<string, any[]>, assignment) => {
-        const subject = assignment.courseName || assignment.subject || 'General';
-        if (!groups[subject]) groups[subject] = [];
-        groups[subject].push(assignment);
-        return groups;
-      }, {});
-      
-      const subjects = Object.keys(assignmentsBySubject);
-      console.log(`📚 Assignment subjects available: ${subjects.join(', ')}`);
-      
-      // Create intelligent assignment distribution to prevent back-to-back identical subjects
-      const distributedAssignments: any[] = [];
-      let subjectIndex = 0;
-      let assignmentIndices: Record<string, number> = {};
-      
-      // Initialize assignment indices for each subject
-      subjects.forEach(subject => assignmentIndices[subject] = 0);
-      
-      // Get all assignment blocks first
-      const assignmentBlocks = scheduleBlocks.filter(block => block.blockType === 'Assignment');
-      
-      // Distribute assignments across blocks, rotating subjects to prevent consecutive duplicates
-      for (let blockIndex = 0; blockIndex < assignmentBlocks.length; blockIndex++) {
-        if (assignments.length === 0) break;
-        
-        // Try to use a different subject than the previous block
-        let attempts = 0;
-        let selectedSubject = subjects[subjectIndex % subjects.length];
-        
-        // If we have multiple subjects, try to avoid repeating the previous subject
-        if (subjects.length > 1 && distributedAssignments.length > 0) {
-          const previousAssignment = distributedAssignments[distributedAssignments.length - 1];
-          const previousSubject = previousAssignment?.courseName || previousAssignment?.subject || 'General';
-          
-          while (selectedSubject === previousSubject && attempts < subjects.length) {
-            subjectIndex = (subjectIndex + 1) % subjects.length;
-            selectedSubject = subjects[subjectIndex % subjects.length];
-            attempts++;
-          }
-        }
-        
-        // Get next assignment from selected subject
-        const subjectAssignments = assignmentsBySubject[selectedSubject];
-        const assignmentIndex = assignmentIndices[selectedSubject];
-        
-        if (subjectAssignments && assignmentIndex < subjectAssignments.length) {
-          distributedAssignments.push(subjectAssignments[assignmentIndex]);
-          assignmentIndices[selectedSubject]++;
-          console.log(`📌 Block ${blockIndex + 1}: Assigned ${selectedSubject} - "${subjectAssignments[assignmentIndex].title}"`);
-        } else {
-          // If no more assignments in this subject, try next subject
-          subjectIndex = (subjectIndex + 1) % subjects.length;
-          blockIndex--; // Retry this block with next subject
-          continue;
-        }
-        
-        subjectIndex = (subjectIndex + 1) % subjects.length;
-      }
-      
       // BIBLE CURRICULUM INTEGRATION: Replace generic "Bible" entries with specific curriculum content
       const enhancedScheduleBlocks = await Promise.all(
-        scheduleBlocks.map(async (block, index) => {
+        scheduleBlocks.map(async (block) => {
           if (block.subject === 'Bible' || block.blockType === 'Bible') {
             try {
               const bibleSubject = await getBibleSubjectForSchedule(studentName);
@@ -826,25 +532,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.warn('Error getting Bible curriculum, using fallback:', error);
               return block; // Return original if Bible curriculum fails
             }
-          } else if (block.blockType === 'Assignment') {
-            // Find the corresponding distributed assignment for this block
-            const assignmentBlockIndex = scheduleBlocks.filter((b, i) => i < index && b.blockType === 'Assignment').length;
-            const assignedAssignment = distributedAssignments[assignmentBlockIndex];
-            
-            if (assignedAssignment) {
-              return {
-                ...block,
-                subject: assignedAssignment.courseName || assignedAssignment.subject || 'Assignment',
-                assignmentTitle: assignedAssignment.title,
-                assignmentId: assignedAssignment.id,
-                assignmentInstructions: assignedAssignment.instructions,
-                assignmentDueDate: assignedAssignment.dueDate,
-                assignmentPriority: assignedAssignment.priority,
-                assignmentDifficulty: assignedAssignment.difficulty
-              };
-            }
           }
-          return block; // Non-Bible, non-Assignment blocks remain unchanged
+          return block; // Non-Bible blocks remain unchanged
         })
       );
       
@@ -858,7 +547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Parent notification endpoint (when student clicks "Stuck")
-  app.post('/api/notify-parent', requireAuth, async (req, res) => {
+  app.post('/api/notify-parent', async (req, res) => {
     try {
       const { studentName, assignmentTitle, message } = req.body;
       
@@ -885,7 +574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Database connection test
-  app.get('/api/db-test', requireAuth, async (req, res) => {
+  app.get('/api/db-test', async (req, res) => {
     try {
       const assignments = await storage.getAssignments('demo-user-1');
       res.json({ 
@@ -901,7 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bible curriculum routes
-  app.get('/api/bible/current-week', requireAuth, async (req, res) => {
+  app.get('/api/bible/current-week', async (req, res) => {
     try {
       const bibleData = await storage.getBibleCurrentWeek();
       res.json(bibleData);
@@ -911,7 +600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/bible/week/:weekNumber', requireAuth, async (req, res) => {
+  app.get('/api/bible/week/:weekNumber', async (req, res) => {
     try {
       const weekNumber = parseInt(req.params.weekNumber);
       const bibleData = await storage.getBibleCurriculum(weekNumber);
@@ -922,7 +611,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/bible/completion', requireAuth, async (req, res) => {
+  app.patch('/api/bible/completion', async (req, res) => {
     try {
       const { weekNumber, dayOfWeek, completed } = req.body;
       
@@ -944,7 +633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Attendance tracking routes for fixed blocks
-  app.get('/api/attendance/:userId', requireAuth, async (req, res) => {
+  app.get('/api/attendance/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
       const date = req.query.date as string;
@@ -957,7 +646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/attendance', requireAuth, async (req, res) => {
+  app.post('/api/attendance', async (req, res) => {
     try {
       const { userId, blockId, date, attended, blockType } = req.body;
       
@@ -978,7 +667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schedule template routes - using real database data instead of hardcoded blocks
-  app.get('/api/schedule-template/:studentName', requireAuth, async (req, res) => {
+  app.get('/api/schedule-template/:studentName', async (req, res) => {
     try {
       const { studentName } = req.params;
       const weekday = req.query.weekday as string;
@@ -992,7 +681,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Manual Canvas sync trigger (for testing)
-  app.post('/api/sync-canvas', requireAuth, async (req, res) => {
+  app.post('/api/sync-canvas', async (req, res) => {
     try {
       console.log('🔧 Manual Canvas sync triggered via API');
       await jobScheduler.runSyncNow();
@@ -1013,7 +702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Print Queue Management API for Parent Dashboard
-  app.get('/api/print-queue', requireAuth, async (req, res) => {
+  app.get('/api/print-queue', async (req, res) => {
     try {
       const { startDate, endDate, days } = req.query;
       
@@ -1128,7 +817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/print-queue/:assignmentId/status', requireAuth, async (req, res) => {
+  app.post('/api/print-queue/:assignmentId/status', async (req, res) => {
     try {
       const { assignmentId } = req.params;
       const { status } = req.body;
@@ -1147,7 +836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ElevenLabs TTS route (Khalil only)
-  app.post('/api/tts/generate', requireAuth, async (req, res) => {
+  app.post('/api/tts/generate', async (req, res) => {
     try {
       const { text, studentName, voiceId } = req.body;
       
@@ -1185,7 +874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Manual cleanup endpoint for testing problematic assignments
-  app.post('/api/cleanup-assignments', requireAuth, async (req, res) => {
+  app.post('/api/cleanup-assignments', async (req, res) => {
     try {
       console.log('🧹 Manual assignment cleanup triggered via API');
       // Access the private method using bracket notation for testing
@@ -1207,7 +896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Fix misclassified In Class assignments endpoint
-  app.post('/api/fix-in-class-assignments', requireAuth, async (req, res) => {
+  app.post('/api/fix-in-class-assignments', async (req, res) => {
     try {
       console.log('🔧 Fixing misclassified In Class assignments via direct database update...');
       
@@ -1251,7 +940,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Deep Canvas investigation endpoint with comprehensive timing analysis
-  app.post('/api/investigate-canvas-assignment', requireAuth, async (req, res) => {
+  app.post('/api/investigate-canvas-assignment', async (req, res) => {
     try {
       const { title, studentName } = req.body;
       
@@ -1365,7 +1054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test pattern extraction endpoint
-  app.post('/api/test-pattern-extraction', requireAuth, async (req, res) => {
+  app.post('/api/test-pattern-extraction', async (req, res) => {
     try {
       const { titles } = req.body;
       
@@ -1406,7 +1095,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schedule template bulk upload endpoint
-  app.post('/api/schedule-templates/bulk-upload', requireAuth, async (req, res) => {
+  app.post('/api/schedule-templates/bulk-upload', async (req, res) => {
     try {
       const { templates } = req.body;
       
@@ -1436,7 +1125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // BIBLE CURRICULUM API ENDPOINTS
 
   // GET /api/bible-curriculum/current - Get current Bible curriculum for today
-  app.get('/api/bible-curriculum/current', requireAuth, async (req, res) => {
+  app.get('/api/bible-curriculum/current', async (req, res) => {
     try {
       const { date } = req.query;
       const targetDate = date ? new Date(date as string) : new Date();
@@ -1457,7 +1146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/bible-curriculum/week/:weekNumber - Get full week curriculum
-  app.get('/api/bible-curriculum/week/:weekNumber', requireAuth, async (req, res) => {
+  app.get('/api/bible-curriculum/week/:weekNumber', async (req, res) => {
     try {
       const { weekNumber } = req.params;
       const week = parseInt(weekNumber);
@@ -1476,7 +1165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/bible-curriculum/complete - Mark curriculum item as completed
-  app.post('/api/bible-curriculum/complete', requireAuth, async (req, res) => {
+  app.post('/api/bible-curriculum/complete', async (req, res) => {
     try {
       const { weekNumber, dayOfWeek, readingType } = req.body;
       
@@ -1510,7 +1199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/bible-curriculum/progress - Get overall curriculum progress
-  app.get('/api/bible-curriculum/progress', requireAuth, async (req, res) => {
+  app.get('/api/bible-curriculum/progress', async (req, res) => {
     try {
       const currentWeek = 1; // Simplified for sequential approach
       

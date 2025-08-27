@@ -13,10 +13,6 @@ import { eq, and, sql, desc } from "drizzle-orm";
 // you might need
 
 export interface IStorage {
-  // Health check
-  checkDatabaseConnection(): Promise<boolean>;
-  
-  // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -50,17 +46,6 @@ export interface IStorage {
 
 // Database storage implementation using local Replit database
 export class DatabaseStorage implements IStorage {
-  async checkDatabaseConnection(): Promise<boolean> {
-    try {
-      // Simple query to check database connection
-      const result = await db.execute(sql`SELECT 1`);
-      return true;
-    } catch (error) {
-      console.error('Database connection check failed:', error);
-      return false;
-    }
-  }
-
   async getUser(id: string): Promise<User | undefined> {
     try {
       const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
@@ -95,15 +80,9 @@ export class DatabaseStorage implements IStorage {
     try {
       const result = await db.insert(users).values(insertUser).returning();
       return result[0];
-    } catch (error: any) {
-      console.error('Error creating user:', {
-        message: error.message,
-        code: error.code,
-        constraint: error.constraint,
-        detail: error.detail
-      });
-      // Re-throw the original error to preserve database error codes
-      throw error;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw new Error('Failed to create user');
     }
   }
 
@@ -310,7 +289,7 @@ export class DatabaseStorage implements IStorage {
       
       // Count unique active students (students with assignments)
       const uniqueStudents = new Set(allAssignments.map(a => a.userId));
-      const activeStudents = Math.min(uniqueStudents.size, 2); // Cap at 2 for Abigail + Khalil
+      const activeStudents = uniqueStudents.size;
       
       return {
         activeStudents,

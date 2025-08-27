@@ -35,28 +35,22 @@ export default function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
-      const response = await apiRequest('POST', '/api/login', data);
-      return await response.json(); // Parse JSON response
+      return await apiRequest('POST', '/api/login', data);
     },
     onSuccess: (response) => {
+      console.log("Login response:", response); // Debug log
       const user = response?.user;
-      const token = response?.token;
-      
-      // Store JWT token in localStorage
-      if (token) {
-        localStorage.setItem('authToken', token);
-      }
       
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
       
-      // Redirect based on user role
+      // Redirect based on user role with safe property access
       if (user?.role === 'admin' || user?.role === 'parent') {
-        window.location.href = "/admin";
+        navigate("/admin");
       } else {
-        window.location.href = "/student"; // Redirect to student selection page
+        navigate("/student"); // Default for students
       }
     },
     onError: (error) => {
