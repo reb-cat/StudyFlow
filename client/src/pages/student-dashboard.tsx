@@ -21,15 +21,22 @@ import {
   Grid3X3,
   Play,
   Activity,
-  UtensilsCrossed
+  UtensilsCrossed,
+  ArrowLeft
 } from 'lucide-react';
+import { Link } from 'wouter';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
 import { FixedBlock } from '@/components/FixedBlock';
 import type { Assignment } from '@shared/schema';
 
-export default function StudentDashboard() {
-  const studentName = "Abigail"; // Use actual student name from database
+interface StudentDashboardProps {
+  student: string;
+}
+
+export default function StudentDashboard({ student }: StudentDashboardProps) {
+  // Capitalize student name for consistency, default to Abigail if no student provided
+  const studentName = student ? student.charAt(0).toUpperCase() + student.slice(1) : "Abigail";
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     // Always start with today's date 
@@ -217,11 +224,22 @@ export default function StudentDashboard() {
             {studentName}
           </h1>
           <div className="flex items-center gap-3">
+            <Link href="/student">
+              <Button 
+                variant="ghost" 
+                data-testid="button-student-selection"
+                className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
+                title="Back to Student Selection"
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </Button>
+            </Link>
             <Button 
               variant="ghost" 
               data-testid="button-home"
               onClick={handleHomeClick}
               className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
+              title="Today's Overview"
             >
               <Home className="h-6 w-6" />
             </Button>
