@@ -41,14 +41,20 @@ export default function LoginPage() {
     onSuccess: (response) => {
       console.log("Login response:", response); // Debug log
       const user = response?.user;
+      const token = response?.token;
+      
+      // Store JWT token in localStorage
+      if (token) {
+        localStorage.setItem('authToken', token);
+        console.log('JWT token stored in localStorage');
+      }
       
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
       
-      // Force a page refresh to ensure session is recognized
-      // Redirect based on user role with safe property access
+      // Redirect based on user role
       if (user?.role === 'admin' || user?.role === 'parent') {
         window.location.href = "/admin";
       } else {

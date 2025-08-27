@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import session from "express-session";
+import jwt from "jsonwebtoken";
 import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, registerUserSchema } from "@shared/schema";
 import { z } from "zod";
@@ -23,21 +23,8 @@ import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Trust proxy for secure cookies in production
-  app.set('trust proxy', 1);
-  
-  // NUCLEAR APPROACH - Minimal session configuration
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'dev-secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 24 * 60 * 60 * 1000,
-      secure: false,
-      httpOnly: true,
-      sameSite: 'lax'
-    }
-  }));
+  // JWT token secret
+  const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret';
 
   // Assignment API routes
   
@@ -467,10 +454,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/login - REBUILT Simple login endpoint
+  // POST /api/login - JWT Token Authentication
   app.post('/api/login', async (req, res) => {
-    console.log('=== LOGIN START ===');
-    console.log('Session ID:', req.sessionID);
+    console.log('=== JWT LOGIN START ===');
     
     try {
       const { email, password } = req.body;
@@ -487,48 +473,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Invalid email or password' });
       }
       
-      // Set session data - SIMPLE
-      (req.session as any).userId = user.id;
-      console.log('Session ID:', req.sessionID, 'User ID set:', user.id);
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
       
-      // Return user without password
+      console.log('JWT token generated for user:', user.id);
+      
+      // Return user and token
       const { password: _, ...userWithoutPassword } = user;
       res.json({
         message: 'Login successful',
-        user: userWithoutPassword
+        user: userWithoutPassword,
+        token: token
       });
       
-      console.log('=== LOGIN SUCCESS ===');
+      console.log('=== JWT LOGIN SUCCESS ===');
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ message: 'Failed to login' });
     }
   });
 
-  // Authentication check route - returns current user if authenticated
+  // Authentication check route - JWT Token verification
   app.get('/api/auth/user', async (req, res) => {
-    console.log('=== AUTH CHECK ===');
-    console.log('Session ID:', req.sessionID, 'User ID found:', (req.session as any)?.userId);
-    
-    const userId = (req.session as any)?.userId;
-    if (!userId) {
-      console.log('No userId in session - not authenticated');
-      return res.status(401).json({ message: 'Not authenticated' });
-    }
+    console.log('=== JWT AUTH CHECK ===');
     
     try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.log('No JWT token provided');
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+      
+      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+      console.log('JWT token received, verifying...');
+      
+      // Verify JWT token
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
+      console.log('JWT token verified for user:', decoded.userId);
+      
       // Get current user from database
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(decoded.userId);
       if (!user) {
         return res.status(401).json({ message: 'User not found' });
       }
       
       // Return user without password
       const { password: _, ...userWithoutPassword } = user;
-      res.json({ user: userWithoutPassword });
+      res.json(userWithoutPassword);
+      
+      console.log('=== JWT AUTH SUCCESS ===');
     } catch (error) {
-      console.error('Error checking auth:', error);
-      res.status(500).json({ message: 'Failed to check authentication' });
+      console.error('JWT verification error:', error);
+      res.status(401).json({ message: 'Invalid token' });
     }
   });
 
