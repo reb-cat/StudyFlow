@@ -24,19 +24,23 @@ import {
   UtensilsCrossed,
   ArrowLeft
 } from 'lucide-react';
-import { Link } from 'wouter';
+import { Link, useParams } from 'wouter';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
 import { FixedBlock } from '@/components/FixedBlock';
 import type { Assignment } from '@shared/schema';
 
-interface StudentDashboardProps {
-  student: string;
-}
-
-export default function StudentDashboard({ student }: StudentDashboardProps) {
+export default function StudentDashboard() {
+  const params = useParams<{ student: string }>();
   // Capitalize student name for consistency, default to Abigail if no student provided
-  const studentName = student ? student.charAt(0).toUpperCase() + student.slice(1) : "Abigail";
+  const studentName = params.student ? params.student.charAt(0).toUpperCase() + params.student.slice(1) : "Abigail";
+  
+  // Debug logging to check route parameters
+  console.log('🔍 Route Debug:', {
+    rawParams: params,
+    studentParam: params.student,
+    finalStudentName: studentName
+  });
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     // Always start with today's date 
