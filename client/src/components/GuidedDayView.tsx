@@ -91,7 +91,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   ].sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
   const [extraTime, setExtraTime] = useState(0);
   const [completedBlocks, setCompletedBlocks] = useState<Set<string>>(new Set());
 
@@ -194,50 +194,34 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 p-2 flex flex-col">
-      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
-        {/* Back button only */}
-        <div className="flex justify-end mb-2">
+    <div className="h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 flex flex-col">
+      <div className="max-w-xl mx-auto w-full flex-1 flex flex-col">
+        {/* Minimal top bar - just back to overview */}
+        <div className="flex justify-end mb-4">
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={onModeToggle}
-            className="px-2 py-1 text-xs"
+            className="text-gray-500 hover:text-gray-700"
             data-testid="button-mode-toggle"
           >
-            <ArrowLeft className="w-3 h-3 mr-1" />
-            Overview
+            <ArrowLeft className="w-4 h-4" />
           </Button>
         </div>
 
-        {/* Minimal Progress Bar */}
-        <div className="mb-2 bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-              Block {currentIndex + 1} of {totalBlocks} • {progressPercentage}%
-            </h2>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full h-1.5 transition-all duration-500"
-              style={{ width: `${(completedBlocks.size / totalBlocks) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Activity Card - Simplified */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 flex-1 flex flex-col">
-          {/* Activity Title Only */}
-          <div className="text-center mb-2">
-            <Badge variant="secondary" className="text-xs px-2 py-0.5">
-              {currentBlock.startTime} - {currentBlock.endTime}
-            </Badge>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mt-1 mb-1">
+        {/* Focus Card - Timer Centered */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex-1 flex flex-col justify-center">
+          {/* Current Task */}
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               {currentBlock.title}
             </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {currentBlock.startTime} - {currentBlock.endTime}
+            </p>
           </div>
 
-          {/* LARGE Timer - The Dominant Element */}
-          <div className="flex justify-center flex-1 items-center">
+          {/* HUGE Timer - Auto-starts */}
+          <div className="flex justify-center mb-12">
             <CircularTimer
               durationMinutes={currentBlock.estimatedMinutes || 20}
               isRunning={isTimerRunning}
@@ -247,42 +231,29 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                 setIsTimerRunning(false);
                 setExtraTime(0);
               }}
+              hideControls={true}
               extraTime={extraTime}
             />
           </div>
 
-          {/* Action Buttons - Essential Only */}
-          <div className="space-y-1 mt-2">
+          {/* Simple Actions */}
+          <div className="flex justify-center space-x-4">
             <Button 
               onClick={handleBlockComplete}
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 text-sm font-medium"
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-medium"
               data-testid="button-block-complete"
             >
-              <CheckCircle className="w-4 h-4 mr-1" />
               Done
             </Button>
             
-            <div className="grid grid-cols-2 gap-1">
-              <Button 
-                onClick={handleNeedMoreTime}
-                variant="outline"
-                className="py-1.5 text-xs"
-                data-testid="button-need-more-time"
-              >
-                <Clock className="w-3 h-3 mr-1" />
-                More Time
-              </Button>
-              
-              <Button 
-                onClick={handleStuck}
-                variant="outline"
-                className="py-1.5 text-xs"
-                data-testid="button-stuck"
-              >
-                <HelpCircle className="w-3 h-3 mr-1" />
-                Stuck
-              </Button>
-            </div>
+            <Button 
+              onClick={handleNeedMoreTime}
+              variant="outline"
+              className="px-6 py-3 rounded-full"
+              data-testid="button-need-more-time"
+            >
+              +5 min
+            </Button>
           </div>
         </div>
       </div>

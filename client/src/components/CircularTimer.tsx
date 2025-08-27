@@ -9,6 +9,7 @@ interface CircularTimerProps {
   onToggle?: () => void;
   onReset?: () => void;
   extraTime?: number;
+  hideControls?: boolean;
 }
 
 export function CircularTimer({ 
@@ -17,7 +18,8 @@ export function CircularTimer({
   onComplete, 
   onToggle, 
   onReset,
-  extraTime = 0 
+  extraTime = 0,
+  hideControls = false
 }: CircularTimerProps) {
   const [timeRemaining, setTimeRemaining] = useState(durationMinutes * 60 + extraTime * 60);
   const totalTime = durationMinutes * 60 + extraTime * 60;
@@ -113,39 +115,41 @@ export function CircularTimer({
         </div>
       </div>
 
-      {/* Ultra-compact Timer Controls */}
-      <div className="flex items-center space-x-1">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onToggle}
-          className="flex items-center px-2 py-1 text-xs"
-          data-testid="button-timer-toggle"
-        >
-          {isRunning ? (
-            <>
-              <Pause className="w-3 h-3 mr-1" />
-              <span>Pause</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-3 h-3 mr-1" />
-              <span>Start</span>
-            </>
-          )}
-        </Button>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onReset}
-          className="flex items-center px-2 py-1 text-xs"
-          data-testid="button-timer-reset"
-        >
-          <RotateCcw className="w-3 h-3 mr-1" />
-          <span>Reset</span>
-        </Button>
-      </div>
+      {/* Timer Controls - Hidden when hideControls is true */}
+      {!hideControls && (
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onToggle}
+            className="flex items-center px-2 py-1 text-xs"
+            data-testid="button-timer-toggle"
+          >
+            {isRunning ? (
+              <>
+                <Pause className="w-3 h-3 mr-1" />
+                <span>Pause</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-3 h-3 mr-1" />
+                <span>Start</span>
+              </>
+            )}
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onReset}
+            className="flex items-center px-2 py-1 text-xs"
+            data-testid="button-timer-reset"
+          >
+            <RotateCcw className="w-3 h-3 mr-1" />
+            <span>Reset</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
