@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema } from "@shared/schema";
+import { getElevenLabsService } from "./lib/elevenlabs";
 import { 
   getBibleSubjectForSchedule, 
   getNextBibleCurriculumForStudent, 
@@ -601,6 +602,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Manual Canvas sync failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Canvas sync failed', error: errorMessage });
+    }
+  });
+  
+  // ElevenLabs TTS route (Khalil only)
+  app.post('/api/tts/generate', async (req, res) => {
+    try {
+      const { text, studentName } = req.body;
+      
+      // Only allow TTS for Khalil
+      if (studentName !== 'Khalil') {
+        return res.status(403).json({ error: 'TTS only available for Khalil' });
+      }
+      
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ error: 'Text is required' });
+      }
+      
+      const elevenLabs = getElevenLabsService();
+      const audioBuffer = await elevenLabs.generateSpeech(text);
+      
+      res.set({
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': audioBuffer.length.toString(),
+      });
+      
+      res.send(audioBuffer);
+    } catch (error) {
+      console.error('TTS generation error:', error);
+      res.status(500).json({ error: 'Failed to generate speech' });
     }
   });
   

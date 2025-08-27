@@ -140,38 +140,87 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   const totalBlocks = scheduleBlocks.length;
   const progressPercentage = Math.round((completedBlocks.size / totalBlocks) * 100);
   
-  // TTS Functions (Khalil only)
-  const speakText = (text: string) => {
+  // TTS Functions (Khalil only) - Now using ElevenLabs
+  const speakText = async (text: string) => {
     if (studentName !== 'Khalil') return;
     
-    // Stop any current speech
-    if (currentSpeech) {
-      speechSynthesis.cancel();
+    try {
+      // Stop any current audio
+      if (currentSpeech) {
+        const audioElements = document.querySelectorAll('audio');
+        audioElements.forEach(audio => {
+          audio.pause();
+          audio.currentTime = 0;
+        });
+      }
+      
+      setIsPlaying(true);
+      
+      // Call ElevenLabs API
+      const response = await fetch('/api/tts/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          studentName: studentName,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('TTS generation failed');
+      }
+      
+      // Get audio blob and play it
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      
+      audio.onended = () => {
+        setIsPlaying(false);
+        setCurrentSpeech(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      audio.onerror = () => {
+        setIsPlaying(false);
+        setCurrentSpeech(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      setCurrentSpeech(audio as any);
+      audio.play();
+      
+    } catch (error) {
+      console.error('TTS error:', error);
+      setIsPlaying(false);
+      setCurrentSpeech(null);
+      
+      // Fallback to browser TTS
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 0.8;
+      
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setCurrentSpeech(null);
+      };
+      
+      setCurrentSpeech(utterance);
+      speechSynthesis.speak(utterance);
     }
-    
-    // Create new speech
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 0.8;
-    
-    utterance.onstart = () => setIsPlaying(true);
-    utterance.onend = () => {
-      setIsPlaying(false);
-      setCurrentSpeech(null);
-    };
-    utterance.onerror = () => {
-      setIsPlaying(false);
-      setCurrentSpeech(null);
-    };
-    
-    setCurrentSpeech(utterance);
-    speechSynthesis.speak(utterance);
   };
   
   const stopSpeech = () => {
     if (currentSpeech) {
-      speechSynthesis.cancel();
+      if (currentSpeech instanceof HTMLAudioElement) {
+        currentSpeech.pause();
+        currentSpeech.currentTime = 0;
+      } else {
+        speechSynthesis.cancel();
+      }
       setIsPlaying(false);
       setCurrentSpeech(null);
     }
