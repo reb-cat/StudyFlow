@@ -354,10 +354,12 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
             <div className="pt-6 text-center">
               <Button
                 variant="ghost"
-                onDoubleClick={() => {
-                  // Clear the persistence when emergency exiting 
-                  // (they can come back and resume if needed)
-                  onModeToggle?.();
+                onDoubleClick={(e) => {
+                  e.preventDefault();
+                  // Emergency exit - preserve timer state so they can resume
+                  if (onModeToggle) {
+                    onModeToggle();
+                  }
                 }}
                 className="text-xs text-gray-300 hover:text-gray-400 transition-colors"
                 data-testid="button-mode-toggle"
