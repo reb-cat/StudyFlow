@@ -37,12 +37,19 @@ export default function LoginPage() {
     mutationFn: async (data: LoginForm) => {
       return await apiRequest('POST', '/api/login', data);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      const user = response.user;
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
-      navigate("/student");
+      
+      // Redirect based on user role
+      if (user.role === 'admin' || user.role === 'parent') {
+        navigate("/admin");
+      } else {
+        navigate("/student"); // Default for students
+      }
     },
     onError: (error) => {
       toast({
