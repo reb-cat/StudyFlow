@@ -1,14 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  // Check if user is authenticated  
-  // For now, we'll use a simple placeholder check
-  // In production, this would integrate with your actual auth system
-  const isAuthenticated = false; // Placeholder - replace with actual auth check
+  // Check if user is authenticated via session
+  const userId = (req.session as any)?.userId;
   
-  if (!isAuthenticated) {
+  if (!userId) {
     return res.status(401).json({ message: 'Not authenticated' });
   }
+  
+  // Attach user ID to request for use in route handlers
+  (req as any).userId = userId;
   next();
 };
 

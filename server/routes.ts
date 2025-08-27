@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import session from "express-session";
 import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, registerUserSchema } from "@shared/schema";
 import { z } from "zod";
@@ -21,6 +22,18 @@ const emailConfig = {
 import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Session configuration
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'development-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // Set to true in production with HTTPS
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
 
   // Assignment API routes
   
@@ -299,6 +312,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Invalid email or password' });
       }
       
+      // Create session for authenticated user
+      (req.session as any).userId = user.id;
+      (req.session as any).user = user;
+      
       // Return user without password
       const { password: _, ...userWithoutPassword } = user;
       
@@ -315,9 +332,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication check route - returns current user if authenticated
   app.get('/api/auth/user', async (req, res) => {
     try {
-      // For now, return null if no session/user - frontend will handle redirect
-      // In a full implementation, this would check session/JWT
-      res.status(401).json({ message: 'Not authenticated' });
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+      
+      // Get current user from database
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+      
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
     } catch (error) {
       console.error('Error checking auth:', error);
       res.status(500).json({ message: 'Failed to check authentication' });
