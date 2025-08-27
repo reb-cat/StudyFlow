@@ -212,7 +212,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FDFDFD] to-[#F8F9FA] dark:from-gray-900 dark:to-gray-800 p-4 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 p-4 sm:p-6">
       <div className="max-w-5xl mx-auto">
         
         {/* Header - Full navigation for Overview, minimal for Guided */}
