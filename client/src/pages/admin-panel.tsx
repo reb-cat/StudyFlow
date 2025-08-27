@@ -159,45 +159,45 @@ export default function AdminPanel() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
               <Link href="/" className="block">
-                <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
-                  <Home className="h-4 w-4" />
-                  <span className="text-xs">Home</span>
+                <Button variant="outline" size="sm" className="w-full h-10 flex items-center gap-1 text-xs">
+                  <Home className="h-3 w-3" />
+                  Home
                 </Button>
               </Link>
               
               <Link href="/student" className="block">
-                <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
-                  <Users className="h-4 w-4" />
-                  <span className="text-xs">Students</span>
+                <Button variant="outline" size="sm" className="w-full h-10 flex items-center gap-1 text-xs">
+                  <Users className="h-3 w-3" />
+                  Students
                 </Button>
               </Link>
               
               <Link href="/student/abigail" className="block">
-                <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
-                  <UserCheck className="h-4 w-4" />
-                  <span className="text-xs">Abigail</span>
+                <Button variant="outline" size="sm" className="w-full h-10 flex items-center gap-1 text-xs">
+                  <UserCheck className="h-3 w-3" />
+                  Abigail
                 </Button>
               </Link>
               
               <Link href="/student/khalil" className="block">
-                <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
-                  <UserCheck className="h-4 w-4" />
-                  <span className="text-xs">Khalil</span>
+                <Button variant="outline" size="sm" className="w-full h-10 flex items-center gap-1 text-xs">
+                  <UserCheck className="h-3 w-3" />
+                  Khalil
                 </Button>
               </Link>
               
               <Link href="/print-queue" className="block">
-                <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
-                  <Printer className="h-4 w-4" />
-                  <span className="text-xs">Print Queue</span>
+                <Button variant="outline" size="sm" className="w-full h-10 flex items-center gap-1 text-xs">
+                  <Printer className="h-3 w-3" />
+                  Print
                 </Button>
               </Link>
               
-              <Button variant="secondary" className="w-full h-16 flex flex-col gap-1" disabled>
-                <Grid3X3 className="h-4 w-4" />
-                <span className="text-xs">Admin</span>
+              <Button variant="secondary" size="sm" className="w-full h-10 flex items-center gap-1 text-xs" disabled>
+                <Grid3X3 className="h-3 w-3" />
+                Admin
               </Button>
             </div>
           </CardContent>
