@@ -308,16 +308,20 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mx-4">
                 {(() => {
                   const instructions = currentBlock.assignment?.instructions;
+                  
+                  // Check if instructions exist and are meaningful
                   const hasRealInstructions = instructions && 
                     instructions.trim() !== '' &&
-                    instructions !== 'Assignment from Canvas' &&
-                    !instructions.toLowerCase().includes('no additional details were added');
+                    instructions.trim() !== 'Assignment from Canvas' &&
+                    !instructions.toLowerCase().includes('no additional details were added for this assignment') &&
+                    instructions.length > 50; // Must be longer than just a title
 
                   if (hasRealInstructions) {
                     return (
-                      <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed !text-base">
-                        {instructions}
-                      </p>
+                      <div 
+                        className="text-base text-gray-700 dark:text-gray-300 leading-relaxed !text-base max-h-32 overflow-y-auto"
+                        dangerouslySetInnerHTML={{ __html: instructions }}
+                      />
                     );
                   } else {
                     return (
