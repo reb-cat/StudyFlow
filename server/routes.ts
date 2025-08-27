@@ -608,7 +608,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ElevenLabs TTS route (Khalil only)
   app.post('/api/tts/generate', async (req, res) => {
     try {
-      const { text, studentName } = req.body;
+      const { text, studentName, voiceId } = req.body;
       
       // Only allow TTS for Khalil
       if (studentName !== 'Khalil') {
@@ -619,8 +619,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Text is required' });
       }
       
+      // Use specific voice for Khalil - Brian (calm, educational voice)
+      const khalilVoiceId = voiceId || 'nPczCjzI2devNBz1zQrb'; // Brian - great for educational content
+      
       const elevenLabs = getElevenLabsService();
-      const audioBuffer = await elevenLabs.generateSpeech(text);
+      const audioBuffer = await elevenLabs.generateSpeech(text, khalilVoiceId, {
+        stability: 0.6,        // Slightly more stable for educational content
+        similarity_boost: 0.8, // Clear pronunciation
+        style: 0.2,           // Subtle expressiveness 
+        use_speaker_boost: true
+      });
       
       res.set({
         'Content-Type': 'audio/mpeg',
