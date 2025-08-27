@@ -13,12 +13,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, UserPlus, ArrowLeft } from "lucide-react";
 
-// Registration form schema
+// Enhanced registration form schema with comprehensive validation
 const registerSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string()
+    .min(1, "First name is required")
+    .max(50, "First name must be less than 50 characters")
+    .regex(/^[a-zA-Z\s-']+$/, "First name can only contain letters, spaces, hyphens and apostrophes"),
+  lastName: z.string()
+    .min(1, "Last name is required")
+    .max(50, "Last name must be less than 50 characters")
+    .regex(/^[a-zA-Z\s-']+$/, "Last name can only contain letters, spaces, hyphens and apostrophes"),
+  email: z.string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address")
+    .max(100, "Email must be less than 100 characters")
+    .toLowerCase()
+    .trim(),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(100, "Password must be less than 100 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -46,26 +62,105 @@ export default function RegisterPage() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterForm) => {
+      // Log validation data for debugging
+      console.log("[Registration] Submitting form data:", {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        passwordLength: data.password.length,
+        timestamp: new Date().toISOString()
+      });
+
+      // Validate all fields before submission
+      const validationErrors: string[] = [];
+      
+      if (!data.firstName?.trim()) validationErrors.push("First name is empty");
+      if (!data.lastName?.trim()) validationErrors.push("Last name is empty");
+      if (!data.email?.trim()) validationErrors.push("Email is empty");
+      if (!data.password) validationErrors.push("Password is empty");
+      
+      if (validationErrors.length > 0) {
+        const errorMsg = `Client validation failed: ${validationErrors.join(", ")}`;
+        console.error("[Registration]", errorMsg);
+        throw new Error(errorMsg);
+      }
+
       const { confirmPassword, ...userData } = data;
-      return await apiRequest('POST', '/api/register', userData);
+      
+      // Clean and normalize data
+      const cleanedData = {
+        firstName: userData.firstName.trim(),
+        lastName: userData.lastName.trim(),
+        email: userData.email.toLowerCase().trim(),
+        password: userData.password
+      };
+      
+      console.log("[Registration] Sending cleaned data to server");
+      
+      try {
+        const response = await apiRequest('POST', '/api/register', cleanedData);
+        console.log("[Registration] Success response:", response);
+        return response;
+      } catch (error: any) {
+        console.error("[Registration] Server error:", {
+          message: error.message,
+          status: error.status,
+          response: error.response,
+          timestamp: new Date().toISOString()
+        });
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      console.log("[Registration] Account created successfully:", response);
       toast({
         title: "Registration successful!",
         description: "Your account has been created. Please sign in.",
       });
       navigate("/login");
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("[Registration] Final error handler:", error);
+      
+      // Parse different error types
+      let errorMessage = "Something went wrong. Please try again.";
+      
+      if (error.message?.includes("email already exists") || error.message?.includes("account with this email")) {
+        errorMessage = "An account with this email already exists. Please use a different email or sign in.";
+      } else if (error.message?.includes("validation")) {
+        errorMessage = error.message;
+      } else if (error.message?.includes("network") || error.message?.includes("fetch")) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else if (error.message?.includes("400")) {
+        errorMessage = "Invalid registration data. Please check all fields and try again.";
+      } else if (error.message?.includes("500")) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Registration failed",
-        description: error.message || "Something went wrong. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = (data: RegisterForm) => {
+    console.log("[Registration] Form submitted with data:", {
+      fields: Object.keys(data),
+      hasAllFields: !!(data.firstName && data.lastName && data.email && data.password && data.confirmPassword),
+      formErrors: form.formState.errors,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Additional client-side checks
+    if (form.formState.errors && Object.keys(form.formState.errors).length > 0) {
+      console.error("[Registration] Form has validation errors:", form.formState.errors);
+      return;
+    }
+    
     registerMutation.mutate(data);
   };
 

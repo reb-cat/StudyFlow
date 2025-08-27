@@ -246,50 +246,223 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/register - Create new user account
+  // POST /api/register - Create new user account with comprehensive error handling
   app.post('/api/register', async (req, res) => {
+    const requestId = Date.now().toString();
+    console.log(`[Registration-${requestId}] Received registration request:`, {
+      bodyKeys: Object.keys(req.body || {}),
+      hasBody: !!req.body,
+      contentType: req.headers['content-type'],
+      timestamp: new Date().toISOString()
+    });
+
     try {
-      // Create server-side validation schema (without confirmPassword)
+      // Check request body exists
+      if (!req.body) {
+        console.error(`[Registration-${requestId}] Empty request body`);
+        return res.status(400).json({ 
+          message: 'Request body is required',
+          errorCode: 'EMPTY_BODY' 
+        });
+      }
+
+      // Check Content-Type header
+      if (!req.headers['content-type']?.includes('application/json')) {
+        console.warn(`[Registration-${requestId}] Invalid content-type:`, req.headers['content-type']);
+      }
+
+      // Enhanced validation schema with detailed requirements
       const serverRegisterSchema = z.object({
-        firstName: z.string().min(1, "First name is required"),
-        lastName: z.string().min(1, "Last name is required"),
-        email: z.string().email("Please enter a valid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        firstName: z.string()
+          .min(1, "First name is required")
+          .max(50, "First name must be less than 50 characters")
+          .regex(/^[a-zA-Z\s-']+$/, "First name contains invalid characters"),
+        lastName: z.string()
+          .min(1, "Last name is required")
+          .max(50, "Last name must be less than 50 characters")
+          .regex(/^[a-zA-Z\s-']+$/, "Last name contains invalid characters"),
+        email: z.string()
+          .min(1, "Email is required")
+          .email("Please enter a valid email address")
+          .max(100, "Email must be less than 100 characters")
+          .toLowerCase()
+          .trim(),
+        password: z.string()
+          .min(8, "Password must be at least 8 characters")
+          .max(100, "Password must be less than 100 characters"),
       });
-      const { firstName, lastName, email, password } = serverRegisterSchema.parse(req.body);
+
+      // Parse and validate input
+      console.log(`[Registration-${requestId}] Validating input...`);
+      let validatedData;
+      try {
+        validatedData = serverRegisterSchema.parse(req.body);
+        console.log(`[Registration-${requestId}] Validation passed for:`, {
+          email: validatedData.email,
+          firstName: validatedData.firstName,
+          lastName: validatedData.lastName,
+          passwordLength: validatedData.password.length
+        });
+      } catch (zodError) {
+        console.error(`[Registration-${requestId}] Validation failed:`, zodError.errors);
+        if (zodError.name === 'ZodError') {
+          const fieldErrors = zodError.errors.map(e => `${e.path.join('.')}: ${e.message}`);
+          return res.status(400).json({ 
+            message: `Validation failed: ${fieldErrors[0]}`,
+            errors: zodError.errors,
+            errorCode: 'VALIDATION_ERROR'
+          });
+        }
+        throw zodError;
+      }
+
+      const { firstName, lastName, email, password } = validatedData;
       
+      // Test database connection
+      console.log(`[Registration-${requestId}] Testing database connection...`);
+      const dbConnected = await storage.checkDatabaseConnection();
+      if (!dbConnected) {
+        console.error(`[Registration-${requestId}] Database connection failed`);
+        return res.status(503).json({ 
+          message: 'Database connection unavailable. Please try again later.',
+          errorCode: 'DB_CONNECTION_ERROR'
+        });
+      }
+      console.log(`[Registration-${requestId}] Database connection OK`);
+
       // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: 'An account with this email already exists' });
+      console.log(`[Registration-${requestId}] Checking for existing user with email:`, email);
+      try {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser) {
+          console.log(`[Registration-${requestId}] User already exists with email:`, email);
+          return res.status(400).json({ 
+            message: 'An account with this email already exists',
+            errorCode: 'EMAIL_EXISTS'
+          });
+        }
+      } catch (checkError) {
+        console.error(`[Registration-${requestId}] Error checking existing user:`, checkError);
+        // Continue - might be a connection issue
       }
       
       // Create username from email (before @ symbol)
-      const username = email.split('@')[0];
+      const baseUsername = email.split('@')[0];
+      let username = baseUsername;
+      let attempts = 0;
       
-      // Create user (password hashing would be done here in production)
-      const newUser = await storage.createUser({
-        username,
-        email,
-        password, // In production, this should be hashed
-        firstName,
-        lastName,
-        role: 'user', // Default all new users to 'user' role
-      });
+      // Handle potential username conflicts
+      console.log(`[Registration-${requestId}] Checking username availability:`, username);
+      while (attempts < 5) {
+        try {
+          const existingUsername = await storage.getUserByUsername(username);
+          if (!existingUsername) {
+            break; // Username is available
+          }
+          attempts++;
+          username = `${baseUsername}${Math.floor(Math.random() * 10000)}`;
+          console.log(`[Registration-${requestId}] Username conflict, trying:`, username);
+        } catch (usernameError) {
+          console.warn(`[Registration-${requestId}] Error checking username:`, usernameError);
+          break; // Proceed with current username
+        }
+      }
+      
+      // Create user
+      console.log(`[Registration-${requestId}] Creating user with username:`, username);
+      let newUser;
+      try {
+        newUser = await storage.createUser({
+          username,
+          email: email.toLowerCase().trim(),
+          password, // In production, this should be hashed
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          role: 'user', // Default all new users to 'user' role
+        });
+        console.log(`[Registration-${requestId}] User created successfully:`, {
+          id: newUser.id,
+          email: newUser.email,
+          username: newUser.username
+        });
+      } catch (createError: any) {
+        console.error(`[Registration-${requestId}] Failed to create user:`, {
+          error: createError.message,
+          code: createError.code,
+          constraint: createError.constraint,
+          detail: createError.detail
+        });
+        
+        // Handle specific database errors
+        if (createError.code === '23505' || createError.constraint?.includes('unique')) {
+          if (createError.constraint?.includes('email')) {
+            return res.status(400).json({ 
+              message: 'An account with this email already exists',
+              errorCode: 'EMAIL_CONSTRAINT'
+            });
+          }
+          if (createError.constraint?.includes('username')) {
+            return res.status(400).json({ 
+              message: 'This username is already taken',
+              errorCode: 'USERNAME_CONSTRAINT'
+            });
+          }
+          return res.status(400).json({ 
+            message: 'Duplicate account detected',
+            errorCode: 'UNIQUE_CONSTRAINT'
+          });
+        }
+        
+        if (createError.code === '23502') {
+          return res.status(400).json({ 
+            message: 'Required fields are missing',
+            errorCode: 'NULL_CONSTRAINT'
+          });
+        }
+        
+        if (createError.code === '23514') {
+          return res.status(400).json({ 
+            message: 'Invalid field values provided',
+            errorCode: 'CHECK_CONSTRAINT'
+          });
+        }
+        
+        // Generic database error
+        return res.status(500).json({ 
+          message: 'Database error while creating account',
+          errorCode: 'DATABASE_ERROR'
+        });
+      }
       
       // Return user without password
       const { password: _, ...userWithoutPassword } = newUser;
       
+      console.log(`[Registration-${requestId}] Registration completed successfully`);
       res.status(201).json({
         message: 'Account created successfully',
         user: userWithoutPassword
       });
-    } catch (error) {
-      console.error('Error registering user:', error);
+    } catch (error: any) {
+      console.error(`[Registration-${requestId}] Unexpected error:`, {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Handle any uncaught errors
       if (error.name === 'ZodError') {
-        return res.status(400).json({ message: 'Invalid registration data', errors: error.errors });
+        return res.status(400).json({ 
+          message: 'Invalid registration data',
+          errors: error.errors,
+          errorCode: 'VALIDATION_ERROR'
+        });
       }
-      res.status(500).json({ message: 'Failed to create account' });
+      
+      res.status(500).json({ 
+        message: 'An unexpected error occurred during registration',
+        errorCode: 'INTERNAL_ERROR',
+        requestId
+      });
     }
   });
 
