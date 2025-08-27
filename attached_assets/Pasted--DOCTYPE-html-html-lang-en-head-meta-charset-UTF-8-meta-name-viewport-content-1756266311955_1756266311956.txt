@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow - Learning Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Core Colors */
+            --accent-primary: #069494;
+            --accent-secondary: #52C4C4;
+            --accent-tertiary: #B8E6E6;
+            --accent-dark: #014D4E;
+            
+            /* Status Colors */
+            --done-color: #10B981;
+            --need-time-color: #F59E0B;
+            --stuck-color: #EF4444;
+            
+            /* Light Mode - Softer Backgrounds */
+            --bg-primary: #FDFDFD;
+            --bg-secondary: #F8F9FA;
+            --bg-tertiary: #F1F3F4;
+            --text-primary: #1A1A1A;
+            --text-secondary: #525252;
+            --text-tertiary: #737373;
+            --border: #E5E5E5;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+            line-height: 1.6;
+            background: linear-gradient(135deg, #FDFDFD 0%, #F8F9FA 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(253, 253, 253, 0.85);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px) saturate(1.2);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-dark) 100%);
+            border-radius: 8px;
+            margin-right: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-primary);
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content */
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-primary) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-dark) 100%);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-tertiary);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--need-time-color) 0%, #D97706 100%);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Quick Stats */
+        .stats-section {
+            margin-bottom: 4rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(253, 253, 253, 0.6);
+            border: 1px solid rgba(229, 229, 229, 0.6);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+            background: rgba(253, 253, 253, 0.8);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-description {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+        }
+
+        .stat-done .stat-value { color: var(--done-color); }
+        .stat-time .stat-value { color: var(--need-time-color); }
+        .stat-stuck .stat-value { color: var(--stuck-color); }
+        .stat-total .stat-value { color: var(--accent-primary); }
+
+        /* Recent Activity */
+        .activity-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .activity-feed {
+            background: rgba(253, 253, 253, 0.6);
+            border: 1px solid rgba(229, 229, 229, 0.6);
+            border-radius: 16px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+        }
+
+        .activity-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .activity-done { background: rgba(16, 185, 129, 0.1); color: var(--done-color); }
+        .activity-stuck { background: rgba(239, 68, 68, 0.1); color: var(--stuck-color); }
+        .activity-time { background: rgba(245, 158, 11, 0.1); color: var(--need-time-color); }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-text {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-meta {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+        }
+
+        .activity-time-stamp {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-left: auto;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .footer-section h4 {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-container {
+                padding: 0 1rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .main {
+                padding: 2rem 1rem;
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-icon">S</div>
+                StudyFlow
+            </a>
+            
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="/dashboard">Dashboard</a></li>
+                    <li><a href="/tasks">Tasks</a></li>
+                    <li><a href="/calendar">Calendar</a></li>
+                    <li><a href="/analytics">Analytics</a></li>
+                </ul>
+            </nav>
+            
+            <div class="user-section">
+                <span>Settings</span>
+                <span>AC</span>
+                <span>Alex Chen</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <h1 class="hero-title">Focus. Plan. Achieve.</h1>
+            <p class="hero-subtitle">Your family's learning hub</p>
+            
+            <div class="action-buttons">
+                <a href="/student" class="btn btn-primary">
+                    👨‍🎓 Student Dashboard
+                </a>
+                <a href="/admin" class="btn btn-secondary">
+                    ⚙️ Admin Panel
+                </a>
+                <a href="/print" class="btn btn-warning">
+                    🖨️ Print Queue
+                </a>
+            </div>
+        </section>
+
+        <!-- Quick Stats -->
+        <section class="stats-section">
+            <h2 class="section-title">Today's Overview</h2>
+            <div class="stats-grid">
+                <div class="stat-card stat-total">
+                    <div class="stat-header">
+                        <div class="stat-title">Active Students</div>
+                    </div>
+                    <div class="stat-value">4</div>
+                    <div class="stat-description">Students working today</div>
+                </div>
+                
+                <div class="stat-card stat-done">
+                    <div class="stat-header">
+                        <div class="stat-title">Tasks Completed</div>
+                    </div>
+                    <div class="stat-value">12</div>
+                    <div class="stat-description">Great progress today!</div>
+                </div>
+                
+                <div class="stat-card stat-time">
+                    <div class="stat-header">
+                        <div class="stat-title">Need More Time</div>
+                    </div>
+                    <div class="stat-value">3</div>
+                    <div class="stat-description">Working through challenges</div>
+                </div>
+                
+                <div class="stat-card stat-stuck">
+                    <div class="stat-header">
+                        <div class="stat-title">Need Attention</div>
+                    </div>
+                    <div class="stat-value">1</div>
+                    <div class="stat-description">Students requesting help</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Activity -->
+        <section class="activity-section">
+            <h2 class="section-title">Recent Activity</h2>
+            <div class="activity-feed">
+                <div class="activity-item">
+                    <div class="activity-icon activity-done">✓</div>
+                    <div class="activity-content">
+                        <div class="activity-text">Abigail completed Math - Fractions Review</div>
+                        <div class="activity-meta">Chapter 4, Problem Set A</div>
+                    </div>
+                    <div class="activity-time-stamp">2 mins ago</div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon activity-stuck">!</div>
+                    <div class="activity-content">
+                        <div class="activity-text">Marcus is stuck on Science - Cell Biology</div>
+                        <div class="activity-meta">Needs help with mitochondria section</div>
+                    </div>
+                    <div class="activity-time-stamp">8 mins ago</div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon activity-done">✓</div>
+                    <div class="activity-content">
+                        <div class="activity-text">Sarah completed Reading - Character Analysis</div>
+                        <div class="activity-meta">To Kill a Mockingbird essay</div>
+                    </div>
+                    <div class="activity-time-stamp">15 mins ago</div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon activity-time">⏱</div>
+                    <div class="activity-content">
+                        <div class="activity-text">Emma needs more time on History - Civil War Timeline</div>
+                        <div class="activity-meta">Extended deadline to Thursday</div>
+                    </div>
+                    <div class="activity-time-stamp">22 mins ago</div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon activity-done">✓</div>
+                    <div class="activity-content">
+                        <div class="activity-text">Abigail completed Writing - Persuasive Essay Draft</div>
+                        <div class="activity-meta">Environmental protection topic</div>
+                    </div>
+                    <div class="activity-time-stamp">1 hour ago</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>StudyFlow</h4>
+                <p style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.5;">
+                    Empowering students with executive function differences to achieve their academic potential.
+                </p>
+            </div>
+            
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul class="footer-links">
+                    <li><a href="/help">Help Center</a></li>
+                    <li><a href="/contact">Contact Us</a></li>
+                    <li><a href="/accessibility">Accessibility</a></li>
+                    <li><a href="/status">System Status</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h4>Admin</h4>
+                <ul class="footer-links">
+                    <li><a href="/admin/settings">Settings</a></li>
+                    <li><a href="/admin/users">Manage Users</a></li>
+                    <li><a href="/admin/reports">Reports</a></li>
+                    <li><a href="/admin/backup">Backup</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h4>Resources</h4>
+                <ul class="footer-links">
+                    <li><a href="/guides">Study Guides</a></li>
+                    <li><a href="/templates">Templates</a></li>
+                    <li><a href="/tips">Executive Function Tips</a></li>
+                    <li><a href="/documentation">API Docs</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            © 2024 StudyFlow. Built with ❤️ for student success.
+        </div>
+    </footer>
+
+    <script>
+        // Simple interactivity for demo purposes
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                if (this.href === '#' || this.href.includes('localhost')) {
+                    e.preventDefault();
+                    alert(`Would navigate to: ${this.textContent.trim()}`);
+                }
+            });
+        });
+
+        // Auto-refresh activity feed simulation
+        function updateActivityTimestamps() {
+            const timestamps = document.querySelectorAll('.activity-time-stamp');
+            // In a real app, you'd fetch new data here
+        }
+
+        // Update every minute
+        setInterval(updateActivityTimestamps, 60000);
+    </script>
+</body>
+</html>

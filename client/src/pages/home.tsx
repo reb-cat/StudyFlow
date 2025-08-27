@@ -1,272 +1,207 @@
-import { motion } from "framer-motion";
-import Header from "@/components/layout/header";
-import Footer from "@/components/layout/footer";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  ClipboardList,
-  Clock,
-  BarChart3,
-  Calendar,
-  Heart,
-  BookOpen,
-  CheckCircle,
-  Shield,
-  Zap,
-  Printer
-} from "lucide-react";
-
-const features = [
-  {
-    icon: ClipboardList,
-    title: "Smart Task Management",
-    description: "Break down complex assignments into manageable steps with automatic time estimates and gentle reminders.",
-    color: "bg-blue-100 text-blue-600"
-  },
-  {
-    icon: Clock,
-    title: "Focus Timer",
-    description: "Customizable Pomodoro sessions with break reminders and distraction blocking features.",
-    color: "bg-green-100 text-green-600"
-  },
-  {
-    icon: BarChart3,
-    title: "Progress Analytics",
-    description: "Visual progress tracking with encouraging insights to help you understand your productivity patterns.",
-    color: "bg-purple-100 text-purple-600"
-  },
-  {
-    icon: Calendar,
-    title: "Flexible Scheduling",
-    description: "Adaptive calendar that adjusts to your energy levels and accommodates unexpected changes.",
-    color: "bg-orange-100 text-orange-600"
-  },
-  {
-    icon: Heart,
-    title: "Gentle Accountability",
-    description: "Supportive check-ins and study buddy matching to keep you motivated without overwhelming pressure.",
-    color: "bg-red-100 text-red-600"
-  },
-  {
-    icon: BookOpen,
-    title: "Study Resources",
-    description: "Curated study techniques, accessibility tools, and executive function strategies from education experts.",
-    color: "bg-teal-100 text-teal-600"
-  }
-];
-
-const techStack = [
-  { name: "Next.js 15", description: "App Router & TypeScript" },
-  { name: "Supabase", description: "Real-time Database" },
-  { name: "shadcn/ui", description: "Accessible Components" },
-  { name: "Framer Motion", description: "Smooth Animations" }
-];
+import { Link } from "wouter";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="flex-1">
+    <div className="min-h-screen bg-gradient-to-br from-[#FDFDFD] to-[#F8F9FA]">
+      {/* Header */}
+      <header className="bg-[rgba(253,253,253,0.85)] border-b border-[#E5E5E5] p-4 sticky top-0 z-[100] backdrop-blur-[10px] backdrop-saturate-[1.2]">
+        <div className="max-w-6xl mx-auto flex justify-between items-center px-8">
+          <Link href="/" className="flex items-center text-2xl font-bold text-[#069494] no-underline" data-testid="logo-link">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#069494] to-[#014D4E] rounded-lg mr-3 flex items-center justify-center text-white font-semibold">
+              S
+            </div>
+            StudyFlow
+          </Link>
+          
+          <nav>
+            <ul className="flex gap-8 list-none">
+              <li><Link href="/student" className="no-underline text-[#525252] font-medium hover:text-[#069494] transition-colors" data-testid="nav-dashboard">Dashboard</Link></li>
+              <li><Link href="/admin" className="no-underline text-[#525252] font-medium hover:text-[#069494] transition-colors" data-testid="nav-admin">Admin</Link></li>
+              <li><Link href="/print-queue" className="no-underline text-[#525252] font-medium hover:text-[#069494] transition-colors" data-testid="nav-print">Print Queue</Link></li>
+            </ul>
+          </nav>
+          
+          <div className="flex items-center gap-4 text-sm text-[#525252]" data-testid="user-section">
+            <span>Settings</span>
+            <span>SF</span>
+            <span>StudyFlow Admin</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-6xl mx-auto px-8 py-12">
         {/* Hero Section */}
-        <motion.section 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="border-b border-border bg-secondary/50"
-          data-testid="hero-section"
-        >
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="max-w-3xl">
-              <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl" data-testid="hero-title">
-                Focus. Plan. Achieve.
-              </h1>
-              <p className="mt-4 text-xl text-muted-foreground leading-relaxed" data-testid="hero-description">
-                A distraction-free productivity platform designed specifically for students with executive function needs. Organize your tasks, manage your time, and stay on track with gentle guidance.
-              </p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <Button 
-                  size="lg" 
-                  className="h-11 px-8"
-                  data-testid="button-get-started"
-                  onClick={() => window.location.href = '/student'}
-                >
-                  Student Dashboard
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="h-11 px-8"
-                  data-testid="button-admin-panel"
-                  onClick={() => window.location.href = '/admin'}
-                >
-                  Admin Panel
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  size="lg" 
-                  className="h-11 px-8 bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-200"
-                  data-testid="button-print-queue"
-                  onClick={() => window.location.href = '/print-queue'}
-                >
-                  <Printer className="w-4 h-4 mr-2" />
-                  Print Queue
-                </Button>
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Features Grid */}
-        <section className="py-16" data-testid="features-section">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground" data-testid="features-title">
-                Built for Student Success
-              </h2>
-              <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto" data-testid="features-description">
-                Every feature is designed with accessibility and executive function in mind, helping you build sustainable study habits.
-              </p>
-            </div>
-
-            <motion.div 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="grid gap-8 md:grid-cols-2 lg:grid-cols-3"
-              data-testid="features-grid"
+        <section className="text-center mb-16" data-testid="hero-section">
+          <h1 className="text-5xl font-bold tracking-tight mb-4 bg-gradient-to-br from-[#1A1A1A] to-[#069494] bg-clip-text text-transparent" data-testid="hero-title">
+            Focus. Plan. Achieve.
+          </h1>
+          <p className="text-xl text-[#525252] mb-12" data-testid="hero-subtitle">
+            Your family's learning hub
+          </p>
+          
+          <div className="flex justify-center gap-4 flex-wrap mb-8" data-testid="action-buttons">
+            <Link
+              href="/student"
+              className="px-8 py-4 border-none rounded-xl font-semibold text-base cursor-pointer transition-all duration-200 no-underline inline-flex items-center gap-2 bg-gradient-to-br from-[#069494] to-[#014D4E] text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:-translate-y-0.5 hover:shadow-[0_10px_15px_rgba(0,0,0,0.1)]"
+              data-testid="button-student-dashboard"
             >
-              {features.map((feature, index) => {
-                const IconComponent = feature.icon;
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    viewport={{ once: true }}
-                  >
-                    <Card className="p-6 h-full" data-testid={`feature-card-${index}`}>
-                      <CardContent className="p-0">
-                        <div className={`flex items-center justify-center w-12 h-12 rounded-lg mb-4 ${feature.color}`}>
-                          <IconComponent className="w-6 h-6" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-foreground mb-2" data-testid={`feature-title-${index}`}>
-                          {feature.title}
-                        </h3>
-                        <p className="text-muted-foreground leading-relaxed" data-testid={`feature-description-${index}`}>
-                          {feature.description}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
+              👨‍🎓 Student Dashboard
+            </Link>
+            <Link
+              href="/admin"
+              className="px-8 py-4 bg-[#F1F3F4] text-[#1A1A1A] border border-[#E5E5E5] rounded-xl font-semibold text-base cursor-pointer transition-all duration-200 no-underline inline-flex items-center gap-2 hover:bg-[#F8F9FA] hover:border-[#B8E6E6]"
+              data-testid="button-admin-panel"
+            >
+              ⚙️ Admin Panel
+            </Link>
+            <Link
+              href="/print-queue"
+              className="px-8 py-4 bg-gradient-to-br from-[#F59E0B] to-[#D97706] text-white rounded-xl font-semibold text-base cursor-pointer transition-all duration-200 no-underline inline-flex items-center gap-2 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(245,158,11,0.4)]"
+              data-testid="button-print-queue"
+            >
+              🖨️ Print Queue
+            </Link>
           </div>
         </section>
 
-        {/* Technology Stack */}
-        <section className="py-16 bg-secondary/50 border-t border-border" data-testid="tech-section">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground" data-testid="tech-title">
-                Built with Modern Technology
-              </h2>
-              <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto" data-testid="tech-description">
-                Powered by the latest web technologies for performance, accessibility, and reliability.
-              </p>
-            </div>
-
-            <motion.div 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
-              data-testid="tech-grid"
-            >
-              {techStack.map((tech, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                >
-                  <Card className="p-4 text-center" data-testid={`tech-card-${index}`}>
-                    <CardContent className="p-0">
-                      <div className="text-2xl font-bold text-foreground mb-2" data-testid={`tech-name-${index}`}>
-                        {tech.name}
-                      </div>
-                      <p className="text-sm text-muted-foreground" data-testid={`tech-description-${index}`}>
-                        {tech.description}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              viewport={{ once: true }}
-              className="mt-12 text-center"
-              data-testid="compliance-badges"
-            >
-              <div className="inline-flex items-center space-x-2 text-sm text-muted-foreground">
-                <CheckCircle className="w-4 h-4" />
-                <span>WCAG 2.1 AA Compliant</span>
-                <span>•</span>
-                <Shield className="w-4 h-4" />
-                <span>SOC 2 Type II</span>
-                <span>•</span>
-                <Zap className="w-4 h-4" />
-                <span>99.9% Uptime</span>
+        {/* Quick Stats */}
+        <section className="mb-16" data-testid="stats-section">
+          <h2 className="text-2xl font-semibold mb-6 text-[#1A1A1A]" data-testid="stats-title">Today's Overview</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+            <div className="bg-[rgba(253,253,253,0.6)] border border-[rgba(229,229,229,0.6)] rounded-2xl p-6 transition-all duration-200 backdrop-blur-[10px] hover:-translate-y-0.5 hover:shadow-[0_4px_6px_rgba(0,0,0,0.1)] hover:bg-[rgba(253,253,253,0.8)]" data-testid="stat-card-students">
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-sm font-semibold text-[#525252] uppercase tracking-wide">Active Students</div>
               </div>
-            </motion.div>
+              <div className="text-3xl font-bold mb-2 text-[#069494]">2</div>
+              <div className="text-sm text-[#737373]">Students working today</div>
+            </div>
+            
+            <div className="bg-[rgba(253,253,253,0.6)] border border-[rgba(229,229,229,0.6)] rounded-2xl p-6 transition-all duration-200 backdrop-blur-[10px] hover:-translate-y-0.5 hover:shadow-[0_4px_6px_rgba(0,0,0,0.1)] hover:bg-[rgba(253,253,253,0.8)]" data-testid="stat-card-completed">
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-sm font-semibold text-[#525252] uppercase tracking-wide">Tasks Completed</div>
+              </div>
+              <div className="text-3xl font-bold mb-2 text-[#10B981]">8</div>
+              <div className="text-sm text-[#737373]">Great progress today!</div>
+            </div>
+            
+            <div className="bg-[rgba(253,253,253,0.6)] border border-[rgba(229,229,229,0.6)] rounded-2xl p-6 transition-all duration-200 backdrop-blur-[10px] hover:-translate-y-0.5 hover:shadow-[0_4px_6px_rgba(0,0,0,0.1)] hover:bg-[rgba(253,253,253,0.8)]" data-testid="stat-card-need-time">
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-sm font-semibold text-[#525252] uppercase tracking-wide">Need More Time</div>
+              </div>
+              <div className="text-3xl font-bold mb-2 text-[#F59E0B]">3</div>
+              <div className="text-sm text-[#737373]">Working through challenges</div>
+            </div>
+            
+            <div className="bg-[rgba(253,253,253,0.6)] border border-[rgba(229,229,229,0.6)] rounded-2xl p-6 transition-all duration-200 backdrop-blur-[10px] hover:-translate-y-0.5 hover:shadow-[0_4px_6px_rgba(0,0,0,0.1)] hover:bg-[rgba(253,253,253,0.8)]" data-testid="stat-card-stuck">
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-sm font-semibold text-[#525252] uppercase tracking-wide">Need Attention</div>
+              </div>
+              <div className="text-3xl font-bold mb-2 text-[#EF4444]">1</div>
+              <div className="text-sm text-[#737373]">Students requesting help</div>
+            </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <motion.section 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="py-16"
-          data-testid="cta-section"
-        >
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <Card className="max-w-3xl mx-auto p-8 text-center" data-testid="cta-card">
-              <CardContent className="p-0">
-                <h2 className="text-3xl font-bold text-foreground mb-4" data-testid="cta-title">
-                  Ready to Transform Your Study Habits?
-                </h2>
-                <p className="text-lg text-muted-foreground mb-8 leading-relaxed" data-testid="cta-description">
-                  Join thousands of students who have found their focus and achieved their academic goals with StudyFlow.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" className="h-11 px-8" data-testid="button-start-trial">
-                    Start Free Trial
-                  </Button>
-                  <Button variant="outline" size="lg" className="h-11 px-8" data-testid="button-schedule-demo">
-                    Schedule Demo
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground mt-4" data-testid="cta-disclaimer">
-                  No credit card required • 14-day free trial • Cancel anytime
-                </p>
-              </CardContent>
-            </Card>
+        {/* Recent Activity */}
+        <section className="mb-12" data-testid="activity-section">
+          <h2 className="text-2xl font-semibold mb-6 text-[#1A1A1A]" data-testid="activity-title">Recent Activity</h2>
+          <div className="bg-[rgba(253,253,253,0.6)] border border-[rgba(229,229,229,0.6)] rounded-2xl overflow-hidden backdrop-blur-[10px]" data-testid="activity-feed">
+            <div className="flex items-center p-6 border-b border-[#E5E5E5] transition-colors hover:bg-[#F8F9FA]" data-testid="activity-item-1">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 bg-[rgba(16,185,129,0.1)] text-[#10B981] text-xl">✓</div>
+              <div className="flex-1">
+                <div className="font-medium mb-1">Abigail completed Math - Algebraic Expressions</div>
+                <div className="text-sm text-[#737373]">Chapter 3, Problem Set B</div>
+              </div>
+              <div className="text-xs text-[#737373] ml-auto">5 mins ago</div>
+            </div>
+            
+            <div className="flex items-center p-6 border-b border-[#E5E5E5] transition-colors hover:bg-[#F8F9FA]" data-testid="activity-item-2">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 bg-[rgba(239,68,68,0.1)] text-[#EF4444] text-xl">!</div>
+              <div className="flex-1">
+                <div className="font-medium mb-1">Khalil is stuck on History - Civil War Timeline</div>
+                <div className="text-sm text-[#737373]">Needs help with battle dates</div>
+              </div>
+              <div className="text-xs text-[#737373] ml-auto">12 mins ago</div>
+            </div>
+            
+            <div className="flex items-center p-6 border-b border-[#E5E5E5] transition-colors hover:bg-[#F8F9FA]" data-testid="activity-item-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 bg-[rgba(16,185,129,0.1)] text-[#10B981] text-xl">✓</div>
+              <div className="flex-1">
+                <div className="font-medium mb-1">Abigail completed Reading - Literature Analysis</div>
+                <div className="text-sm text-[#737373]">Character development essay</div>
+              </div>
+              <div className="text-xs text-[#737373] ml-auto">25 mins ago</div>
+            </div>
+            
+            <div className="flex items-center p-6 border-b border-[#E5E5E5] transition-colors hover:bg-[#F8F9FA]" data-testid="activity-item-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 bg-[rgba(245,158,11,0.1)] text-[#F59E0B] text-xl">⏱</div>
+              <div className="flex-1">
+                <div className="font-medium mb-1">Khalil needs more time on Science - Lab Report</div>
+                <div className="text-sm text-[#737373]">Extended deadline to Friday</div>
+              </div>
+              <div className="text-xs text-[#737373] ml-auto">35 mins ago</div>
+            </div>
+            
+            <div className="flex items-center p-6 transition-colors hover:bg-[#F8F9FA]" data-testid="activity-item-5">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 bg-[rgba(16,185,129,0.1)] text-[#10B981] text-xl">✓</div>
+              <div className="flex-1">
+                <div className="font-medium mb-1">Abigail completed Writing - Persuasive Essay</div>
+                <div className="text-sm text-[#737373]">Environmental awareness topic</div>
+              </div>
+              <div className="text-xs text-[#737373] ml-auto">1 hour ago</div>
+            </div>
           </div>
-        </motion.section>
+        </section>
       </main>
 
-      <Footer />
+      {/* Footer */}
+      <footer className="bg-[#F8F9FA] border-t border-[#E5E5E5] p-8 mt-16" data-testid="footer">
+        <div className="max-w-6xl mx-auto px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div data-testid="footer-section-studyflow">
+              <h4 className="font-semibold mb-4 text-[#1A1A1A]">StudyFlow</h4>
+              <p className="text-sm text-[#525252] leading-6">
+                Empowering students with executive function differences to achieve their academic potential.
+              </p>
+            </div>
+            
+            <div data-testid="footer-section-links">
+              <h4 className="font-semibold mb-4 text-[#1A1A1A]">Quick Links</h4>
+              <ul className="list-none">
+                <li className="mb-2"><Link href="/help" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-help">Help Center</Link></li>
+                <li className="mb-2"><Link href="/contact" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-contact">Contact Us</Link></li>
+                <li className="mb-2"><Link href="/accessibility" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-accessibility">Accessibility</Link></li>
+                <li className="mb-2"><Link href="/status" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-status">System Status</Link></li>
+              </ul>
+            </div>
+            
+            <div data-testid="footer-section-admin">
+              <h4 className="font-semibold mb-4 text-[#1A1A1A]">Admin</h4>
+              <ul className="list-none">
+                <li className="mb-2"><Link href="/admin" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-settings">Settings</Link></li>
+                <li className="mb-2"><Link href="/admin" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-users">Manage Users</Link></li>
+                <li className="mb-2"><Link href="/admin" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-reports">Reports</Link></li>
+                <li className="mb-2"><Link href="/admin" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-backup">Backup</Link></li>
+              </ul>
+            </div>
+            
+            <div data-testid="footer-section-resources">
+              <h4 className="font-semibold mb-4 text-[#1A1A1A]">Resources</h4>
+              <ul className="list-none">
+                <li className="mb-2"><Link href="/guides" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-guides">Study Guides</Link></li>
+                <li className="mb-2"><Link href="/templates" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-templates">Templates</Link></li>
+                <li className="mb-2"><Link href="/tips" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-tips">Executive Function Tips</Link></li>
+                <li className="mb-2"><Link href="/documentation" className="text-[#525252] no-underline text-sm transition-colors hover:text-[#069494]" data-testid="footer-link-docs">API Docs</Link></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="text-center mt-8 pt-8 border-t border-[#E5E5E5] text-sm text-[#737373]" data-testid="footer-bottom">
+            © 2025 StudyFlow. Built with ❤️ for student success.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
