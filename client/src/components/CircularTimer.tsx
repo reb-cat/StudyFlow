@@ -69,9 +69,9 @@ export function CircularTimer({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const progress = ((totalTime - timeRemaining) / totalTime) * 100;
+  const progress = (timeRemaining / totalTime) * 100;
   const radius = 110; // 220px diameter - LARGE timer as requested
-  const strokeWidth = 10;
+  const strokeWidth = 14;
   const normalizedRadius = radius - strokeWidth * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDasharray = `${circumference} ${circumference}`;
@@ -120,7 +120,7 @@ export function CircularTimer({
         {/* Time display in center - larger for big timer */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-4xl font-bold text-gray-900 dark:text-white">
+            <div className="text-6xl font-bold text-gray-900 dark:text-white">
               {formatTime(timeRemaining)}
             </div>
             {extraTime > 0 && (
