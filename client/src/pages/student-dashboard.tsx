@@ -159,10 +159,10 @@ export default function StudentDashboard() {
   );
   const assignmentBlocks = allScheduleBlocks.filter((block) => block.blockType === 'assignment');
 
-  // Fill assignment blocks with available assignments (round-robin if more blocks than assignments)
+  // Use backend's INTELLIGENT SCHEDULING - no frontend duplication logic!
   const populatedAssignmentBlocks = assignmentBlocks.map((block, index) => {
-    const assignmentIndex = assignments.length > 0 ? index % assignments.length : -1;
-    const assignment = assignmentIndex >= 0 ? assignments[assignmentIndex] : null;
+    // Backend already distributed assignments intelligently - just use the exact assignment for this block
+    const assignment = assignments[index] || null; // Backend sends exactly the right assignments for each block
     
     return {
       ...block,

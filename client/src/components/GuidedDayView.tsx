@@ -85,9 +85,8 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     ...allScheduleBlocks
       .filter((block) => block.blockType === 'assignment')
       .map((block, index) => {
-        // Fill assignment blocks with available assignments (round-robin if more blocks than assignments)
-        const assignmentIndex = assignments.length > 0 ? index % assignments.length : -1;
-        const matchingAssignment = assignmentIndex >= 0 ? assignments[assignmentIndex] : null;
+        // Use backend's INTELLIGENT SCHEDULING - no frontend duplication logic!
+        const matchingAssignment = assignments[index] || null; // Backend sends exactly the right assignments for each block
         
         return {
           id: matchingAssignment ? matchingAssignment.id : block.id,
