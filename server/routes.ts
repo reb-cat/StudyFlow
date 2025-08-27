@@ -27,40 +27,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Trust proxy for secure cookies in production
   app.set('trust proxy', 1);
   
-  // Debug middleware to log ALL cookie activity
-  app.use((req, res, next) => {
-    const originalJson = res.json;
-    console.log(`[${req.method} ${req.path}] Incoming cookies:`, req.headers.cookie || 'NONE');
-    
-    res.json = function(data) {
-      console.log(`[${req.method} ${req.path}] Outgoing headers:`, this.getHeaders());
-      return originalJson.call(this, data);
-    };
-    
-    next();
-  });
-  
-  // Session configuration with PostgreSQL store
-  const isProduction = process.env.NODE_ENV === 'production';
-  const pgStore = connectPg(session);
-  
+  // SIMPLE session configuration - memory store for now
   app.use(session({
-    store: new pgStore({
-      conString: process.env.DATABASE_URL,
-      tableName: 'sessions',
-      createTableIfMissing: true,
-    }),
-    secret: process.env.SESSION_SECRET || 'development-secret-key',
+    secret: 'simple-dev-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Always false in development
+      secure: false,
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax', // Always lax in development
-      path: '/' // Ensure cookie works for all paths
-    },
-    name: 'studyflow.sid' // Custom session name
+      sameSite: 'lax'
+    }
   }));
 
   // Assignment API routes
@@ -491,96 +468,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/login - User login endpoint
+  // POST /api/login - REBUILT Simple login endpoint
   app.post('/api/login', async (req, res) => {
-    const loginId = Date.now().toString();
-    console.log(`[Login-${loginId}] Login attempt for email:`, req.body.email);
+    console.log('=== LOGIN START ===');
+    console.log('Session ID:', req.sessionID);
     
     try {
       const { email, password } = req.body;
       
       if (!email || !password) {
-        console.log(`[Login-${loginId}] Missing email or password`);
         return res.status(400).json({ message: 'Email and password are required' });
       }
       
-      // Normalize email to lowercase (same as registration)
-      const normalizedEmail = email.toLowerCase().trim();
-      console.log(`[Login-${loginId}] Normalized email:`, normalizedEmail);
-      
       // Get user by email
+      const normalizedEmail = email.toLowerCase().trim();
       const user = await storage.getUserByEmail(normalizedEmail);
       
-      if (!user) {
-        console.log(`[Login-${loginId}] No user found with email:`, normalizedEmail);
+      if (!user || user.password !== password) {
         return res.status(401).json({ message: 'Invalid email or password' });
       }
       
-      console.log(`[Login-${loginId}] User found, checking password...`);
-      
-      // Check password (in production, this should use bcrypt)
-      if (user.password !== password) {
-        console.log(`[Login-${loginId}] Password mismatch`);
-        return res.status(401).json({ message: 'Invalid email or password' });
-      }
-      
-      console.log(`[Login-${loginId}] Authentication successful for user:`, user.id);
-      
-      // Create session for authenticated user
+      // Set session data - SIMPLE
       (req.session as any).userId = user.id;
-      (req.session as any).user = user;
+      console.log('Session ID:', req.sessionID, 'User ID set:', user.id);
       
-      // Save session to ensure it persists
-      req.session.save((err) => {
-        if (err) {
-          console.error(`[Login-${loginId}] Session save error:`, err);
-          return res.status(500).json({ message: 'Failed to save session' });
-        }
-        
-        console.log(`[Login-${loginId}] Session saved successfully for userId:`, user.id);
-        console.log(`[Login-${loginId}] Session ID after save:`, req.sessionID);
-        console.log(`[Login-${loginId}] Session data after save:`, req.session);
-        console.log(`[Login-${loginId}] Response headers before send:`, res.getHeaders());
-        
-        // Return user without password
-        const { password: _, ...userWithoutPassword } = user;
-        
-        console.log(`[Login-${loginId}] Login completed successfully`);
-        res.json({
-          message: 'Login successful',
-          user: userWithoutPassword
-        });
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({
+        message: 'Login successful',
+        user: userWithoutPassword
       });
+      
+      console.log('=== LOGIN SUCCESS ===');
     } catch (error) {
-      console.error(`[Login-${loginId}] Error during login:`, error);
+      console.error('Login error:', error);
       res.status(500).json({ message: 'Failed to login' });
     }
   });
 
   // Authentication check route - returns current user if authenticated
   app.get('/api/auth/user', async (req, res) => {
+    console.log('=== AUTH CHECK ===');
+    console.log('Session ID:', req.sessionID, 'User ID found:', (req.session as any)?.userId);
+    
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
+      console.log('No userId in session - not authenticated');
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+    
     try {
-      console.log('[Auth Check] Session ID:', req.sessionID);
-      console.log('[Auth Check] Cookies:', req.headers.cookie);
-      console.log('[Auth Check] Session data:', req.session);
-      console.log('[Auth Check] Full session object keys:', Object.keys(req.session || {}));
-      
-      const userId = (req.session as any)?.userId;
-      if (!userId) {
-        console.log('[Auth Check] No userId in session');
-        return res.status(401).json({ message: 'Not authenticated' });
-      }
-      
-      console.log('[Auth Check] Found userId in session:', userId);
-      
       // Get current user from database
       const user = await storage.getUser(userId);
       if (!user) {
-        console.log('[Auth Check] User not found in database:', userId);
-        return res.status(401).json({ message: 'Not authenticated' });
+        return res.status(401).json({ message: 'User not found' });
       }
-      
-      console.log('[Auth Check] User authenticated:', user.email);
       
       // Return user without password
       const { password: _, ...userWithoutPassword } = user;
