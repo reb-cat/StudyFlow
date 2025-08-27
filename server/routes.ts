@@ -608,34 +608,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Print Queue Management API for Parent Dashboard
   app.get('/api/print-queue', async (req, res) => {
     try {
-      const { date } = req.query;
-      const targetDate = date ? new Date(date as string) : new Date();
+      const { startDate, endDate, days } = req.query;
       
-      // Use the selected date directly (not tomorrow)
-      const selectedDateStr = targetDate.toISOString().split('T')[0];
+      let fromDate: Date;
+      let toDate: Date;
       
-      console.log(`📋 Fetching print queue for ${selectedDateStr}`);
+      if (startDate && endDate) {
+        // Explicit date range
+        fromDate = new Date(startDate as string);
+        toDate = new Date(endDate as string);
+      } else {
+        // Default: next 4 days starting from today
+        const daysAhead = days ? parseInt(days as string) : 4;
+        fromDate = new Date();
+        toDate = new Date();
+        toDate.setDate(fromDate.getDate() + daysAhead);
+      }
+      
+      const fromDateStr = fromDate.toISOString().split('T')[0];
+      const toDateStr = toDate.toISOString().split('T')[0];
+      
+      console.log(`📋 Fetching print queue for ${fromDateStr} to ${toDateStr}`);
       
       // Get ALL assignments (including completed ones for print queue)
       const allAssignments = await storage.getAllAssignments();
       
       const { detectPrintNeeds, estimatePageCount } = await import('./lib/printQueue.js');
       
-      // Filter assignments by date and process for print detection
+      // Filter assignments by due date range
       const filteredAssignments = allAssignments.filter(assignment => {
-        if (assignment.scheduledDate) {
-          return assignment.scheduledDate === selectedDateStr;
-        }
-        // Fallback to due date if no scheduled date
-        if (assignment.dueDate) {
-          const dueDate = new Date(assignment.dueDate);
-          const dueDateStr = dueDate.toISOString().split('T')[0];
-          return dueDateStr === selectedDateStr;
-        }
-        return false;
+        if (!assignment.dueDate) return false;
+        
+        const dueDate = new Date(assignment.dueDate);
+        const dueDateStr = dueDate.toISOString().split('T')[0];
+        
+        return dueDateStr >= fromDateStr && dueDateStr <= toDateStr;
       });
 
-      console.log(`📋 Found ${filteredAssignments.length} assignments for ${selectedDateStr}`);
+      console.log(`📋 Found ${filteredAssignments.length} assignments due ${fromDateStr} to ${toDateStr}`);
 
       // Process assignments and detect print needs
       const printQueue: any[] = [];
@@ -658,7 +668,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             courseName: assignment.courseName,
             subject: assignment.subject,
             dueDate: assignment.dueDate,
-            scheduledDate: assignment.scheduledDate,
             printReason: printDetection.printReason,
             priority: printDetection.priority,
             canvasUrl: printDetection.canvasUrl,
@@ -668,17 +677,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Sort by priority (high first) then by student name
-      printQueue.sort((a: any, b: any) => {
-        const priorityOrder: { [key: string]: number } = { high: 0, medium: 1, low: 2 };
-        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-        if (priorityDiff !== 0) return priorityDiff;
-        
-        return a.studentName.localeCompare(b.studentName);
-      });
+      // Group by due date and sort within each group
+      const groupedByDate: { [date: string]: any[] } = {};
       
-      console.log(`📋 Found ${printQueue.length} items needing printing for ${selectedDateStr}`);
-      res.json(printQueue);
+      for (const item of printQueue) {
+        const dateKey = item.dueDate ? new Date(item.dueDate).toISOString().split('T')[0] : 'no-date';
+        if (!groupedByDate[dateKey]) {
+          groupedByDate[dateKey] = [];
+        }
+        groupedByDate[dateKey].push(item);
+      }
+      
+      // Sort items within each date group by priority, then by student
+      for (const date in groupedByDate) {
+        groupedByDate[date].sort((a: any, b: any) => {
+          const priorityOrder: { [key: string]: number } = { high: 0, medium: 1, low: 2 };
+          const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+          if (priorityDiff !== 0) return priorityDiff;
+          return a.studentName.localeCompare(b.studentName);
+        });
+      }
+      
+      // Create final response with date groups sorted chronologically
+      const sortedDates = Object.keys(groupedByDate).sort();
+      const response = {
+        dateRange: { from: fromDateStr, to: toDateStr },
+        totalItems: printQueue.length,
+        groupsByDate: sortedDates.map(date => ({
+          date,
+          items: groupedByDate[date],
+          count: groupedByDate[date].length,
+          highPriorityCount: groupedByDate[date].filter((item: any) => item.priority === 'high').length
+        }))
+      };
+      
+      console.log(`📋 Found ${printQueue.length} items needing printing for ${fromDateStr} to ${toDateStr}`);
+      res.json(response);
       
     } catch (error) {
       console.error('Print queue fetch error:', error);

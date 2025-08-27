@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Printer, Check, X, Clock, AlertTriangle, BookOpen, FileText } from "lucide-react";
+import { ExternalLink, Printer, Check, X, Clock, AlertTriangle, BookOpen, FileText, Calendar } from "lucide-react";
 
 interface PrintQueueItem {
   id: string;
@@ -50,15 +50,28 @@ function getPrintStatusIcon(status: 'needs_printing' | 'printed' | 'skipped') {
   }
 }
 
+interface PrintQueueResponse {
+  dateRange: { from: string; to: string };
+  totalItems: number;
+  groupsByDate: Array<{
+    date: string;
+    items: PrintQueueItem[];
+    count: number;
+    highPriorityCount: number;
+  }>;
+}
+
 export default function PrintQueue() {
   const queryClient = useQueryClient();
-  const [selectedDate, setSelectedDate] = useState(() => {
-    // Default to 2025-08-28 which has assignments with long instructions
-    return '2025-08-28';
-  });
+  const [daysAhead, setDaysAhead] = useState(4); // Default to 4 days ahead
 
-  const { data: printQueue = [], isLoading } = useQuery<PrintQueueItem[]>({
-    queryKey: ['/api/print-queue', selectedDate],
+  const { data: printQueueData, isLoading } = useQuery<PrintQueueResponse>({
+    queryKey: ['/api/print-queue', daysAhead],
+    queryFn: async () => {
+      const response = await fetch(`/api/print-queue?days=${daysAhead}`);
+      if (!response.ok) throw new Error('Failed to fetch print queue');
+      return response.json();
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
@@ -81,8 +94,10 @@ export default function PrintQueue() {
     },
   });
 
-  const pendingItems = printQueue.filter(item => item.printStatus === 'needs_printing');
-  const completedItems = printQueue.filter(item => item.printStatus !== 'needs_printing');
+  // Extract all items from grouped data
+  const allItems = printQueueData?.groupsByDate.flatMap(group => group.items) ?? [];
+  const pendingItems = allItems.filter(item => item.printStatus === 'needs_printing');
+  const completedItems = allItems.filter(item => item.printStatus !== 'needs_printing');
 
   const totalPages = pendingItems.reduce((sum, item) => sum + item.estimatedPages, 0);
   const highPriorityCount = pendingItems.filter(item => item.priority === 'high').length;
@@ -116,17 +131,21 @@ export default function PrintQueue() {
             </p>
           </div>
           
-          {/* Date Selector */}
+          {/* Days Ahead Selector */}
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              School Day:
+              Print Range:
             </label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+            <select
+              value={daysAhead}
+              onChange={(e) => setDaysAhead(parseInt(e.target.value))}
               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
-            />
+            >
+              <option value={3}>Next 3 days</option>
+              <option value={4}>Next 4 days</option>
+              <option value={5}>Next 5 days</option>
+              <option value={7}>Next week</option>
+            </select>
           </div>
         </div>
 
@@ -171,7 +190,14 @@ export default function PrintQueue() {
           </div>
         )}
 
-        {/* Print Queue Items */}
+        {/* Date Range Info */}
+        {printQueueData && (
+          <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            Showing assignments due {new Date(printQueueData.dateRange.from).toLocaleDateString()} - {new Date(printQueueData.dateRange.to).toLocaleDateString()}
+          </div>
+        )}
+
+        {/* Print Queue Items by Date */}
         {pendingItems.length === 0 ? (
           <Card className="p-8 text-center">
             <Check className="w-12 h-12 text-green-600 mx-auto mb-4" />
@@ -179,76 +205,102 @@ export default function PrintQueue() {
               All Set! 🎉
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              No printing needed for {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}. 
-              <br />The kids can focus on learning without any prep work!
+              No items need printing in this date range. Try a different range!
             </p>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {pendingItems.map((item) => (
-              <Card key={item.id} className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Badge className={`${getPriorityColor(item.priority)} font-medium`}>
-                        {item.priority.toUpperCase()}
-                      </Badge>
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                        {item.studentName}
-                      </span>
-                      {item.subject && (
-                        <span className="text-sm text-gray-500">
-                          • {item.subject}
-                        </span>
-                      )}
-                    </div>
-                    
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                      {item.title}
+          <div className="space-y-6">
+            {printQueueData?.groupsByDate.map((dateGroup) => (
+              <Card key={dateGroup.date} className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Due {new Date(dateGroup.date).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
                     </h3>
-                    
-                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      <span>{getPrintReasonText(item.printReason)}</span>
-                      <span>~{item.estimatedPages} page{item.estimatedPages !== 1 ? 's' : ''}</span>
-                      {item.courseName && (
-                        <span>{item.courseName}</span>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {item.canvasUrl && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex items-center gap-2"
-                          onClick={() => window.open(item.canvasUrl!, '_blank')}
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Open in Canvas
-                        </Button>
-                      )}
-                      
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => updateStatusMutation.mutate({ assignmentId: item.id, status: 'printed' })}
-                        disabled={updateStatusMutation.isPending}
-                      >
-                        <Check className="w-4 h-4 mr-2" />
-                        Mark Printed
-                      </Button>
-                      
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => updateStatusMutation.mutate({ assignmentId: item.id, status: 'skipped' })}
-                        disabled={updateStatusMutation.isPending}
-                      >
-                        Skip
-                      </Button>
-                    </div>
                   </div>
+                  <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                    <span>{dateGroup.count} items</span>
+                    {dateGroup.highPriorityCount > 0 && (
+                      <span className="text-red-600 font-medium">
+                        {dateGroup.highPriorityCount} high priority
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid gap-4">
+                  {dateGroup.items.filter(item => item.printStatus === 'needs_printing').map((item) => (
+                    <div key={item.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Badge className={`${getPriorityColor(item.priority)} font-medium`}>
+                              {item.priority.toUpperCase()}
+                            </Badge>
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                              {item.studentName}
+                            </span>
+                            {item.subject && (
+                              <span className="text-sm text-gray-500">
+                                • {item.subject}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                            {item.title}
+                          </h3>
+                          
+                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            <span>{getPrintReasonText(item.printReason)}</span>
+                            <span>~{item.estimatedPages} page{item.estimatedPages !== 1 ? 's' : ''}</span>
+                            {item.courseName && (
+                              <span>{item.courseName}</span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            {item.canvasUrl && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex items-center gap-2"
+                                onClick={() => window.open(item.canvasUrl!, '_blank')}
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                                Open in Canvas
+                              </Button>
+                            )}
+                            
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => updateStatusMutation.mutate({ assignmentId: item.id, status: 'printed' })}
+                              disabled={updateStatusMutation.isPending}
+                            >
+                              <Check className="w-4 h-4 mr-2" />
+                              Mark Printed
+                            </Button>
+                            
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => updateStatusMutation.mutate({ assignmentId: item.id, status: 'skipped' })}
+                              disabled={updateStatusMutation.isPending}
+                            >
+                              Skip
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </Card>
             ))}
