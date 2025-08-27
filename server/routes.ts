@@ -462,9 +462,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/login - JWT Token Authentication
   app.post('/api/login', async (req, res) => {
-    console.log('=== JWT LOGIN START ===');
-    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
-    console.log('JWT_SECRET length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0);
     
     try {
       const { email, password } = req.body;
@@ -494,8 +491,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { expiresIn: '24h' }
       );
       
-      console.log('JWT token generated for user:', user.id);
-      console.log('Generated token (first 50 chars):', token.substring(0, 50) + '...');
       
       // Return user and token
       const { password: _, ...userWithoutPassword } = user;
