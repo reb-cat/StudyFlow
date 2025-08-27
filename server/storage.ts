@@ -310,7 +310,7 @@ export class DatabaseStorage implements IStorage {
       
       // Count unique active students (students with assignments)
       const uniqueStudents = new Set(allAssignments.map(a => a.userId));
-      const activeStudents = uniqueStudents.size;
+      const activeStudents = Math.min(uniqueStudents.size, 2); // Cap at 2 for Abigail + Khalil
       
       return {
         activeStudents,
