@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Play, CheckCircle, Clock, HelpCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Assignment } from '@shared/schema';
-import { BibleBlock } from './BibleBlock';
 import { FixedBlock } from './FixedBlock';
 
 interface ScheduleBlock {
@@ -223,11 +222,22 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
         <CardContent className="space-y-6">
           {/* Render actual block content */}
           {currentBlock.type === 'bible' && (
-            <BibleBlock 
-              date={selectedDate}
-              blockStart={currentBlock.startTime}
-              blockEnd={currentBlock.endTime}
-            />
+            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-5 w-5 text-blue-600 dark:text-blue-400">📖</div>
+                <div className="flex-1">
+                  <div className="font-medium text-sm text-blue-900 dark:text-blue-100">
+                    Bible Reading
+                  </div>
+                  <div className="text-xs text-blue-700 dark:text-blue-300">
+                    {currentBlock.startTime} - {currentBlock.endTime}
+                  </div>
+                  <div className="text-sm text-blue-800 dark:text-blue-200 mt-1 font-medium">
+                    {currentBlock.title}
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
           
           {currentBlock.type === 'fixed' && (

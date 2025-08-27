@@ -25,7 +25,6 @@ import {
 } from 'lucide-react';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
-import { BibleBlock } from '@/components/BibleBlock';
 import { FixedBlock } from '@/components/FixedBlock';
 import type { Assignment } from '@shared/schema';
 
