@@ -4,11 +4,16 @@ import { Link } from 'wouter';
 
 export default function StudentSelection() {
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
       <div className="w-full max-w-2xl px-8">
         {/* Clean Header */}
         <div className="text-center mb-16">
-          <h1 className="text-3xl font-light text-gray-900 dark:text-white mb-3">
+          <h1 className="text-3xl font-light mb-3" style={{ 
+            background: 'linear-gradient(135deg, var(--foreground) 0%, var(--primary) 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>
             Choose Your Student
           </h1>
         </div>
@@ -34,7 +39,8 @@ export default function StudentSelection() {
                   
                   {/* Action Button */}
                   <Button 
-                    className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-lg group-hover:scale-105 transition-transform duration-200"
+                    className="px-6 py-2 rounded-lg group-hover:scale-105 transition-transform duration-200"
+                    style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)' }}
                     data-testid="button-select-abigail"
                   >
                     Let's Go
@@ -70,7 +76,8 @@ export default function StudentSelection() {
                   
                   {/* Action Button */}
                   <Button 
-                    className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-lg group-hover:scale-105 transition-transform duration-200"
+                    className="px-6 py-2 rounded-lg group-hover:scale-105 transition-transform duration-200"
+                    style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)' }}
                     data-testid="button-select-khalil"
                   >
                     Let's Go

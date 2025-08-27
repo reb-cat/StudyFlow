@@ -117,29 +117,34 @@ export default function PrintQueue() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+    <div className="min-h-screen p-4" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Printer className="w-7 h-7" />
+            <h1 className="text-2xl font-bold flex items-center gap-2" style={{ 
+              background: 'linear-gradient(135deg, var(--foreground) 0%, var(--primary) 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              <Printer className="w-7 h-7" style={{ color: 'var(--primary)' }} />
               Print Queue
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-muted-foreground mt-1">
               Proactive printing support for tomorrow's assignments
             </p>
           </div>
           
           {/* Days Ahead Selector */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="text-sm font-medium text-foreground">
               Print Range:
             </label>
             <select
               value={daysAhead}
               onChange={(e) => setDaysAhead(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
+              className="px-3 py-2 border rounded-md bg-card border-border text-foreground"
             >
               <option value={3}>Next 3 days</option>
               <option value={4}>Next 4 days</option>

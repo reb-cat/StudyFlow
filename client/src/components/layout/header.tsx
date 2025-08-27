@@ -12,17 +12,18 @@ export default function Header() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      className="sticky top-0 z-50 w-full border-b border-border/40 backdrop-blur"
+      style={{ background: 'rgba(248, 249, 250, 0.95)' }}
       data-testid="header"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo/Brand */}
           <div className="flex items-center space-x-2" data-testid="logo">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-white" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)' }}>
               <Zap className="h-5 w-5" />
             </div>
-            <span className="text-xl font-semibold text-foreground">StudyFlow</span>
+            <span className="text-xl font-semibold" style={{ color: 'var(--primary)' }}>StudyFlow</span>
           </div>
 
           {/* Navigation */}

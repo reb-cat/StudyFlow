@@ -146,11 +146,16 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
+      <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Assignment Management</h1>
+          <h1 className="text-3xl font-bold mb-2" style={{ 
+            background: 'linear-gradient(135deg, var(--foreground) 0%, var(--primary) 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>Assignment Management</h1>
           <p className="text-muted-foreground">
             Manage assignment completion status to control what appears in daily planning
           </p>

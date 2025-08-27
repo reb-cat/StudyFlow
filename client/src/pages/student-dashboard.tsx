@@ -172,7 +172,7 @@ export default function StudentDashboard() {
 
   if (isWeekend) {
     return (
-      <div className="min-h-screen bg-background p-6">
+      <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
         <div className="max-w-4xl mx-auto">
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🌟</div>
@@ -193,7 +193,7 @@ export default function StudentDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background p-6">
+      <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -212,7 +212,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 p-4 sm:p-6">
+    <div className="min-h-screen p-4 sm:p-6" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
       <div className="max-w-5xl mx-auto">
         
         {/* Header - Full navigation for Overview, minimal for Guided */}
