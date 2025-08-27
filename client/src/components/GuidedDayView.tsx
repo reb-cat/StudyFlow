@@ -39,7 +39,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   
   // TTS state (only for Khalil)
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentSpeech, setCurrentSpeech] = useState<SpeechSynthesisUtterance | null>(null);
+  const [currentSpeech, setCurrentSpeech] = useState<SpeechSynthesisUtterance | HTMLAudioElement | null>(null);
   
   
   // Build complete schedule using real schedule template data (same as Overview mode)
@@ -231,7 +231,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
       stopSpeech();
     } else {
       if (currentBlock?.type === 'assignment' && currentBlock.assignment) {
-        const textToSpeak = `${currentBlock.assignment.name}. ${currentBlock.assignment.instructions || 'No additional instructions provided.'}`;
+        const textToSpeak = `${currentBlock.assignment.title}. ${currentBlock.assignment.instructions || 'No additional instructions provided.'}`;
         speakText(textToSpeak);
       }
     }
@@ -295,7 +295,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   const handleBlockComplete = () => {
     if (!currentBlock) return;
     
-    setCompletedBlocks(prev => new Set(prev).add(currentBlock.id));
+    setCompletedBlocks(prev => new Set([...prev, currentBlock.id]));
     setIsTimerRunning(false);
     onAssignmentUpdate?.();
     
