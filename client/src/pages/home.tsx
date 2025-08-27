@@ -103,56 +103,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Recent Activity */}
-        <section className="mb-12" data-testid="activity-section">
-          <h2 className="text-2xl font-semibold mb-6 text-[#1A1A1A]" data-testid="activity-title">Recent Activity</h2>
-          <div className="bg-[rgba(253,253,253,0.6)] border border-[rgba(229,229,229,0.6)] rounded-2xl overflow-hidden backdrop-blur-[10px]" data-testid="activity-feed">
-            <div className="flex items-center p-6 border-b border-[#E5E5E5] transition-colors hover:bg-[#F8F9FA]" data-testid="activity-item-1">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 bg-[rgba(16,185,129,0.1)] text-[#10B981] text-xl">✓</div>
-              <div className="flex-1">
-                <div className="font-medium mb-1">Abigail completed Math - Algebraic Expressions</div>
-                <div className="text-sm text-[#737373]">Chapter 3, Problem Set B</div>
-              </div>
-              <div className="text-xs text-[#737373] ml-auto">5 mins ago</div>
-            </div>
-            
-            <div className="flex items-center p-6 border-b border-[#E5E5E5] transition-colors hover:bg-[#F8F9FA]" data-testid="activity-item-2">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 bg-[rgba(239,68,68,0.1)] text-[#EF4444] text-xl">!</div>
-              <div className="flex-1">
-                <div className="font-medium mb-1">Khalil is stuck on History - Civil War Timeline</div>
-                <div className="text-sm text-[#737373]">Needs help with battle dates</div>
-              </div>
-              <div className="text-xs text-[#737373] ml-auto">12 mins ago</div>
-            </div>
-            
-            <div className="flex items-center p-6 border-b border-[#E5E5E5] transition-colors hover:bg-[#F8F9FA]" data-testid="activity-item-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 bg-[rgba(16,185,129,0.1)] text-[#10B981] text-xl">✓</div>
-              <div className="flex-1">
-                <div className="font-medium mb-1">Abigail completed Reading - Literature Analysis</div>
-                <div className="text-sm text-[#737373]">Character development essay</div>
-              </div>
-              <div className="text-xs text-[#737373] ml-auto">25 mins ago</div>
-            </div>
-            
-            <div className="flex items-center p-6 border-b border-[#E5E5E5] transition-colors hover:bg-[#F8F9FA]" data-testid="activity-item-4">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 bg-[rgba(245,158,11,0.1)] text-[#F59E0B] text-xl">⏱</div>
-              <div className="flex-1">
-                <div className="font-medium mb-1">Khalil needs more time on Science - Lab Report</div>
-                <div className="text-sm text-[#737373]">Extended deadline to Friday</div>
-              </div>
-              <div className="text-xs text-[#737373] ml-auto">35 mins ago</div>
-            </div>
-            
-            <div className="flex items-center p-6 transition-colors hover:bg-[#F8F9FA]" data-testid="activity-item-5">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 bg-[rgba(16,185,129,0.1)] text-[#10B981] text-xl">✓</div>
-              <div className="flex-1">
-                <div className="font-medium mb-1">Abigail completed Writing - Persuasive Essay</div>
-                <div className="text-sm text-[#737373]">Environmental awareness topic</div>
-              </div>
-              <div className="text-xs text-[#737373] ml-auto">1 hour ago</div>
-            </div>
-          </div>
-        </section>
       </main>
 
       {/* Footer */}
