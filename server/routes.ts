@@ -27,6 +27,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Trust proxy for secure cookies in production
   app.set('trust proxy', 1);
   
+  // Debug middleware to log ALL cookie activity
+  app.use((req, res, next) => {
+    const originalJson = res.json;
+    console.log(`[${req.method} ${req.path}] Incoming cookies:`, req.headers.cookie || 'NONE');
+    
+    res.json = function(data) {
+      console.log(`[${req.method} ${req.path}] Outgoing headers:`, this.getHeaders());
+      return originalJson.call(this, data);
+    };
+    
+    next();
+  });
+  
   // Session configuration with PostgreSQL store
   const isProduction = process.env.NODE_ENV === 'production';
   const pgStore = connectPg(session);
@@ -525,6 +538,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         console.log(`[Login-${loginId}] Session saved successfully for userId:`, user.id);
+        console.log(`[Login-${loginId}] Session ID after save:`, req.sessionID);
+        console.log(`[Login-${loginId}] Session data after save:`, req.session);
+        console.log(`[Login-${loginId}] Response headers before send:`, res.getHeaders());
         
         // Return user without password
         const { password: _, ...userWithoutPassword } = user;
