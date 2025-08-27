@@ -48,6 +48,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/stats', async (req, res) => {
     try {
       const stats = await storage.getAssignmentStats();
+      // Prevent caching to ensure fresh data
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
       res.json(stats);
     } catch (error) {
       console.error('Error fetching assignment stats:', error);
