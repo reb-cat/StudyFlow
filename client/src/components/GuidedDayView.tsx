@@ -84,9 +84,10 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     // Assignment blocks - use schedule template blocks AND fill with actual assignment data
     ...allScheduleBlocks
       .filter((block) => block.blockType === 'assignment')
-      .map((block) => {
-        // FIXED: Use backend's scheduledBlock field to properly map assignments to blocks
-        const matchingAssignment = assignments.find(a => a.scheduledBlock === block.blockNumber) || null;
+      .map((block, index) => {
+        // Fill assignment blocks with available assignments (round-robin if more blocks than assignments)
+        const assignmentIndex = assignments.length > 0 ? index % assignments.length : -1;
+        const matchingAssignment = assignmentIndex >= 0 ? assignments[assignmentIndex] : null;
         
         return {
           id: matchingAssignment ? matchingAssignment.id : block.id,

@@ -15,12 +15,10 @@ import { eq, and, sql, desc } from "drizzle-orm";
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
   // Assignment operations
   getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]>;
-  getScheduledAssignments(userId: string, date?: string, scheduleBlocks?: ScheduleTemplate[]): Promise<Assignment[]>; // NEW: Intelligent block distribution
   getAllAssignments(): Promise<Assignment[]>; // For print queue - gets all assignments across all users
   getAssignment(id: string): Promise<Assignment | undefined>;
   createAssignment(assignment: InsertAssignment & { userId: string }): Promise<Assignment>;
@@ -28,12 +26,6 @@ export interface IStorage {
   updateAssignmentStatus(id: string, completionStatus: string): Promise<Assignment | undefined>;
   deleteAssignment(id: string): Promise<boolean>;
   updateAdministrativeAssignments(): Promise<void>;
-  getAssignmentStats(): Promise<{
-    activeStudents: number;
-    completed: number;
-    inProgress: number;
-    needSupport: number;
-  }>;
   
   // Schedule template operations
   getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]>;
@@ -67,16 +59,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    try {
-      const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-      return result[0] || undefined;
-    } catch (error) {
-      console.error('Error getting user by email:', error);
-      return undefined;
-    }
-  }
-
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
       const result = await db.insert(users).values(insertUser).returning();
@@ -92,408 +74,57 @@ export class DatabaseStorage implements IStorage {
       let result = await db.select().from(assignments).where(eq(assignments.userId, userId));
       let assignmentList = result || [];
       
-      // Admin mode: return all assignments without intelligent processing
-      if (includeCompleted) {
-        console.log(`🔧 Admin mode: Returning all ${assignmentList.length} assignments (no filtering)`);
-        return assignmentList;
-      }
-
-      // INTELLIGENT SCHEDULING MODE - Complete rebuild of filtering algorithm
-      console.log(`🤖 INTELLIGENT SCHEDULING: Processing ${assignmentList.length} raw assignments for optimal daily schedule`);
+      // For daily scheduling: exclude completed assignments and filter by date
+      // This keeps the daily view focused while the database contains the full Canvas dataset
+      // Admin mode can include completed assignments by setting includeCompleted = true
       
-      // STEP 1: Remove exact duplicates by title (fix Canvas import duplicates)
-      const beforeDuplicateFilter = assignmentList.length;
-      const uniqueTitles = new Set();
-      assignmentList = assignmentList.filter((assignment: any) => {
-        if (uniqueTitles.has(assignment.title)) {
-          console.log(`🔄 Removing duplicate: "${assignment.title}"`);
-          return false;
-        }
-        uniqueTitles.add(assignment.title);
-        return true;
-      });
-      console.log(`📋 Duplicate removal: ${beforeDuplicateFilter} → ${assignmentList.length} assignments`);
-
-      // STEP 2: Exclude completed assignments from daily planning
-      const beforeCompletionFilter = assignmentList.length;
-      assignmentList = assignmentList.filter((assignment: any) => 
-        assignment.completionStatus !== 'completed'
-      );
-      console.log(`✅ Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed)`);
-
-      // STEP 3: Filter out administrative tasks and inappropriate assignments
-      const beforeAdminFilter = assignmentList.length;
-      assignmentList = assignmentList.filter((assignment: any) => {
-        const title = assignment.title.toLowerCase();
-        
-        // Filter out administrative/system tasks
-        if (title.includes('roll call') || 
-            title.includes('attendance') ||
-            title.includes('syllabus') ||
-            title.includes('course introduction') ||
-            title.includes('honor code') ||
-            title.includes('parent contact') ||
-            title.includes('zoom') ||
-            title.includes('meet and greet')) {
-          console.log(`🚫 Filtering administrative task: "${assignment.title}"`);
-          return false;
-        }
-        
-        return true;
-      });
-      console.log(`🧹 Administrative filtering: ${beforeAdminFilter} → ${assignmentList.length} assignments`);
-
-      // STEP 4: Smart due date filtering with flexible range for future dates
+      // FIRST: Exclude completed assignments from daily planning (unless admin mode)
+      // Only show assignments that are actively workable (pending, needs_more_time, stuck)
+      if (!includeCompleted) {
+        const beforeCompletionFilter = assignmentList.length;
+        assignmentList = assignmentList.filter((assignment: any) => 
+          assignment.completionStatus !== 'completed'
+        );
+        console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments)`);
+      } else {
+        console.log(`🔧 Admin mode: Including all assignments (${assignmentList.length} total)`);
+      }
+      
+      // SECOND: Apply date filtering for daily scheduling
       if (date) {
         const requestDate = new Date(date);
-        const earliestDate = new Date(requestDate);
-        earliestDate.setDate(requestDate.getDate() - 7); // Include week before for context
-        const latestDate = new Date(requestDate);
-        latestDate.setDate(requestDate.getDate() + 21); // Extended to 3 weeks for better coverage
+        const futureLimit = new Date(requestDate);
+        futureLimit.setDate(requestDate.getDate() + 12); // 12 days ahead
         
-        console.log(`📅 SMART Date filtering: ${earliestDate.toISOString().split('T')[0]} to ${latestDate.toISOString().split('T')[0]}`);
+        console.log(`🗓️ Date filtering: ${date} (${requestDate.toISOString()}) to ${futureLimit.toISOString()}`);
         
         const beforeDateFilter = assignmentList.length;
         assignmentList = assignmentList.filter((assignment: any) => {
-          // Always include assignments without due dates (ongoing work)
+          // For assignments without due dates, include them (they're always relevant)
           if (!assignment.dueDate) {
-            console.log(`📝 Including ongoing assignment: "${assignment.title}"`);
             return true;
           }
           
           const dueDate = new Date(assignment.dueDate);
-          const isInRange = dueDate >= earliestDate && dueDate <= latestDate;
+          const isInRange = dueDate >= requestDate && dueDate <= futureLimit;
           
           if (isInRange) {
-            const daysDiff = Math.ceil((dueDate.getTime() - requestDate.getTime()) / (1000 * 60 * 60 * 24));
-            if (daysDiff <= 0) {
-              console.log(`🔥 Including OVERDUE assignment: "${assignment.title}" (due ${dueDate.toISOString().split('T')[0]})`);
-            } else {
-              console.log(`✅ Including assignment: "${assignment.title}" (due in ${daysDiff} days)`);
-            }
+            console.log(`✅ Including assignment due ${dueDate.toISOString().split('T')[0]}: ${assignment.title}`);
           } else {
-            console.log(`⏭️ Excluding assignment too far out: "${assignment.title}" (due ${dueDate.toISOString().split('T')[0]})`);
+            console.log(`❌ Excluding assignment due ${dueDate.toISOString().split('T')[0]}: ${assignment.title}`);
           }
           
           return isInRange;
         });
         
-        console.log(`📊 Smart date filtering: ${beforeDateFilter} → ${assignmentList.length} assignments`);
+        console.log(`📊 Date filtering: ${beforeDateFilter} → ${assignmentList.length} assignments`);
       }
-
-      // STEP 5: Assignment prioritization by urgency and importance
-      assignmentList.sort((a: any, b: any) => {
-        const now = new Date();
-        
-        // Priority 1: Overdue assignments first
-        const aOverdue = a.dueDate && new Date(a.dueDate) < now;
-        const bOverdue = b.dueDate && new Date(b.dueDate) < now;
-        if (aOverdue && !bOverdue) return -1;
-        if (!aOverdue && bOverdue) return 1;
-        
-        // Priority 2: Sort by due date (earliest first)
-        if (a.dueDate && b.dueDate) {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        }
-        
-        // Priority 3: Assignments without due dates go last
-        if (a.dueDate && !b.dueDate) return -1;
-        if (!a.dueDate && b.dueDate) return 1;
-        
-        // Priority 4: Alphabetical by title
-        return a.title.localeCompare(b.title);
-      });
-
-      console.log(`🎯 INTELLIGENT SCHEDULING COMPLETE: ${assignmentList.length} optimized assignments ready for daily schedule`);
       
       return assignmentList;
     } catch (error) {
       console.error('Error getting assignments:', error);
       return [];
     }
-  }
-
-  async getScheduledAssignments(userId: string, date?: string, scheduleBlocks?: ScheduleTemplate[]): Promise<Assignment[]> {
-    try {
-      // Get intelligently filtered assignments
-      let assignments = await this.getAssignments(userId, date, false);
-      
-      if (!scheduleBlocks || scheduleBlocks.length === 0) {
-        console.log(`📅 No schedule blocks provided, returning ${assignments.length} assignments without block distribution`);
-        return assignments.slice(0, 6); // Limit to 6 assignments max
-      }
-
-      // ENHANCED INTELLIGENT SCHEDULING with A/B/C Priority Classification
-      console.log(`🎯 ENHANCED INTELLIGENT SCHEDULING: Processing ${assignments.length} assignments`);
-      
-      // Step 1: Classify assignments with A/B/C priority based on due dates
-      assignments = assignments.map(assignment => ({
-        ...assignment,
-        priority: this.classifyAssignmentPriority(assignment),
-        difficulty: this.detectAssignmentDifficulty(assignment),
-        estimatedMinutes: this.estimateAssignmentTime(assignment)
-      }));
-      
-      // Step 2: Sort by priority (A first), then difficulty (heavy first), then due date
-      assignments.sort((a: any, b: any) => {
-        // Priority: A > B > C
-        const priorityOrder = { 'A': 0, 'B': 1, 'C': 2 };
-        const priorityDiff = priorityOrder[a.priority as keyof typeof priorityOrder] - priorityOrder[b.priority as keyof typeof priorityOrder];
-        if (priorityDiff !== 0) return priorityDiff;
-        
-        // Within same priority: Heavy tasks first (mental effort distribution)
-        if (a.difficulty === 'hard' && b.difficulty !== 'hard') return -1;
-        if (a.difficulty !== 'hard' && b.difficulty === 'hard') return 1;
-        
-        // Then by due date
-        if (a.dueDate && b.dueDate) {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        }
-        return 0;
-      });
-      
-      console.log(`📊 Priority distribution: A=${assignments.filter(a => a.priority === 'A').length}, B=${assignments.filter(a => a.priority === 'B').length}, C=${assignments.filter(a => a.priority === 'C').length}`);
-      
-      // Step 3: Detect student-specific needs
-      const studentName = this.getStudentNameFromUserId(userId);
-      const isKhalil = studentName.toLowerCase() === 'khalil';
-      
-      // Step 4: Group assignments by subject for diversity logic
-      const assignmentsBySubject = new Map<string, any[]>();
-      for (const assignment of assignments) {
-        const subject = this.getAssignmentSubject(assignment);
-        if (!assignmentsBySubject.has(subject)) {
-          assignmentsBySubject.set(subject, []);
-        }
-        assignmentsBySubject.get(subject)?.push(assignment);
-      }
-
-      console.log(`📚 Subject groups:`, Array.from(assignmentsBySubject.keys()));
-
-      // Step 5: Get assignment blocks and apply student-specific preferences
-      let assignmentBlocks = scheduleBlocks.filter(block => 
-        block.blockType === 'Assignment' && block.blockNumber
-      ).sort((a, b) => (a.blockNumber || 0) - (b.blockNumber || 0));
-      
-      // Khalil preference: Use fewer blocks for shorter focused sessions
-      if (isKhalil && assignmentBlocks.length > 4) {
-        assignmentBlocks = assignmentBlocks.slice(0, 4); // Limit Khalil to 4 blocks max
-        console.log(`👦 Khalil preference: Limited to ${assignmentBlocks.length} blocks for shorter focus sessions`);
-      }
-
-      console.log(`🏗️ Available assignment blocks: ${assignmentBlocks.length}`);
-
-      // Step 6: SMART BLOCK FILLING with Mental Effort Distribution
-      const scheduledAssignments: any[] = [];
-      const usedSubjects: string[] = [];
-      const usedAssignmentIds = new Set<string>(); // Track used assignments by ID
-
-      for (let i = 0; i < assignmentBlocks.length && scheduledAssignments.length < assignments.length; i++) {
-        const block = assignmentBlocks[i];
-        const isEarlyBlock = i < Math.ceil(assignmentBlocks.length / 2); // First half = early blocks
-        let assignmentAssigned = false;
-
-        // Early blocks: Prefer heavy/difficult assignments (mental effort distribution)
-        // Later blocks: Prefer lighter assignments
-        let candidateAssignments = [];
-        
-        if (isEarlyBlock) {
-          // Early blocks: Prioritize A-priority and heavy assignments
-          candidateAssignments = assignments.filter(a => 
-            (a.priority === 'A' || a.difficulty === 'hard') && 
-            !usedAssignmentIds.has(a.id)
-          );
-        }
-        
-        if (candidateAssignments.length === 0) {
-          // Fallback: Any unscheduled assignment
-          candidateAssignments = assignments.filter(a => !usedAssignmentIds.has(a.id));
-        }
-
-        // PRAGMATIC SUBJECT DIVERSITY - Prefer filled blocks over perfect spacing
-        let bestAssignment = null;
-        let diversityScore = -1;
-        
-        for (const assignment of candidateAssignments) {
-          const subject = this.getAssignmentSubject(assignment);
-          const lastSubject = usedSubjects[usedSubjects.length - 1];
-          const secondLastSubject = usedSubjects[usedSubjects.length - 2];
-          
-          // Calculate diversity score (higher = better)
-          let score = 0;
-          if (subject !== lastSubject) score += 10; // Different from last = good
-          if (subject !== secondLastSubject) score += 5; // Different from second-last = bonus
-          
-          // Priority bonus (A > B > C)
-          if (assignment.priority === 'A') score += 3;
-          if (assignment.priority === 'B') score += 1;
-          
-          // Early block prefers harder assignments
-          if (isEarlyBlock && assignment.difficulty === 'hard') score += 2;
-          
-          if (score > diversityScore) {
-            diversityScore = score;
-            bestAssignment = assignment;
-          }
-        }
-        
-        // Always assign SOMETHING if assignments are available - no empty blocks for perfectionism
-        if (bestAssignment) {
-          // CRITICAL FIX: Add block number to assignment so frontend knows where to place it!
-          const scheduledAssignment = {
-            ...bestAssignment,
-            scheduledBlock: block.blockNumber
-          };
-          scheduledAssignments.push(scheduledAssignment);
-          usedAssignmentIds.add(bestAssignment.id); // Track this assignment as used
-          usedSubjects.push(this.getAssignmentSubject(bestAssignment));
-          assignmentAssigned = true;
-          
-          const blockLabel = isEarlyBlock ? '🌅 Early' : '🌆 Later';
-          const diversityLabel = diversityScore >= 10 ? '🎯 Diverse' : '📚 Same-subject';
-          console.log(`📍 Block ${block.blockNumber} ${blockLabel} ${diversityLabel}: "${bestAssignment.title}" [${bestAssignment.priority}-priority, ${bestAssignment.difficulty}]`);
-        }
-
-        // Only leave block empty if NO assignments are available
-        if (!assignmentAssigned) {
-          console.log(`⚪ Block ${block.blockNumber}: No assignments available`);
-        }
-      }
-
-      console.log(`🎯 ENHANCED SCHEDULING COMPLETE: ${scheduledAssignments.length} intelligently distributed assignments`);
-      console.log(`📋 Subject sequence: ${usedSubjects.join(' → ')}`);
-      console.log(`🧠 Mental effort distribution: Heavy tasks in early blocks, lighter tasks later`);
-
-      return scheduledAssignments;
-    } catch (error) {
-      console.error('Error getting scheduled assignments:', error);
-      return [];
-    }
-  }
-
-  private getAssignmentSubject(assignment: any): string {
-    // Extract subject from assignment data for diversity grouping
-    if (assignment.subject) return assignment.subject;
-    if (assignment.courseName) return assignment.courseName;
-    
-    // Extract subject from title patterns
-    const title = assignment.title.toLowerCase();
-    
-    if (title.includes('math') || title.includes('geometry') || title.includes('algebra') || 
-        title.includes('calculus') || title.includes('unit') || title.includes('hmwk')) {
-      return 'Mathematics';
-    }
-    if (title.includes('english') || title.includes('writing') || title.includes('grammar') || 
-        title.includes('essay') || title.includes('literature') || title.includes('vocab')) {
-      return 'English';
-    }
-    if (title.includes('science') || title.includes('biology') || title.includes('chemistry') || 
-        title.includes('physics') || title.includes('lab')) {
-      return 'Science';
-    }
-    if (title.includes('history') || title.includes('social') || title.includes('government') || 
-        title.includes('civics')) {
-      return 'History';
-    }
-    if (title.includes('spanish') || title.includes('french') || title.includes('language')) {
-      return 'Language';
-    }
-    if (title.includes('recipe') || title.includes('cooking') || title.includes('culinary')) {
-      return 'Culinary';
-    }
-    if (title.includes('art') || title.includes('music') || title.includes('creative')) {
-      return 'Arts';
-    }
-    
-    // Default grouping by course name or generic
-    return assignment.courseName || 'General';
-  }
-  
-  private classifyAssignmentPriority(assignment: any): 'A' | 'B' | 'C' {
-    const now = new Date();
-    const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
-    
-    if (!dueDate) return 'C'; // No due date = flexible
-    
-    const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    
-    // A Priority: Overdue or due today/tomorrow (Critical)
-    if (daysUntilDue <= 1) return 'A';
-    
-    // B Priority: Due this week (Important)
-    if (daysUntilDue <= 7) return 'B';
-    
-    // C Priority: Due later (Flexible)
-    return 'C';
-  }
-  
-  private detectAssignmentDifficulty(assignment: any): 'easy' | 'medium' | 'hard' {
-    const title = assignment.title.toLowerCase();
-    const subject = this.getAssignmentSubject(assignment).toLowerCase();
-    const instructions = (assignment.instructions || '').toLowerCase();
-    
-    // Hard: Math/Science subjects are cognitively demanding
-    if (subject.includes('math') || subject.includes('science') || subject.includes('geometry')) {
-      return 'hard';
-    }
-    
-    // Hard: Complex assignments based on keywords
-    if (title.includes('essay') || title.includes('research') || title.includes('analysis') || 
-        title.includes('project') || instructions.length > 500) {
-      return 'hard';
-    }
-    
-    // Easy: Short tasks like recipes, reading, simple worksheets
-    if (title.includes('recipe') || title.includes('read') || title.includes('vocabulary') || 
-        (instructions.length > 0 && instructions.length < 100)) {
-      return 'easy';
-    }
-    
-    // Default to medium
-    return 'medium';
-  }
-  
-  private estimateAssignmentTime(assignment: any): number {
-    // Use existing estimate if available
-    if (assignment.actualEstimatedMinutes && assignment.actualEstimatedMinutes > 0) {
-      return assignment.actualEstimatedMinutes;
-    }
-    
-    const title = assignment.title.toLowerCase();
-    const subject = this.getAssignmentSubject(assignment).toLowerCase();
-    const difficulty = this.detectAssignmentDifficulty(assignment);
-    
-    // Recipe assignments: 5-7 minutes (can share blocks)
-    if (title.includes('recipe')) return 7;
-    
-    // Math/Science: Longer focused work
-    if (subject.includes('math') || subject.includes('science')) {
-      return difficulty === 'hard' ? 45 : 30;
-    }
-    
-    // Reading assignments
-    if (title.includes('read')) return 15;
-    
-    // Writing assignments
-    if (title.includes('writing') || title.includes('essay')) {
-      return difficulty === 'hard' ? 40 : 25;
-    }
-    
-    // Worksheets
-    if (title.includes('worksheet')) return 20;
-    
-    // Default estimates by difficulty
-    switch (difficulty) {
-      case 'easy': return 15;
-      case 'hard': return 40;
-      default: return 25;
-    }
-  }
-  
-  private getStudentNameFromUserId(userId: string): string {
-    if (userId === 'abigail-user') return 'Abigail';
-    if (userId === 'khalil-user') return 'Khalil';
-    return 'Unknown';
   }
 
   async getAllAssignments(): Promise<Assignment[]> {
@@ -612,55 +243,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getAssignmentStats(): Promise<{
-    activeStudents: number;
-    completed: number;
-    inProgress: number;
-    needSupport: number;
-  }> {
-    try {
-      // Get all assignments across all students
-      const allAssignments = await db.select().from(assignments);
-      
-      // Get today's date for filtering (start and end of day)
-      const today = new Date();
-      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-      
-      // Count assignments by status - only count completed assignments from today
-      const completed = allAssignments.filter(a => {
-        if (a.completionStatus !== 'completed') return false;
-        if (!a.updatedAt) return false;
-        const updatedDate = new Date(a.updatedAt);
-        return updatedDate >= startOfToday && updatedDate < endOfToday;
-      }).length;
-      
-      // For in-progress and need support, show current status regardless of date
-      const inProgress = allAssignments.filter(a => a.completionStatus === 'needs_more_time').length;
-      const needSupport = allAssignments.filter(a => a.completionStatus === 'stuck').length;
-      
-      // Count unique active students (students with assignments)
-      const uniqueStudents = new Set(allAssignments.map(a => a.userId));
-      const activeStudents = uniqueStudents.size;
-      
-      return {
-        activeStudents,
-        completed,
-        inProgress,
-        needSupport
-      };
-    } catch (error) {
-      console.error('Error getting assignment stats:', error);
-      return {
-        activeStudents: 2, // Fallback: Abigail + Khalil
-        completed: 0,
-        inProgress: 0,
-        needSupport: 0
-      };
-    }
-  }
-
-  
   // Schedule template operations
   async getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]> {
     try {

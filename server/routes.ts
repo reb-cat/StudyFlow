@@ -1,8 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, registerUserSchema } from "@shared/schema";
-import { z } from "zod";
+import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema } from "@shared/schema";
 import { getElevenLabsService } from "./lib/elevenlabs";
 import { 
   getBibleSubjectForSchedule, 
@@ -45,27 +44,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET /api/stats - Get overall assignment statistics
-  app.get('/api/stats', async (req, res) => {
-    try {
-      const stats = await storage.getAssignmentStats();
-      // Prevent caching to ensure fresh data
-      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-      res.json(stats);
-    } catch (error) {
-      console.error('Error fetching assignment stats:', error);
-      res.status(500).json({ message: 'Failed to fetch assignment stats' });
-    }
-  });
-
-  // GET /api/assignments - Get INTELLIGENTLY SCHEDULED assignments for a user/date
+  // GET /api/assignments - Get assignments for a user/date
   app.get('/api/assignments', async (req, res) => {
     try {
       const { date, studentName, includeCompleted } = req.query;
       
       // Use student-specific user ID mapping  
       let userId = "demo-user-1"; // fallback
-      let actualStudentName = "Unknown";
       
       if (studentName && typeof studentName === 'string') {
         // Map student names to actual database user IDs
@@ -76,37 +61,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const normalizedStudentName = studentName.toLowerCase();
         userId = studentUserMap[normalizedStudentName] || userId;
-        actualStudentName = normalizedStudentName.charAt(0).toUpperCase() + normalizedStudentName.slice(1);
       }
       
+      // Get assignments for daily scheduling (filtered to next 12 days when date provided)
+      // Admin mode can include completed assignments
       const includeCompletedBool = includeCompleted === 'true';
-      
-      // Admin mode: Use old logic (raw assignments without intelligent processing)
-      if (includeCompletedBool) {
-        const assignments = await storage.getAssignments(userId, date as string, includeCompletedBool);
-        console.log(`🔧 ADMIN MODE: Retrieved ${assignments.length} raw assignments for ${studentName}`);
-        res.json(assignments);
-        return;
-      }
-
-      // INTELLIGENT SCHEDULING MODE: Get schedule blocks and apply subject diversity
-      console.log(`🤖 INTELLIGENT SCHEDULING REQUEST for ${actualStudentName} on ${date}`);
-      
-      // Get the student's schedule template for the requested date
-      let scheduleBlocks: any[] = [];
-      if (date && actualStudentName !== "Unknown") {
-        const requestDate = new Date(date);
-        const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const weekday = weekdays[requestDate.getDay()];
-        
-        console.log(`📅 Fetching schedule for ${actualStudentName} on ${weekday} (${date})`);
-        scheduleBlocks = await storage.getScheduleTemplate(actualStudentName, weekday);
-      }
-
-      // Use new intelligent scheduling algorithm
-      const assignments = await storage.getScheduledAssignments(userId, date as string, scheduleBlocks);
-      console.log(`🎯 INTELLIGENT SCHEDULING COMPLETE: ${assignments.length} optimally distributed assignments for ${actualStudentName} on ${date}`);
-      
+      const assignments = await storage.getAssignments(userId, date as string, includeCompletedBool);
+      console.log(`📚 Retrieved ${assignments.length} assignments for daily planning for ${studentName} on ${date}`);
       res.json(assignments);
     } catch (error) {
       console.error('Error fetching assignments:', error);
@@ -251,88 +212,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error setting up demo:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to setup demo data', error: errorMessage });
-    }
-  });
-
-  // POST /api/register - Create new user account
-  app.post('/api/register', async (req, res) => {
-    try {
-      // Create server-side validation schema (without confirmPassword)
-      const serverRegisterSchema = z.object({
-        firstName: z.string().min(1, "First name is required"),
-        lastName: z.string().min(1, "Last name is required"),
-        email: z.string().email("Please enter a valid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
-        role: z.enum(["student", "parent", "admin"]).default("student"),
-      });
-      const { firstName, lastName, email, password, role } = serverRegisterSchema.parse(req.body);
-      
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: 'An account with this email already exists' });
-      }
-      
-      // Create username from email (before @ symbol)
-      const username = email.split('@')[0];
-      
-      // Create user (password hashing would be done here in production)
-      const newUser = await storage.createUser({
-        username,
-        email,
-        password, // In production, this should be hashed
-        firstName,
-        lastName,
-        role,
-      });
-      
-      // Return user without password
-      const { password: _, ...userWithoutPassword } = newUser;
-      
-      res.status(201).json({
-        message: 'Account created successfully',
-        user: userWithoutPassword
-      });
-    } catch (error) {
-      console.error('Error registering user:', error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: 'Invalid registration data', errors: error.errors });
-      }
-      res.status(500).json({ message: 'Failed to create account' });
-    }
-  });
-
-  // POST /api/login - User login endpoint
-  app.post('/api/login', async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password are required' });
-      }
-      
-      // Get user by email
-      const user = await storage.getUserByEmail(email);
-      
-      if (!user) {
-        return res.status(401).json({ message: 'Invalid email or password' });
-      }
-      
-      // Check password (in production, this should use bcrypt)
-      if (user.password !== password) {
-        return res.status(401).json({ message: 'Invalid email or password' });
-      }
-      
-      // Return user without password
-      const { password: _, ...userWithoutPassword } = user;
-      
-      res.json({
-        message: 'Login successful',
-        user: userWithoutPassword
-      });
-    } catch (error) {
-      console.error('Error logging in:', error);
-      res.status(500).json({ message: 'Failed to login' });
     }
   });
 
@@ -751,26 +630,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`📋 Fetching print queue for ${fromDateStr} to ${toDateStr}`);
       
-      // Get INTELLIGENTLY FILTERED assignments for both students instead of raw Canvas dump
-      console.log(`🎯 INTELLIGENT PRINT QUEUE: Processing assignments with smart filtering`);
-      
-      const students = ['Abigail', 'Khalil'];
-      const allAssignments: any[] = [];
-      
-      for (const studentName of students) {
-        const studentUserMap: Record<string, string> = {
-          'abigail': 'abigail-user',
-          'khalil': 'khalil-user'
-        };
-        const userId = studentUserMap[studentName.toLowerCase()] || 'demo-user-1';
-        
-        // Use intelligent scheduling instead of raw getAllAssignments()
-        const studentAssignments = await storage.getScheduledAssignments(userId, toDateStr);
-        console.log(`📚 ${studentName}: ${studentAssignments.length} intelligently filtered assignments`);
-        allAssignments.push(...studentAssignments);
-      }
-      
-      console.log(`🎯 INTELLIGENT PRINT QUEUE: ${allAssignments.length} filtered assignments (vs raw Canvas dump)`);
+      // Get ALL assignments (including completed ones for print queue)
+      const allAssignments = await storage.getAllAssignments();
       
       const { detectPrintNeeds, estimatePageCount } = await import('./lib/printQueue.js');
       

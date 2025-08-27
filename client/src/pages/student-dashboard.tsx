@@ -24,31 +24,21 @@ import {
   UtensilsCrossed,
   ArrowLeft
 } from 'lucide-react';
-import { Link, useParams, useLocation } from 'wouter';
+import { Link, useParams } from 'wouter';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
 import { FixedBlock } from '@/components/FixedBlock';
 import type { Assignment } from '@shared/schema';
 
 export default function StudentDashboard() {
-  const params = useParams<{ student: string; date?: string }>();
-  const [location, setLocation] = useLocation();
-  
+  const params = useParams<{ student: string }>();
   // Capitalize student name for consistency, default to Abigail if no student provided
   const studentName = params.student ? params.student.charAt(0).toUpperCase() + params.student.slice(1) : "Abigail";
   const [isGuidedMode, setIsGuidedMode] = useState(false);
-  
-  // Get date from URL or default to today
   const [selectedDate, setSelectedDate] = useState(() => {
-    if (params.date) {
-      // Validate the date format (YYYY-MM-DD)
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (dateRegex.test(params.date)) {
-        return params.date;
-      }
-    }
-    // Default to today if no valid date in URL
-    return new Date().toISOString().split('T')[0];
+    // Always start with today's date 
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   });
   const [isDarkMode, setIsDarkMode] = useState(false);
   const queryClient = useQueryClient();
@@ -64,16 +54,8 @@ export default function StudentDashboard() {
 
   const handleHomeClick = () => {
     // Reset to today and overview mode
-    const today = new Date().toISOString().split('T')[0];
-    setSelectedDate(today);
-    setLocation(`/student/${studentName.toLowerCase()}/${today}`);
+    setSelectedDate(new Date().toISOString().split('T')[0]);
     setIsGuidedMode(false);
-  };
-
-  // Update URL when date changes
-  const updateDate = (newDate: string) => {
-    setSelectedDate(newDate);
-    setLocation(`/student/${studentName.toLowerCase()}/${newDate}`);
   };
 
   const handleSettingsClick = () => {
@@ -142,12 +124,21 @@ export default function StudentDashboard() {
   const isThursday = selectedDateObj.getDay() === 4;
   const weekdayName = selectedDateObj.toLocaleDateString('en-US', { weekday: 'long' });
 
-  // Handle manual date input changes
-  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = event.target.value;
-    if (newDate) {
-      updateDate(newDate);
-    }
+  // Date navigation functions
+  const goToPreviousDay = () => {
+    const prevDay = new Date(selectedDateObj);
+    prevDay.setDate(prevDay.getDate() - 1);
+    setSelectedDate(prevDay.toISOString().split('T')[0]);
+  };
+
+  const goToNextDay = () => {
+    const nextDay = new Date(selectedDateObj);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setSelectedDate(nextDay.toISOString().split('T')[0]);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date().toISOString().split('T')[0]);
   };
 
   // Use real schedule template data from database (fix field mapping)
@@ -168,10 +159,10 @@ export default function StudentDashboard() {
   );
   const assignmentBlocks = allScheduleBlocks.filter((block) => block.blockType === 'assignment');
 
-  // Use backend's INTELLIGENT SCHEDULING - no frontend duplication logic!
+  // Fill assignment blocks with available assignments (round-robin if more blocks than assignments)
   const populatedAssignmentBlocks = assignmentBlocks.map((block, index) => {
-    // Backend already distributed assignments intelligently - just use the exact assignment for this block
-    const assignment = assignments[index] || null; // Backend sends exactly the right assignments for each block
+    const assignmentIndex = assignments.length > 0 ? index % assignments.length : -1;
+    const assignment = assignmentIndex >= 0 ? assignments[assignmentIndex] : null;
     
     return {
       ...block,
@@ -299,28 +290,29 @@ export default function StudentDashboard() {
               </div>
               
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-                {/* Date Picker for testing and navigation */}
-                <div className="flex items-center gap-2 bg-muted/50 rounded-xl p-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={handleDateChange}
-                    className="bg-transparent border-none text-sm font-medium text-foreground focus:outline-none cursor-pointer"
-                    data-testid="date-picker"
-                    title="Select date"
-                  />
-                  {!isToday && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => updateDate(new Date().toISOString().split('T')[0])}
-                      className="h-8 px-3 text-xs rounded-md hover:bg-background/80"
-                      data-testid="button-today"
-                    >
-                      Today
-                    </Button>
-                  )}
+                {/* Date Navigation for testing (will be removed later) */}
+                <div className="flex items-center gap-0 bg-muted/50 rounded-xl p-1.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={goToPreviousDay}
+                    className="h-10 w-10 p-0 rounded-lg hover:bg-background/80"
+                    data-testid="button-previous-day"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <div className="px-4 text-base font-semibold min-w-[90px] text-center">
+                    {isToday ? 'Today' : dayName}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={goToNextDay}
+                    className="h-10 w-10 p-0 rounded-lg hover:bg-background/80"
+                    data-testid="button-next-day"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
                 </div>
 
                 {/* Overview/Guided Mode Toggle */}
