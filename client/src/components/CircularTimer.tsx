@@ -51,15 +51,15 @@ export function CircularTimer({
   };
 
   const progress = ((totalTime - timeRemaining) / totalTime) * 100;
-  const radius = 90;
-  const strokeWidth = 8;
+  const radius = 110; // 220px diameter - LARGE timer as requested
+  const strokeWidth = 10;
   const normalizedRadius = radius - strokeWidth * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDasharray = `${circumference} ${circumference}`;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center space-y-3">
+    <div className="flex flex-col items-center space-y-2">
       {/* Circular Progress Timer */}
       <div className="relative">
         <svg
@@ -98,14 +98,14 @@ export function CircularTimer({
           />
         </svg>
         
-        {/* Time display in center */}
+        {/* Time display in center - larger for big timer */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-4xl font-bold text-gray-900 dark:text-white">
               {formatTime(timeRemaining)}
             </div>
             {extraTime > 0 && (
-              <div className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 +{extraTime}min
               </div>
             )}
@@ -113,23 +113,23 @@ export function CircularTimer({
         </div>
       </div>
 
-      {/* Compact Timer Controls */}
-      <div className="flex items-center space-x-2">
+      {/* Ultra-compact Timer Controls */}
+      <div className="flex items-center space-x-1">
         <Button
           variant="outline"
           size="sm"
           onClick={onToggle}
-          className="flex items-center space-x-1 px-2 py-1 text-xs"
+          className="flex items-center px-2 py-1 text-xs"
           data-testid="button-timer-toggle"
         >
           {isRunning ? (
             <>
-              <Pause className="w-3 h-3" />
+              <Pause className="w-3 h-3 mr-1" />
               <span>Pause</span>
             </>
           ) : (
             <>
-              <Play className="w-3 h-3" />
+              <Play className="w-3 h-3 mr-1" />
               <span>Start</span>
             </>
           )}
@@ -139,10 +139,10 @@ export function CircularTimer({
           variant="outline"
           size="sm"
           onClick={onReset}
-          className="flex items-center space-x-1 px-2 py-1 text-xs"
+          className="flex items-center px-2 py-1 text-xs"
           data-testid="button-timer-reset"
         >
-          <RotateCcw className="w-3 h-3" />
+          <RotateCcw className="w-3 h-3 mr-1" />
           <span>Reset</span>
         </Button>
       </div>
