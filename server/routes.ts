@@ -623,11 +623,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const khalilVoiceId = voiceId || 'Yp1ySsmODnAcIghdWxeK'; // Victor - Khalil's preferred voice
       
       const elevenLabs = getElevenLabsService();
+      // Optimize settings for speed while maintaining quality
       const audioBuffer = await elevenLabs.generateSpeech(text, khalilVoiceId, {
-        stability: 0.6,        // Slightly more stable for educational content
-        similarity_boost: 0.8, // Clear pronunciation
-        style: 0.2,           // Subtle expressiveness 
-        use_speaker_boost: true
+        stability: 0.5,        // Lower for faster generation
+        similarity_boost: 0.75, // Clear pronunciation
+        style: 0.1,           // Minimal expressiveness for speed
+        use_speaker_boost: false // Disable for faster processing
       });
       
       res.set({

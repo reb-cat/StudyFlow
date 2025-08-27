@@ -133,7 +133,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   const [currentIndex, setCurrentIndex] = useState(persistedState.currentIndex);
   const [isTimerRunning, setIsTimerRunning] = useState(persistedState.isTimerRunning);
   const [extraTime, setExtraTime] = useState(persistedState.extraTime);
-  const [completedBlocks, setCompletedBlocks] = useState<Set<string>>(new Set<string>(persistedState.completedBlocks));
+  const [completedBlocks, setCompletedBlocks] = useState<Set<string>>(new Set<string>((persistedState.completedBlocks || []) as string[]));
   const [timeRemaining, setTimeRemaining] = useState<number | null>(persistedState.timeRemaining);
 
   const currentBlock = scheduleBlocks[currentIndex];
@@ -272,7 +272,18 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
       stopSpeech();
     } else {
       if (currentBlock?.type === 'assignment' && currentBlock.assignment) {
-        const textToSpeak = `${currentBlock.assignment.title}. ${currentBlock.assignment.instructions || 'No additional instructions provided.'}`;
+        // Create optimized text for TTS - limit length and strip HTML
+        const title = currentBlock.assignment.title;
+        const instructions = currentBlock.assignment.instructions || 'No additional instructions provided.';
+        
+        // Strip HTML tags and limit instructions length for faster TTS
+        const cleanInstructions = instructions.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+        const truncatedInstructions = cleanInstructions.length > 200 
+          ? cleanInstructions.substring(0, 200) + '... and more details available in the assignment.'
+          : cleanInstructions;
+        
+        const textToSpeak = `${title}. ${truncatedInstructions}`;
+        console.log('TTS text length:', textToSpeak.length, 'characters');
         speakText(textToSpeak);
       }
     }
@@ -293,7 +304,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
       currentIndex,
       isTimerRunning,
       extraTime,
-      completedBlocks: [...completedBlocks],
+      completedBlocks: Array.from(completedBlocks),
       timeRemaining,
       lastSaved: Date.now()
     };
@@ -336,7 +347,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   const handleBlockComplete = () => {
     if (!currentBlock) return;
     
-    setCompletedBlocks(prev => new Set([...prev, currentBlock.id]));
+    setCompletedBlocks(prev => new Set([...Array.from(prev), currentBlock.id]));
     setIsTimerRunning(false);
     onAssignmentUpdate?.();
     

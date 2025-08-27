@@ -53,7 +53,7 @@ export class ElevenLabsService {
       },
       body: JSON.stringify({
         text,
-        model_id: 'eleven_monolingual_v1',
+        model_id: 'eleven_turbo_v2_5', // Faster model for shorter latency
         voice_settings: settings,
       }),
     });
@@ -85,7 +85,7 @@ export class ElevenLabsService {
       },
       body: JSON.stringify({
         text,
-        model_id: 'eleven_monolingual_v1',
+        model_id: 'eleven_turbo_v2_5', // Faster model for shorter latency
         voice_settings: settings,
       }),
     });
