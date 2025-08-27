@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, CheckCircle, Clock, HelpCircle, AlertCircle } from 'lucide-react';
+import { Play, CheckCircle, Clock, HelpCircle, AlertCircle, Calendar, User, ArrowLeft, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Assignment } from '@shared/schema';
 import { FixedBlock } from './FixedBlock';
+import { CircularTimer } from './CircularTimer';
 
 interface ScheduleBlock {
   id: string;
@@ -24,9 +25,10 @@ interface GuidedDayViewProps {
   selectedDate: string;
   scheduleTemplate?: any[];
   onAssignmentUpdate?: () => void;
+  onModeToggle?: () => void;
 }
 
-export function GuidedDayView({ assignments, studentName, selectedDate, onAssignmentUpdate, scheduleTemplate = [] }: GuidedDayViewProps) {
+export function GuidedDayView({ assignments, studentName, selectedDate, onAssignmentUpdate, scheduleTemplate = [], onModeToggle }: GuidedDayViewProps) {
   const { toast } = useToast();
   
   // Build complete schedule using real schedule template data (same as Overview mode)
@@ -89,29 +91,30 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   ].sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [phase, setPhase] = useState<'idle' | 'running' | 'break'>('idle');
-  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [extraTime, setExtraTime] = useState(0);
+  const [completedBlocks, setCompletedBlocks] = useState<Set<string>>(new Set());
 
   const currentBlock = scheduleBlocks[currentIndex];
   const totalBlocks = scheduleBlocks.length;
+  const progressPercentage = Math.round((completedBlocks.size / totalBlocks) * 100);
 
-  // Timer for running phase
+  // Format date for display
+  const dateObj = new Date(selectedDate + 'T12:00:00.000Z');
+  const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+  const dateDisplay = dateObj.toLocaleDateString('en-US', { 
+    month: 'long', 
+    day: 'numeric',
+    timeZone: 'UTC'
+  });
+
+  // Auto-start timer when block changes
   useEffect(() => {
-    if (phase !== 'running' || timeRemaining <= 0) return;
-
-    const timer = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleAction('completed');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [phase, timeRemaining]);
+    if (currentBlock && !completedBlocks.has(currentBlock.id)) {
+      setIsTimerRunning(true);
+      setExtraTime(0);
+    }
+  }, [currentIndex, currentBlock]);
 
   // Time formatting function
   const formatTime = (start: string, end: string) => {
@@ -126,217 +129,226 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     return `${formatTimeString(start)} – ${formatTimeString(end)}`;
   };
 
-  const handleAction = (action: 'completed' | 'needs_more_time' | 'stuck') => {
+  const handleBlockComplete = () => {
     if (!currentBlock) return;
-
-    // Move to next block
-    if (currentIndex < totalBlocks - 1) {
-      setCurrentIndex(prev => prev + 1);
-      setPhase('idle');
-    }
-
-    // Call the update callback
+    
+    setCompletedBlocks(prev => new Set(prev).add(currentBlock.id));
+    setIsTimerRunning(false);
     onAssignmentUpdate?.();
-
-    // Show feedback
-    const messages = {
-      completed: `Great job completing ${currentBlock.title}! 🎉`,
-      needs_more_time: `${currentBlock.title} will be continued later. ⏰`,
-      stuck: `No worries! Help is on the way for ${currentBlock.title}. 💪`
-    };
-
+    
     toast({
-      title: action === 'completed' ? 'Well Done!' : 'Status Updated',
-      description: messages[action],
-      variant: action === 'stuck' ? 'destructive' : 'default'
+      title: 'Well Done!',
+      description: `Great job completing ${currentBlock.title}! 🎉`,
+    });
+    
+    // Move to next incomplete block
+    let nextIndex = currentIndex + 1;
+    while (nextIndex < scheduleBlocks.length && completedBlocks.has(scheduleBlocks[nextIndex].id)) {
+      nextIndex++;
+    }
+    setCurrentIndex(nextIndex);
+  };
+
+  const handleNeedMoreTime = () => {
+    setExtraTime(prev => prev + 10); // Add 10 more minutes
+    if (!isTimerRunning) setIsTimerRunning(true);
+    
+    toast({
+      title: 'Time Extended',
+      description: `Added 10 more minutes to ${currentBlock.title}`,
     });
   };
 
-  const startBlock = () => {
-    if (currentBlock) {
-      setPhase('running');
-      setTimeRemaining((currentBlock.estimatedMinutes || 30) * 60);
-    }
+  const handleStuck = () => {
+    setIsTimerRunning(false);
+    
+    toast({
+      title: 'Help Requested',
+      description: `You've flagged ${currentBlock.title} for help. Take your time!`,
+      variant: 'default'
+    });
   };
 
-  const formatTimeRemaining = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  const handleTimerComplete = () => {
+    setIsTimerRunning(false);
+    toast({
+      title: 'Time\'s Up!',
+      description: `Time for ${currentBlock.title} has finished. How did it go?`,
+    });
   };
 
-  // If no blocks to work on
-  if (scheduleBlocks.length === 0) {
+  // All blocks completed or no blocks
+  if (!currentBlock || currentIndex >= scheduleBlocks.length || scheduleBlocks.length === 0) {
     return (
-      <Card className="bg-card border border-border">
-        <CardContent className="p-8 text-center">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-foreground mb-2">All blocks complete!</h3>
-          <p className="text-muted-foreground">Great work today, {studentName}! 🎉</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // All blocks completed
-  if (currentIndex >= totalBlocks) {
-    return (
-      <Card className="bg-card border border-border">
-        <CardContent className="p-8 text-center">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-foreground mb-2">All blocks complete!</h3>
-          <p className="text-muted-foreground">Great work today, {studentName}! 🎉</p>
-        </CardContent>
-      </Card>
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-green-900 flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="text-6xl mb-4">🎉</div>
+          <h1 className="text-3xl font-bold text-foreground">Wonderful work, {studentName}!</h1>
+          <p className="text-xl text-muted-foreground">You've completed all your scheduled blocks for today.</p>
+          <Button onClick={onModeToggle} size="lg" className="mt-6">
+            Return to Overview
+          </Button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Progress */}
-      <Card className="bg-card border border-border">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Progress</span>
-            <span className="text-sm font-medium">{currentIndex + 1} of {totalBlocks}</span>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 p-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Header - Student name, date, toggle */}
+        <div className="flex items-center justify-between mb-8 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+              <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{studentName}</h1>
+              <div className="flex items-center text-gray-600 dark:text-gray-400 text-sm">
+                <Calendar className="w-4 h-4 mr-1" />
+                {dayName}, {dateDisplay}
+              </div>
+            </div>
           </div>
-          <div className="w-full bg-muted rounded-full h-2">
+          
+          <Button
+            variant="outline"
+            onClick={onModeToggle}
+            className="flex items-center space-x-2"
+            data-testid="button-mode-toggle"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Overview Mode</span>
+          </Button>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Block {currentIndex + 1} of {totalBlocks}
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                {progressPercentage}% complete
+              </p>
+            </div>
+          </div>
+          
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
             <div 
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${((currentIndex) / totalBlocks) * 100}%` }}
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full h-3 transition-all duration-500"
+              style={{ width: `${(completedBlocks.size / totalBlocks) * 100}%` }}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Current Block */}
-      <Card className="bg-card border border-border">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl">{currentBlock.title}</CardTitle>
-            <Badge variant="outline">
-              {formatTime(currentBlock.startTime, currentBlock.endTime)}
+        {/* Activity Card */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 space-y-8">
+          {/* Block Header */}
+          <div className="text-center">
+            <Badge variant="secondary" className="mb-4">
+              {currentBlock.startTime} - {currentBlock.endTime}
             </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Render actual block content */}
-          {currentBlock.type === 'bible' && (
-            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-5 w-5 text-blue-600 dark:text-blue-400">📖</div>
-                <div className="flex-1">
-                  <div className="font-medium text-sm text-blue-900 dark:text-blue-100">
-                    Bible Reading
-                  </div>
-                  <div className="text-xs text-blue-700 dark:text-blue-300">
-                    {currentBlock.startTime} - {currentBlock.endTime}
-                  </div>
-                  <div className="text-sm text-blue-800 dark:text-blue-200 mt-1 font-medium">
-                    {currentBlock.title}
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              {currentBlock.title}
+            </h2>
+            
+            {/* Block Description */}
+            <div className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+              {currentBlock.type === 'bible' && (
+                <p>Time for your daily Bible reading. Focus and reflect on today's passage.</p>
+              )}
+              {currentBlock.type === 'assignment' && currentBlock.assignment && (
+                <div>
+                  <p className="mb-3">Work on your assignment:</p>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-900 dark:text-white">{currentBlock.assignment.title}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Subject: {currentBlock.assignment.subject}</p>
+                    {currentBlock.assignment.dueDate && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Due: {new Date(currentBlock.assignment.dueDate).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
                 </div>
-              </div>
+              )}
+              {currentBlock.type === 'fixed' && currentBlock.blockType === 'movement' && (
+                <p>Movement break! Stretch, walk, or do light exercise to refresh your mind.</p>
+              )}
+              {currentBlock.type === 'fixed' && currentBlock.blockType === 'lunch' && (
+                <p>Lunch time! Take a proper break and enjoy your meal.</p>
+              )}
             </div>
-          )}
-          
-          {currentBlock.type === 'fixed' && (
-            <FixedBlock
-              blockId={currentBlock.id}
-              title={currentBlock.title}
-              blockType={currentBlock.blockType || 'fixed'}
-              blockStart={currentBlock.startTime}
-              blockEnd={currentBlock.endTime}
-              date={selectedDate}
-            />
-          )}
-          
-          {currentBlock.type === 'assignment' && currentBlock.assignment && (
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-2">Subject: {currentBlock.assignment.subject}</h4>
-                {currentBlock.assignment.instructions && (
-                  <p className="text-sm text-muted-foreground">
-                    {currentBlock.assignment.instructions}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
+          </div>
 
           {/* Timer Display */}
-          {phase === 'running' && (
-            <div className="text-center py-8">
-              <div className="text-6xl font-mono font-bold text-primary mb-4">
-                {formatTimeRemaining(timeRemaining)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Time remaining for {currentBlock.title}
-              </div>
-            </div>
-          )}
+          <div className="flex justify-center">
+            <CircularTimer
+              durationMinutes={currentBlock.estimatedMinutes || 20}
+              isRunning={isTimerRunning}
+              onComplete={handleTimerComplete}
+              onToggle={() => setIsTimerRunning(!isTimerRunning)}
+              onReset={() => {
+                setIsTimerRunning(false);
+                setExtraTime(0);
+              }}
+              extraTime={extraTime}
+            />
+          </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
-            {phase === 'idle' ? (
-              <Button onClick={startBlock} className="flex-1">
-                <Play className="h-4 w-4 mr-2" />
-                Start Block
+          <div className="space-y-3">
+            <Button 
+              onClick={handleBlockComplete}
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-medium"
+              data-testid="button-block-complete"
+            >
+              <CheckCircle className="w-5 h-5 mr-2" />
+              Done
+            </Button>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                onClick={handleNeedMoreTime}
+                variant="outline"
+                className="py-3"
+                data-testid="button-need-more-time"
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Need More Time
               </Button>
-            ) : (
-              <>
-                <Button 
-                  onClick={() => handleAction('completed')} 
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                  size="lg"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Done
-                </Button>
-                <Button 
-                  onClick={() => handleAction('needs_more_time')} 
-                  variant="outline" 
-                  className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
-                  size="lg"
-                >
-                  <Clock className="h-4 w-4 mr-2" />
-                  Need More Time
-                </Button>
-                <Button 
-                  onClick={() => handleAction('stuck')} 
-                  variant="outline" 
-                  className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
-                  size="lg"
-                >
-                  <AlertCircle className="h-4 w-4 mr-2" />
-                  Stuck
-                </Button>
-              </>
+              
+              <Button 
+                onClick={handleStuck}
+                variant="outline"
+                className="py-3"
+                data-testid="button-stuck"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Stuck
+              </Button>
+            </div>
+
+            {/* Canvas Link for Assignments */}
+            {currentBlock.type === 'assignment' && currentBlock.assignment && (
+              <Button 
+                variant="outline" 
+                className="w-full py-3"
+                onClick={() => {
+                  // Create Canvas URL from assignment data
+                  const canvasUrl = `https://canvas.instructure.com/courses/${currentBlock.assignment?.courseName}/assignments/${currentBlock.assignment?.id}`;
+                  window.open(canvasUrl, '_blank');
+                }}
+                data-testid="button-open-canvas"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open in Canvas
+              </Button>
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Upcoming Blocks */}
-      {currentIndex < totalBlocks - 1 && (
-        <Card className="bg-muted/50 border border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">Next Up</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {scheduleBlocks.slice(currentIndex + 1, currentIndex + 4).map((block) => (
-                <div key={block.id} className="flex items-center justify-between text-sm">
-                  <span>{block.title}</span>
-                  <span className="text-muted-foreground">
-                    {formatTime(block.startTime, block.endTime)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
