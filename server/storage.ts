@@ -165,6 +165,7 @@ export class DatabaseStorage implements IStorage {
         instructions: data.instructions,
         // Canvas integration fields - CRITICAL for print queue Canvas links!
         canvasId: data.canvasId || null,
+        canvasCourseId: data.canvasCourseId || null,
         canvasInstance: data.canvasInstance || null,
         // Additional Canvas metadata
         scheduledDate: data.scheduledDate || null,

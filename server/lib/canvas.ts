@@ -195,6 +195,7 @@ export class CanvasClient {
             const enhanced = {
               ...assignment,
               courseName: course.name,
+              course_id: course.id,  // CRITICAL: Add course ID for Canvas URL generation
               course_start_date: course.start_at,
               course_end_date: course.end_at,
               // Determine Canvas category based on assignment group or submission types

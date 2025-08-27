@@ -148,6 +148,7 @@ class JobScheduler {
                   blockType: intelligence.blockType,
                   isAssignmentBlock: intelligence.isSchedulable,
                   canvasId: canvasAssignment.id,
+                  canvasCourseId: canvasAssignment.course_id,
                   canvasInstance: 1,
                   isCanvasImport: true,
                   

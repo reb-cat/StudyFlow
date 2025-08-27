@@ -122,6 +122,7 @@ export const assignments = pgTable("assignments", {
   notes: text("notes"),
   // Canvas integration fields
   canvasId: integer("canvas_id"), // Canvas assignment ID for sync tracking
+  canvasCourseId: integer("canvas_course_id"), // Canvas course ID for building URLs
   canvasInstance: integer("canvas_instance"), // 1 or 2 for multi-instance support
   isCanvasImport: boolean("is_canvas_import").default(false), // Track Canvas vs manual assignments
   

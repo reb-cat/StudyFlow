@@ -16,6 +16,7 @@ export function detectPrintNeeds(assignment: {
   title: string;
   instructions?: string | null;
   canvasId?: number | null;
+  canvasCourseId?: number | null;  // CRITICAL: Add course ID for Canvas URLs
   canvasInstance?: number | null;
   submissionTypes?: string[] | null;
   courseName?: string | null;
@@ -29,13 +30,14 @@ export function detectPrintNeeds(assignment: {
     priority: 'low'
   };
 
-  // Generate Canvas URL if we have Canvas ID
-  if (assignment.canvasId && assignment.canvasInstance) {
+  // Generate Canvas URL if we have Canvas ID and Course ID
+  if (assignment.canvasId && assignment.canvasCourseId && assignment.canvasInstance) {
     const baseUrl = assignment.canvasInstance === 1 
       ? process.env.CANVAS_BASE_URL 
       : process.env.CANVAS_BASE_URL_2;
     if (baseUrl) {
-      result.canvasUrl = `${baseUrl}/assignments/${assignment.canvasId}`;
+      // Generate proper Canvas assignment URL: https://canvas.instructure.com/courses/6739821/assignments/40318135
+      result.canvasUrl = `${baseUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
     }
   } 
   // FALLBACK: Generate search URL for assignments without Canvas IDs

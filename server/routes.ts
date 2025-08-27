@@ -654,6 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: assignment.title,
           instructions: assignment.instructions,
           canvasId: assignment.canvasId,
+          canvasCourseId: assignment.canvasCourseId || assignment.canvas_course_id,  // Handle both camelCase and snake_case!
           canvasInstance: assignment.canvasInstance,
           submissionTypes: assignment.submissionTypes,
           courseName: assignment.courseName,
