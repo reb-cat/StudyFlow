@@ -1,107 +1,100 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, BookOpen, Calendar, Activity } from 'lucide-react';
+import { User } from 'lucide-react';
 import { Link } from 'wouter';
 
 export default function StudentSelection() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="container mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            StudyFlow Dashboard
+    <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+      <div className="w-full max-w-2xl px-8">
+        {/* Clean Header */}
+        <div className="text-center mb-16">
+          <h1 className="text-3xl font-light text-gray-900 dark:text-white mb-3">
+            Choose Your Student
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Choose your student to begin today's work
-          </p>
         </div>
 
-        {/* Student Selection Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        {/* Simple Student Cards */}
+        <div className="space-y-6">
           {/* Abigail's Card */}
-          <Card className="hover:shadow-lg transition-all duration-300 border-2 hover:border-blue-300 dark:hover:border-blue-600">
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-20 h-20 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
-                <User className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+          <Link href="/student/abigail">
+            <div className="group cursor-pointer">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600 transition-all duration-200">
+                <div className="flex items-center space-x-6">
+                  {/* Profile Icon */}
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                    <User className="w-8 h-8 text-gray-600 dark:text-gray-400" />
+                  </div>
+                  
+                  {/* Name */}
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-medium text-gray-900 dark:text-white">
+                      Abigail
+                    </h2>
+                  </div>
+                  
+                  {/* Action Button */}
+                  <Button 
+                    className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-lg group-hover:scale-105 transition-transform duration-200"
+                    data-testid="button-select-abigail"
+                  >
+                    Let's Go
+                  </Button>
+                </div>
+                
+                {/* Subtle Progress Indicator */}
+                <div className="mt-4 ml-22">
+                  <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1">
+                    <div className="bg-gray-300 dark:bg-gray-600 h-1 rounded-full" style={{width: '15%'}}></div>
+                  </div>
+                </div>
               </div>
-              <CardTitle className="text-2xl text-gray-900 dark:text-white">Abigail</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center text-gray-600 dark:text-gray-300">
-                  <BookOpen className="w-5 h-5 mr-3 text-blue-500" />
-                  <span>Bible: Genesis 1-2</span>
-                </div>
-                <div className="flex items-center text-gray-600 dark:text-gray-300">
-                  <Calendar className="w-5 h-5 mr-3 text-green-500" />
-                  <span>9 active assignments</span>
-                </div>
-                <div className="flex items-center text-gray-600 dark:text-gray-300">
-                  <Activity className="w-5 h-5 mr-3 text-purple-500" />
-                  <span>Ready for today's schedule</span>
-                </div>
-              </div>
-              <Link href="/student/abigail">
-                <Button 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium"
-                  data-testid="button-select-abigail"
-                >
-                  Start Abigail's Day
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+            </div>
+          </Link>
 
           {/* Khalil's Card */}
-          <Card className="hover:shadow-lg transition-all duration-300 border-2 hover:border-green-300 dark:hover:border-green-600">
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
-                <User className="w-10 h-10 text-green-600 dark:text-green-400" />
+          <Link href="/student/khalil">
+            <div className="group cursor-pointer">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600 transition-all duration-200">
+                <div className="flex items-center space-x-6">
+                  {/* Profile Icon */}
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                    <User className="w-8 h-8 text-gray-600 dark:text-gray-400" />
+                  </div>
+                  
+                  {/* Name */}
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-medium text-gray-900 dark:text-white">
+                      Khalil
+                    </h2>
+                  </div>
+                  
+                  {/* Action Button */}
+                  <Button 
+                    className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-lg group-hover:scale-105 transition-transform duration-200"
+                    data-testid="button-select-khalil"
+                  >
+                    Let's Go
+                  </Button>
+                </div>
+                
+                {/* Subtle Progress Indicator */}
+                <div className="mt-4 ml-22">
+                  <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1">
+                    <div className="bg-gray-300 dark:bg-gray-600 h-1 rounded-full" style={{width: '35%'}}></div>
+                  </div>
+                </div>
               </div>
-              <CardTitle className="text-2xl text-gray-900 dark:text-white">Khalil</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center text-gray-600 dark:text-gray-300">
-                  <BookOpen className="w-5 h-5 mr-3 text-blue-500" />
-                  <span>Bible: Genesis 1-2</span>
-                </div>
-                <div className="flex items-center text-gray-600 dark:text-gray-300">
-                  <Calendar className="w-5 h-5 mr-3 text-green-500" />
-                  <span>68 active assignments</span>
-                </div>
-                <div className="flex items-center text-gray-600 dark:text-gray-300">
-                  <Activity className="w-5 h-5 mr-3 text-purple-500" />
-                  <span>Ready for today's schedule</span>
-                </div>
-              </div>
-              <Link href="/student/khalil">
-                <Button 
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg font-medium"
-                  data-testid="button-select-khalil"
-                >
-                  Start Khalil's Day
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+            </div>
+          </Link>
         </div>
 
-        {/* Quick Access Links */}
+        {/* Minimal Footer */}
         <div className="text-center mt-12">
-          <div className="space-x-4">
-            <Link href="/admin">
-              <Button variant="outline" className="text-gray-600 dark:text-gray-300" data-testid="link-admin-panel">
-                Admin Panel
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline" className="text-gray-600 dark:text-gray-300" data-testid="link-home">
-                Home
-              </Button>
-            </Link>
-          </div>
+          <Link href="/admin">
+            <Button variant="ghost" className="text-gray-400 hover:text-gray-600 text-sm" data-testid="link-admin-panel">
+              Admin
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
