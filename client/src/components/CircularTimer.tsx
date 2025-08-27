@@ -84,7 +84,7 @@ export function CircularTimer({
               timeRemaining > 300 
                 ? 'text-green-500' 
                 : timeRemaining > 60 
-                ? 'text-yellow-500' 
+                ? 'text-gray-500' 
                 : 'text-red-500'
             }`}
             fill="transparent"

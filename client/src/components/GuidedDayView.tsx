@@ -196,21 +196,8 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   return (
     <div className="h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-blue-900 p-2 flex flex-col">
       <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
-        {/* Ultra-compact Header */}
-        <div className="flex items-center justify-between mb-2 bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900 dark:text-white">{studentName}</h1>
-              <div className="flex items-center text-gray-600 dark:text-gray-400 text-xs">
-                <Calendar className="w-3 h-3 mr-1" />
-                {dayName}
-              </div>
-            </div>
-          </div>
-          
+        {/* Back button only */}
+        <div className="flex justify-end mb-2">
           <Button
             variant="outline"
             onClick={onModeToggle}
@@ -237,9 +224,9 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
           </div>
         </div>
 
-        {/* Activity Card with Large Timer */}
+        {/* Activity Card - Simplified */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 flex-1 flex flex-col">
-          {/* Minimal Block Header */}
+          {/* Activity Title Only */}
           <div className="text-center mb-2">
             <Badge variant="secondary" className="text-xs px-2 py-0.5">
               {currentBlock.startTime} - {currentBlock.endTime}
@@ -247,25 +234,6 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mt-1 mb-1">
               {currentBlock.title}
             </h2>
-            
-            {/* Minimal Block Description */}
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              {currentBlock.type === 'bible' && (
-                <p>Daily Bible reading</p>
-              )}
-              {currentBlock.type === 'assignment' && currentBlock.assignment && (
-                <div className="bg-gray-50 dark:bg-gray-700 p-1 rounded text-left">
-                  <h4 className="font-medium text-xs text-gray-900 dark:text-white">{currentBlock.assignment.title}</h4>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">{currentBlock.assignment.subject}</p>
-                </div>
-              )}
-              {currentBlock.type === 'fixed' && currentBlock.blockType === 'movement' && (
-                <p>Movement break</p>
-              )}
-              {currentBlock.type === 'fixed' && currentBlock.blockType === 'lunch' && (
-                <p>Lunch time</p>
-              )}
-            </div>
           </div>
 
           {/* LARGE Timer - The Dominant Element */}
@@ -283,7 +251,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
             />
           </div>
 
-          {/* Compact Action Buttons */}
+          {/* Action Buttons - Essential Only */}
           <div className="space-y-1 mt-2">
             <Button 
               onClick={handleBlockComplete}
@@ -315,23 +283,6 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                 Stuck
               </Button>
             </div>
-
-            {/* Canvas Link for Assignments */}
-            {currentBlock.type === 'assignment' && currentBlock.assignment && (
-              <Button 
-                variant="outline" 
-                className="w-full py-1.5 text-xs"
-                onClick={() => {
-                  // Create Canvas URL from assignment data
-                  const canvasUrl = `https://canvas.instructure.com/courses/${currentBlock.assignment?.courseName}/assignments/${currentBlock.assignment?.id}`;
-                  window.open(canvasUrl, '_blank');
-                }}
-                data-testid="button-open-canvas"
-              >
-                <ExternalLink className="w-3 h-3 mr-1" />
-                Open in Canvas
-              </Button>
-            )}
           </div>
         </div>
       </div>
