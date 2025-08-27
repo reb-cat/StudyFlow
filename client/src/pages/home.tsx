@@ -46,21 +46,21 @@ export default function Home() {
               className="px-8 py-4 border-none rounded-xl font-semibold text-base cursor-pointer transition-all duration-200 no-underline inline-flex items-center gap-2 bg-gradient-to-br from-[#069494] to-[#014D4E] text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:-translate-y-0.5 hover:shadow-[0_10px_15px_rgba(0,0,0,0.1)]"
               data-testid="button-student-dashboard"
             >
-              👨‍🎓 Student Dashboard
+              Student Dashboard
             </Link>
             <Link
               href="/admin"
               className="px-8 py-4 bg-[#F1F3F4] text-[#1A1A1A] border border-[#E5E5E5] rounded-xl font-semibold text-base cursor-pointer transition-all duration-200 no-underline inline-flex items-center gap-2 hover:bg-[#F8F9FA] hover:border-[#B8E6E6]"
               data-testid="button-admin-panel"
             >
-              ⚙️ Admin Panel
+              Admin Panel
             </Link>
             <Link
               href="/print-queue"
               className="px-8 py-4 bg-gradient-to-br from-[#F59E0B] to-[#D97706] text-white rounded-xl font-semibold text-base cursor-pointer transition-all duration-200 no-underline inline-flex items-center gap-2 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(245,158,11,0.4)]"
               data-testid="button-print-queue"
             >
-              🖨️ Print Queue
+              Print Queue
             </Link>
           </div>
         </section>
