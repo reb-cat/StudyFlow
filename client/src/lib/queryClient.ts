@@ -15,6 +15,11 @@ export async function apiRequest(
   // Get JWT token from localStorage
   const token = localStorage.getItem('authToken');
   
+  // DEBUG: Check if token is missing for protected endpoints
+  if (!token && !url.includes('/login') && !url.includes('/register')) {
+    console.warn('🚨 API request without token:', url);
+  }
+  
   const headers: Record<string, string> = {};
   if (data) {
     headers["Content-Type"] = "application/json";
@@ -42,6 +47,12 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     // Get JWT token from localStorage
     const token = localStorage.getItem('authToken');
+    
+    // DEBUG: Check if token is missing for protected endpoints
+    const url = queryKey.join("/") as string;
+    if (!token && !url.includes('/login') && !url.includes('/register')) {
+      console.warn('🚨 Query request without token:', url);
+    }
     
     const headers: Record<string, string> = {};
     if (token) {
