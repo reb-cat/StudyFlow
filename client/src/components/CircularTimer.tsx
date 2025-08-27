@@ -70,7 +70,7 @@ export function CircularTimer({
   };
 
   const progress = (timeRemaining / totalTime) * 100;
-  const radius = 110; // 220px diameter - LARGE timer as requested
+  const radius = 130; // 260px diameter - larger circumference for clearance
   const strokeWidth = 14;
   const normalizedRadius = radius - strokeWidth * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
