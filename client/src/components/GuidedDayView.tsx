@@ -128,7 +128,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   const [currentIndex, setCurrentIndex] = useState(persistedState.currentIndex);
   const [isTimerRunning, setIsTimerRunning] = useState(persistedState.isTimerRunning);
   const [extraTime, setExtraTime] = useState(persistedState.extraTime);
-  const [completedBlocks, setCompletedBlocks] = useState<Set<string>>(persistedState.completedBlocks);
+  const [completedBlocks, setCompletedBlocks] = useState<Set<string>>(new Set(persistedState.completedBlocks));
   const [timeRemaining, setTimeRemaining] = useState<number | null>(persistedState.timeRemaining);
 
   const currentBlock = scheduleBlocks[currentIndex];
@@ -228,7 +228,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     
     // Move to next block
     if (currentIndex < scheduleBlocks.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev: number) => prev + 1);
       setIsTimerRunning(true); // Auto-start next block
       setExtraTime(0);
       setTimeRemaining(null); // Reset timer for next block
@@ -255,7 +255,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     
     // Move to next block after marking as stuck
     if (currentIndex < scheduleBlocks.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev: number) => prev + 1);
       setIsTimerRunning(true); // Auto-start next block
       setExtraTime(0);
       setTimeRemaining(null); // Reset timer for next block
@@ -298,10 +298,19 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
         {/* Pure Focus Card - No Navigation */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 space-y-8">
           {/* Current Task - Minimal */}
-          <div className="text-center">
+          <div className="text-center space-y-3">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               {currentBlock.title}
             </h2>
+            
+            {/* Assignment Instructions - Only for assignment blocks */}
+            {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mx-4">
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {currentBlock.assignment.instructions}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* HUGE Timer - Dominant Element */}
