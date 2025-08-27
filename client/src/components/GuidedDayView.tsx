@@ -84,9 +84,9 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
     // Assignment blocks - use schedule template blocks AND fill with actual assignment data
     ...allScheduleBlocks
       .filter((block) => block.blockType === 'assignment')
-      .map((block, index) => {
-        // Use backend's INTELLIGENT SCHEDULING - no frontend duplication logic!
-        const matchingAssignment = assignments[index] || null; // Backend sends exactly the right assignments for each block
+      .map((block) => {
+        // FIXED: Use backend's scheduledBlock field to properly map assignments to blocks
+        const matchingAssignment = assignments.find(a => a.scheduledBlock === block.blockNumber) || null;
         
         return {
           id: matchingAssignment ? matchingAssignment.id : block.id,

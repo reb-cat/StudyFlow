@@ -286,6 +286,7 @@ export class DatabaseStorage implements IStorage {
       // Step 6: SMART BLOCK FILLING with Mental Effort Distribution
       const scheduledAssignments: any[] = [];
       const usedSubjects: string[] = [];
+      const usedAssignmentIds = new Set<string>(); // Track used assignments by ID
 
       for (let i = 0; i < assignmentBlocks.length && scheduledAssignments.length < assignments.length; i++) {
         const block = assignmentBlocks[i];
@@ -300,13 +301,13 @@ export class DatabaseStorage implements IStorage {
           // Early blocks: Prioritize A-priority and heavy assignments
           candidateAssignments = assignments.filter(a => 
             (a.priority === 'A' || a.difficulty === 'hard') && 
-            !scheduledAssignments.includes(a)
+            !usedAssignmentIds.has(a.id)
           );
         }
         
         if (candidateAssignments.length === 0) {
           // Fallback: Any unscheduled assignment
-          candidateAssignments = assignments.filter(a => !scheduledAssignments.includes(a));
+          candidateAssignments = assignments.filter(a => !usedAssignmentIds.has(a.id));
         }
 
         // PRAGMATIC SUBJECT DIVERSITY - Prefer filled blocks over perfect spacing
@@ -338,7 +339,13 @@ export class DatabaseStorage implements IStorage {
         
         // Always assign SOMETHING if assignments are available - no empty blocks for perfectionism
         if (bestAssignment) {
-          scheduledAssignments.push(bestAssignment);
+          // CRITICAL FIX: Add block number to assignment so frontend knows where to place it!
+          const scheduledAssignment = {
+            ...bestAssignment,
+            scheduledBlock: block.blockNumber
+          };
+          scheduledAssignments.push(scheduledAssignment);
+          usedAssignmentIds.add(bestAssignment.id); // Track this assignment as used
           usedSubjects.push(this.getAssignmentSubject(bestAssignment));
           assignmentAssigned = true;
           
