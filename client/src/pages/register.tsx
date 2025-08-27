@@ -20,7 +20,6 @@ const registerSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
-  role: z.enum(["student", "parent"]).default("student"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -42,7 +41,6 @@ export default function RegisterPage() {
       email: "",
       password: "",
       confirmPassword: "",
-      role: "student",
     },
   });
 
@@ -248,38 +246,6 @@ export default function RegisterPage() {
                 {form.formState.errors.confirmPassword && (
                   <p className="text-sm text-red-500" data-testid="error-confirm-password">
                     {form.formState.errors.confirmPassword.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Role Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="role" style={{ color: 'var(--text-primary)' }}>
-                  Account Type *
-                </Label>
-                <Select 
-                  value={form.watch("role")} 
-                  onValueChange={(value) => form.setValue("role", value as "student" | "parent")}
-                  data-testid="select-role"
-                >
-                  <SelectTrigger style={{
-                    background: 'var(--surface)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-primary)'
-                  }}>
-                    <SelectValue placeholder="Select account type" />
-                  </SelectTrigger>
-                  <SelectContent style={{
-                    background: 'var(--surface-elevated)',
-                    borderColor: 'var(--border-subtle)'
-                  }}>
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="parent">Parent/Guardian</SelectItem>
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.role && (
-                  <p className="text-sm text-red-500" data-testid="error-role">
-                    {form.formState.errors.role.message}
                   </p>
                 )}
               </div>

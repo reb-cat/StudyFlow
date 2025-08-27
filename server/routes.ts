@@ -255,9 +255,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: z.string().min(1, "Last name is required"),
         email: z.string().email("Please enter a valid email address"),
         password: z.string().min(8, "Password must be at least 8 characters"),
-        role: z.enum(["student", "parent"]).default("student"),
       });
-      const { firstName, lastName, email, password, role } = serverRegisterSchema.parse(req.body);
+      const { firstName, lastName, email, password } = serverRegisterSchema.parse(req.body);
       
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
@@ -275,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password, // In production, this should be hashed
         firstName,
         lastName,
-        role,
+        role: 'user', // Default all new users to 'user' role
       });
       
       // Return user without password
