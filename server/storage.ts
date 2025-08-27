@@ -309,27 +309,47 @@ export class DatabaseStorage implements IStorage {
           candidateAssignments = assignments.filter(a => !scheduledAssignments.includes(a));
         }
 
-        // Apply subject diversity within candidates
+        // PRAGMATIC SUBJECT DIVERSITY - Prefer filled blocks over perfect spacing
+        let bestAssignment = null;
+        let diversityScore = -1;
+        
         for (const assignment of candidateAssignments) {
           const subject = this.getAssignmentSubject(assignment);
           const lastSubject = usedSubjects[usedSubjects.length - 1];
-          const isConsecutiveSameSubject = lastSubject === subject;
-
-          // Avoid consecutive same subjects unless no other option
-          if (!isConsecutiveSameSubject || candidateAssignments.length === 1) {
-            scheduledAssignments.push(assignment);
-            usedSubjects.push(subject);
-            assignmentAssigned = true;
-            
-            const blockLabel = isEarlyBlock ? '🌅 Early' : '🌆 Later';
-            console.log(`📍 Block ${block.blockNumber} ${blockLabel}: "${assignment.title}" [${assignment.priority}-priority, ${assignment.difficulty}, ~${assignment.estimatedMinutes}min]`);
-            break;
+          const secondLastSubject = usedSubjects[usedSubjects.length - 2];
+          
+          // Calculate diversity score (higher = better)
+          let score = 0;
+          if (subject !== lastSubject) score += 10; // Different from last = good
+          if (subject !== secondLastSubject) score += 5; // Different from second-last = bonus
+          
+          // Priority bonus (A > B > C)
+          if (assignment.priority === 'A') score += 3;
+          if (assignment.priority === 'B') score += 1;
+          
+          // Early block prefers harder assignments
+          if (isEarlyBlock && assignment.difficulty === 'hard') score += 2;
+          
+          if (score > diversityScore) {
+            diversityScore = score;
+            bestAssignment = assignment;
           }
         }
+        
+        // Always assign SOMETHING if assignments are available - no empty blocks for perfectionism
+        if (bestAssignment) {
+          scheduledAssignments.push(bestAssignment);
+          usedSubjects.push(this.getAssignmentSubject(bestAssignment));
+          assignmentAssigned = true;
+          
+          const blockLabel = isEarlyBlock ? '🌅 Early' : '🌆 Later';
+          const diversityLabel = diversityScore >= 10 ? '🎯 Diverse' : '📚 Same-subject';
+          console.log(`📍 Block ${block.blockNumber} ${blockLabel} ${diversityLabel}: "${bestAssignment.title}" [${bestAssignment.priority}-priority, ${bestAssignment.difficulty}]`);
+        }
 
-        // Strategic break: Leave block empty to maintain quality vs quantity
+        // Only leave block empty if NO assignments are available
         if (!assignmentAssigned) {
-          console.log(`⚪ Block ${block.blockNumber}: Strategic break - maintaining focus quality`);
+          console.log(`⚪ Block ${block.blockNumber}: No assignments available`);
         }
       }
 
