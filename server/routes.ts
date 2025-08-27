@@ -619,8 +619,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Text is required' });
       }
       
-      // Use specific voice for Khalil - Brian (calm, educational voice)
-      const khalilVoiceId = voiceId || 'nPczCjzI2devNBz1zQrb'; // Brian - great for educational content
+      // Use specific voice for Khalil - Victor (preferred voice)
+      const khalilVoiceId = voiceId || 'Yp1ySsmODnAcIghdWxeK'; // Victor - Khalil's preferred voice
       
       const elevenLabs = getElevenLabsService();
       const audioBuffer = await elevenLabs.generateSpeech(text, khalilVoiceId, {
