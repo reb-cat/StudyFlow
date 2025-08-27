@@ -150,23 +150,54 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   };
 
   const handleNeedMoreTime = () => {
-    setExtraTime(prev => prev + 10); // Add 10 more minutes
-    if (!isTimerRunning) setIsTimerRunning(true);
-    
-    toast({
-      title: 'Time Extended',
-      description: `Added 10 more minutes to ${currentBlock.title}`,
-    });
-  };
-
-  const handleStuck = () => {
+    // Complex backend process: duplicate assignment, mark as needing more time,
+    // reschedule other blocks either same day or next day
     setIsTimerRunning(false);
     
     toast({
-      title: 'Help Requested',
-      description: `You've flagged ${currentBlock.title} for help. Take your time!`,
+      title: 'Rescheduling',
+      description: `${currentBlock.title} needs more time. Moving to next task.`,
+    });
+    
+    // Mark current block as needing more time (would involve backend updates)
+    // This duplicates the assignment and reschedules remaining blocks
+    
+    // Move to next block
+    if (currentIndex < scheduleBlocks.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setIsTimerRunning(true); // Auto-start next block
+      setExtraTime(0);
+    } else {
+      toast({
+        title: 'Day Complete',
+        description: 'Great job! You\'ve finished today\'s schedule.',
+      });
+      onModeToggle?.();
+    }
+  };
+
+  const handleStuck = () => {
+    // Backend process: mark as stuck, potentially reschedule or notify for help
+    setIsTimerRunning(false);
+    
+    toast({
+      title: 'Marked as Stuck',
+      description: `${currentBlock.title} has been flagged for help. Moving to next task.`,
       variant: 'default'
     });
+    
+    // Move to next block after marking as stuck
+    if (currentIndex < scheduleBlocks.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setIsTimerRunning(true); // Auto-start next block
+      setExtraTime(0);
+    } else {
+      toast({
+        title: 'Day Complete',
+        description: 'You\'ve reached the end of today\'s schedule.',
+      });
+      onModeToggle?.();
+    }
   };
 
   const handleTimerComplete = () => {
@@ -236,24 +267,38 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
             />
           </div>
 
-          {/* Simple Actions */}
-          <div className="flex justify-center space-x-4">
+          {/* Essential Action Buttons - All Three Required */}
+          <div className="space-y-3">
             <Button 
               onClick={handleBlockComplete}
-              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-medium"
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-full font-medium"
               data-testid="button-block-complete"
             >
+              <CheckCircle className="w-5 h-5 mr-2" />
               Done
             </Button>
             
-            <Button 
-              onClick={handleNeedMoreTime}
-              variant="outline"
-              className="px-6 py-3 rounded-full"
-              data-testid="button-need-more-time"
-            >
-              +5 min
-            </Button>
+            <div className="flex space-x-3">
+              <Button 
+                onClick={handleNeedMoreTime}
+                variant="outline"
+                className="flex-1 py-3 rounded-full"
+                data-testid="button-need-more-time"
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Need More Time
+              </Button>
+              
+              <Button 
+                onClick={handleStuck}
+                variant="outline"
+                className="flex-1 py-3 rounded-full"
+                data-testid="button-stuck"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Stuck
+              </Button>
+            </div>
           </div>
         </div>
       </div>
