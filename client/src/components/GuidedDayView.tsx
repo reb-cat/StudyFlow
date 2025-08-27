@@ -34,6 +34,9 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   // Persistence key for this student's session
   const persistenceKey = `guidedMode_${studentName}_${selectedDate}`;
   
+  // Emergency exit state
+  const [exitClickCount, setExitClickCount] = useState(0);
+  
   // Build complete schedule using real schedule template data (same as Overview mode)
   const allScheduleBlocks = scheduleTemplate.map((block) => ({
     id: block.id,
@@ -354,18 +357,35 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
             <div className="pt-6 text-center">
               <Button
                 variant="ghost"
-                onDoubleClick={(e) => {
-                  e.preventDefault();
-                  // Emergency exit - preserve timer state so they can resume
-                  if (onModeToggle) {
-                    onModeToggle();
+                onClick={() => {
+                  if (exitClickCount === 0) {
+                    setExitClickCount(1);
+                    toast({
+                      title: "Emergency Exit",
+                      description: "Click again within 2 seconds to exit",
+                      duration: 2000
+                    });
+                    // Reset counter after 2 seconds
+                    setTimeout(() => setExitClickCount(0), 2000);
+                  } else {
+                    // Second click - actually exit
+                    console.log("Emergency exit triggered, calling onModeToggle");
+                    if (onModeToggle) {
+                      onModeToggle();
+                    } else {
+                      console.error("onModeToggle is not defined");
+                    }
                   }
                 }}
-                className="text-xs text-gray-300 hover:text-gray-400 transition-colors"
+                className={`text-xs transition-colors ${
+                  exitClickCount > 0 
+                    ? 'text-orange-400 hover:text-orange-300' 
+                    : 'text-gray-300 hover:text-gray-400'
+                }`}
                 data-testid="button-mode-toggle"
-                title="Double-tap to exit (emergency only)"
+                title={exitClickCount > 0 ? "Click again to exit" : "Click twice to exit (emergency only)"}
               >
-                Emergency Exit
+                {exitClickCount > 0 ? "Click Again to Exit" : "Emergency Exit"}
               </Button>
             </div>
           </div>
