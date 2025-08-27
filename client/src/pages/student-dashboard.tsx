@@ -35,11 +35,26 @@ export default function StudentDashboard() {
   const params = useParams<{ student: string }>();
   const [, navigate] = useLocation();
   
-  // Check authentication first
+  // ALL HOOKS MUST BE CALLED FIRST - before any conditional logic
+  const [isGuidedMode, setIsGuidedMode] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Always start with today's date 
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Check authentication
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['/api/auth/user'],
     retry: false,
   });
+
+  // SECURITY: Only allow access to specific students and only if user is admin
+  const allowedStudents = ['abigail', 'khalil'];
+  const studentParam = params.student?.toLowerCase();
+  const studentName = studentParam ? studentParam.charAt(0).toUpperCase() + studentParam.slice(1) : '';
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -66,10 +81,6 @@ export default function StudentDashboard() {
     return null;
   }
 
-  // SECURITY: Only allow access to specific students and only if user is admin
-  const allowedStudents = ['abigail', 'khalil'];
-  const studentParam = params.student?.toLowerCase();
-  
   if (!studentParam || !allowedStudents.includes(studentParam)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -81,17 +92,6 @@ export default function StudentDashboard() {
       </div>
     );
   }
-
-  // Capitalize student name for consistency
-  const studentName = studentParam.charAt(0).toUpperCase() + studentParam.slice(1);
-  const [isGuidedMode, setIsGuidedMode] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(() => {
-    // Always start with today's date 
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  });
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const queryClient = useQueryClient();
 
   // Theme toggle functionality
   useEffect(() => {
