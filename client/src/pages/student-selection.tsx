@@ -1,6 +1,41 @@
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 export default function StudentSelection() {
+  const [, navigate] = useLocation();
+  
+  // Check authentication
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['/api/auth/user'],
+    retry: false,
+  });
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/login');
+      return;
+    }
+  }, [user, isLoading, navigate]);
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated
+  if (!user) {
+    return null;
+  }
+
   // Get current date
   const today = new Date();
   const dateOptions: Intl.DateTimeFormatOptions = { 

@@ -151,19 +151,19 @@ export default function Home() {
               size="lg" 
               className="h-12 px-8 shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
               style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)' }}
-              data-testid="button-student-dashboard"
-              onClick={() => window.location.href = '/student'}
+              data-testid="button-register"
+              onClick={() => window.location.href = '/register'}
             >
-              Student Dashboard
+              Register Account
             </Button>
             <Button 
               variant="outline" 
               size="lg" 
               className="h-12 px-8 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30"
-              data-testid="button-admin-panel"
-              onClick={() => window.location.href = '/admin'}
+              data-testid="button-login"
+              onClick={() => window.location.href = '/login'}
             >
-              Admin Panel
+              Login
             </Button>
             <Button 
               size="lg" 

@@ -24,7 +24,7 @@ import {
   UtensilsCrossed,
   ArrowLeft
 } from 'lucide-react';
-import { Link, useParams } from 'wouter';
+import { Link, useParams, useLocation } from 'wouter';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
 import { FixedBlock } from '@/components/FixedBlock';
@@ -32,8 +32,57 @@ import type { Assignment } from '@shared/schema';
 
 export default function StudentDashboard() {
   const params = useParams<{ student: string }>();
-  // Capitalize student name for consistency, default to Abigail if no student provided
-  const studentName = params.student ? params.student.charAt(0).toUpperCase() + params.student.slice(1) : "Abigail";
+  const [, navigate] = useLocation();
+  
+  // Check authentication first
+  const { data: user, isLoading: userLoading } = useQuery({
+    queryKey: ['/api/auth/user'],
+    retry: false,
+  });
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!userLoading && !user) {
+      navigate('/login');
+      return;
+    }
+  }, [user, userLoading, navigate]);
+
+  // Show loading while checking auth
+  if (userLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated
+  if (!user) {
+    return null;
+  }
+
+  // SECURITY: Only allow access to specific students and only if user is admin
+  const allowedStudents = ['abigail', 'khalil'];
+  const studentParam = params.student?.toLowerCase();
+  
+  if (!studentParam || !allowedStudents.includes(studentParam)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="mb-4">Student not found or access not allowed.</p>
+          <Link href="/student" className="text-primary underline">← Back to Student Selection</Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Capitalize student name for consistency
+  const studentName = studentParam.charAt(0).toUpperCase() + studentParam.slice(1);
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     // Always start with today's date 
