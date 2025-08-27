@@ -37,7 +37,7 @@ export default function Home() {
       icon: CheckCircle,
       title: "Completed",
       value: statsLoading ? "..." : String(statsData?.completed || 0),
-      description: "Tasks successfully finished",
+      description: "Tasks completed today",
       color: "complete",
       gradient: "linear-gradient(135deg, var(--status-complete) 0%, #4ADE80 100%)"
     },

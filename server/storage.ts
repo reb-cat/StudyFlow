@@ -259,8 +259,20 @@ export class DatabaseStorage implements IStorage {
       // Get all assignments across all students
       const allAssignments = await db.select().from(assignments);
       
-      // Count assignments by status
-      const completed = allAssignments.filter(a => a.completionStatus === 'completed').length;
+      // Get today's date for filtering (start and end of day)
+      const today = new Date();
+      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      
+      // Count assignments by status - only count completed assignments from today
+      const completed = allAssignments.filter(a => {
+        if (a.completionStatus !== 'completed') return false;
+        if (!a.updatedAt) return false;
+        const updatedDate = new Date(a.updatedAt);
+        return updatedDate >= startOfToday && updatedDate < endOfToday;
+      }).length;
+      
+      // For in-progress and need support, show current status regardless of date
       const inProgress = allAssignments.filter(a => a.completionStatus === 'needs_more_time').length;
       const needSupport = allAssignments.filter(a => a.completionStatus === 'stuck').length;
       
