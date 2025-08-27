@@ -4,10 +4,9 @@ import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema } from "@shared/schema";
 import { 
   getBibleSubjectForSchedule, 
-  getCurrentBibleCurriculum, 
+  getNextBibleCurriculumForStudent, 
   markBibleCurriculumCompleted, 
-  getWeeklyBibleProgress,
-  getCurrentCurriculumWeek 
+  getWeeklyBibleProgress
 } from './lib/bibleCurriculum';
 import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas"; 
 // Email config moved inline since Supabase removed
@@ -424,7 +423,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         scheduleBlocks.map(async (block) => {
           if (block.subject === 'Bible' || block.blockType === 'Bible') {
             try {
-              const bibleSubject = await getBibleSubjectForSchedule(dateObj);
+              const bibleSubject = await getBibleSubjectForSchedule(studentName);
               return {
                 ...block,
                 subject: bibleSubject, // Replace "Bible" with specific reading like "Genesis 1-2"
@@ -860,8 +859,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { date } = req.query;
       const targetDate = date ? new Date(date as string) : new Date();
       
-      const curriculum = await getCurrentBibleCurriculum(targetDate);
-      const weekNumber = getCurrentCurriculumWeek(targetDate);
+      const curriculum = await getNextBibleCurriculumForStudent("Abigail");
+      const weekNumber = curriculum?.dailyReading?.weekNumber || 1;
       
       res.json({
         weekNumber,
@@ -931,7 +930,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/bible-curriculum/progress - Get overall curriculum progress
   app.get('/api/bible-curriculum/progress', async (req, res) => {
     try {
-      const currentWeek = getCurrentCurriculumWeek();
+      const currentWeek = 1; // Simplified for sequential approach
       
       if (!currentWeek) {
         return res.json({

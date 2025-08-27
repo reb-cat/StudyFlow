@@ -196,10 +196,24 @@ export const insertScheduleTemplateSchema = createInsertSchema(scheduleTemplate)
   id: true,
 });
 
+// Simple position tracking for sequential curriculum progression
+export const bibleCurriculumPosition = pgTable("bible_curriculum_position", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentName: text("student_name").notNull().unique(),
+  currentWeek: integer("current_week").notNull().default(1),
+  currentDay: integer("current_day").notNull().default(1),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+});
+
 // Bible curriculum schemas
 export const insertBibleCurriculumSchema = createInsertSchema(bibleCurriculum).omit({
   id: true,
   completedAt: true,
+});
+
+export const insertBibleCurriculumPositionSchema = createInsertSchema(bibleCurriculumPosition).omit({
+  id: true,
+  lastUpdated: true,
 });
 
 // Progress session schemas
@@ -234,6 +248,9 @@ export type ScheduleTemplate = typeof scheduleTemplate.$inferSelect;
 
 export type InsertBibleCurriculum = z.infer<typeof insertBibleCurriculumSchema>;
 export type BibleCurriculum = typeof bibleCurriculum.$inferSelect;
+
+export type InsertBibleCurriculumPosition = z.infer<typeof insertBibleCurriculumPositionSchema>;
+export type BibleCurriculumPosition = typeof bibleCurriculumPosition.$inferSelect;
 
 export type InsertProgressSession = z.infer<typeof insertProgressSessionSchema>;
 export type ProgressSession = typeof progressSessions.$inferSelect;

@@ -1,55 +1,82 @@
 import { db } from '../db';
 import { bibleCurriculum } from '@shared/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, asc } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 /**
- * Bible Curriculum Integration System
- * Replaces generic 'Bible' schedule entries with specific daily readings and memory verses
- * Based on 52-week curriculum progression tied to school year
+ * Bible Curriculum Integration System - SIMPLIFIED SEQUENTIAL APPROACH
+ * Replaces generic 'Bible' schedule entries with specific daily readings
+ * Uses simple sequential progression through 52-week curriculum
  */
-
-// School year configuration - adjust as needed
-const SCHOOL_YEAR_START_DATE = new Date('2025-08-14'); // Typical school start date
 
 /**
- * Calculate which week of the curriculum we're currently in
- * @param targetDate - The date to calculate the week for (defaults to today)
- * @returns Week number (1-52) or null if outside school year
+ * Get or create position tracking for a student
+ * @param studentName - Student name
+ * @returns Current position object
  */
-export function getCurrentCurriculumWeek(targetDate: Date = new Date()): number | null {
-  const startDate = new Date(SCHOOL_YEAR_START_DATE);
-  const diffTime = targetDate.getTime() - startDate.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  // Calculate week number (1-based)
-  const weekNumber = Math.floor(diffDays / 7) + 1;
-  
-  // Ensure we're within the 52-week curriculum
-  if (weekNumber < 1 || weekNumber > 52) {
-    return null;
+async function getStudentPosition(studentName: string): Promise<{week: number, day: number}> {
+  try {
+    // Try to get existing position
+    const result = await db.execute(sql`
+      SELECT current_week, current_day 
+      FROM bible_curriculum_position 
+      WHERE student_name = ${studentName}
+    `);
+    
+    if (result.rows.length > 0) {
+      const row = result.rows[0] as any;
+      return { week: row.current_week, day: row.current_day };
+    }
+    
+    // Create new position starting at Week 1, Day 1
+    await db.execute(sql`
+      INSERT INTO bible_curriculum_position (student_name, current_week, current_day)
+      VALUES (${studentName}, 1, 1)
+      ON CONFLICT (student_name) DO NOTHING
+    `);
+    
+    return { week: 1, day: 1 };
+  } catch (error) {
+    console.error('Error getting student position:', error);
+    return { week: 1, day: 1 }; // Fallback
   }
-  
-  return weekNumber;
 }
 
 /**
- * Get day of week as number (1 = Monday, 5 = Friday)
- * @param date - The date to get day of week for
- * @returns Day number 1-5, or null if weekend
+ * Advance student to next curriculum position
+ * @param studentName - Student name
  */
-export function getSchoolDayOfWeek(date: Date): number | null {
-  const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-  
-  // Convert to school days (1 = Monday through 5 = Friday)
-  if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-    return dayOfWeek; // Monday = 1, Tuesday = 2, ..., Friday = 5
+async function advanceStudentPosition(studentName: string): Promise<void> {
+  try {
+    const current = await getStudentPosition(studentName);
+    let nextWeek = current.week;
+    let nextDay = current.day + 1;
+    
+    // If we completed day 5, move to next week
+    if (nextDay > 5) {
+      nextWeek = current.week + 1;
+      nextDay = 1;
+      
+      // If we completed week 52, restart or stop
+      if (nextWeek > 52) {
+        nextWeek = 1; // Restart curriculum
+      }
+    }
+    
+    await db.execute(sql`
+      UPDATE bible_curriculum_position 
+      SET current_week = ${nextWeek}, 
+          current_day = ${nextDay},
+          last_updated = CURRENT_TIMESTAMP
+      WHERE student_name = ${studentName}
+    `);
+  } catch (error) {
+    console.error('Error advancing student position:', error);
   }
-  
-  return null; // Weekend
 }
 
 /**
- * Get Bible curriculum content for a specific week and day
+ * Get Bible curriculum content for a specific week and day (SEQUENTIAL VERSION)
  * @param weekNumber - Curriculum week (1-52)
  * @param dayOfWeek - School day (1-5, Monday-Friday)
  * @returns Daily reading and memory verse for the week
@@ -101,28 +128,28 @@ export async function getBibleCurriculumForDay(
 }
 
 /**
- * Get Bible curriculum content for current date
- * @param targetDate - Date to get curriculum for (defaults to today)
- * @returns Curriculum content or null if no school day
+ * Get next Bible curriculum for a student (SEQUENTIAL APPROACH)
+ * Uses student's current position, regardless of calendar date
+ * @param studentName - Student name (like "Abigail" or "Khalil")
+ * @returns Current curriculum reading for this student
  */
-export async function getCurrentBibleCurriculum(targetDate: Date = new Date()) {
-  const weekNumber = getCurrentCurriculumWeek(targetDate);
-  const dayOfWeek = getSchoolDayOfWeek(targetDate);
-  
-  if (!weekNumber || !dayOfWeek) {
-    return null;
+export async function getNextBibleCurriculumForStudent(studentName: string) {
+  try {
+    const position = await getStudentPosition(studentName);
+    return await getBibleCurriculumForDay(position.week, position.day);
+  } catch (error) {
+    console.error('Error getting next Bible curriculum for student:', error);
+    return { dailyReading: null, memoryVerse: null };
   }
-  
-  return await getBibleCurriculumForDay(weekNumber, dayOfWeek);
 }
 
 /**
- * Generate a display-friendly Bible subject for schedule blocks
- * @param targetDate - Date to get content for
+ * Generate a display-friendly Bible subject for schedule blocks (SEQUENTIAL VERSION)
+ * @param studentName - Student name to get position for
  * @returns Formatted subject string or fallback to "Bible"
  */
-export async function getBibleSubjectForSchedule(targetDate: Date = new Date()): Promise<string> {
-  const curriculum = await getCurrentBibleCurriculum(targetDate);
+export async function getBibleSubjectForSchedule(studentName: string = "Abigail"): Promise<string> {
+  const curriculum = await getNextBibleCurriculumForStudent(studentName);
   
   if (!curriculum?.dailyReading) {
     return 'Bible'; // Fallback to generic
@@ -133,10 +160,31 @@ export async function getBibleSubjectForSchedule(targetDate: Date = new Date()):
   
   // Optional: Include memory verse info if desired
   if (curriculum.memoryVerse && curriculum.memoryVerse.readingTitle) {
-    subject += ` + ${curriculum.memoryVerse.readingTitle}`;
+    subject += ` + Memory: ${curriculum.memoryVerse.readingTitle}`;
   }
   
   return subject;
+}
+
+/**
+ * Mark current reading as complete and advance student position
+ * @param studentName - Student name
+ */
+export async function completeBibleReadingAndAdvance(studentName: string): Promise<boolean> {
+  try {
+    const position = await getStudentPosition(studentName);
+    
+    // Mark current reading as completed
+    await markBibleCurriculumCompleted(position.week, position.day, 'daily_reading');
+    
+    // Advance to next position
+    await advanceStudentPosition(studentName);
+    
+    return true;
+  } catch (error) {
+    console.error('Error completing Bible reading:', error);
+    return false;
+  }
 }
 
 /**
