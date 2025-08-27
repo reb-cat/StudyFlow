@@ -41,10 +41,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: isProduction, // Use HTTPS in production
+      secure: false, // Always false in development
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: isProduction ? 'none' : 'lax' // Allow cross-site in production
+      sameSite: 'lax', // Always lax in development
+      path: '/' // Ensure cookie works for all paths
     },
     name: 'studyflow.sid' // Custom session name
   }));
@@ -544,7 +545,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', async (req, res) => {
     try {
       console.log('[Auth Check] Session ID:', req.sessionID);
+      console.log('[Auth Check] Cookies:', req.headers.cookie);
       console.log('[Auth Check] Session data:', req.session);
+      console.log('[Auth Check] Full session object keys:', Object.keys(req.session || {}));
       
       const userId = (req.session as any)?.userId;
       if (!userId) {
