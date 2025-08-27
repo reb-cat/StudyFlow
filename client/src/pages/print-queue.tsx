@@ -23,8 +23,8 @@ interface PrintQueueItem {
 function getPriorityColor(priority: 'high' | 'medium' | 'low'): string {
   switch (priority) {
     case 'high': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200';
-    case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200';
-    case 'low': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200';
+    case 'medium': return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 border-amber-200';
+    case 'low': return 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 border-teal-200';
   }
 }
 
@@ -44,9 +44,9 @@ function getPrintReasonText(reason: string): string {
 
 function getPrintStatusIcon(status: 'needs_printing' | 'printed' | 'skipped') {
   switch (status) {
-    case 'needs_printing': return <Clock className="w-4 h-4 text-orange-600" />;
-    case 'printed': return <Check className="w-4 h-4 text-green-600" />;
-    case 'skipped': return <X className="w-4 h-4 text-gray-500" />;
+    case 'needs_printing': return <Clock className="w-4 h-4 text-amber-600" />;
+    case 'printed': return <Check className="w-4 h-4 text-emerald-600" />;
+    case 'skipped': return <X className="w-4 h-4 text-slate-500" />;
   }
 }
 
