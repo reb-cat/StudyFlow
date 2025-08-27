@@ -27,16 +27,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Trust proxy for secure cookies in production
   app.set('trust proxy', 1);
   
-  // SIMPLE session configuration - memory store for now
+  // FIXED session configuration for cookie persistence
   app.use(session({
     secret: 'simple-dev-secret-key',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // CHANGED: Create session even if empty
     cookie: {
       secure: false,
-      httpOnly: true,
+      httpOnly: false, // CHANGED: Allow JS access for debugging  
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
+      sameSite: 'lax',
+      domain: undefined, // ADDED: Don't restrict domain
+      path: '/' // ADDED: Ensure cookie works for all paths
     }
   }));
 
