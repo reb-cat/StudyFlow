@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import session from "express-session";
+import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, registerUserSchema } from "@shared/schema";
 import { z } from "zod";
@@ -26,9 +27,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Trust proxy for secure cookies in production
   app.set('trust proxy', 1);
   
-  // Session configuration
+  // Session configuration with PostgreSQL store
   const isProduction = process.env.NODE_ENV === 'production';
+  const pgStore = connectPg(session);
+  
   app.use(session({
+    store: new pgStore({
+      conString: process.env.DATABASE_URL,
+      tableName: 'sessions',
+      createTableIfMissing: true,
+    }),
     secret: process.env.SESSION_SECRET || 'development-secret-key',
     resave: false,
     saveUninitialized: false,
