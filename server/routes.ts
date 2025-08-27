@@ -746,9 +746,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get schedule template for this student and weekday
       const scheduleBlocks = await storage.getScheduleTemplate(studentName, weekday);
       
+      // Get assignments for this student and date for intelligent distribution
+      const userId = `${studentName.toLowerCase()}-user`;
+      const assignments = await storage.getAssignments(userId, date);
+      console.log(`📋 Found ${assignments.length} assignments for intelligent distribution`);
+      
+      // INTELLIGENT SUBJECT DISTRIBUTION: Group assignments by subject to prevent consecutive duplicates
+      const assignmentsBySubject = assignments.reduce((groups: Record<string, any[]>, assignment) => {
+        const subject = assignment.courseName || assignment.subject || 'General';
+        if (!groups[subject]) groups[subject] = [];
+        groups[subject].push(assignment);
+        return groups;
+      }, {});
+      
+      const subjects = Object.keys(assignmentsBySubject);
+      console.log(`📚 Assignment subjects available: ${subjects.join(', ')}`);
+      
+      // Create intelligent assignment distribution to prevent back-to-back identical subjects
+      const distributedAssignments: any[] = [];
+      let subjectIndex = 0;
+      let assignmentIndices: Record<string, number> = {};
+      
+      // Initialize assignment indices for each subject
+      subjects.forEach(subject => assignmentIndices[subject] = 0);
+      
+      // Get all assignment blocks first
+      const assignmentBlocks = scheduleBlocks.filter(block => block.blockType === 'Assignment');
+      
+      // Distribute assignments across blocks, rotating subjects to prevent consecutive duplicates
+      for (let blockIndex = 0; blockIndex < assignmentBlocks.length; blockIndex++) {
+        if (assignments.length === 0) break;
+        
+        // Try to use a different subject than the previous block
+        let attempts = 0;
+        let selectedSubject = subjects[subjectIndex % subjects.length];
+        
+        // If we have multiple subjects, try to avoid repeating the previous subject
+        if (subjects.length > 1 && distributedAssignments.length > 0) {
+          const previousAssignment = distributedAssignments[distributedAssignments.length - 1];
+          const previousSubject = previousAssignment?.courseName || previousAssignment?.subject || 'General';
+          
+          while (selectedSubject === previousSubject && attempts < subjects.length) {
+            subjectIndex = (subjectIndex + 1) % subjects.length;
+            selectedSubject = subjects[subjectIndex % subjects.length];
+            attempts++;
+          }
+        }
+        
+        // Get next assignment from selected subject
+        const subjectAssignments = assignmentsBySubject[selectedSubject];
+        const assignmentIndex = assignmentIndices[selectedSubject];
+        
+        if (subjectAssignments && assignmentIndex < subjectAssignments.length) {
+          distributedAssignments.push(subjectAssignments[assignmentIndex]);
+          assignmentIndices[selectedSubject]++;
+          console.log(`📌 Block ${blockIndex + 1}: Assigned ${selectedSubject} - "${subjectAssignments[assignmentIndex].title}"`);
+        } else {
+          // If no more assignments in this subject, try next subject
+          subjectIndex = (subjectIndex + 1) % subjects.length;
+          blockIndex--; // Retry this block with next subject
+          continue;
+        }
+        
+        subjectIndex = (subjectIndex + 1) % subjects.length;
+      }
+      
       // BIBLE CURRICULUM INTEGRATION: Replace generic "Bible" entries with specific curriculum content
       const enhancedScheduleBlocks = await Promise.all(
-        scheduleBlocks.map(async (block) => {
+        scheduleBlocks.map(async (block, index) => {
           if (block.subject === 'Bible' || block.blockType === 'Bible') {
             try {
               const bibleSubject = await getBibleSubjectForSchedule(studentName);
@@ -761,8 +826,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.warn('Error getting Bible curriculum, using fallback:', error);
               return block; // Return original if Bible curriculum fails
             }
+          } else if (block.blockType === 'Assignment') {
+            // Find the corresponding distributed assignment for this block
+            const assignmentBlockIndex = scheduleBlocks.filter((b, i) => i < index && b.blockType === 'Assignment').length;
+            const assignedAssignment = distributedAssignments[assignmentBlockIndex];
+            
+            if (assignedAssignment) {
+              return {
+                ...block,
+                subject: assignedAssignment.courseName || assignedAssignment.subject || 'Assignment',
+                assignmentTitle: assignedAssignment.title,
+                assignmentId: assignedAssignment.id,
+                assignmentInstructions: assignedAssignment.instructions,
+                assignmentDueDate: assignedAssignment.dueDate,
+                assignmentPriority: assignedAssignment.priority,
+                assignmentDifficulty: assignedAssignment.difficulty
+              };
+            }
           }
-          return block; // Non-Bible blocks remain unchanged
+          return block; // Non-Bible, non-Assignment blocks remain unchanged
         })
       );
       
