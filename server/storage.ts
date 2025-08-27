@@ -143,13 +143,13 @@ export class DatabaseStorage implements IStorage {
       });
       console.log(`🧹 Administrative filtering: ${beforeAdminFilter} → ${assignmentList.length} assignments`);
 
-      // STEP 4: Smart due date filtering (3-7 day window only)
+      // STEP 4: Smart due date filtering with flexible range for future dates
       if (date) {
         const requestDate = new Date(date);
         const earliestDate = new Date(requestDate);
-        earliestDate.setDate(requestDate.getDate() - 1); // Include today and yesterday (overdue)
+        earliestDate.setDate(requestDate.getDate() - 7); // Include week before for context
         const latestDate = new Date(requestDate);
-        latestDate.setDate(requestDate.getDate() + 7); // 7 days ahead max
+        latestDate.setDate(requestDate.getDate() + 21); // Extended to 3 weeks for better coverage
         
         console.log(`📅 SMART Date filtering: ${earliestDate.toISOString().split('T')[0]} to ${latestDate.toISOString().split('T')[0]}`);
         
