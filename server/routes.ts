@@ -44,6 +44,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/stats - Get overall assignment statistics
+  app.get('/api/stats', async (req, res) => {
+    try {
+      const stats = await storage.getAssignmentStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching assignment stats:', error);
+      res.status(500).json({ message: 'Failed to fetch assignment stats' });
+    }
+  });
+
   // GET /api/assignments - Get assignments for a user/date
   app.get('/api/assignments', async (req, res) => {
     try {

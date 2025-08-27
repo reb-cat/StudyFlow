@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
 import {
   GraduationCap,
   CheckCircle,
@@ -11,42 +12,52 @@ import {
   Shield
 } from "lucide-react";
 
-const stats = [
-  {
-    icon: GraduationCap,
-    title: "Active Learners",
-    value: "2",
-    description: "Students engaged in today's learning journey",
-    color: "primary",
-    gradient: "linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)"
-  },
-  {
-    icon: CheckCircle,
-    title: "Completed",
-    value: "12",
-    description: "Tasks successfully finished today",
-    color: "complete",
-    gradient: "linear-gradient(135deg, var(--status-complete) 0%, #4ADE80 100%)"
-  },
-  {
-    icon: Clock,
-    title: "In Progress",
-    value: "3", 
-    description: "Taking extra time to master concepts",
-    color: "progress",
-    gradient: "linear-gradient(135deg, var(--status-progress) 0%, #60A5FA 100%)"
-  },
-  {
-    icon: AlertCircle,
-    title: "Need Support",
-    value: "1",
-    description: "Students ready for guidance",
-    color: "blocked",
-    gradient: "linear-gradient(135deg, var(--status-blocked) 0%, #8B93A8 100%)"
-  }
-];
-
 export default function Home() {
+  // Fetch real stats from the API
+  const { data: statsData, isLoading: statsLoading } = useQuery({
+    queryKey: ['/api/stats'],
+    queryFn: async () => {
+      const response = await fetch('/api/stats');
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      return response.json();
+    }
+  });
+
+  // Create stats array with real data
+  const stats = [
+    {
+      icon: GraduationCap,
+      title: "Active Learners",
+      value: statsLoading ? "..." : String(statsData?.activeStudents || 2),
+      description: "Students engaged in today's learning journey",
+      color: "primary",
+      gradient: "linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)"
+    },
+    {
+      icon: CheckCircle,
+      title: "Completed",
+      value: statsLoading ? "..." : String(statsData?.completed || 0),
+      description: "Tasks successfully finished",
+      color: "complete",
+      gradient: "linear-gradient(135deg, var(--status-complete) 0%, #4ADE80 100%)"
+    },
+    {
+      icon: Clock,
+      title: "In Progress",
+      value: statsLoading ? "..." : String(statsData?.inProgress || 0), 
+      description: "Taking extra time to master concepts",
+      color: "progress",
+      gradient: "linear-gradient(135deg, var(--status-progress) 0%, #60A5FA 100%)"
+    },
+    {
+      icon: AlertCircle,
+      title: "Need Support",
+      value: statsLoading ? "..." : String(statsData?.needSupport || 0),
+      description: "Students ready for guidance",
+      color: "blocked",
+      gradient: "linear-gradient(135deg, var(--status-blocked) 0%, #8B93A8 100%)"
+    }
+  ];
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
       {/* Header */}
