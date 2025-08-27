@@ -20,6 +20,7 @@ export interface IStorage {
   
   // Assignment operations
   getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]>;
+  getScheduledAssignments(userId: string, date?: string, scheduleBlocks?: ScheduleTemplate[]): Promise<Assignment[]>; // NEW: Intelligent block distribution
   getAllAssignments(): Promise<Assignment[]>; // For print queue - gets all assignments across all users
   getAssignment(id: string): Promise<Assignment | undefined>;
   createAssignment(assignment: InsertAssignment & { userId: string }): Promise<Assignment>;
@@ -91,57 +92,241 @@ export class DatabaseStorage implements IStorage {
       let result = await db.select().from(assignments).where(eq(assignments.userId, userId));
       let assignmentList = result || [];
       
-      // For daily scheduling: exclude completed assignments and filter by date
-      // This keeps the daily view focused while the database contains the full Canvas dataset
-      // Admin mode can include completed assignments by setting includeCompleted = true
-      
-      // FIRST: Exclude completed assignments from daily planning (unless admin mode)
-      // Only show assignments that are actively workable (pending, needs_more_time, stuck)
-      if (!includeCompleted) {
-        const beforeCompletionFilter = assignmentList.length;
-        assignmentList = assignmentList.filter((assignment: any) => 
-          assignment.completionStatus !== 'completed'
-        );
-        console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments)`);
-      } else {
-        console.log(`🔧 Admin mode: Including all assignments (${assignmentList.length} total)`);
+      // Admin mode: return all assignments without intelligent processing
+      if (includeCompleted) {
+        console.log(`🔧 Admin mode: Returning all ${assignmentList.length} assignments (no filtering)`);
+        return assignmentList;
       }
+
+      // INTELLIGENT SCHEDULING MODE - Complete rebuild of filtering algorithm
+      console.log(`🤖 INTELLIGENT SCHEDULING: Processing ${assignmentList.length} raw assignments for optimal daily schedule`);
       
-      // SECOND: Apply date filtering for daily scheduling
+      // STEP 1: Remove exact duplicates by title (fix Canvas import duplicates)
+      const beforeDuplicateFilter = assignmentList.length;
+      const uniqueTitles = new Set();
+      assignmentList = assignmentList.filter((assignment: any) => {
+        if (uniqueTitles.has(assignment.title)) {
+          console.log(`🔄 Removing duplicate: "${assignment.title}"`);
+          return false;
+        }
+        uniqueTitles.add(assignment.title);
+        return true;
+      });
+      console.log(`📋 Duplicate removal: ${beforeDuplicateFilter} → ${assignmentList.length} assignments`);
+
+      // STEP 2: Exclude completed assignments from daily planning
+      const beforeCompletionFilter = assignmentList.length;
+      assignmentList = assignmentList.filter((assignment: any) => 
+        assignment.completionStatus !== 'completed'
+      );
+      console.log(`✅ Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed)`);
+
+      // STEP 3: Filter out administrative tasks and inappropriate assignments
+      const beforeAdminFilter = assignmentList.length;
+      assignmentList = assignmentList.filter((assignment: any) => {
+        const title = assignment.title.toLowerCase();
+        
+        // Filter out administrative/system tasks
+        if (title.includes('roll call') || 
+            title.includes('attendance') ||
+            title.includes('syllabus') ||
+            title.includes('course introduction') ||
+            title.includes('honor code') ||
+            title.includes('parent contact') ||
+            title.includes('zoom') ||
+            title.includes('meet and greet')) {
+          console.log(`🚫 Filtering administrative task: "${assignment.title}"`);
+          return false;
+        }
+        
+        return true;
+      });
+      console.log(`🧹 Administrative filtering: ${beforeAdminFilter} → ${assignmentList.length} assignments`);
+
+      // STEP 4: Smart due date filtering (3-7 day window only)
       if (date) {
         const requestDate = new Date(date);
-        const futureLimit = new Date(requestDate);
-        futureLimit.setDate(requestDate.getDate() + 12); // 12 days ahead
+        const earliestDate = new Date(requestDate);
+        earliestDate.setDate(requestDate.getDate() - 1); // Include today and yesterday (overdue)
+        const latestDate = new Date(requestDate);
+        latestDate.setDate(requestDate.getDate() + 7); // 7 days ahead max
         
-        console.log(`🗓️ Date filtering: ${date} (${requestDate.toISOString()}) to ${futureLimit.toISOString()}`);
+        console.log(`📅 SMART Date filtering: ${earliestDate.toISOString().split('T')[0]} to ${latestDate.toISOString().split('T')[0]}`);
         
         const beforeDateFilter = assignmentList.length;
         assignmentList = assignmentList.filter((assignment: any) => {
-          // For assignments without due dates, include them (they're always relevant)
+          // Always include assignments without due dates (ongoing work)
           if (!assignment.dueDate) {
+            console.log(`📝 Including ongoing assignment: "${assignment.title}"`);
             return true;
           }
           
           const dueDate = new Date(assignment.dueDate);
-          const isInRange = dueDate >= requestDate && dueDate <= futureLimit;
+          const isInRange = dueDate >= earliestDate && dueDate <= latestDate;
           
           if (isInRange) {
-            console.log(`✅ Including assignment due ${dueDate.toISOString().split('T')[0]}: ${assignment.title}`);
+            const daysDiff = Math.ceil((dueDate.getTime() - requestDate.getTime()) / (1000 * 60 * 60 * 24));
+            if (daysDiff <= 0) {
+              console.log(`🔥 Including OVERDUE assignment: "${assignment.title}" (due ${dueDate.toISOString().split('T')[0]})`);
+            } else {
+              console.log(`✅ Including assignment: "${assignment.title}" (due in ${daysDiff} days)`);
+            }
           } else {
-            console.log(`❌ Excluding assignment due ${dueDate.toISOString().split('T')[0]}: ${assignment.title}`);
+            console.log(`⏭️ Excluding assignment too far out: "${assignment.title}" (due ${dueDate.toISOString().split('T')[0]})`);
           }
           
           return isInRange;
         });
         
-        console.log(`📊 Date filtering: ${beforeDateFilter} → ${assignmentList.length} assignments`);
+        console.log(`📊 Smart date filtering: ${beforeDateFilter} → ${assignmentList.length} assignments`);
       }
+
+      // STEP 5: Assignment prioritization by urgency and importance
+      assignmentList.sort((a: any, b: any) => {
+        const now = new Date();
+        
+        // Priority 1: Overdue assignments first
+        const aOverdue = a.dueDate && new Date(a.dueDate) < now;
+        const bOverdue = b.dueDate && new Date(b.dueDate) < now;
+        if (aOverdue && !bOverdue) return -1;
+        if (!aOverdue && bOverdue) return 1;
+        
+        // Priority 2: Sort by due date (earliest first)
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        }
+        
+        // Priority 3: Assignments without due dates go last
+        if (a.dueDate && !b.dueDate) return -1;
+        if (!a.dueDate && b.dueDate) return 1;
+        
+        // Priority 4: Alphabetical by title
+        return a.title.localeCompare(b.title);
+      });
+
+      console.log(`🎯 INTELLIGENT SCHEDULING COMPLETE: ${assignmentList.length} optimized assignments ready for daily schedule`);
       
       return assignmentList;
     } catch (error) {
       console.error('Error getting assignments:', error);
       return [];
     }
+  }
+
+  async getScheduledAssignments(userId: string, date?: string, scheduleBlocks?: ScheduleTemplate[]): Promise<Assignment[]> {
+    try {
+      // Get intelligently filtered assignments
+      const assignments = await this.getAssignments(userId, date, false);
+      
+      if (!scheduleBlocks || scheduleBlocks.length === 0) {
+        console.log(`📅 No schedule blocks provided, returning ${assignments.length} assignments without block distribution`);
+        return assignments.slice(0, 6); // Limit to 6 assignments max
+      }
+
+      // SUBJECT DIVERSITY ALGORITHM - Distribute assignments across blocks with no consecutive same subjects
+      console.log(`🧠 SUBJECT DIVERSITY ALGORITHM: Distributing ${assignments.length} assignments across ${scheduleBlocks.length} blocks`);
+      
+      // Group assignments by subject/course for diversity logic
+      const assignmentsBySubject = new Map<string, any[]>();
+      for (const assignment of assignments) {
+        const subject = this.getAssignmentSubject(assignment);
+        if (!assignmentsBySubject.has(subject)) {
+          assignmentsBySubject.set(subject, []);
+        }
+        assignmentsBySubject.get(subject)?.push(assignment);
+      }
+
+      console.log(`📚 Subject groups identified:`, Array.from(assignmentsBySubject.keys()));
+
+      // Get assignment blocks only (exclude Bible, Movement, Lunch)
+      const assignmentBlocks = scheduleBlocks.filter(block => 
+        block.blockType === 'Assignment' && block.blockNumber
+      ).sort((a, b) => (a.blockNumber || 0) - (b.blockNumber || 0));
+
+      console.log(`🏗️ Available assignment blocks: ${assignmentBlocks.length}`);
+
+      const scheduledAssignments: any[] = [];
+      const usedSubjects: string[] = [];
+
+      // Distribute assignments with subject diversity
+      for (let i = 0; i < assignmentBlocks.length && scheduledAssignments.length < assignments.length; i++) {
+        const block = assignmentBlocks[i];
+        let assignmentAssigned = false;
+
+        // Try to find an assignment from a different subject than the previous one
+        for (const [subject, subjectAssignments] of assignmentsBySubject) {
+          if (subjectAssignments.length === 0) continue;
+
+          // Check if this subject would create consecutive same subjects
+          const lastSubject = usedSubjects[usedSubjects.length - 1];
+          const isConsecutiveSameSubject = lastSubject === subject;
+
+          // If we can avoid consecutive same subjects, do so
+          if (!isConsecutiveSameSubject || assignmentsBySubject.size === 1) {
+            const assignment = subjectAssignments.shift(); // Take first assignment from this subject
+            if (assignment) {
+              scheduledAssignments.push(assignment);
+              usedSubjects.push(subject);
+              assignmentAssigned = true;
+              console.log(`📍 Block ${block.blockNumber}: Assigned "${assignment.title}" (${subject})`);
+              break;
+            }
+          }
+        }
+
+        // If no assignment was assigned due to subject diversity constraints, 
+        // leave the block empty rather than violate diversity
+        if (!assignmentAssigned) {
+          console.log(`⚪ Block ${block.blockNumber}: Left empty to maintain subject diversity`);
+        }
+      }
+
+      console.log(`🎯 SUBJECT DIVERSITY COMPLETE: ${scheduledAssignments.length} assignments distributed across blocks`);
+      console.log(`📋 Subject sequence: ${usedSubjects.join(' → ')}`);
+
+      return scheduledAssignments;
+    } catch (error) {
+      console.error('Error getting scheduled assignments:', error);
+      return [];
+    }
+  }
+
+  private getAssignmentSubject(assignment: any): string {
+    // Extract subject from assignment data for diversity grouping
+    if (assignment.subject) return assignment.subject;
+    if (assignment.courseName) return assignment.courseName;
+    
+    // Extract subject from title patterns
+    const title = assignment.title.toLowerCase();
+    
+    if (title.includes('math') || title.includes('geometry') || title.includes('algebra') || 
+        title.includes('calculus') || title.includes('unit') || title.includes('hmwk')) {
+      return 'Mathematics';
+    }
+    if (title.includes('english') || title.includes('writing') || title.includes('grammar') || 
+        title.includes('essay') || title.includes('literature') || title.includes('vocab')) {
+      return 'English';
+    }
+    if (title.includes('science') || title.includes('biology') || title.includes('chemistry') || 
+        title.includes('physics') || title.includes('lab')) {
+      return 'Science';
+    }
+    if (title.includes('history') || title.includes('social') || title.includes('government') || 
+        title.includes('civics')) {
+      return 'History';
+    }
+    if (title.includes('spanish') || title.includes('french') || title.includes('language')) {
+      return 'Language';
+    }
+    if (title.includes('recipe') || title.includes('cooking') || title.includes('culinary')) {
+      return 'Culinary';
+    }
+    if (title.includes('art') || title.includes('music') || title.includes('creative')) {
+      return 'Arts';
+    }
+    
+    // Default grouping by course name or generic
+    return assignment.courseName || 'General';
   }
 
   async getAllAssignments(): Promise<Assignment[]> {

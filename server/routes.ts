@@ -58,13 +58,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET /api/assignments - Get assignments for a user/date
+  // GET /api/assignments - Get INTELLIGENTLY SCHEDULED assignments for a user/date
   app.get('/api/assignments', async (req, res) => {
     try {
       const { date, studentName, includeCompleted } = req.query;
       
       // Use student-specific user ID mapping  
       let userId = "demo-user-1"; // fallback
+      let actualStudentName = "Unknown";
       
       if (studentName && typeof studentName === 'string') {
         // Map student names to actual database user IDs
@@ -75,13 +76,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const normalizedStudentName = studentName.toLowerCase();
         userId = studentUserMap[normalizedStudentName] || userId;
+        actualStudentName = normalizedStudentName.charAt(0).toUpperCase() + normalizedStudentName.slice(1);
       }
       
-      // Get assignments for daily scheduling (filtered to next 12 days when date provided)
-      // Admin mode can include completed assignments
       const includeCompletedBool = includeCompleted === 'true';
-      const assignments = await storage.getAssignments(userId, date as string, includeCompletedBool);
-      console.log(`📚 Retrieved ${assignments.length} assignments for daily planning for ${studentName} on ${date}`);
+      
+      // Admin mode: Use old logic (raw assignments without intelligent processing)
+      if (includeCompletedBool) {
+        const assignments = await storage.getAssignments(userId, date as string, includeCompletedBool);
+        console.log(`🔧 ADMIN MODE: Retrieved ${assignments.length} raw assignments for ${studentName}`);
+        res.json(assignments);
+        return;
+      }
+
+      // INTELLIGENT SCHEDULING MODE: Get schedule blocks and apply subject diversity
+      console.log(`🤖 INTELLIGENT SCHEDULING REQUEST for ${actualStudentName} on ${date}`);
+      
+      // Get the student's schedule template for the requested date
+      let scheduleBlocks: any[] = [];
+      if (date && actualStudentName !== "Unknown") {
+        const requestDate = new Date(date);
+        const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const weekday = weekdays[requestDate.getDay()];
+        
+        console.log(`📅 Fetching schedule for ${actualStudentName} on ${weekday} (${date})`);
+        scheduleBlocks = await storage.getScheduleTemplate(actualStudentName, weekday);
+      }
+
+      // Use new intelligent scheduling algorithm
+      const assignments = await storage.getScheduledAssignments(userId, date as string, scheduleBlocks);
+      console.log(`🎯 INTELLIGENT SCHEDULING COMPLETE: ${assignments.length} optimally distributed assignments for ${actualStudentName} on ${date}`);
+      
       res.json(assignments);
     } catch (error) {
       console.error('Error fetching assignments:', error);
