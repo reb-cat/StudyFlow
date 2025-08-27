@@ -231,7 +231,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/register - Create new user account
   app.post('/api/register', async (req, res) => {
     try {
-      const { firstName, lastName, email, password } = registerUserSchema.parse(req.body);
+      // Create server-side validation schema (without confirmPassword)
+      const serverRegisterSchema = registerUserSchema.omit({ confirmPassword: true });
+      const { firstName, lastName, email, password } = serverRegisterSchema.parse(req.body);
       
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
