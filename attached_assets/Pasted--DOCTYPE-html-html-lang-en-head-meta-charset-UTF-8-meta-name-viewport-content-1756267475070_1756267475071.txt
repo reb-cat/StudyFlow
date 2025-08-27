@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow - Learning Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* New Purple-Based Palette */
+            --primary: #844FC1;           /* Rich purple - sophisticated and creative */
+            --primary-light: #9D6DD1;     /* Lighter purple for hover states */
+            --primary-dark: #6B3FA0;      /* Deeper purple for contrast */
+            --primary-subtle: #F3F0FF;    /* Very light purple backgrounds */
+            
+            --accent: #21BF06;            /* Vibrant green - perfect for success states */
+            --accent-light: #4ADE80;      /* Lighter green */
+            --accent-subtle: #F0FDF4;     /* Light green background */
+            
+            /* Status System - Clean and Clear */
+            --status-complete: #21BF06;   /* Vibrant green - completed tasks */
+            --status-progress: #3B86D1;   /* Bright blue - in progress */
+            --status-blocked: #6C7293;    /* Slate gray - needs attention (not alarming) */
+            
+            /* Sophisticated Neutrals */
+            --surface-primary: #F8F9FA;   /* Clean light gray background */
+            --surface-secondary: #F1F3F4; /* Slightly deeper gray */
+            --surface-tertiary: #E9ECEF;  /* Even deeper for layering */
+            --surface-elevated: #FFFFFF;  /* Pure white for cards that need to pop */
+            
+            --text-primary: #212529;      /* Rich dark gray, not black */
+            --text-secondary: #6C757D;    /* Medium gray */
+            --text-tertiary: #ADB5BD;     /* Lighter gray */
+            --text-muted: #CED4DA;        /* Very light for meta info */
+            
+            --border-subtle: #DEE2E6;     /* Soft gray border */
+            --border-medium: #CED4DA;     /* More defined border */
+            --border-strong: #ADB5BD;     /* Strong borders when needed */
+            
+            /* Elevated Shadows */
+            --shadow-sm: 0 1px 2px rgba(33, 37, 41, 0.05);
+            --shadow-md: 0 4px 6px rgba(33, 37, 41, 0.07), 0 1px 3px rgba(33, 37, 41, 0.06);
+            --shadow-lg: 0 10px 15px rgba(33, 37, 41, 0.08), 0 4px 6px rgba(33, 37, 41, 0.05);
+            --shadow-xl: 0 20px 25px rgba(33, 37, 41, 0.1), 0 8px 10px rgba(33, 37, 41, 0.04);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+            line-height: 1.6;
+            background: linear-gradient(135deg, var(--surface-primary) 0%, var(--surface-secondary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(248, 249, 250, 0.8);
+            backdrop-filter: blur(12px) saturate(1.1);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 10px;
+            margin-right: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 0.5rem 0;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        /* Main Content */
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--surface-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-medium);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface-secondary);
+            border-color: var(--primary-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-accent {
+            background: linear-gradient(135deg, var(--status-blocked) 0%, #5A6B85 100%);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-accent:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Enhanced Stats Section */
+        .stats-section {
+            margin-bottom: 4rem;
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--border-medium);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            line-height: 1.1;
+        }
+
+        .stat-description {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+            line-height: 1.4;
+        }
+
+        /* Status-specific styling */
+        .stat-complete {
+            --gradient: linear-gradient(135deg, var(--status-complete) 0%, #4ADE80 100%);
+        }
+        .stat-complete .stat-icon {
+            background: rgba(33, 191, 6, 0.1);
+            color: var(--status-complete);
+        }
+        .stat-complete .stat-value { color: var(--status-complete); }
+
+        .stat-progress {
+            --gradient: linear-gradient(135deg, var(--status-progress) 0%, #60A5FA 100%);
+        }
+        .stat-progress .stat-icon {
+            background: rgba(59, 134, 209, 0.1);
+            color: var(--status-progress);
+        }
+        .stat-progress .stat-value { color: var(--status-progress); }
+
+        .stat-blocked {
+            --gradient: linear-gradient(135deg, var(--status-blocked) 0%, #8B93A8 100%);
+        }
+        .stat-blocked .stat-icon {
+            background: rgba(108, 114, 147, 0.1);
+            color: var(--status-blocked);
+        }
+        .stat-blocked .stat-value { color: var(--status-blocked); }
+
+        .stat-total {
+            --gradient: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        }
+        .stat-total .stat-icon {
+            background: var(--primary-subtle);
+            color: var(--primary);
+        }
+        .stat-total .stat-value { color: var(--primary); }
+
+        /* Activity Feed */
+        .activity-section {
+            margin-bottom: 3rem;
+        }
+
+        .activity-feed {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .activity-item:hover {
+            background: var(--surface-secondary);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .activity-complete { 
+            background: rgba(5, 150, 105, 0.1); 
+            color: var(--status-complete);
+        }
+        .activity-blocked { 
+            background: rgba(220, 38, 38, 0.1); 
+            color: var(--status-blocked);
+        }
+        .activity-progress { 
+            background: rgba(217, 119, 6, 0.1); 
+            color: var(--status-progress);
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-text {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+
+        .activity-meta {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+        }
+
+        .activity-time-stamp {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-left: auto;
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--surface-tertiary);
+            border-top: 1px solid var(--border-subtle);
+            padding: 3rem 0 2rem;
+            margin-top: 5rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .footer-section h4 {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-subtle);
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-container {
+                padding: 0 1rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .main {
+                padding: 2rem 1rem;
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 320px;
+                justify-content: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-icon">S</div>
+                StudyFlow
+            </a>
+            
+            <nav>
+                <ul class="nav-links">
+                </ul>
+            </nav>
+            
+            <div class="user-section">
+                <span>Settings</span>
+                <div class="user-avatar">AC</div>
+                <span>Alex Chen</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <h1 class="hero-title">Focus. Plan. Achieve.</h1>
+            <p class="hero-subtitle">A thoughtful learning hub designed for focus and growth</p>
+            
+            <div class="action-buttons">
+                <a href="/student" class="btn btn-primary">
+                    Student Dashboard
+                </a>
+                <a href="/admin" class="btn btn-secondary">
+                    Admin Panel
+                </a>
+                <a href="/print" class="btn btn-accent">
+                    Print Queue
+                </a>
+            </div>
+        </section>
+
+        <!-- Quick Stats -->
+        <section class="stats-section">
+            <h2 class="section-title">Today's Learning Progress</h2>
+            <div class="stats-grid">
+                <div class="stat-card stat-total">
+                    <div class="stat-title">Active Learners</div>
+                    <div class="stat-value">4</div>
+                    <div class="stat-description">Students engaged in today's learning journey</div>
+                </div>
+                
+                <div class="stat-card stat-complete">
+                    <div class="stat-title">Completed</div>
+                    <div class="stat-value">12</div>
+                    <div class="stat-description">Tasks successfully finished today</div>
+                </div>
+                
+                <div class="stat-card stat-progress">
+                    <div class="stat-title">In Progress</div>
+                    <div class="stat-value">3</div>
+                    <div class="stat-description">Taking extra time to master concepts</div>
+                </div>
+                
+                <div class="stat-card stat-blocked">
+                    <div class="stat-title">Need Support</div>
+                    <div class="stat-value">1</div>
+                    <div class="stat-description">Students ready for guidance</div>
+                </div>
+            </div>
+        </section>
+
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content" style="text-align: center;">
+            <p style="font-size: 0.875rem; color: var(--text-secondary);">
+                StudyFlow • Built for focused learning
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Enhanced interactions
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                if (this.href === '#' || this.href.includes('localhost')) {
+                    e.preventDefault();
+                    
+                    // Create ripple effect
+                    const ripple = document.createElement('div');
+                    ripple.style.cssText = `
+                        position: absolute;
+                        border-radius: 50%;
+                        background: rgba(255,255,255,0.3);
+                        transform: scale(0);
+                        animation: ripple 0.6s linear;
+                        pointer-events: none;
+                    `;
+                    
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    ripple.style.width = ripple.style.height = size + 'px';
+                    ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+                    ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+                    
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => ripple.remove(), 600);
+                    
+                    alert(`Would navigate to: ${this.textContent.trim()}`);
+                }
+            });
+        });
+
+        // Add CSS animation for ripple
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(2);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

@@ -1,193 +1,203 @@
 import { motion } from "framer-motion";
-import Header from "@/components/layout/header";
-import Footer from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  ClipboardList,
-  Clock,
-  BarChart3,
-  Calendar,
-  Heart,
-  BookOpen,
+  GraduationCap,
   CheckCircle,
-  Shield,
-  Zap,
-  Printer
+  Clock,
+  AlertCircle,
+  Printer,
+  Settings,
+  Shield
 } from "lucide-react";
 
-const features = [
+const stats = [
   {
-    icon: ClipboardList,
-    title: "Smart Task Management",
-    description: "Break down complex assignments into manageable steps with automatic time estimates and gentle reminders.",
-    color: "bg-blue-100 text-blue-600"
+    icon: GraduationCap,
+    title: "Active Learners",
+    value: "2",
+    description: "Students engaged in today's learning journey",
+    color: "primary",
+    gradient: "linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)"
+  },
+  {
+    icon: CheckCircle,
+    title: "Completed",
+    value: "12",
+    description: "Tasks successfully finished today",
+    color: "complete",
+    gradient: "linear-gradient(135deg, var(--status-complete) 0%, #4ADE80 100%)"
   },
   {
     icon: Clock,
-    title: "Focus Timer",
-    description: "Customizable Pomodoro sessions with break reminders and distraction blocking features.",
-    color: "bg-green-100 text-green-600"
+    title: "In Progress",
+    value: "3", 
+    description: "Taking extra time to master concepts",
+    color: "progress",
+    gradient: "linear-gradient(135deg, var(--status-progress) 0%, #60A5FA 100%)"
   },
   {
-    icon: BarChart3,
-    title: "Progress Analytics",
-    description: "Visual progress tracking with encouraging insights to help you understand your productivity patterns.",
-    color: "bg-purple-100 text-purple-600"
-  },
-  {
-    icon: Calendar,
-    title: "Flexible Scheduling",
-    description: "Adaptive calendar that adjusts to your energy levels and accommodates unexpected changes.",
-    color: "bg-orange-100 text-orange-600"
-  },
-  {
-    icon: Heart,
-    title: "Gentle Accountability",
-    description: "Supportive check-ins and study buddy matching to keep you motivated without overwhelming pressure.",
-    color: "bg-red-100 text-red-600"
-  },
-  {
-    icon: BookOpen,
-    title: "Study Resources",
-    description: "Curated study techniques, accessibility tools, and executive function strategies from education experts.",
-    color: "bg-teal-100 text-teal-600"
+    icon: AlertCircle,
+    title: "Need Support",
+    value: "1",
+    description: "Students ready for guidance",
+    color: "blocked",
+    gradient: "linear-gradient(135deg, var(--status-blocked) 0%, #8B93A8 100%)"
   }
-];
-
-const techStack = [
-  { name: "Next.js 15", description: "App Router & TypeScript" },
-  { name: "Supabase", description: "Real-time Database" },
-  { name: "shadcn/ui", description: "Accessible Components" },
-  { name: "Framer Motion", description: "Smooth Animations" }
 ];
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
+      {/* Header */}
+      <header style={{ 
+        background: 'rgba(248, 249, 250, 0.8)', 
+        backdropFilter: 'blur(12px) saturate(1.1)',
+        borderBottom: '1px solid var(--border)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
+      }}>
+        <div className="max-w-6xl mx-auto px-8 py-4 flex justify-between items-center">
+          <a href="/" className="flex items-center text-2xl font-bold text-primary no-underline">
+            <div style={{
+              width: '36px',
+              height: '36px',
+              background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+              borderRadius: '10px',
+              marginRight: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 600,
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              S
+            </div>
+            StudyFlow
+          </a>
+          
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>Settings</span>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '12px'
+            }}>
+              AC
+            </div>
+            <span>StudyFlow</span>
+          </div>
+        </div>
+      </header>
       
-      <main className="flex-1">
+      <main className="max-w-6xl mx-auto px-8 py-12">
         {/* Hero Section */}
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="border-b border-border bg-secondary/50"
+          className="text-center mb-16"
           data-testid="hero-section"
         >
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="max-w-3xl">
-              <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl" data-testid="hero-title">
-                Focus. Plan. Achieve.
-              </h1>
-              <p className="mt-4 text-xl text-muted-foreground leading-relaxed" data-testid="hero-description">
-                A distraction-free productivity platform designed specifically for students with executive function needs. Organize your tasks, manage your time, and stay on track with gentle guidance.
-              </p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <Button 
-                  size="lg" 
-                  className="h-11 px-8"
-                  data-testid="button-get-started"
-                  onClick={() => window.location.href = '/student'}
-                >
-                  Student Dashboard
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="h-11 px-8"
-                  data-testid="button-admin-panel"
-                  onClick={() => window.location.href = '/admin'}
-                >
-                  Admin Panel
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  size="lg" 
-                  className="h-11 px-8 bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-200"
-                  data-testid="button-print-queue"
-                  onClick={() => window.location.href = '/print-queue'}
-                >
-                  <Printer className="w-4 h-4 mr-2" />
-                  Print Queue
-                </Button>
-              </div>
-            </div>
+          <h1 
+            className="text-5xl font-bold mb-4"
+            style={{ 
+              background: 'linear-gradient(135deg, var(--foreground) 0%, var(--primary) 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '-0.025em'
+            }}
+            data-testid="hero-title"
+          >
+            Focus. Plan. Achieve.
+          </h1>
+          <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto" data-testid="hero-description">
+            A thoughtful learning hub designed for focus and growth
+          </p>
+          
+          <div className="flex justify-center gap-4 flex-wrap mb-8">
+            <Button 
+              size="lg" 
+              className="h-12 px-8 shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
+              style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)' }}
+              data-testid="button-student-dashboard"
+              onClick={() => window.location.href = '/student'}
+            >
+              Student Dashboard
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="h-12 px-8 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30"
+              data-testid="button-admin-panel"
+              onClick={() => window.location.href = '/admin'}
+            >
+              Admin Panel
+            </Button>
+            <Button 
+              size="lg" 
+              className="h-12 px-8 shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
+              style={{ background: 'linear-gradient(135deg, var(--status-blocked) 0%, #5A6B85 100%)' }}
+              data-testid="button-print-queue"
+              onClick={() => window.location.href = '/print-queue'}
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Print Queue
+            </Button>
           </div>
         </motion.section>
 
-        {/* Features Grid */}
-        <section className="py-16" data-testid="features-section">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground" data-testid="features-title">
-                Built for Student Success
-              </h2>
-              <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto" data-testid="features-description">
-                Every feature is designed with accessibility and executive function in mind, helping you build sustainable study habits.
-              </p>
-            </div>
-
-            <motion.div 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="grid gap-8 md:grid-cols-2 lg:grid-cols-3"
-              data-testid="features-grid"
-            >
-              {features.map((feature, index) => {
-                const IconComponent = feature.icon;
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    viewport={{ once: true }}
-                  >
-                    <Card className="p-6 h-full" data-testid={`feature-card-${index}`}>
-                      <CardContent className="p-0">
-                        <div className={`flex items-center justify-center w-12 h-12 rounded-lg mb-4 ${feature.color}`}>
-                          <IconComponent className="w-6 h-6" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-foreground mb-2" data-testid={`feature-title-${index}`}>
-                          {feature.title}
-                        </h3>
-                        <p className="text-muted-foreground leading-relaxed" data-testid={`feature-description-${index}`}>
-                          {feature.description}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Technology Stack */}
-        <section className="py-16 bg-secondary/50 border-t border-border" data-testid="tech-section">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground" data-testid="tech-title">
-                Built with Modern Technology
-              </h2>
-              <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto" data-testid="tech-description">
-                Powered by the latest web technologies for performance, accessibility, and reliability.
-              </p>
-            </div>
-
-            <motion.div 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
-              data-testid="tech-grid"
-            >
-              {techStack.map((tech, index) => (
+        {/* Quick Stats */}
+        <section className="mb-16" data-testid="stats-section">
+          <h2 className="text-3xl font-semibold mb-8 text-center text-foreground">
+            Today's Learning Progress
+          </h2>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
+            data-testid="stats-grid"
+          >
+            {stats.map((stat, index) => {
+              const IconComponent = stat.icon;
+              const getIconBg = (color: string) => {
+                switch(color) {
+                  case 'complete': return 'rgba(33, 191, 6, 0.1)';
+                  case 'progress': return 'rgba(59, 134, 209, 0.1)';
+                  case 'blocked': return 'rgba(108, 114, 147, 0.1)';
+                  default: return 'var(--primary-subtle)';
+                }
+              };
+              const getIconColor = (color: string) => {
+                switch(color) {
+                  case 'complete': return 'var(--status-complete)';
+                  case 'progress': return 'var(--status-progress)';
+                  case 'blocked': return 'var(--status-blocked)';
+                  default: return 'var(--primary)';
+                }
+              };
+              const getValueColor = (color: string) => {
+                switch(color) {
+                  case 'complete': return 'var(--status-complete)';
+                  case 'progress': return 'var(--status-progress)';
+                  case 'blocked': return 'var(--status-blocked)';
+                  default: return 'var(--primary)';
+                }
+              };
+              
+              return (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
@@ -195,78 +205,72 @@ export default function Home() {
                   transition={{ duration: 0.6, delay: index * 0.1 }}
                   viewport={{ once: true }}
                 >
-                  <Card className="p-4 text-center" data-testid={`tech-card-${index}`}>
+                  <Card 
+                    className="p-8 relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-border"
+                    style={{ 
+                      background: 'var(--card)',
+                      borderRadius: '20px'
+                    }}
+                    data-testid={`stat-card-${index}`}
+                  >
+                    <div 
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '4px',
+                        background: stat.gradient
+                      }}
+                    />
                     <CardContent className="p-0">
-                      <div className="text-2xl font-bold text-foreground mb-2" data-testid={`tech-name-${index}`}>
-                        {tech.name}
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: '1rem',
+                        background: getIconBg(stat.color),
+                        color: getIconColor(stat.color)
+                      }}>
+                        <IconComponent className="w-6 h-6" />
                       </div>
-                      <p className="text-sm text-muted-foreground" data-testid={`tech-description-${index}`}>
-                        {tech.description}
+                      <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                        {stat.title}
+                      </div>
+                      <div 
+                        className="text-4xl font-bold mb-2"
+                        style={{ color: getValueColor(stat.color) }}
+                        data-testid={`stat-value-${index}`}
+                      >
+                        {stat.value}
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`stat-description-${index}`}>
+                        {stat.description}
                       </p>
                     </CardContent>
                   </Card>
                 </motion.div>
-              ))}
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              viewport={{ once: true }}
-              className="mt-12 text-center"
-              data-testid="compliance-badges"
-            >
-              <div className="inline-flex items-center space-x-2 text-sm text-muted-foreground">
-                <CheckCircle className="w-4 h-4" />
-                <span>WCAG 2.1 AA Compliant</span>
-                <span>•</span>
-                <Shield className="w-4 h-4" />
-                <span>SOC 2 Type II</span>
-                <span>•</span>
-                <Zap className="w-4 h-4" />
-                <span>99.9% Uptime</span>
-              </div>
-            </motion.div>
-          </div>
+              );
+            })}
+          </motion.div>
         </section>
-
-        {/* CTA Section */}
-        <motion.section 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="py-16"
-          data-testid="cta-section"
-        >
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <Card className="max-w-3xl mx-auto p-8 text-center" data-testid="cta-card">
-              <CardContent className="p-0">
-                <h2 className="text-3xl font-bold text-foreground mb-4" data-testid="cta-title">
-                  Ready to Transform Your Study Habits?
-                </h2>
-                <p className="text-lg text-muted-foreground mb-8 leading-relaxed" data-testid="cta-description">
-                  Join thousands of students who have found their focus and achieved their academic goals with StudyFlow.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" className="h-11 px-8" data-testid="button-start-trial">
-                    Start Free Trial
-                  </Button>
-                  <Button variant="outline" size="lg" className="h-11 px-8" data-testid="button-schedule-demo">
-                    Schedule Demo
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground mt-4" data-testid="cta-disclaimer">
-                  No credit card required • 14-day free trial • Cancel anytime
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </motion.section>
       </main>
 
-      <Footer />
+      {/* Footer */}
+      <footer style={{ 
+        background: 'var(--surface-tertiary)',
+        borderTop: '1px solid var(--border)',
+        marginTop: '5rem'
+      }}>
+        <div className="max-w-6xl mx-auto px-8 py-12 text-center">
+          <p className="text-sm text-muted-foreground">
+            StudyFlow • Built for focused learning
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
