@@ -56,6 +56,42 @@ export default function StudentDashboard() {
   const studentParam = params.student?.toLowerCase();
   const studentName = studentParam ? studentParam.charAt(0).toUpperCase() + studentParam.slice(1) : '';
 
+  // Theme toggle functionality - MOVED UP BEFORE EARLY RETURNS
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  // Fetch assignments for today (get assignments due on or before this date) - MOVED UP
+  const { data: assignments = [], isLoading, refetch } = useQuery({
+    queryKey: ['/api/assignments', selectedDate, studentName],
+    queryFn: async () => {
+      // For scheduling purposes, show assignments due in the next few days
+      const currentDate = new Date(selectedDate);
+      const targetDate = new Date(currentDate);
+      targetDate.setDate(currentDate.getDate() + 2); // Show assignments due within 2 days
+      
+      const params = new URLSearchParams({
+        date: targetDate.toISOString().split('T')[0],
+        studentName: studentName
+      });
+      const response = await apiRequest('GET', `/api/assignments?${params}`);
+      return response.json();
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!user && !!studentName, // Only run query when user is authenticated and student is valid
+  });
+
+  // Fetch schedule template for the student and date - MOVED UP
+  const { data: scheduleTemplate = [] } = useQuery<any[]>({
+    queryKey: ['/api/schedule', studentName, selectedDate],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!user && !!studentName, // Only run query when user is authenticated and student is valid
+  });
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!userLoading && !user) {
@@ -93,15 +129,6 @@ export default function StudentDashboard() {
     );
   }
 
-  // Theme toggle functionality
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
-
   const handleHomeClick = () => {
     // Reset to today and overview mode
     setSelectedDate(new Date().toISOString().split('T')[0]);
@@ -112,33 +139,6 @@ export default function StudentDashboard() {
     // For now, just show an alert - can be expanded later
     alert('Settings panel coming soon!');
   };
-
-  // Fetch assignments for today (get assignments due on or before this date)
-  const { data: assignments = [], isLoading, refetch } = useQuery({
-    queryKey: ['/api/assignments', selectedDate, studentName],
-    queryFn: async () => {
-      // For scheduling purposes, show assignments due in the next few days
-      const currentDate = new Date(selectedDate);
-      const targetDate = new Date(currentDate);
-      targetDate.setDate(currentDate.getDate() + 2); // Show assignments due within 2 days
-      
-      const params = new URLSearchParams({
-        date: targetDate.toISOString().split('T')[0],
-        studentName: studentName
-      });
-      const response = await apiRequest('GET', `/api/assignments?${params}`);
-      return response.json();
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!user, // Only run query when user is authenticated
-  });
-
-  // Fetch schedule template for the student and date
-  const { data: scheduleTemplate = [] } = useQuery<any[]>({
-    queryKey: ['/api/schedule', studentName, selectedDate],
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!user, // Only run query when user is authenticated
-  });
 
   const handleAssignmentUpdate = () => {
     refetch();
