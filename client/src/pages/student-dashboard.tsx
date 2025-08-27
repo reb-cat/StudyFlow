@@ -159,10 +159,10 @@ export default function StudentDashboard() {
   );
   const assignmentBlocks = allScheduleBlocks.filter((block) => block.blockType === 'assignment');
 
-  // Fill assignment blocks with available assignments (round-robin if more blocks than assignments)
+  // Fill assignment blocks with available assignments (no duplicates - each assignment used only once)
   const populatedAssignmentBlocks = assignmentBlocks.map((block, index) => {
-    const assignmentIndex = assignments.length > 0 ? index % assignments.length : -1;
-    const assignment = assignmentIndex >= 0 ? assignments[assignmentIndex] : null;
+    // Only assign if we have an assignment at this index (no round-robin duplicates)
+    const assignment = index < assignments.length ? assignments[index] : null;
     
     return {
       ...block,
