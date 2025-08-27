@@ -40,6 +40,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   // TTS state (only for Khalil)
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSpeech, setCurrentSpeech] = useState<SpeechSynthesisUtterance | HTMLAudioElement | null>(null);
+  const [showFullInstructions, setShowFullInstructions] = useState(false);
   
   
   // Build complete schedule using real schedule template data (same as Overview mode)
@@ -272,17 +273,18 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
       stopSpeech();
     } else {
       if (currentBlock?.type === 'assignment' && currentBlock.assignment) {
-        // Create optimized text for TTS - limit length and strip HTML
+        // Create executive function-friendly TTS - just the essentials
         const title = currentBlock.assignment.title;
-        const instructions = currentBlock.assignment.instructions || 'No additional instructions provided.';
+        const instructions = currentBlock.assignment.instructions || '';
         
-        // Strip HTML tags and limit instructions length for faster TTS
+        // Extract just the first actionable step or main objective
         const cleanInstructions = instructions.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-        const truncatedInstructions = cleanInstructions.length > 200 
-          ? cleanInstructions.substring(0, 200) + '... and more details available in the assignment.'
-          : cleanInstructions;
+        const firstSentence = cleanInstructions.split('.')[0] + '.';
+        const briefInstructions = firstSentence.length > 100 
+          ? `Get started with ${title}. Check the full instructions for details.`
+          : firstSentence;
         
-        const textToSpeak = `${title}. ${truncatedInstructions}`;
+        const textToSpeak = `${title}. ${briefInstructions}`;
         console.log('TTS text length:', textToSpeak.length, 'characters');
         speakText(textToSpeak);
       }
@@ -473,9 +475,9 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
               {currentBlock.title}
             </h2>
             
-            {/* Assignment Instructions - Only for assignment blocks */}
+            {/* Assignment Instructions - Executive Function Optimized */}
             {currentBlock.type === 'assignment' && (
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mx-4">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mx-4 space-y-2">
                 {(() => {
                   const instructions = currentBlock.assignment?.instructions;
                   
@@ -484,20 +486,64 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                     instructions.trim() !== '' &&
                     instructions.trim() !== 'Assignment from Canvas' &&
                     !instructions.toLowerCase().includes('no additional details were added for this assignment') &&
-                    instructions.length > 50; // Must be longer than just a title
+                    instructions.length > 50;
 
                   if (hasRealInstructions) {
+                    // Extract smart summary - first actionable step or main objective
+                    const cleanInstructions = instructions.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+                    const sentences = cleanInstructions.split(/[.!?]+/).filter(s => s.trim().length > 10);
+                    const firstActionable = sentences[0]?.trim() + '.';
+                    const isVeryLong = cleanInstructions.length > 300;
+                    
                     return (
-                      <div 
-                        className="text-base text-gray-700 dark:text-gray-300 leading-relaxed !text-base max-h-32 overflow-y-auto overflow-x-hidden"
-                        dangerouslySetInnerHTML={{ __html: instructions }}
-                      />
+                      <div className="space-y-2">
+                        {/* Smart Summary - Always Show */}
+                        <div className="text-base text-gray-700 dark:text-gray-300 leading-relaxed !text-base">
+                          <div className="font-medium text-blue-600 dark:text-blue-400 text-sm mb-1">
+                            {isVeryLong ? '📋 Next Step:' : '📋 Instructions:'}
+                          </div>
+                          {isVeryLong ? (
+                            <p>{firstActionable}</p>
+                          ) : (
+                            <div dangerouslySetInnerHTML={{ __html: instructions }} />
+                          )}
+                        </div>
+                        
+                        {/* Show More Toggle for Long Instructions */}
+                        {isVeryLong && (
+                          <div>
+                            <button
+                              onClick={() => setShowFullInstructions(!showFullInstructions)}
+                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                            >
+                              {showFullInstructions ? '📄 Hide Full Instructions' : '📄 Show Full Instructions'}
+                            </button>
+                            
+                            {showFullInstructions && (
+                              <div className="mt-2 p-3 bg-white dark:bg-gray-700 rounded border-l-4 border-blue-500">
+                                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 italic">
+                                  💡 Tip: Use "Need Help?" button for step-by-step guidance
+                                </div>
+                                <div 
+                                  className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed max-h-40 overflow-y-auto"
+                                  dangerouslySetInnerHTML={{ __html: instructions }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     );
                   } else {
                     return (
-                      <p className="text-base text-gray-500 dark:text-gray-400 italic leading-relaxed !text-base">
-                        No additional instructions provided. Work on this assignment based on your course materials and previous lessons.
-                      </p>
+                      <div className="text-base text-gray-500 dark:text-gray-400 leading-relaxed !text-base">
+                        <div className="font-medium text-gray-600 dark:text-gray-500 text-sm mb-1">
+                          📋 Instructions:
+                        </div>
+                        <p className="italic">
+                          Work on this assignment based on your course materials and previous lessons.
+                        </p>
+                      </div>
                     );
                   }
                 })()}
