@@ -133,7 +133,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
   const [currentIndex, setCurrentIndex] = useState(persistedState.currentIndex);
   const [isTimerRunning, setIsTimerRunning] = useState(persistedState.isTimerRunning);
   const [extraTime, setExtraTime] = useState(persistedState.extraTime);
-  const [completedBlocks, setCompletedBlocks] = useState<Set<string>>(new Set(persistedState.completedBlocks));
+  const [completedBlocks, setCompletedBlocks] = useState<Set<string>>(new Set<string>(persistedState.completedBlocks));
   const [timeRemaining, setTimeRemaining] = useState<number | null>(persistedState.timeRemaining);
 
   const currentBlock = scheduleBlocks[currentIndex];
@@ -172,25 +172,38 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
         throw new Error('TTS generation failed');
       }
       
-      // Get audio blob and play it
+      // Get audio blob and create playable URL
       const audioBlob = await response.blob();
+      console.log('Audio blob created:', audioBlob.size, 'bytes, type:', audioBlob.type);
+      
       const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
+      const audio = new Audio();
       
-      audio.onended = () => {
+      // Set up event handlers before setting src
+      const cleanup = () => {
         setIsPlaying(false);
         setCurrentSpeech(null);
         URL.revokeObjectURL(audioUrl);
       };
       
-      audio.onerror = () => {
-        setIsPlaying(false);
-        setCurrentSpeech(null);
-        URL.revokeObjectURL(audioUrl);
+      audio.oncanplaythrough = () => {
+        console.log('Audio can play through, starting playback...');
+        audio.play().catch(err => {
+          console.error('Audio play failed:', err);
+          cleanup();
+        });
       };
       
-      setCurrentSpeech(audio as any);
-      audio.play();
+      audio.onended = cleanup;
+      
+      audio.onerror = (e) => {
+        console.error('Audio loading/playback error:', e);
+        cleanup();
+      };
+      
+      setCurrentSpeech(audio);
+      // Set source after handlers are ready
+      audio.src = audioUrl;
       
     } catch (error) {
       console.error('TTS error:', error);
@@ -252,7 +265,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
       currentIndex,
       isTimerRunning,
       extraTime,
-      completedBlocks: Array.from(completedBlocks),
+      completedBlocks: [...completedBlocks],
       timeRemaining,
       lastSaved: Date.now()
     };
