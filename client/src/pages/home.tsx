@@ -89,23 +89,33 @@ export default function Home() {
             StudyFlow
           </a>
           
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>Settings</span>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 600,
-              fontSize: '12px'
-            }}>
-              AC
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span className="hover:text-foreground transition-colors cursor-pointer">Settings</span>
+            <div className="flex items-center gap-2">
+              <div style={{
+                width: '36px',
+                height: '36px',
+                background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: 'var(--shadow-sm)'
+              }} onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)';
+                (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-md)';
+              }} onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+                (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)';
+              }} title="Parent/Admin Account">
+                PA
+              </div>
             </div>
-            <span>StudyFlow</span>
           </div>
         </div>
       </header>
