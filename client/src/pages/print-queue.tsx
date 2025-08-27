@@ -52,9 +52,10 @@ function getPrintStatusIcon(status: 'needs_printing' | 'printed' | 'skipped') {
 
 export default function PrintQueue() {
   const queryClient = useQueryClient();
-  const [selectedDate, setSelectedDate] = useState(
-    new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Tomorrow
-  );
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Default to 2025-08-28 which has assignments with long instructions
+    return '2025-08-28';
+  });
 
   const { data: printQueue = [], isLoading } = useQuery<PrintQueueItem[]>({
     queryKey: ['/api/print-queue', selectedDate],
@@ -220,7 +221,7 @@ export default function PrintQueue() {
                           size="sm"
                           variant="outline"
                           className="flex items-center gap-2"
-                          onClick={() => window.open(item.canvasUrl, '_blank')}
+                          onClick={() => window.open(item.canvasUrl!, '_blank')}
                         >
                           <ExternalLink className="w-4 h-4" />
                           Open in Canvas

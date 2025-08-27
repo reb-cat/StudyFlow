@@ -611,16 +611,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { date } = req.query;
       const targetDate = date ? new Date(date as string) : new Date();
       
-      // Get tomorrow's date in YYYY-MM-DD format for proactive printing
-      const tomorrow = new Date(targetDate);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      // Use the selected date directly (not tomorrow)
+      const selectedDateStr = targetDate.toISOString().split('T')[0];
       
-      console.log(`📋 Fetching print queue for ${tomorrowStr}`);
+      console.log(`📋 Fetching print queue for ${selectedDateStr}`);
       
-      // Get assignments scheduled for tomorrow
+      // Get assignments due on selected date (fallback to due_date if no scheduled_date)
       const allAssignments = await db.select().from(assignments).where(
-        eq(assignments.scheduledDate, tomorrowStr)
+        or(
+          eq(assignments.scheduledDate, selectedDateStr),
+          and(
+            sql`scheduled_date IS NULL`,
+            sql`DATE(due_date) = ${selectedDateStr}`
+          )
+        )
       );
       
       const { detectPrintNeeds, estimatePageCount } = await import('./lib/printQueue.js');
@@ -657,15 +661,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Sort by priority (high first) then by student name
-      printQueue.sort((a, b) => {
-        const priorityOrder = { high: 0, medium: 1, low: 2 };
+      printQueue.sort((a: any, b: any) => {
+        const priorityOrder: { [key: string]: number } = { high: 0, medium: 1, low: 2 };
         const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
         if (priorityDiff !== 0) return priorityDiff;
         
         return a.studentName.localeCompare(b.studentName);
       });
       
-      console.log(`📋 Found ${printQueue.length} items needing printing for ${tomorrowStr}`);
+      console.log(`📋 Found ${printQueue.length} items needing printing for ${selectedDateStr}`);
       res.json(printQueue);
       
     } catch (error) {
