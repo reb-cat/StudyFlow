@@ -751,8 +751,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`📋 Fetching print queue for ${fromDateStr} to ${toDateStr}`);
       
-      // Get ALL assignments (including completed ones for print queue)
-      const allAssignments = await storage.getAllAssignments();
+      // Get INTELLIGENTLY FILTERED assignments for both students instead of raw Canvas dump
+      console.log(`🎯 INTELLIGENT PRINT QUEUE: Processing assignments with smart filtering`);
+      
+      const students = ['Abigail', 'Khalil'];
+      const allAssignments: any[] = [];
+      
+      for (const studentName of students) {
+        const studentUserMap: Record<string, string> = {
+          'abigail': 'abigail-user',
+          'khalil': 'khalil-user'
+        };
+        const userId = studentUserMap[studentName.toLowerCase()] || 'demo-user-1';
+        
+        // Use intelligent scheduling instead of raw getAllAssignments()
+        const studentAssignments = await storage.getScheduledAssignments(userId, toDateStr);
+        console.log(`📚 ${studentName}: ${studentAssignments.length} intelligently filtered assignments`);
+        allAssignments.push(...studentAssignments);
+      }
+      
+      console.log(`🎯 INTELLIGENT PRINT QUEUE: ${allAssignments.length} filtered assignments (vs raw Canvas dump)`);
       
       const { detectPrintNeeds, estimatePageCount } = await import('./lib/printQueue.js');
       
