@@ -162,7 +162,16 @@ export class DatabaseStorage implements IStorage {
         dueDate: data.dueDate || null,
         subject: data.subject,
         courseName: data.courseName,
-        instructions: data.instructions
+        instructions: data.instructions,
+        // Canvas integration fields - CRITICAL for print queue Canvas links!
+        canvasId: data.canvasId || null,
+        canvasInstance: data.canvasInstance || null,
+        // Additional Canvas metadata
+        scheduledDate: data.scheduledDate || null,
+        actualEstimatedMinutes: data.actualEstimatedMinutes || 30,
+        completionStatus: data.completionStatus || 'pending',
+        priority: data.priority || 'B',
+        difficulty: data.difficulty || 'medium'
       };
       
       const result = await db.insert(assignments).values(assignmentData).returning();

@@ -37,6 +37,15 @@ export function detectPrintNeeds(assignment: {
     if (baseUrl) {
       result.canvasUrl = `${baseUrl}/assignments/${assignment.canvasId}`;
     }
+  } 
+  // FALLBACK: Generate search URL for assignments without Canvas IDs
+  else {
+    const baseUrl = process.env.CANVAS_BASE_URL;
+    if (baseUrl && assignment.title) {
+      // Create a Canvas search URL to help find the assignment
+      const searchTerm = encodeURIComponent(assignment.title.substring(0, 50));
+      result.canvasUrl = `${baseUrl}/search/all_courses?search=${searchTerm}`;
+    }
   }
 
   const title = assignment.title.toLowerCase();
