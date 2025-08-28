@@ -89,6 +89,31 @@ export default function AdminPanel() {
     }
   });
 
+  // Retroactive due date extraction
+  const extractDueDatesMutation = useMutation({
+    mutationFn: async ({ studentName, dryRun }: { studentName?: string; dryRun?: boolean }) => {
+      const response = await apiRequest('POST', '/api/assignments/extract-due-dates', {
+        studentName,
+        dryRun
+      });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+      toast({
+        title: "Due Date Extraction Complete",
+        description: `✅ Updated ${data.results.updated} assignments, skipped ${data.results.skipped}`
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Extraction Failed",
+        description: "Failed to extract due dates from assignments.",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Smart date filtering helper
   const getDateFilteredAssignments = (assignments: Assignment[]) => {
     const now = new Date();
@@ -388,6 +413,39 @@ export default function AdminPanel() {
                 ) : null}
                 Apply to {selectedAssignments.size} items
               </Button>
+            </div>
+            
+            {/* Retroactive Due Date Extraction */}
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium mb-1">Smart Due Date Extraction</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Automatically extract due dates from assignment titles with "Due 1/15", "Test on 10/6", etc.
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => extractDueDatesMutation.mutate({ studentName: selectedStudent })}
+                  disabled={extractDueDatesMutation.isPending}
+                  variant="secondary"
+                  size="sm"
+                >
+                  {extractDueDatesMutation.isPending ? (
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Clock className="h-4 w-4 mr-2" />
+                  )}
+                  Extract Due Dates
+                </Button>
+                <Button 
+                  onClick={() => extractDueDatesMutation.mutate({ studentName: selectedStudent, dryRun: true })}
+                  disabled={extractDueDatesMutation.isPending}
+                  variant="outline"
+                  size="sm"
+                >
+                  Test Run
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -67,12 +67,18 @@ export function extractDueDateFromTitle(title: string): Date | null {
     // === ACADEMIC PATTERNS ===
     /week\s+of\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i,          // "Week of 9/11"
     
+    // === ENHANCED DATE FORMAT PATTERNS ===
+    /due\s+(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/i,            // "due 1/15", "due 01/15"
+    /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2})(?:,?\s*(\d{4}))?/i, // "Jan 15", "Jan 15, 2025"
+    /\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)(?:,?\s*(\d{4}))?/i, // "15 Jan", "15 Jan 2025"
+    
     // === STANDALONE DATE PATTERNS (FALLBACK) ===
     /\b(\d{1,2}\/\d{1,2}\/\d{2,4})\b/,                        // "9/11/2025" anywhere in title
     /\b(\d{1,2}\/\d{1,2})\b/,                                 // "9/11" anywhere in title (fallback)
   ];
 
-  for (const [index, pattern] of patterns.entries()) {
+  for (let index = 0; index < patterns.length; index++) {
+    const pattern = patterns[index];
     const match = title.match(pattern);
     if (match) {
       let dateStr: string;
@@ -100,9 +106,13 @@ export function extractDueDateFromTitle(title: string): Date | null {
 }
 
 /**
- * Parse date strings with various formats and smart year inference
+ * Enhanced date parsing with academic calendar context and intelligent year inference
  */
-function parseDateString(dateStr: string): Date | null {
+function parseDateString(dateStr: string, courseContext?: {
+  academicYear?: string;
+  courseStartDate?: string;
+  courseEndDate?: string;
+}): Date | null {
   try {
     // Handle different separators (/, -)
     const normalized = dateStr.replace(/-/g, '/');
@@ -126,10 +136,36 @@ function parseDateString(dateStr: string): Date | null {
     
     const date = new Date(year, month - 1, day);
     
-    // If the date is in the past and no year was specified, try next year
-    if (parts.length === 2 && date < new Date()) {
-      const nextYearDate = new Date(year + 1, month - 1, day);
-      return nextYearDate;
+    // ENHANCED ACADEMIC YEAR INFERENCE
+    if (parts.length === 2) {
+      const currentDate = new Date();
+      const currentSchoolYearStart = new Date('2025-08-01');
+      const currentSchoolYearEnd = new Date('2026-07-31');
+      
+      // If we have course context, use it for better inference
+      if (courseContext?.courseStartDate && courseContext?.courseEndDate) {
+        const courseStart = new Date(courseContext.courseStartDate);
+        const courseEnd = new Date(courseContext.courseEndDate);
+        
+        // Try the course year first
+        const courseYearDate = new Date(courseStart.getFullYear(), month - 1, day);
+        if (courseYearDate >= courseStart && courseYearDate <= courseEnd) {
+          return courseYearDate;
+        }
+      }
+      
+      // If date is in current school year, use current school year
+      if (date >= currentSchoolYearStart && date <= currentSchoolYearEnd) {
+        return date;
+      }
+      
+      // If date is in the past and no year specified, try next school year
+      if (date < currentDate) {
+        const nextYearDate = new Date(year + 1, month - 1, day);
+        if (nextYearDate <= currentSchoolYearEnd) {
+          return nextYearDate;
+        }
+      }
     }
     
     return date;
@@ -253,10 +289,10 @@ export function analyzeAssignmentWithCanvas(
     console.log(`📅 Using module timing for "${title}": ${extractedDueDate.toDateString()}`);
   }
   
-  // Priority 2: Extract timing from lock_info.context_module (THE MISSING PIECE!)
-  if (!extractedDueDate && canvasData?.lock_info?.context_module?.unlock_at) {
-    extractedDueDate = new Date(canvasData.lock_info.context_module.unlock_at);
-    console.log(`📅 Using module lock/unlock timing for "${title}": ${extractedDueDate.toDateString()}`);
+  // Priority 2: Extract timing from lock_at if available
+  if (!extractedDueDate && canvasData?.lock_at) {
+    extractedDueDate = new Date(canvasData.lock_at);
+    console.log(`📅 Using assignment lock timing for "${title}": ${extractedDueDate.toDateString()}`);
   }
   
   // Priority 3: For multi-week assignments, use module completion date if available
@@ -280,8 +316,7 @@ export function analyzeAssignmentWithCanvas(
   // FALLBACK: If no due date found but we have availability window, use availability start as due date
   // This handles cases like "End of Year Project" with module unlock dates
   if (!extractedDueDate) {
-    const availableFromDate = canvasData?.lock_info?.context_module?.unlock_at ||
-                              canvasData?.unlock_at || 
+    const availableFromDate = canvasData?.unlock_at || 
                               canvasData?.inferred_start_date ||
                               canvasData?.module_data?.unlock_at;
     
@@ -338,28 +373,22 @@ export function analyzeAssignmentWithCanvas(
     availableUntil = new Date(canvasData.lock_at);
   }
   
-  // Priority 2: MODULE TIMING from lock_info.context_module (THE CRITICAL ADDITION!)
-  if (!availableFrom && canvasData?.lock_info?.context_module?.unlock_at) {
-    availableFrom = new Date(canvasData.lock_info.context_module.unlock_at);
-    console.log(`📅 Using module unlock for availability: ${availableFrom.toDateString()}`);
-  }
-  if (!availableUntil && canvasData?.lock_info?.context_module?.lock_at) {
-    availableUntil = new Date(canvasData.lock_info.context_module.lock_at);
-    console.log(`📅 Using module lock for availability: ${availableUntil.toDateString()}`);
-  }
-  
-  // Priority 3: Inferred module timing (existing successful pattern)
+  // Priority 2: Inferred module timing (existing successful pattern)
   if (!availableFrom && canvasData?.inferred_start_date) {
     availableFrom = new Date(canvasData.inferred_start_date);
+    console.log(`📅 Using inferred start for availability: ${availableFrom.toDateString()}`);
   }
   if (!availableUntil && canvasData?.inferred_end_date) {
     availableUntil = new Date(canvasData.inferred_end_date);
+    console.log(`📅 Using inferred end for availability: ${availableUntil.toDateString()}`);
   }
   
-  // Priority 4: Module data timing (for assignments linked to modules)
+  // Priority 3: Module data timing (for assignments linked to modules)
   if (!availableFrom && canvasData?.module_data?.unlock_at) {
     availableFrom = new Date(canvasData.module_data.unlock_at);
+    console.log(`📅 Using module data unlock for availability: ${availableFrom.toDateString()}`);
   }
+  
   
   const availabilityWindow = {
     availableFrom,
@@ -434,4 +463,120 @@ export function getSmartSchedulingDate(intelligence: AssignmentIntelligence, fal
   }
   
   return fallbackDate;
+}
+
+/**
+ * Enhanced date validation with academic calendar context
+ */
+export function validateExtractedDate(date: Date, title: string): { isValid: boolean; reason?: string } {
+  const currentDate = new Date();
+  const currentSchoolYearStart = new Date('2025-08-01');
+  const currentSchoolYearEnd = new Date('2026-07-31');
+  const nextSchoolYearEnd = new Date('2027-07-31');
+  
+  // Check if date is unreasonably far in the past
+  const twoYearsAgo = new Date();
+  twoYearsAgo.setFullYear(currentDate.getFullYear() - 2);
+  if (date < twoYearsAgo) {
+    return { isValid: false, reason: 'Date is more than 2 years in the past' };
+  }
+  
+  // Check if date is unreasonably far in the future  
+  if (date > nextSchoolYearEnd) {
+    return { isValid: false, reason: 'Date is beyond next school year' };
+  }
+  
+  // Warn if date is outside current school year but could be valid
+  if (date < currentSchoolYearStart || date > currentSchoolYearEnd) {
+    return { isValid: true, reason: 'Date is outside current school year but may be valid' };
+  }
+  
+  return { isValid: true };
+}
+
+/**
+ * Retroactive assignment cleanup - extract due dates from existing assignments
+ */
+export async function extractDueDatesFromExistingAssignments(storage: any, options: {
+  studentName?: string;
+  dryRun?: boolean;
+  onProgress?: (processed: number, total: number, assignment: any) => void;
+} = {}): Promise<{
+  processed: number;
+  updated: number;
+  skipped: number;
+  errors: Array<{ assignmentId: string; title: string; error: string }>;
+}> {
+  const results = {
+    processed: 0,
+    updated: 0,
+    skipped: 0,
+    errors: [] as Array<{ assignmentId: string; title: string; error: string }>
+  };
+  
+  try {
+    // Get all assignments with no due date
+    const allAssignments = await storage.getAllAssignments();
+    const assignmentsNoDueDate = allAssignments.filter((assignment: any) => {
+      const hasNoDueDate = !assignment.dueDate;
+      const matchesStudent = !options.studentName || 
+        assignment.userId.toLowerCase().includes(options.studentName.toLowerCase());
+      return hasNoDueDate && matchesStudent;
+    });
+    
+    console.log(`🔍 Found ${assignmentsNoDueDate.length} assignments without due dates for retroactive processing`);
+    
+    for (const assignment of assignmentsNoDueDate) {
+      results.processed++;
+      
+      try {
+        // Extract due date from title
+        const extractedDate = extractDueDateFromTitle(assignment.title);
+        
+        if (extractedDate) {
+          // Validate the extracted date
+          const validation = validateExtractedDate(extractedDate, assignment.title);
+          
+          if (validation.isValid) {
+            if (!options.dryRun) {
+              // Update the assignment with extracted due date
+              await storage.updateAssignment(assignment.id, {
+                dueDate: extractedDate
+              });
+              console.log(`✅ Updated "${assignment.title}" with due date: ${extractedDate.toDateString()}`);
+            } else {
+              console.log(`🔍 DRY RUN: Would update "${assignment.title}" with due date: ${extractedDate.toDateString()}`);
+            }
+            results.updated++;
+          } else {
+            console.log(`⚠️ Skipped "${assignment.title}" - invalid date: ${validation.reason}`);
+            results.skipped++;
+          }
+        } else {
+          results.skipped++;
+        }
+        
+        // Progress callback
+        if (options.onProgress) {
+          options.onProgress(results.processed, assignmentsNoDueDate.length, assignment);
+        }
+        
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        results.errors.push({
+          assignmentId: assignment.id,
+          title: assignment.title,
+          error: errorMsg
+        });
+        console.error(`❌ Error processing "${assignment.title}": ${errorMsg}`);
+      }
+    }
+    
+    console.log(`🎉 Retroactive cleanup complete: ${results.updated} updated, ${results.skipped} skipped, ${results.errors.length} errors`);
+    return results;
+    
+  } catch (error) {
+    console.error('❌ Retroactive cleanup failed:', error);
+    throw error;
+  }
 }

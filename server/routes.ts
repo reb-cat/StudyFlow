@@ -9,6 +9,7 @@ import {
   markBibleCurriculumCompleted, 
   getWeeklyBibleProgress
 } from './lib/bibleCurriculum';
+import { extractDueDatesFromExistingAssignments } from './lib/assignmentIntelligence';
 import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas"; 
 // Email config moved inline since Supabase removed
 const emailConfig = {
@@ -137,6 +138,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting assignment:', error);
       res.status(500).json({ message: 'Failed to delete assignment' });
+    }
+  });
+
+  // POST /api/assignments/extract-due-dates - Retroactive due date extraction
+  app.post('/api/assignments/extract-due-dates', async (req, res) => {
+    try {
+      const { studentName, dryRun = false } = req.body;
+      
+      console.log(`🚀 Starting retroactive due date extraction for ${studentName || 'all students'} (dryRun: ${dryRun})`);
+      
+      const results = await extractDueDatesFromExistingAssignments(storage, {
+        studentName,
+        dryRun,
+        onProgress: (processed, total, assignment) => {
+          if (processed % 10 === 0) {
+            console.log(`📊 Progress: ${processed}/${total} assignments processed`);
+          }
+        }
+      });
+      
+      res.json({
+        message: `Due date extraction completed: ${results.updated} assignments updated`,
+        results,
+        dryRun,
+        studentName: studentName || 'all'
+      });
+      
+    } catch (error) {
+      console.error('Due date extraction failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to extract due dates', error: errorMessage });
     }
   });
   
