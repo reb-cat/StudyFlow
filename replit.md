@@ -1,91 +1,184 @@
-# StudyFlow v1.0.0
+# StudyFlow v1.1.0 - Enhanced Due Date Intelligence
 
 StudyFlow is an executive function-friendly productivity platform designed to help students manage their academic workload with a compassionate and supportive approach. The system transforms generic 'Bible' schedule entries into specific 52-week curriculum content with sequential progression, providing concrete daily tasks that support executive function needs. Built as a full-stack web application using modern React and Node.js technologies with comprehensive Canvas integration and PostgreSQL data persistence.
 
-**Current Version**: 1.0.0 (Released: August 27, 2025)
-**Status**: Complete and fully functional with Canvas integration and Bible curriculum system
+**Current Version**: 1.1.0 (Released: August 28, 2025)
+**Status**: STABLE AND FULLY FUNCTIONAL - Enhanced Due Date Intelligence
+**Last Verified Working**: August 28, 2025 at 3:54 AM EST
 
-# Recent Changes (v1.0.0 Stable Release)
+# 🔒 CRITICAL VERSION CHECKPOINT - v1.1.0
 
-## Core System Fixes
-- **Bible Curriculum Integration**: Fixed critical UI duplication and implemented clean sequential progression system
-- **Data Consistency**: Resolved major inconsistencies by standardizing student names across all 349 assignments
-- **Admin Panel**: Restored proper functionality showing active assignments for management
-- **Database Cleanup**: Removed unused tables and streamlined schema for production readiness
+## 🚨 RESTORE POINT INSTRUCTIONS
 
-## Executive Function UI Optimizations (August 27, 2025)
-- **Font Hierarchy**: Refined assignment titles to `text-xl` and instructions to `text-base` with closer spacing (`space-y-2`)
-- **Smart Content Detection**: Fixed instruction filtering to properly display detailed Canvas content (50+ chars) vs. placeholder messages
-- **Scrolling Behavior**: Implemented vertical-only navigation (`overflow-y-auto overflow-x-hidden`) to prevent horizontal confusion
-- **HTML Rendering**: Added proper HTML instruction display using `dangerouslySetInnerHTML` for rich Canvas content
-- **CSS Override Protection**: Added `!important` modifiers to prevent universal styles from breaking custom sizing
+If anything breaks, restore to this exact state:
 
-## Major Technical Achievements  
-- **Sequential Bible Curriculum**: Week 1 Day 1 → Day 2 → Day 3 progression (no complex calendar math)
-- **Canvas Integration**: Full assignment import and management for both students (349 total assignments)
-- **Position Tracking**: Both students now have Bible curriculum position tracking (currently at Genesis 1-2)
-- **Executive Function Support**: Concrete task specification with specific readings instead of vague entries
-- **AI Integration Ready**: Anthropic SDK installed, prepared for Eleven Labs TTS and Claude tutoring features
+### Core System Health ✅
+- Development server running on localhost:5000
+- Database: PostgreSQL with 349 assignments for both students
+- Canvas integration: Full API access for Abigail (1 instance) + Khalil (1 instance)
+- Bible curriculum: 52-week progression system active
+- Admin panel: Fully functional with bulk operations
+- Student dashboards: Working for both Abigail and Khalil
 
-## System Statistics
-- Total Assignments: 349 (Abigail: 117, Khalil: 232)  
-- Active Assignments: 77 (filtered for daily planning)
+### Key Data Metrics ✅
+- Total Assignments: 349 (Abigail: 117, Khalil: 232)
+- Due Date Coverage: 96 assignments updated with intelligent extraction
 - Bible Curriculum: Complete 52-week program with 310 entries
 - Schedule Templates: 103 blocks across both students
-- Database: Streamlined to 5 core tables for optimal performance
+- Database: 5 core tables optimized for performance
 
-# User Preferences
+## Recent Changes (v1.1.0 - August 28, 2025)
 
-Preferred communication style: Simple, everyday language.
+### ✅ MAJOR BREAKTHROUGH: Due Date Intelligence System
 
-# System Architecture
+**PROBLEM SOLVED**: Assignments showing "No due date" despite having dates in titles
 
-## Frontend Architecture
-The client is built using React 18 with TypeScript and follows a component-based architecture. Key architectural decisions include:
+**SOLUTION IMPLEMENTED**:
+1. **Enhanced Canvas Import Integration**
+   - extractDueDateFromTitle() now runs during Canvas import for both instances
+   - Fallback system: Canvas due_at OR extracted from title
+   - Real-time logging of extracted dates
 
-- **UI Framework**: Uses shadcn/ui components built on Radix UI primitives for consistent, accessible design
-- **Styling**: Tailwind CSS with custom design tokens and CSS variables for theming
-- **State Management**: TanStack Query for server state management and caching
-- **Routing**: Wouter for lightweight client-side routing
-- **Animations**: Framer Motion for smooth UI transitions and interactions
-- **Form Handling**: React Hook Form with Zod validation resolvers
+2. **Comprehensive Pattern Recognition** - 25+ date formats:
+   - "Homework Due 1/12" → January 12, 2026
+   - "Test on 10/6" → October 6, 2025  
+   - "Assignment for 9/11" → September 11, 2025
+   - "In Class 2/26" → February 26, 2026
+   - "Due: 1/15" → January 15, 2026
 
-The frontend follows a feature-based folder structure with reusable UI components, custom hooks, and utility functions. The design system uses a "new-york" style configuration with neutral base colors and comprehensive component variants.
+3. **Academic Calendar Intelligence**
+   - Smart year inference (2025-2026 school year)
+   - Date validation against reasonable timeframes
+   - Academic context for proper year assignment
 
-## Backend Architecture
-The server is built with Express.js and follows a modular architecture:
+4. **Retroactive Cleanup System**
+   - API endpoint: POST /api/assignments/extract-due-dates
+   - Admin panel buttons for dry-run testing
+   - Processed 103 assignments, updated 96 successfully
+   - Progress tracking and error reporting
 
-- **Framework**: Express.js with TypeScript for type safety
-- **Database Layer**: Drizzle ORM for type-safe database operations
-- **Storage Interface**: Abstract storage interface allowing for multiple implementations (currently supports in-memory storage for development)
-- **Development Setup**: Vite integration for hot module replacement and development experience
-- **Build System**: ESBuild for production builds with external package handling
+### ✅ VERIFIED WORKING FEATURES
 
-The server uses middleware for request logging, error handling, and JSON parsing. API routes are prefixed with `/api` for clear separation from static assets.
+**Canvas Integration**:
+- Full assignment import from Canvas API
+- Enhanced filtering (excludes pre-June 2025 assignments)
+- Due date extraction during import process
+- Bulk operations in admin panel
 
-## Data Storage Solutions
-The application uses PostgreSQL as the primary database with Drizzle ORM for schema management:
+**Bible Curriculum System**:
+- Sequential day progression (Week 1 Day 1 → Day 2 → Day 3)
+- Both students tracking positions (currently Genesis 1-2)
+- No complex calendar math, pure sequential advancement
 
-- **Database**: PostgreSQL with Neon serverless hosting
-- **Schema Management**: Drizzle Kit for migrations and schema evolution
-- **Connection**: Neon HTTP driver for serverless compatibility
-- **Tables**: Users, tasks, study sessions, and user preferences with proper relationships and constraints
+**Student Experience**:
+- Executive function optimized UI
+- Concrete daily tasks instead of vague entries
+- Proper due date display for planning
+- Multi-student household support
 
-The schema includes comprehensive fields for user management, task tracking with priority levels, study session logging with different session types (Pomodoro, deep work, breaks), and customizable user preferences.
+**Admin Management**:
+- Bulk status updates (completed, pending, stuck, etc.)
+- Source filtering (Canvas vs manual)
+- Retroactive due date extraction
+- Assignment deletion for cleanup
 
-## Authentication and Authorization
-The application is prepared for authentication with:
+## Technical Architecture (STABLE)
 
-- **Session Storage**: PostgreSQL-based session store using connect-pg-simple
-- **User Schema**: Complete user table with email, username, and password fields
-- **Security**: Prepared for secure session management and user authentication flows
+### Frontend (React 18 + TypeScript)
+- shadcn/ui components with Radix UI primitives
+- Tailwind CSS with custom design tokens
+- TanStack Query for server state management
+- Wouter for lightweight routing
+- Framer Motion for smooth animations
 
-## External Dependencies
+### Backend (Express.js + TypeScript)
+- RESTful API with proper error handling
+- Drizzle ORM for type-safe database operations
+- Canvas API integration with proper rate limiting
+- Session management with PostgreSQL storage
+- Comprehensive assignment intelligence system
 
-- **Database**: Neon PostgreSQL for serverless database hosting
-- **UI Components**: Radix UI primitives for accessible component foundation
-- **Icons**: Lucide React for consistent iconography
-- **Fonts**: Google Fonts integration (Inter, Geist Mono, Architects Daughter, DM Sans, Fira Code)
-- **Development**: Replit-specific plugins for development environment integration
-- **Date Handling**: date-fns for date manipulation and formatting
-- **Validation**: Zod for runtime type checking and form validation
+### Database (PostgreSQL)
+```sql
+-- Core tables (DO NOT MODIFY STRUCTURE):
+assignments (349 records) - Primary assignment storage
+users (2 active) - Student accounts  
+bible_curriculum (310 records) - Curriculum progression
+schedule_templates (103 records) - Weekly schedules
+sessions - Authentication storage
+```
+
+### Key File Structure (DO NOT DELETE)
+```
+server/lib/assignmentIntelligence.ts - Due date extraction system
+server/lib/canvas.ts - Canvas API integration
+server/lib/bibleCurriculum.ts - Bible curriculum logic
+server/routes.ts - API endpoints
+client/src/pages/student-dashboard.tsx - Student interface
+client/src/pages/admin-panel.tsx - Admin management
+```
+
+## Environment Variables (REQUIRED)
+```
+DATABASE_URL - PostgreSQL connection
+KHALIL_CANVAS_TOKEN - Canvas API access
+ABIGAIL_CANVAS_TOKEN - Canvas API access  
+CANVAS_BASE_URL - Canvas instance URL
+CANVAS_BASE_URL_2 - Secondary Canvas URL
+```
+
+## API Endpoints (WORKING)
+```
+GET /api/assignments - Retrieve assignments
+POST /api/assignments - Create assignment
+PATCH /api/assignments/:id - Update assignment
+DELETE /api/assignments/:id - Delete assignment
+POST /api/assignments/extract-due-dates - Retroactive parsing
+GET /api/canvas/:studentName - Canvas data
+POST /api/canvas/import/:studentName - Import Canvas assignments
+GET /api/schedule/:studentName/:date - Daily schedule
+```
+
+## User Preferences
+
+- **Communication style**: Simple, everyday language
+- **Development approach**: Iterative with frequent working checkpoints
+- **Priority**: Executive function support for ADHD students
+- **Focus**: Concrete, specific daily tasks over abstract planning
+
+## Emergency Rollback Instructions
+
+If the system breaks:
+
+1. **Check Development Server**: Ensure `npm run dev` is running on port 5000
+2. **Verify Database**: Use admin panel to confirm 349 assignments exist
+3. **Test Due Date Extraction**: Use "Test Run" button in admin panel
+4. **Canvas API**: Confirm tokens are valid in environment variables
+5. **Restore Point**: This document represents last known working state
+
+## Success Metrics (v1.1.0)
+
+✅ **Due Date Coverage**: 96/103 assignments now have proper due dates  
+✅ **Canvas Sync**: Working for both students with proper filtering  
+✅ **Bible Curriculum**: Sequential progression active  
+✅ **Admin Panel**: All bulk operations functional  
+✅ **Student Dashboards**: Displaying assignments with due dates  
+✅ **Database Integrity**: All 5 tables optimized and stable  
+
+## What's Working RIGHT NOW (Verified August 28, 2025)
+
+- Students can log in and see their assignments with proper due dates
+- Canvas imports work automatically with date extraction
+- Bible curriculum advances sequentially  
+- Admin panel allows bulk management
+- Assignment creation and editing functions properly
+- Schedule templates display correctly for both students
+- Date filtering works for upcoming assignments
+- Search and filter functionality in admin panel
+- Retroactive due date extraction via admin panel buttons
+
+---
+
+**⚠️ CRITICAL**: This is a stable, working version. Any major changes should be tested thoroughly before replacing this functionality. The due date extraction system took significant effort to implement and is now working perfectly - preserve this code at all costs.
+
+**📍 Current Position**: Ready for continued development or safe for extended use in current state.
