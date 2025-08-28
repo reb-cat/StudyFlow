@@ -277,13 +277,23 @@ export default function AdminPanel() {
             <CardTitle>Controls</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* Executive Function Optimized - Single Column Layout */}
+            <div className="admin-controls" style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+              maxWidth: '400px'
+            }}>
               {/* Student Selection */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Student</label>
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label" style={{
+                  display: 'block',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem'
+                }}>Student</label>
                 <Select value={selectedStudent} onValueChange={setSelectedStudent}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select student..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Abigail">Abigail</SelectItem>
@@ -293,12 +303,15 @@ export default function AdminPanel() {
               </div>
 
               {/* Search */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Search</label>
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label" style={{
+                  display: 'block',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem'
+                }}>Search Assignments</label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search assignments..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -307,11 +320,15 @@ export default function AdminPanel() {
               </div>
 
               {/* Status Filter */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Filter by Status</label>
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label" style={{
+                  display: 'block',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem'
+                }}>Filter by Status</label>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select status..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
@@ -324,11 +341,15 @@ export default function AdminPanel() {
               </div>
 
               {/* Date Filter */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Date Range</label>
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label" style={{
+                  display: 'block',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem'
+                }}>Date Range</label>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select date range..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="upcoming">📅 Next 3 Weeks</SelectItem>
@@ -340,11 +361,15 @@ export default function AdminPanel() {
               </div>
 
               {/* Source Filter */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Source</label>
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label" style={{
+                  display: 'block',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem'
+                }}>Source</label>
                 <Select value={sourceFilter} onValueChange={setSourceFilter}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select source..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Sources</SelectItem>
@@ -355,18 +380,18 @@ export default function AdminPanel() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-              {/* Summary Stats */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Summary</label>
-                <div className="text-sm space-y-1">
-                  <div>Pending: <span className="font-semibold">{pendingCount}</span></div>
-                  <div>Done: <span className="font-semibold text-green-600">{completedCount}</span></div>
-                  <div>Need More Time: <span className="font-semibold text-blue-600">{needsMoreTimeCount}</span></div>
-                  <div>Stuck: <span className="font-semibold text-red-600">{stuckCount}</span></div>
-                  <div className="text-xs text-muted-foreground border-t pt-1 mt-1">
-                    Total: {Array.isArray(assignments) ? assignments.length : 0}
-                  </div>
+            {/* Summary Stats */}
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <h4 className="text-sm font-medium mb-3">Summary</h4>
+              <div className="text-sm space-y-1">
+                <div>Pending: <span className="font-semibold">{pendingCount}</span></div>
+                <div>Done: <span className="font-semibold text-green-600">{completedCount}</span></div>
+                <div>Need More Time: <span className="font-semibold text-blue-600">{needsMoreTimeCount}</span></div>
+                <div>Stuck: <span className="font-semibold text-red-600">{stuckCount}</span></div>
+                <div className="text-xs text-muted-foreground border-t pt-1 mt-1">
+                  Total: {Array.isArray(assignments) ? assignments.length : 0}
                 </div>
               </div>
             </div>
@@ -390,18 +415,25 @@ export default function AdminPanel() {
                 </span>
               </div>
               
-              <Select value={bulkOperation} onValueChange={setBulkOperation}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Choose action..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="completed">Mark as Done</SelectItem>
-                  <SelectItem value="pending">Mark as Pending</SelectItem>
-                  <SelectItem value="needs_more_time">Mark as Need More Time</SelectItem>
-                  <SelectItem value="stuck">Mark as Stuck</SelectItem>
-                  <SelectItem value="delete">🗑️ Delete (Careful!)</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{
+                  display: 'block',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem'
+                }}>Bulk Action</label>
+                <Select value={bulkOperation} onValueChange={setBulkOperation}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Choose action..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="completed">Mark as Done</SelectItem>
+                    <SelectItem value="pending">Mark as Pending</SelectItem>
+                    <SelectItem value="needs_more_time">Mark as Need More Time</SelectItem>
+                    <SelectItem value="stuck">Mark as Stuck</SelectItem>
+                    <SelectItem value="delete">🗑️ Delete (Careful!)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               
               <Button 
                 onClick={handleBulkAction}
