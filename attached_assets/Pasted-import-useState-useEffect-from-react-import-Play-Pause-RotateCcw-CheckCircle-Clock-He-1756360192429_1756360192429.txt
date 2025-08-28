@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, CheckCircle, Clock, HelpCircle, Volume2, VolumeX, AlertCircle, ChevronRight } from 'lucide-react';
-import type { Assignment } from '@shared/schema';
 
-// StudyFlow color system
+// Your color system
 const colors = {
   primary: '#844FC1',
   complete: '#21BF06',
@@ -14,19 +13,7 @@ const colors = {
   textMuted: '#6C7293'
 };
 
-// CircularTimer component with StudyFlow colors
-interface CircularTimerProps {
-  durationMinutes: number;
-  isRunning: boolean;
-  onComplete?: () => void;
-  onToggle: () => void;
-  onReset: () => void;
-  extraTime?: number;
-  hideControls?: boolean;
-  externalTimeRemaining?: number | null;
-  onTimeUpdate?: (time: number) => void;
-}
-
+// CircularTimer component with your colors
 const CircularTimer = ({ 
   durationMinutes, 
   isRunning, 
@@ -37,7 +24,7 @@ const CircularTimer = ({
   hideControls = false,
   externalTimeRemaining = null,
   onTimeUpdate
-}: CircularTimerProps) => {
+}) => {
   const [internalTimeRemaining, setInternalTimeRemaining] = useState(durationMinutes * 60 + extraTime * 60);
   
   const timeRemaining = externalTimeRemaining !== null ? externalTimeRemaining : internalTimeRemaining;
@@ -50,7 +37,7 @@ const CircularTimer = ({
   }, [durationMinutes, extraTime, externalTimeRemaining]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval;
     
     if (isRunning && timeRemaining > 0) {
       interval = setInterval(() => {
@@ -75,7 +62,7 @@ const CircularTimer = ({
     return () => clearInterval(interval);
   }, [isRunning, timeRemaining, onComplete, onTimeUpdate]);
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
@@ -89,7 +76,7 @@ const CircularTimer = ({
   const strokeDasharray = `${circumference} ${circumference}`;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
-  // Color based on time remaining - using StudyFlow color system
+  // Color based on time remaining - using your color system
   const getTimerColor = () => {
     if (timeRemaining > 300) return colors.complete; // More than 5 min - green
     if (timeRemaining > 60) return colors.progress;  // 1-5 min - blue
@@ -109,7 +96,7 @@ const CircularTimer = ({
             cx={radius}
             cy={radius}
           />
-          {/* Progress circle with StudyFlow colors */}
+          {/* Progress circle with your colors */}
           <circle
             stroke={getTimerColor()}
             fill="transparent"
@@ -188,95 +175,29 @@ const CircularTimer = ({
   );
 };
 
-interface ScheduleBlock {
-  id: string;
-  type: 'bible' | 'fixed' | 'assignment';
-  title: string;
-  startTime: string;
-  endTime: string;
-  estimatedMinutes?: number;
-  assignment?: Assignment;
-  blockType?: string;
-  subject?: string;
-}
-
-interface GuidedDayViewProps {
-  assignments: Assignment[];
-  studentName: string;
-  selectedDate: string;
-  scheduleTemplate?: any[];
-  onAssignmentUpdate?: () => void;
-  onModeToggle?: () => void;
-}
-
-export function GuidedDayView({ 
+export default function GuidedDayView({ 
   assignments = [], 
   studentName = "Student", 
   selectedDate = new Date().toISOString().split('T')[0],
   scheduleTemplate = [],
   onAssignmentUpdate,
   onModeToggle 
-}: GuidedDayViewProps) {
-  
-  // Build actual schedule from schedule template (like the existing system)
-  const buildScheduleBlocks = (): ScheduleBlock[] => {
-    if (scheduleTemplate.length === 0) {
-      // Demo schedule for testing
-      return [
-        { id: '1', type: 'assignment', title: 'Math - Algebra Practice', startTime: '09:00', endTime: '10:00', estimatedMinutes: 30, blockType: 'assignment' },
-        { id: '2', type: 'bible', title: 'Bible Reading', startTime: '10:15', endTime: '10:45', estimatedMinutes: 20, blockType: 'bible' },
-        { id: '3', type: 'assignment', title: 'Science Lab Report', startTime: '11:00', endTime: '12:00', estimatedMinutes: 45, blockType: 'assignment' },
-        { id: '4', type: 'fixed', title: 'Lunch Break', startTime: '12:00', endTime: '13:00', estimatedMinutes: 60, blockType: 'lunch' },
-        { id: '5', type: 'assignment', title: 'English Essay Draft', startTime: '13:00', endTime: '14:00', estimatedMinutes: 40, blockType: 'assignment' }
-      ];
-    }
+}) {
+  // Sample schedule blocks for demo
+  const demoSchedule = [
+    { id: '1', type: 'assignment', title: 'Math - Algebra Practice', startTime: '09:00', endTime: '10:00', estimatedMinutes: 30, blockType: 'assignment' },
+    { id: '2', type: 'bible', title: 'Bible Reading', startTime: '10:15', endTime: '10:45', estimatedMinutes: 20, blockType: 'bible' },
+    { id: '3', type: 'assignment', title: 'Science Lab Report', startTime: '11:00', endTime: '12:00', estimatedMinutes: 45, blockType: 'assignment' },
+    { id: '4', type: 'fixed', title: 'Lunch Break', startTime: '12:00', endTime: '13:00', estimatedMinutes: 60, blockType: 'lunch' },
+    { id: '5', type: 'assignment', title: 'English Essay Draft', startTime: '13:00', endTime: '14:00', estimatedMinutes: 40, blockType: 'assignment' }
+  ];
 
-    // Convert schedule template to schedule blocks
-    return scheduleTemplate.map((block) => {
-      const blockType = block.blockType?.toLowerCase() || 'unknown';
-      
-      // Determine type and estimated time
-      let type: 'bible' | 'fixed' | 'assignment' = 'fixed';
-      let estimatedMinutes = 30;
-      
-      if (blockType === 'bible') {
-        type = 'bible';
-        estimatedMinutes = 20;
-      } else if (blockType === 'assignment') {
-        type = 'assignment';
-        estimatedMinutes = block.estimatedMinutes || 30;
-      } else {
-        type = 'fixed';
-        estimatedMinutes = 15; // Short fixed blocks
-      }
-
-      return {
-        id: block.id || `block-${block.blockNumber}`,
-        type,
-        title: block.subject || block.title || `Block ${block.blockNumber}`,
-        startTime: block.startTime?.substring(0, 5) || '00:00',
-        endTime: block.endTime?.substring(0, 5) || '00:00',
-        estimatedMinutes,
-        blockType,
-        subject: block.subject
-      };
-    })
-    // Filter out non-essential blocks for guided mode (keep assignments, bible, important fixed blocks)
-    .filter(block => 
-      block.type === 'assignment' || 
-      block.type === 'bible' || 
-      ['lunch', 'movement'].includes(block.blockType || '')
-    )
-    // Sort by start time
-    .sort((a, b) => a.startTime.localeCompare(b.startTime));
-  };
-
-  const scheduleBlocks = buildScheduleBlocks();
+  const scheduleBlocks = scheduleTemplate.length > 0 ? scheduleTemplate : demoSchedule;
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false); // Start paused for user to initiate
-  const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [completedBlocks, setCompletedBlocks] = useState(new Set());
+  const [timeRemaining, setTimeRemaining] = useState(null);
   const [showInstructions, setShowInstructions] = useState(false);
   const [exitClickCount, setExitClickCount] = useState(0);
 
@@ -285,8 +206,8 @@ export function GuidedDayView({
   const completedCount = completedBlocks.size;
   const progressPercentage = Math.round((completedCount / totalBlocks) * 100);
 
-  // Block type styling with StudyFlow colors
-  const getBlockStyle = (blockType?: string) => {
+  // Block type styling with your colors
+  const getBlockStyle = (blockType) => {
     const styles = {
       assignment: { borderColor: colors.progress, bgColor: '#EBF4FC', icon: Clock },
       bible: { borderColor: colors.primary, bgColor: '#F4F0FA', icon: CheckCircle },
@@ -294,7 +215,7 @@ export function GuidedDayView({
       lunch: { borderColor: colors.support, bgColor: colors.background, icon: HelpCircle },
       movement: { borderColor: colors.complete, bgColor: '#E8F8E5', icon: CheckCircle }
     };
-    return styles[blockType as keyof typeof styles] || styles.assignment;
+    return styles[blockType] || styles.assignment;
   };
 
   const handleBlockComplete = () => {
@@ -303,17 +224,11 @@ export function GuidedDayView({
     setCompletedBlocks(prev => new Set([...Array.from(prev), currentBlock.id]));
     setIsTimerRunning(false);
     
-    // Call assignment update if this was an assignment
-    if (currentBlock.type === 'assignment' && onAssignmentUpdate) {
-      onAssignmentUpdate();
-    }
-    
     // Move to next block
     if (currentIndex < scheduleBlocks.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setTimeRemaining(null);
-      // Don't auto-start timer for next block
-      setIsTimerRunning(false);
+      setIsTimerRunning(true);
     } else {
       // Day complete
       onModeToggle?.();
@@ -324,7 +239,7 @@ export function GuidedDayView({
     if (currentIndex < scheduleBlocks.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setTimeRemaining(null);
-      setIsTimerRunning(false);
+      setIsTimerRunning(true);
     }
   };
 
@@ -332,11 +247,10 @@ export function GuidedDayView({
     if (currentIndex < scheduleBlocks.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setTimeRemaining(null);
-      setIsTimerRunning(false);
+      setIsTimerRunning(true);
     }
   };
 
-  // Completion screen
   if (!currentBlock || currentIndex >= scheduleBlocks.length) {
     return (
       <div style={{
@@ -436,15 +350,6 @@ export function GuidedDayView({
             {currentBlock.title}
           </h2>
 
-          {/* Time display */}
-          <div style={{ 
-            fontSize: '14px', 
-            color: colors.textMuted, 
-            marginBottom: '12px' 
-          }}>
-            {currentBlock.startTime} - {currentBlock.endTime} • {currentBlock.estimatedMinutes} min
-          </div>
-
           {/* Instructions toggle for assignments */}
           {currentBlock.type === 'assignment' && (
             <button
@@ -481,7 +386,7 @@ export function GuidedDayView({
               color: colors.textMuted,
               lineHeight: '1.6'
             }}>
-              Check your course materials for specific requirements. Take your time and ask for help if needed.
+              Check your course materials for specific requirements.
             </div>
           )}
         </div>
@@ -497,7 +402,7 @@ export function GuidedDayView({
               setIsTimerRunning(false);
               setTimeRemaining((currentBlock.estimatedMinutes || 20) * 60);
             }}
-            hideControls={false}
+            hideControls={true}
             externalTimeRemaining={timeRemaining}
             onTimeUpdate={setTimeRemaining}
           />
