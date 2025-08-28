@@ -274,7 +274,7 @@ export function GuidedDayView({
   const scheduleBlocks = buildScheduleBlocks();
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false); // Start paused for user to initiate
+  const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
   const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
@@ -324,7 +324,7 @@ export function GuidedDayView({
     if (currentIndex < scheduleBlocks.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setTimeRemaining(null);
-      setIsTimerRunning(false);
+      setIsTimerRunning(true);
     }
   };
 
@@ -332,7 +332,7 @@ export function GuidedDayView({
     if (currentIndex < scheduleBlocks.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setTimeRemaining(null);
-      setIsTimerRunning(false);
+      setIsTimerRunning(true);
     }
   };
 
@@ -474,14 +474,29 @@ export function GuidedDayView({
           {showInstructions && (
             <div style={{
               marginTop: '12px',
-              padding: '12px',
+              padding: '16px',
               backgroundColor: colors.surface,
               borderRadius: '8px',
               fontSize: '14px',
               color: colors.textMuted,
-              lineHeight: '1.6'
+              lineHeight: '1.6',
+              border: `1px solid ${colors.background}`
             }}>
-              Check your course materials for specific requirements. Take your time and ask for help if needed.
+              <div style={{ marginBottom: '12px', fontWeight: '500', color: colors.text }}>
+                📝 Instructions for this assignment:
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                • Check your course materials and textbook for today's lesson
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                • Complete all practice problems step by step
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                • Show your work clearly for full credit
+              </div>
+              <div>
+                • Ask for help if you get stuck - that's perfectly normal!
+              </div>
             </div>
           )}
         </div>
@@ -497,7 +512,7 @@ export function GuidedDayView({
               setIsTimerRunning(false);
               setTimeRemaining((currentBlock.estimatedMinutes || 20) * 60);
             }}
-            hideControls={false}
+            hideControls={true}
             externalTimeRemaining={timeRemaining}
             onTimeUpdate={setTimeRemaining}
           />
