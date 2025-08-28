@@ -18,6 +18,9 @@ export default function AdminPanel() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('upcoming');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [bulkOperation, setBulkOperation] = useState<string>('');
+  const [selectedAssignments, setSelectedAssignments] = useState<Set<string>>(new Set());
 
   // Get all assignments for the selected student
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
@@ -46,6 +49,42 @@ export default function AdminPanel() {
         title: "Update Failed",
         description: "Failed to update assignment status.",
         variant: "destructive"
+      });
+    }
+  });
+
+  // Bulk update assignments
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ assignmentIds, status }: { assignmentIds: string[]; status: string }) => {
+      const promises = assignmentIds.map(id => 
+        apiRequest('PATCH', `/api/assignments/${id}`, { completionStatus: status })
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+      setSelectedAssignments(new Set());
+      toast({
+        title: "Bulk Update Complete",
+        description: `Updated ${selectedAssignments.size} assignments successfully.`
+      });
+    }
+  });
+
+  // Bulk delete assignments (for problematic imports)
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (assignmentIds: string[]) => {
+      const promises = assignmentIds.map(id => 
+        apiRequest('DELETE', `/api/assignments/${id}`)
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+      setSelectedAssignments(new Set());
+      toast({
+        title: "Bulk Delete Complete",
+        description: `Deleted ${selectedAssignments.size} assignments successfully.`
       });
     }
   });
@@ -96,7 +135,7 @@ export default function AdminPanel() {
     }
   };
 
-  // Filter assignments based on search, status, and smart date filtering
+  // Filter assignments based on search, status, source, and smart date filtering
   const filteredAssignments = Array.isArray(assignments) ? getDateFilteredAssignments(assignments).filter(assignment => {
     const matchesSearch = assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          assignment.subject?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -104,7 +143,13 @@ export default function AdminPanel() {
     const matchesStatus = filterStatus === 'all' || 
                          assignment.completionStatus === filterStatus;
     
-    return matchesSearch && matchesStatus;
+    const matchesSource = sourceFilter === 'all' || 
+                         (sourceFilter === 'canvas' && assignment.isCanvasImport) ||
+                         (sourceFilter === 'manual' && !assignment.isCanvasImport) ||
+                         (sourceFilter === 'canvas1' && assignment.canvasInstance === 1) ||
+                         (sourceFilter === 'canvas2' && assignment.canvasInstance === 2);
+    
+    return matchesSearch && matchesStatus && matchesSource;
   }) : [];
 
   // Group assignments by completion status - with safety check
@@ -115,6 +160,46 @@ export default function AdminPanel() {
 
   const handleStatusUpdate = (assignmentId: string, newStatus: string) => {
     updateAssignmentMutation.mutate({ id: assignmentId, completionStatus: newStatus });
+  };
+
+  const handleBulkAction = () => {
+    if (selectedAssignments.size === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select assignments first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (bulkOperation === 'delete') {
+      if (confirm(`Are you sure you want to delete ${selectedAssignments.size} assignments? This cannot be undone.`)) {
+        bulkDeleteMutation.mutate(Array.from(selectedAssignments));
+      }
+    } else if (bulkOperation) {
+      bulkUpdateMutation.mutate({
+        assignmentIds: Array.from(selectedAssignments),
+        status: bulkOperation
+      });
+    }
+  };
+
+  const toggleAssignmentSelection = (assignmentId: string) => {
+    const newSelection = new Set(selectedAssignments);
+    if (newSelection.has(assignmentId)) {
+      newSelection.delete(assignmentId);
+    } else {
+      newSelection.add(assignmentId);
+    }
+    setSelectedAssignments(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedAssignments.size === filteredAssignments.length) {
+      setSelectedAssignments(new Set());
+    } else {
+      setSelectedAssignments(new Set(filteredAssignments.map(a => a.id)));
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -167,7 +252,7 @@ export default function AdminPanel() {
             <CardTitle>Controls</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               {/* Student Selection */}
               <div>
                 <label className="text-sm font-medium mb-2 block">Student</label>
@@ -229,6 +314,23 @@ export default function AdminPanel() {
                 </Select>
               </div>
 
+              {/* Source Filter */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Source</label>
+                <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sources</SelectItem>
+                    <SelectItem value="canvas">Canvas Only</SelectItem>
+                    <SelectItem value="canvas1">Canvas Instance 1</SelectItem>
+                    <SelectItem value="canvas2">Canvas Instance 2</SelectItem>
+                    <SelectItem value="manual">Manual Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Summary Stats */}
               <div>
                 <label className="text-sm font-medium mb-2 block">Summary</label>
@@ -242,6 +344,50 @@ export default function AdminPanel() {
                   </div>
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bulk Operations */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Bulk Operations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedAssignments.size === filteredAssignments.length && filteredAssignments.length > 0}
+                  onCheckedChange={toggleSelectAll}
+                />
+                <span className="text-sm">
+                  {selectedAssignments.size > 0 ? `${selectedAssignments.size} selected` : 'Select all'}
+                </span>
+              </div>
+              
+              <Select value={bulkOperation} onValueChange={setBulkOperation}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Choose action..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="completed">Mark as Done</SelectItem>
+                  <SelectItem value="pending">Mark as Pending</SelectItem>
+                  <SelectItem value="needs_more_time">Mark as Need More Time</SelectItem>
+                  <SelectItem value="stuck">Mark as Stuck</SelectItem>
+                  <SelectItem value="delete">🗑️ Delete (Careful!)</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button 
+                onClick={handleBulkAction}
+                disabled={selectedAssignments.size === 0 || !bulkOperation || bulkUpdateMutation.isPending || bulkDeleteMutation.isPending}
+                variant="outline"
+              >
+                {bulkUpdateMutation.isPending || bulkDeleteMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Apply to {selectedAssignments.size} items
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -271,20 +417,39 @@ export default function AdminPanel() {
                 {filteredAssignments.map((assignment) => (
                   <div 
                     key={assignment.id}
-                    className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                    className={`border rounded-lg p-4 hover:bg-muted/50 transition-colors ${
+                      selectedAssignments.has(assignment.id) ? 'ring-2 ring-primary bg-primary/5' : ''
+                    }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-foreground truncate">
-                            {assignment.title}
-                          </h3>
-                          {getStatusBadge(assignment.completionStatus || 'pending')}
-                        </div>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Checkbox
+                          checked={selectedAssignments.has(assignment.id)}
+                          onCheckedChange={() => toggleAssignmentSelection(assignment.id)}
+                        />
                         
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{assignment.courseName || assignment.subject || 'No course'}</span>
-                          <span>Due: {formatDate(assignment.dueDate ? assignment.dueDate.toString() : null)}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-foreground truncate">
+                              {assignment.title}
+                            </h3>
+                            {getStatusBadge(assignment.completionStatus || 'pending')}
+                            {assignment.isCanvasImport && (
+                              <Badge variant="secondary" className="text-xs">
+                                Canvas {assignment.canvasInstance || ''}
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>{assignment.courseName || assignment.subject || 'No course'}</span>
+                            <span>Due: {formatDate(assignment.dueDate ? assignment.dueDate.toString() : null)}</span>
+                            {assignment.canvasCategory && (
+                              <span className="text-xs bg-muted px-2 py-1 rounded">
+                                {assignment.canvasCategory}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 

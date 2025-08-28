@@ -654,7 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: assignment.title,
           instructions: assignment.instructions,
           canvasId: assignment.canvasId,
-          canvasCourseId: assignment.canvasCourseId || assignment.canvas_course_id,  // Handle both camelCase and snake_case!
+          canvasCourseId: assignment.canvasCourseId,  // Use proper camelCase property
           canvasInstance: assignment.canvasInstance,
           submissionTypes: assignment.submissionTypes,
           courseName: assignment.courseName,
@@ -804,25 +804,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🔧 Fixing misclassified In Class assignments via direct database update...');
       
-      // Use direct SQL update for efficiency with large number of assignments
-      const result = await storage.executeDirectSQL(`
-        UPDATE assignments 
-        SET 
-          block_type = 'co-op',
-          is_assignment_block = false,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE 
-          LOWER(title) LIKE '%in class%' 
-          AND block_type = 'assignment' 
-          AND is_assignment_block = true
-        RETURNING id, title, block_type, is_assignment_block
-      `);
+      // Get all assignments and filter/update the problematic ones
+      const allAssignments = await storage.getAllAssignments();
+      const inClassAssignments = allAssignments.filter(assignment => 
+        assignment.title.toLowerCase().includes('in class') &&
+        assignment.blockType === 'assignment' &&
+        assignment.isAssignmentBlock === true
+      );
+      
+      // Update each problematic assignment
+      const result = [];
+      for (const assignment of inClassAssignments) {
+        const updated = await storage.updateAssignment(assignment.id, {
+          blockType: 'co-op',
+          isAssignmentBlock: false
+        });
+        if (updated) {
+          result.push(updated);
+        }
+      }
       
       const totalFixed = result?.length || 0;
       
       if (totalFixed > 0) {
         console.log(`🎉 Successfully fixed ${totalFixed} In Class assignments`);
-        result.forEach(assignment => {
+        result.forEach((assignment: any) => {
           console.log(`   ✅ "${assignment.title}" -> co-op block (non-schedulable)`);
         });
       }

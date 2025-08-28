@@ -1,6 +1,6 @@
 import { getAllAssignmentsForStudent } from './canvas';
 import { storage } from '../storage';
-import { analyzeAssignmentWithCanvas, getSmartSchedulingDate } from './assignmentIntelligence';
+import { analyzeAssignmentWithCanvas, getSmartSchedulingDate, extractDueDateFromTitle } from './assignmentIntelligence';
 
 interface ScheduledJob {
   name: string;
@@ -30,7 +30,7 @@ class JobScheduler {
     console.log(`📅 Scheduled job: ${job.name} - ${job.cronPattern}`);
   }
 
-  private async syncCanvasAssignments() {
+  private async syncCanvasAssignments(): Promise<void> {
     console.log('🔄 Starting daily Canvas sync at', new Date().toISOString());
     
     const students = ['Abigail', 'Khalil'];
@@ -50,19 +50,60 @@ class JobScheduler {
         if (canvasData.instance1 && canvasData.instance1.length > 0) {
           for (const canvasAssignment of canvasData.instance1) {
             try {
-              // Skip assignments before June 15, 2025 (including assignments without due dates that are clearly old)
+              // ENHANCED DATE FILTERING: Current school year only (August 2025 - July 2026)
+              const currentSchoolYearStart = new Date('2025-08-01');
+              const currentSchoolYearEnd = new Date('2026-07-31');
+              
               if (canvasAssignment.due_at) {
                 const dueDate = new Date(canvasAssignment.due_at);
-                const cutoffDate = new Date('2025-06-15');
-                if (dueDate < cutoffDate) {
-                  console.log(`⏭️ Skipping old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
+                if (dueDate < currentSchoolYearStart || dueDate > currentSchoolYearEnd) {
+                  console.log(`⏭️ Skipping out-of-range assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - outside current school year`);
                   continue;
                 }
               }
               
-              // Special handling for recurring assignments that might not have due dates but are clearly from previous terms
-              if (!canvasAssignment.due_at && canvasAssignment.name.toLowerCase().includes('roll call')) {
-                console.log(`⏭️ Skipping recurring assignment without due date: "${canvasAssignment.name}" - likely template data`);
+              // Skip assignments from previous academic years based on creation date
+              if (canvasAssignment.created_at) {
+                const createdDate = new Date(canvasAssignment.created_at);
+                const previousYearCutoff = new Date('2025-01-01');
+                if (createdDate < previousYearCutoff && !canvasAssignment.due_at) {
+                  console.log(`⏭️ Skipping old template assignment "${canvasAssignment.name}" (created: ${createdDate.toDateString()}) - from previous year`);
+                  continue;
+                }
+              }
+              
+              // ENHANCED ASSIGNMENT TYPE FILTERING
+              // Filter out administrative and classroom-only assignments
+              const assignmentTitle = canvasAssignment.name.toLowerCase();
+              const assignmentDesc = canvasAssignment.description?.toLowerCase() || '';
+              
+              // Skip administrative assignments
+              const adminPatterns = [
+                'syllabus', 'honor code', 'fee', 'supply', 'registration',
+                'course info', 'welcome', 'introduction', 'orientation'
+              ];
+              if (adminPatterns.some(pattern => assignmentTitle.includes(pattern))) {
+                console.log(`⏭️ Skipping administrative assignment: "${canvasAssignment.name}"`);
+                continue;
+              }
+              
+              // Skip in-class only activities
+              const inClassPatterns = [
+                'in class', 'roll call', 'attendance', 'class discussion',
+                'class activity', 'classroom', 'in-class', 'class work'
+              ];
+              if (inClassPatterns.some(pattern => assignmentTitle.includes(pattern))) {
+                console.log(`⏭️ Skipping in-class only assignment: "${canvasAssignment.name}"`);
+                continue;
+              }
+              
+              // Skip recurring assignments without due dates (likely templates)
+              if (!canvasAssignment.due_at && (
+                assignmentTitle.includes('roll call') || 
+                assignmentTitle.includes('attendance') ||
+                assignmentTitle.includes('participation')
+              )) {
+                console.log(`⏭️ Skipping recurring template assignment: "${canvasAssignment.name}" - no due date`);
                 continue;
               }
               
@@ -97,16 +138,35 @@ class JobScheduler {
                 );
                 
                 // Determine completion status based on Canvas grading info
-                let completionStatus = 'pending';
+                let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
                 if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
                   completionStatus = 'completed';
                   console.log(`📋 Auto-marking "${canvasAssignment.name}" as completed (graded in Canvas)`);
                 }
 
-                // Use extracted due date if available, otherwise Canvas due date, otherwise module timing
-                const dueDate = intelligence.extractedDueDate || 
+                // ENHANCED DUE DATE EXTRACTION AND VALIDATION
+                // Try extracting due date from title first (handles "Homework Due 9/15" cases)
+                let extractedFromTitle = null;
+                try {
+                  extractedFromTitle = extractDueDateFromTitle(canvasAssignment.name);
+                  if (extractedFromTitle) {
+                    console.log(`🧠 Extracted due date from title "${canvasAssignment.name}": ${extractedFromTitle.toDateString()}`);
+                  }
+                } catch (error) {
+                  console.warn(`Failed to extract due date from title: ${canvasAssignment.name}`);
+                }
+                
+                // Use the best available due date source
+                const dueDate = extractedFromTitle || 
+                               intelligence.extractedDueDate || 
                                (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null) ||
                                (canvasAssignment.inferred_start_date ? new Date(canvasAssignment.inferred_start_date) : null);
+                
+                // Validate extracted due date is within current school year
+                if (dueDate && (dueDate < currentSchoolYearStart || dueDate > currentSchoolYearEnd)) {
+                  console.log(`⚠️ Extracted due date ${dueDate.toDateString()} outside school year for "${canvasAssignment.name}" - skipping`);
+                  continue;
+                }
                 
                 // Smart scheduling based on assignment type
                 const smartScheduledDate = getSmartSchedulingDate(intelligence, this.getNextAssignmentDate());
@@ -182,14 +242,60 @@ class JobScheduler {
         if (studentName.toLowerCase() === 'abigail' && canvasData.instance2 && canvasData.instance2.length > 0) {
           for (const canvasAssignment of canvasData.instance2) {
             try {
-              // Skip assignments before June 15, 2025
+              // ENHANCED DATE FILTERING for Canvas Instance 2: Current school year only (August 2025 - July 2026)
+              const currentSchoolYearStart = new Date('2025-08-01');
+              const currentSchoolYearEnd = new Date('2026-07-31');
+              
               if (canvasAssignment.due_at) {
                 const dueDate = new Date(canvasAssignment.due_at);
-                const cutoffDate = new Date('2025-06-15');
-                if (dueDate < cutoffDate) {
-                  console.log(`⏭️ Skipping old assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
+                if (dueDate < currentSchoolYearStart || dueDate > currentSchoolYearEnd) {
+                  console.log(`⏭️ Skipping out-of-range assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - outside current school year`);
                   continue;
                 }
+              }
+              
+              // Skip assignments from previous academic years based on creation date
+              if (canvasAssignment.created_at) {
+                const createdDate = new Date(canvasAssignment.created_at);
+                const previousYearCutoff = new Date('2025-01-01');
+                if (createdDate < previousYearCutoff && !canvasAssignment.due_at) {
+                  console.log(`⏭️ Skipping old template assignment "${canvasAssignment.name} (Canvas 2)" (created: ${createdDate.toDateString()}) - from previous year`);
+                  continue;
+                }
+              }
+              
+              // ENHANCED ASSIGNMENT TYPE FILTERING for Canvas Instance 2
+              const assignmentTitle = canvasAssignment.name.toLowerCase();
+              const assignmentDesc = canvasAssignment.description?.toLowerCase() || '';
+              
+              // Skip administrative assignments
+              const adminPatterns = [
+                'syllabus', 'honor code', 'fee', 'supply', 'registration',
+                'course info', 'welcome', 'introduction', 'orientation'
+              ];
+              if (adminPatterns.some(pattern => assignmentTitle.includes(pattern))) {
+                console.log(`⏭️ Skipping administrative assignment: "${canvasAssignment.name} (Canvas 2)"`);
+                continue;
+              }
+              
+              // Skip in-class only activities
+              const inClassPatterns = [
+                'in class', 'roll call', 'attendance', 'class discussion',
+                'class activity', 'classroom', 'in-class', 'class work'
+              ];
+              if (inClassPatterns.some(pattern => assignmentTitle.includes(pattern))) {
+                console.log(`⏭️ Skipping in-class only assignment: "${canvasAssignment.name} (Canvas 2)"`);
+                continue;
+              }
+              
+              // Skip recurring assignments without due dates (likely templates)
+              if (!canvasAssignment.due_at && (
+                assignmentTitle.includes('roll call') || 
+                assignmentTitle.includes('attendance') ||
+                assignmentTitle.includes('participation')
+              )) {
+                console.log(`⏭️ Skipping recurring template assignment: "${canvasAssignment.name} (Canvas 2)" - no due date`);
+                continue;
               }
               
               const existingAssignments = await storage.getAssignments(userId);
@@ -217,16 +323,35 @@ class JobScheduler {
                 );
                 
                 // Determine completion status based on Canvas grading info
-                let completionStatus = 'pending';
+                let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
                 if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
                   completionStatus = 'completed';
                   console.log(`📋 Auto-marking "${title}" as completed (graded in Canvas)`);
                 }
 
-                // Use extracted due date if available, otherwise Canvas due date, otherwise module timing
-                const dueDate = intelligence.extractedDueDate || 
+                // ENHANCED DUE DATE EXTRACTION AND VALIDATION for Canvas Instance 2
+                // Try extracting due date from title first (handles "Homework Due 9/15" cases)
+                let extractedFromTitle = null;
+                try {
+                  extractedFromTitle = extractDueDateFromTitle(canvasAssignment.name);
+                  if (extractedFromTitle) {
+                    console.log(`🧠 Extracted due date from title "${title}": ${extractedFromTitle.toDateString()}`);
+                  }
+                } catch (error) {
+                  console.warn(`Failed to extract due date from title: ${title}`);
+                }
+                
+                // Use the best available due date source
+                const dueDate = extractedFromTitle || 
+                               intelligence.extractedDueDate || 
                                (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null) ||
                                (canvasAssignment.inferred_start_date ? new Date(canvasAssignment.inferred_start_date) : null);
+                
+                // Validate extracted due date is within current school year
+                if (dueDate && (dueDate < currentSchoolYearStart || dueDate > currentSchoolYearEnd)) {
+                  console.log(`⚠️ Extracted due date ${dueDate.toDateString()} outside school year for "${title}" - skipping`);
+                  continue;
+                }
                 
                 // Smart scheduling based on assignment type
                 const smartScheduledDate = getSmartSchedulingDate(intelligence, this.getNextAssignmentDate());
@@ -308,8 +433,6 @@ class JobScheduler {
     
     // Update administrative assignments with standard due dates (after Canvas sync) 
     await this.updateAdministrativeAssignments();
-    
-    return totalImported;
   }
 
   /**
