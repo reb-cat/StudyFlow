@@ -476,10 +476,13 @@ export default function StudentDashboard() {
                               block.blockType === 'bible' ? 'print-bible' : ''
                             }`}
                           >
-                            <div className="print-time">
+                            {/* Print-only time column */}
+                            <div className="hidden print:block print-time">
                               {formatTime(block.startTime, block.endTime)}
                             </div>
-                            <div className="flex items-center gap-3 flex-1 min-w-0 print-content">
+                            
+                            {/* Regular screen layout */}
+                            <div className="flex items-center gap-3 flex-1 min-w-0 print:ml-0 print-content">
                               <div className="flex-shrink-0 print:hidden">
                                 {getBlockIcon(block.blockType)}
                               </div>
