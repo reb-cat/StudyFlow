@@ -477,16 +477,16 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
             
             {/* Assignment Instructions - Executive Function Optimized */}
             {currentBlock.type === 'assignment' && (
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mx-4 space-y-2">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mt-4 space-y-3">
                 {(() => {
                   const instructions = currentBlock.assignment?.instructions;
                   
-                  // Check if instructions exist and are meaningful
+                  // Check if instructions exist and are meaningful (LESS RESTRICTIVE)
                   const hasRealInstructions = instructions && 
                     instructions.trim() !== '' &&
                     instructions.trim() !== 'Assignment from Canvas' &&
                     !instructions.toLowerCase().includes('no additional details were added for this assignment') &&
-                    instructions.length > 50;
+                    instructions.length > 10; // Reduced from 50 to 10 characters
 
                   if (hasRealInstructions) {
                     // Extract smart summary - first actionable step or main objective
@@ -497,16 +497,18 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                     
                     return (
                       <div className="space-y-2">
-                        {/* Smart Summary - Always Show */}
-                        <div className="text-base text-gray-700 dark:text-gray-300 leading-relaxed !text-base">
-                          <div className="font-medium text-blue-600 dark:text-blue-400 text-sm mb-1">
-                            {isVeryLong ? '📋 Next Step:' : '📋 Instructions:'}
+                        {/* Assignment Instructions - Clear Visual Separation */}
+                        <div className="text-left">
+                          <div className="font-medium text-blue-600 dark:text-blue-400 text-sm mb-2 flex items-center gap-2">
+                            📋 <span>Instructions:</span>
                           </div>
-                          {isVeryLong ? (
-                            <p>{firstActionable}</p>
-                          ) : (
-                            <div dangerouslySetInnerHTML={{ __html: instructions }} />
-                          )}
+                          <div className="text-base text-gray-700 dark:text-gray-300 leading-relaxed border-l-4 border-blue-200 dark:border-blue-600 pl-3">
+                            {isVeryLong ? (
+                              <p>{firstActionable}</p>
+                            ) : (
+                              <div dangerouslySetInnerHTML={{ __html: instructions }} />
+                            )}
+                          </div>
                         </div>
                         
                         {/* Show More Toggle for Long Instructions */}
@@ -535,18 +537,36 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                       </div>
                     );
                   } else {
+                    // Show helpful fallback for assignments with minimal instructions
+                    const assignmentTitle = currentBlock.assignment?.title || currentBlock.title;
+                    const courseName = currentBlock.assignment?.courseName || currentBlock.assignment?.subject;
+                    
                     return (
-                      <div className="text-base text-gray-500 dark:text-gray-400 leading-relaxed !text-base">
-                        <div className="font-medium text-gray-600 dark:text-gray-500 text-sm mb-1">
-                          📋 Instructions:
+                      <div className="text-left">
+                        <div className="font-medium text-blue-600 dark:text-blue-400 text-sm mb-2 flex items-center gap-2">
+                          📋 <span>Task:</span>
                         </div>
-                        <p className="italic">
-                          Work on this assignment based on your course materials and previous lessons.
-                        </p>
+                        <div className="text-base text-gray-700 dark:text-gray-300 leading-relaxed border-l-4 border-blue-200 dark:border-blue-600 pl-3">
+                          <p>
+                            Complete the <strong>{assignmentTitle}</strong> assignment{courseName && ` for ${courseName}`}.
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 italic">
+                            💡 Check your course materials or Canvas for specific requirements.
+                          </p>
+                        </div>
                       </div>
                     );
                   }
                 })()}
+              </div>
+            )}
+            
+            {/* Course Information - Additional Context */}
+            {currentBlock.type === 'assignment' && currentBlock.assignment?.courseName && (
+              <div className="text-center mt-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+                  {currentBlock.assignment.courseName}
+                </span>
               </div>
             )}
           </div>
