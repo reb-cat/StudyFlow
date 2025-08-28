@@ -68,9 +68,9 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
         estimatedMinutes: 20,
         blockType: block.blockType
       })),
-    // Fixed blocks from schedule template
+    // Fixed blocks from schedule template (non-co-op)
     ...allScheduleBlocks
-      .filter((block) => ['travel', 'co-op', 'prep/load', 'movement', 'lunch'].includes(block.blockType))
+      .filter((block) => ['travel', 'prep/load', 'movement', 'lunch'].includes(block.blockType))
       .map(block => ({
         id: block.id,
         type: 'fixed' as const,
@@ -81,6 +81,29 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                            (parseInt(block.startTime.split(':')[0]) * 60 + parseInt(block.startTime.split(':')[1])),
         blockType: block.blockType
       })),
+    // Co-op blocks treated as assignment blocks with matching assignments
+    ...allScheduleBlocks
+      .filter((block) => block.blockType === 'co-op')
+      .map(block => {
+        // Try to find matching assignment by course name
+        const matchingAssignment = assignments.find(assignment => 
+          assignment.courseName?.toLowerCase().includes(block.subject.toLowerCase().split(' - ')[0]) ||
+          assignment.subject?.toLowerCase().includes(block.subject.toLowerCase().split(' - ')[0]) ||
+          block.subject.toLowerCase().includes(assignment.courseName?.toLowerCase() || '') ||
+          block.subject.toLowerCase().includes(assignment.subject?.toLowerCase() || '')
+        );
+        
+        return {
+          id: matchingAssignment ? matchingAssignment.id : block.id,
+          type: 'assignment' as const, // Treat co-op blocks as assignments
+          title: matchingAssignment ? matchingAssignment.title : block.subject,
+          startTime: block.startTime,
+          endTime: block.endTime,
+          estimatedMinutes: matchingAssignment ? matchingAssignment.actualEstimatedMinutes || 60 : 60,
+          assignment: matchingAssignment || undefined,
+          blockType: 'assignment' // Override to assignment for instruction display
+        };
+      }),
     // Assignment blocks - use schedule template blocks AND fill with actual assignment data
     ...allScheduleBlocks
       .filter((block) => block.blockType === 'assignment')
