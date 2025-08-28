@@ -477,61 +477,73 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
             
             {/* Assignment Instructions - Executive Function Optimized */}
             {currentBlock.type === 'assignment' && (
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mt-4 space-y-3">
+              <div className="mt-4">
                 {(() => {
                   const instructions = currentBlock.assignment?.instructions;
                   
-                  // Check if instructions exist and are meaningful (LESS RESTRICTIVE)
+                  // Check if instructions exist and are meaningful
                   const hasRealInstructions = instructions && 
                     instructions.trim() !== '' &&
                     instructions.trim() !== 'Assignment from Canvas' &&
                     !instructions.toLowerCase().includes('no additional details were added for this assignment') &&
-                    instructions.length > 10; // Reduced from 50 to 10 characters
+                    instructions.length > 10;
 
                   if (hasRealInstructions) {
-                    // Extract smart summary - first actionable step or main objective
+                    // Parse instructions for better formatting
                     const cleanInstructions = instructions.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-                    const sentences = cleanInstructions.split(/[.!?]+/).filter(s => s.trim().length > 10);
-                    const firstActionable = sentences[0]?.trim() + '.';
-                    const isVeryLong = cleanInstructions.length > 300;
+                    const isLong = cleanInstructions.length > 200;
+                    
+                    // Look for different types of content in instructions
+                    const hasImportantNotice = cleanInstructions.toLowerCase().includes('important') || 
+                                              cleanInstructions.toLowerCase().includes('note:') ||
+                                              cleanInstructions.toLowerCase().includes('don\'t wait') ||
+                                              cleanInstructions.toLowerCase().includes('start immediately');
                     
                     return (
-                      <div className="space-y-2">
-                        {/* Assignment Instructions - Clear Visual Separation */}
-                        <div className="text-left">
-                          <div className="font-medium text-blue-600 dark:text-blue-400 text-sm mb-2 flex items-center gap-2">
-                            📋 <span>Instructions:</span>
-                          </div>
-                          <div className="text-base text-gray-700 dark:text-gray-300 leading-relaxed border-l-4 border-blue-200 dark:border-blue-600 pl-3">
-                            {isVeryLong ? (
-                              <p>{firstActionable}</p>
-                            ) : (
-                              <div dangerouslySetInnerHTML={{ __html: instructions }} />
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* Show More Toggle for Long Instructions */}
-                        {isVeryLong && (
-                          <div>
-                            <button
-                              onClick={() => setShowFullInstructions(!showFullInstructions)}
-                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                            >
-                              {showFullInstructions ? '📄 Hide Full Instructions' : '📄 Show Full Instructions'}
-                            </button>
-                            
-                            {showFullInstructions && (
-                              <div className="mt-2 p-3 bg-white dark:bg-gray-700 rounded border-l-4 border-blue-500">
-                                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 italic">
-                                  💡 Tip: Use "Need Help?" button for step-by-step guidance
+                      <div className="space-y-4">
+                        {/* Important Notice Box (if detected) */}
+                        {hasImportantNotice && (
+                          <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4">
+                            <div className="flex items-start gap-3">
+                              <HelpCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Important Notice</h4>
+                                <div className="text-blue-800 dark:text-blue-200 space-y-2">
+                                  <div dangerouslySetInnerHTML={{ __html: instructions }} />
                                 </div>
-                                <div 
-                                  className="text-base text-gray-700 dark:text-gray-300 leading-relaxed max-h-40 overflow-y-auto"
-                                  dangerouslySetInnerHTML={{ __html: instructions }}
-                                />
                               </div>
-                            )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Regular Instructions Box (if no important notice) */}
+                        {!hasImportantNotice && (
+                          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                            <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                              📋 Assignment Instructions:
+                            </h5>
+                            <div className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+                              {isLong ? (
+                                <div>
+                                  <div className="mb-2">
+                                    {cleanInstructions.split('.')[0] + '.'}
+                                  </div>
+                                  <button
+                                    onClick={() => setShowFullInstructions(!showFullInstructions)}
+                                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
+                                    {showFullInstructions ? 'Show Less' : 'Show Full Instructions'}
+                                  </button>
+                                  {showFullInstructions && (
+                                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                                      <div dangerouslySetInnerHTML={{ __html: instructions }} />
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div dangerouslySetInnerHTML={{ __html: instructions }} />
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
