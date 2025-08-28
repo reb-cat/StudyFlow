@@ -72,7 +72,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-foreground truncate" data-testid={`assignment-title-${assignment.id}`}>
+              <h3 className="text-xl font-medium text-foreground truncate" data-testid={`assignment-title-${assignment.id}`}>
                 {assignment.title}
               </h3>
               <p className="text-sm text-muted-foreground" data-testid={`assignment-subject-${assignment.id}`}>
@@ -97,7 +97,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
             <div className="text-sm text-muted-foreground" data-testid={`assignment-subject-${assignment.id}`}>
               {assignment.subject || assignment.courseName || 'Assignment'}
             </div>
-            <h3 className="text-lg font-semibold text-foreground mt-1" data-testid={`assignment-title-${assignment.id}`}>
+            <h3 className="text-xl font-semibold text-foreground mt-1" data-testid={`assignment-title-${assignment.id}`}>
               {assignment.title}
             </h3>
           </div>
@@ -125,7 +125,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
 
         {assignment.instructions && (
           <div className="bg-muted/50 p-3 rounded-md">
-            <p className="text-sm text-muted-foreground" data-testid={`assignment-instructions-${assignment.id}`}>
+            <p className="text-base text-muted-foreground" data-testid={`assignment-instructions-${assignment.id}`}>
               {assignment.instructions}
             </p>
           </div>

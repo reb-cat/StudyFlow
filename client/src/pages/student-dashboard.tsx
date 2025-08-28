@@ -488,7 +488,7 @@ export default function StudentDashboard() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-gray-900 dark:text-foreground text-base truncate print-title">{blockTitle}</span>
+                                  <span className="font-semibold text-gray-900 dark:text-foreground text-xl truncate print-title">{blockTitle}</span>
                                   {blockDetails && (
                                     <>
                                       <span className="text-gray-400 print:hidden">—</span>

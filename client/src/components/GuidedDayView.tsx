@@ -525,7 +525,7 @@ export function GuidedDayView({ assignments, studentName, selectedDate, onAssign
                                   💡 Tip: Use "Need Help?" button for step-by-step guidance
                                 </div>
                                 <div 
-                                  className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed max-h-40 overflow-y-auto"
+                                  className="text-base text-gray-700 dark:text-gray-300 leading-relaxed max-h-40 overflow-y-auto"
                                   dangerouslySetInnerHTML={{ __html: instructions }}
                                 />
                               </div>
