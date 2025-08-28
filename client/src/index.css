@@ -204,12 +204,42 @@
     color: #666 !important;
   }
 
-  /* Schedule styling - Optimized for single page */
-  .print-schedule {
-    page-break-inside: avoid !important;
+  /* Print-only schedule container - Clean document style */
+  .print-schedule-container {
+    margin: 20px 0 !important;
+  }
+
+  .print-schedule-row {
+    display: flex !important;
+    align-items: flex-start !important;
     margin-bottom: 8px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-time-col {
+    width: 120px !important;
+    flex-shrink: 0 !important;
+    font-weight: bold !important;
+    font-size: 10pt !important;
+    line-height: 1.2 !important;
+  }
+
+  .print-activity-col {
     flex: 1 !important;
-    overflow: hidden !important;
+    margin-left: 20px !important;
+  }
+
+  .print-activity-title {
+    font-weight: bold !important;
+    font-size: 11pt !important;
+    line-height: 1.3 !important;
+    margin-bottom: 2px !important;
+  }
+
+  .print-activity-details {
+    font-size: 9pt !important;
+    color: #666 !important;
+    line-height: 1.2 !important;
   }
 
   .print-schedule-item {

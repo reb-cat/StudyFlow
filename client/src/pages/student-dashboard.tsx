@@ -388,10 +388,10 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            {/* Schedule Card - Compact Apple style */}
-            <Card className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/50 print-schedule">
+            {/* Schedule Card - Compact Apple style (screen only) */}
+            <Card className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/50 print:hidden">
               <CardContent className="p-4">
-                <h3 className="text-lg font-semibold text-foreground mb-4 print:text-xl print:font-bold print:text-black">
+                <h3 className="text-lg font-semibold text-foreground mb-4">
                   {isToday ? "Today's" : `${dayName}'s`} Schedule
                 </h3>
                   
@@ -529,6 +529,56 @@ export default function StudentDashboard() {
                   </div>
                 </CardContent>
               </Card>
+              
+              {/* Print-only clean layout */}
+              <div className="hidden print:block">
+                <div className="print-schedule-container">
+                  {allScheduleBlocks
+                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                    .map((block, index) => {
+                      const formatTime = (start: string, end: string) => {
+                        const formatTimeString = (timeStr: string) => {
+                          if (!timeStr || timeStr === '00:00') return '12:00 AM';
+                          const [hours, minutes] = timeStr.split(':');
+                          const hour = parseInt(hours);
+                          const ampm = hour >= 12 ? 'PM' : 'AM';
+                          const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                          return `${displayHour}:${minutes} ${ampm}`;
+                        };
+                        return `${formatTimeString(start)} – ${formatTimeString(end)}`;
+                      };
+                      
+                      let blockTitle = block.title;
+                      let blockDetails = '';
+                      
+                      if (block.blockType === 'assignment') {
+                        const populatedBlock = populatedAssignmentBlocks.find(pb => pb.id === block.id);
+                        if (populatedBlock && populatedBlock.assignment) {
+                          blockTitle = populatedBlock.assignment.title;
+                          blockDetails = populatedBlock.assignment.courseName || '';
+                        } else {
+                          blockTitle = 'Open Assignment Block';
+                          blockDetails = '';
+                        }
+                      } else if (block.blockType === 'bible') {
+                        blockTitle = 'Bible';
+                        blockDetails = 'Genesis 1-2 (Daily Bible Reading)';
+                      }
+                      
+                      return (
+                        <div key={block.id} className="print-schedule-row">
+                          <div className="print-time-col">
+                            {formatTime(block.startTime, block.endTime)}
+                          </div>
+                          <div className="print-activity-col">
+                            <div className="print-activity-title">{blockTitle}</div>
+                            {blockDetails && <div className="print-activity-details">{blockDetails}</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
           </div>
         )}
         
