@@ -9,7 +9,7 @@ import {
   markBibleCurriculumCompleted, 
   getWeeklyBibleProgress
 } from './lib/bibleCurriculum';
-import { extractDueDatesFromExistingAssignments } from './lib/assignmentIntelligence';
+import { extractDueDatesFromExistingAssignments, extractDueDateFromTitle } from './lib/assignmentIntelligence';
 import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas"; 
 // Email config moved inline since Supabase removed
 const emailConfig = {
@@ -283,11 +283,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process instance 1 assignments
       if (canvasData.instance1) {
         for (const canvasAssignment of canvasData.instance1) {
+          // ENHANCED DUE DATE EXTRACTION: Use Canvas due_at OR extract from title
+          let finalDueDate = canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null;
+          if (!finalDueDate) {
+            finalDueDate = extractDueDateFromTitle(canvasAssignment.name);
+          }
+          
           transformedAssignments.push({
             title: canvasAssignment.name,
             subject: canvasAssignment.courseName || 'Unknown Course',
             instructions: canvasAssignment.description || '',
-            dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
+            dueDate: finalDueDate,
             actualEstimatedMinutes: 60, // Default to 1 hour
             completionStatus: 'pending',
             priority: 'B',
@@ -301,11 +307,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process instance 2 assignments (Abigail only)
       if (canvasData.instance2) {
         for (const canvasAssignment of canvasData.instance2) {
+          // ENHANCED DUE DATE EXTRACTION: Use Canvas due_at OR extract from title
+          let finalDueDate = canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null;
+          if (!finalDueDate) {
+            finalDueDate = extractDueDateFromTitle(canvasAssignment.name);
+          }
+          
           transformedAssignments.push({
             title: canvasAssignment.name,
             subject: canvasAssignment.courseName || 'Unknown Course 2',
             instructions: canvasAssignment.description || '',
-            dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
+            dueDate: finalDueDate,
             actualEstimatedMinutes: 60,
             completionStatus: 'pending',
             priority: 'B',
@@ -364,13 +376,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             completionStatus = 'completed';
           }
 
+          // ENHANCED DUE DATE EXTRACTION: Use Canvas due_at OR extract from title
+          let finalDueDate = canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null;
+          
+          // If no Canvas due date, try to extract from title
+          if (!finalDueDate) {
+            const extractedDate = extractDueDateFromTitle(canvasAssignment.name);
+            if (extractedDate) {
+              finalDueDate = extractedDate;
+              console.log(`📅 Extracted due date from "${canvasAssignment.name}": ${extractedDate.toDateString()}`);
+            }
+          }
+
           const assignment = await storage.createAssignment({
             userId: userId,
             title: canvasAssignment.name,
             subject: canvasAssignment.courseName || 'Unknown Course',
             courseName: canvasAssignment.courseName || 'Unknown Course',
             instructions: canvasAssignment.description || 'Assignment from Canvas',
-            dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
+            dueDate: finalDueDate,
             scheduledDate: today, // Schedule for today for testing
             actualEstimatedMinutes: 60,
             completionStatus: completionStatus,
@@ -403,13 +427,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             completionStatus = 'completed';
           }
 
+          // ENHANCED DUE DATE EXTRACTION: Use Canvas due_at OR extract from title
+          let finalDueDate = canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null;
+          
+          // If no Canvas due date, try to extract from title
+          if (!finalDueDate) {
+            const extractedDate = extractDueDateFromTitle(canvasAssignment.name);
+            if (extractedDate) {
+              finalDueDate = extractedDate;
+              console.log(`📅 Extracted due date from "${canvasAssignment.name} (Canvas 2)": ${extractedDate.toDateString()}`);
+            }
+          }
+
           const assignment = await storage.createAssignment({
             userId: userId,
             title: `${canvasAssignment.name} (Canvas 2)`,
             subject: canvasAssignment.courseName || 'Unknown Course 2',
             courseName: canvasAssignment.courseName || 'Unknown Course 2',
             instructions: canvasAssignment.description || 'Assignment from Canvas instance 2',
-            dueDate: canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null,
+            dueDate: finalDueDate,
             scheduledDate: today,
             actualEstimatedMinutes: 60,
             completionStatus: completionStatus,
