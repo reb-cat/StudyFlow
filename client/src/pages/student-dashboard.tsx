@@ -22,7 +22,8 @@ import {
   Play,
   Activity,
   UtensilsCrossed,
-  ArrowLeft
+  ArrowLeft,
+  Printer
 } from 'lucide-react';
 import { Link, useParams } from 'wouter';
 import { GuidedDayView } from '@/components/GuidedDayView';
@@ -212,13 +213,22 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
+    <div className="min-h-screen p-4 sm:p-6 print-page" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
       <div className="max-w-5xl mx-auto">
+        
+        {/* Print Header - Hidden on screen, visible in print */}
+        <div className="hidden print:block print-header">
+          <div className="print-student-name">{studentName}'s Daily Schedule</div>
+          <div className="print-date">{dateDisplay}</div>
+          {isThursday && (
+            <div className="print-coop-badge">Co-op Day</div>
+          )}
+        </div>
         
         {/* Header - Full navigation for Overview, minimal for Guided */}
         {isGuidedMode ? (
           // Minimal header for Guided mode - just theme toggle
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end mb-4 no-print">
             <Button 
               variant="ghost" 
               data-testid="button-theme"
@@ -232,7 +242,7 @@ export default function StudentDashboard() {
         ) : (
           // Full header for Overview mode
           <>
-            <div className="flex items-center justify-between mb-6 px-4">
+            <div className="flex items-center justify-between mb-6 px-4 no-print">
               <h1 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight" data-testid="student-name">
                 {studentName}
               </h1>
@@ -266,6 +276,14 @@ export default function StudentDashboard() {
                 </Button>
                 <Button 
                   variant="ghost" 
+                  data-testid="button-print"
+                  onClick={() => window.print()}
+                  className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
+                >
+                  <Printer className="h-6 w-6" />
+                </Button>
+                <Button 
+                  variant="ghost" 
                   data-testid="button-theme"
                   onClick={() => setIsDarkMode(!isDarkMode)}
                   className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
@@ -276,7 +294,7 @@ export default function StudentDashboard() {
             </div>
 
             {/* Second row - Date/Co-op + Mode toggles */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 px-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 px-4 no-print">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 text-foreground">
                   <Calendar className="h-5 w-5" />
@@ -360,7 +378,7 @@ export default function StudentDashboard() {
         ) : (
           <div className="space-y-4">
             {/* Progress Bar - Apple Fitness style */}
-            <div className="bg-white dark:bg-card rounded-xl p-4 border border-gray-200 dark:border-border/50">
+            <div className="bg-white dark:bg-card rounded-xl p-4 border border-gray-200 dark:border-border/50 no-print">
               <div className="flex justify-between text-sm mb-2">
                 <span className="font-medium text-muted-foreground">Daily Progress</span>
                 <span className="font-medium text-muted-foreground">0%</span>
@@ -371,13 +389,13 @@ export default function StudentDashboard() {
             </div>
 
             {/* Schedule Card - Compact Apple style */}
-            <Card className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/50">
+            <Card className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/50 print-schedule">
               <CardContent className="p-4">
-                <h3 className="text-lg font-semibold text-foreground mb-4">
+                <h3 className="text-lg font-semibold text-foreground mb-4 print:text-xl print:font-bold print:text-black">
                   {isToday ? "Today's" : `${dayName}'s`} Schedule
                 </h3>
                   
-                  <div className="space-y-1">
+                  <div className="space-y-1 print:space-y-0">
                     {/* Show ALL schedule blocks in chronological order with compact Apple-style layout */}
                     {allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
@@ -453,23 +471,29 @@ export default function StudentDashboard() {
                         return (
                           <div 
                             key={block.id} 
-                            className="group flex items-center justify-between py-2.5 px-3 hover:bg-gray-50 dark:hover:bg-muted/30 rounded-lg transition-colors duration-150"
+                            className={`group flex items-center justify-between py-2.5 px-3 hover:bg-gray-50 dark:hover:bg-muted/30 rounded-lg transition-colors duration-150 print-schedule-item ${
+                              block.blockType === 'assignment' ? 'print-assignment' : 
+                              block.blockType === 'bible' ? 'print-bible' : ''
+                            }`}
                           >
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <div className="flex-shrink-0">
+                            <div className="print-time">
+                              {formatTime(block.startTime, block.endTime)}
+                            </div>
+                            <div className="flex items-center gap-3 flex-1 min-w-0 print-content">
+                              <div className="flex-shrink-0 print:hidden">
                                 {getBlockIcon(block.blockType)}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-gray-900 dark:text-foreground text-base truncate">{blockTitle}</span>
+                                  <span className="font-semibold text-gray-900 dark:text-foreground text-base truncate print-title">{blockTitle}</span>
                                   {blockDetails && (
                                     <>
-                                      <span className="text-gray-400">—</span>
-                                      <span className="text-gray-600 dark:text-muted-foreground text-sm truncate">{blockDetails}</span>
+                                      <span className="text-gray-400 print:hidden">—</span>
+                                      <span className="text-gray-600 dark:text-muted-foreground text-sm truncate print-description">{blockDetails}</span>
                                     </>
                                   )}
                                 </div>
-                                <div className="flex items-center justify-between mt-0.5">
+                                <div className="flex items-center justify-between mt-0.5 print:hidden">
                                   <span className="text-gray-500 dark:text-muted-foreground text-sm">
                                     {formatTime(block.startTime, block.endTime)}
                                   </span>
@@ -477,6 +501,23 @@ export default function StudentDashboard() {
                                     not started
                                   </Badge>
                                 </div>
+                                
+                                {/* Bible curriculum content for print */}
+                                {block.blockType === 'bible' && (
+                                  <div className="hidden print:block print-bible-reference mt-2">
+                                    Genesis 1-2 (Daily Bible Reading)
+                                  </div>
+                                )}
+                                
+                                {/* Assignment details for print */}
+                                {block.blockType === 'assignment' && populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment && (
+                                  <div className="hidden print:block print-description mt-2">
+                                    Course: {populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.courseName || 'Unknown'}
+                                    {populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.dueDate && (
+                                      <div>Due: {new Date(populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.dueDate).toLocaleDateString()}</div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -487,6 +528,11 @@ export default function StudentDashboard() {
               </Card>
           </div>
         )}
+        
+        {/* Print Footer - Hidden on screen, visible in print */}
+        <div className="hidden print:block print-footer">
+          StudyFlow Daily Schedule • Executive Function Support System • Generated: {new Date().toLocaleDateString()}
+        </div>
       </div>
     </div>
   );
