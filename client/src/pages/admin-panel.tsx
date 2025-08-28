@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { Assignment } from '@shared/schema';
@@ -21,6 +21,7 @@ export default function AdminPanel() {
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [bulkOperation, setBulkOperation] = useState<string>('');
   const [selectedAssignments, setSelectedAssignments] = useState<Set<string>>(new Set());
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Get all assignments for the selected student
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
@@ -256,142 +257,382 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" style={{ 
-            background: 'linear-gradient(135deg, var(--foreground) 0%, var(--primary) 100%)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}>Assignment Management</h1>
-          <p className="text-muted-foreground">
-            Manage assignment completion status to control what appears in daily planning
-          </p>
-        </div>
+    <div className="min-h-screen" style={{ 
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, \'Segoe UI\', system-ui, sans-serif',
+      background: 'linear-gradient(135deg, #F8F9FA 0%, #F1F3F4 100%)',
+      color: '#212529'
+    }}>
+      {/* Header with breadcrumbs */}
+      <div style={{
+        background: '#FFFFFF',
+        borderBottom: '1px solid #DEE2E6',
+        padding: '1rem 2rem',
+        boxShadow: '0 1px 2px rgba(33, 37, 41, 0.05)'
+      }}>
+        <nav style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          fontSize: '0.875rem',
+          color: '#6C757D',
+          marginBottom: '0.5rem'
+        }}>
+          <a href="/khalil" style={{ color: '#844FC1', textDecoration: 'none' }}>Home</a>
+          <span>›</span>
+          <span>Assignment Management</span>
+        </nav>
+        <h1 style={{
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: '#212529',
+          margin: 0
+        }}>Assignment Management</h1>
+      </div>
 
-        {/* Controls */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Controls</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-              {/* Student Selection */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Student</label>
-                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Abigail">Abigail</SelectItem>
-                    <SelectItem value="Khalil">Khalil</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+      {/* Main layout */}
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '2rem',
+        display: 'grid',
+        gridTemplateColumns: '320px 1fr',
+        gap: '2rem',
+        alignItems: 'start'
+      }}>
+        {/* Left sidebar - simplified controls */}
+        <aside style={{ position: 'sticky', top: '2rem' }}>
+          {/* Primary Controls */}
+          <div style={{
+            background: '#FFFFFF',
+            border: '1px solid #DEE2E6',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            marginBottom: '1rem',
+            boxShadow: '0 1px 2px rgba(33, 37, 41, 0.05)'
+          }}>
+            <h3 style={{
+              fontSize: '1rem',
+              fontWeight: '600',
+              color: '#212529',
+              marginBottom: '1rem'
+            }}>Quick Filters</h3>
+            
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: '#212529',
+                marginBottom: '0.5rem'
+              }}>Student</label>
+              <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                <SelectTrigger style={{
+                  background: '#FFFFFF',
+                  border: '1px solid #DEE2E6',
+                  borderRadius: '8px'
+                }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Abigail">Abigail</SelectItem>
+                  <SelectItem value="Khalil">Khalil</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              {/* Search */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Search</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search assignments..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              {/* Status Filter */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Filter by Status</label>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending">Pending Only</SelectItem>
-                    <SelectItem value="completed">Done Only</SelectItem>
-                    <SelectItem value="needs_more_time">Need More Time Only</SelectItem>
-                    <SelectItem value="stuck">Stuck Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Date Filter */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Date Range</label>
-                <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="upcoming">📅 Next 3 Weeks</SelectItem>
-                    <SelectItem value="this-week">📆 This Week Only</SelectItem>
-                    <SelectItem value="overdue">⚠️ Overdue Items</SelectItem>
-                    <SelectItem value="all">📋 All Assignments</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Source Filter */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Source</label>
-                <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sources</SelectItem>
-                    <SelectItem value="canvas">Canvas Only</SelectItem>
-                    <SelectItem value="canvas1">Canvas Instance 1</SelectItem>
-                    <SelectItem value="canvas2">Canvas Instance 2</SelectItem>
-                    <SelectItem value="manual">Manual Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Summary Stats */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Summary</label>
-                <div className="text-sm space-y-1">
-                  <div>Pending: <span className="font-semibold">{pendingCount}</span></div>
-                  <div>Done: <span className="font-semibold text-green-600">{completedCount}</span></div>
-                  <div>Need More Time: <span className="font-semibold text-blue-600">{needsMoreTimeCount}</span></div>
-                  <div>Stuck: <span className="font-semibold text-red-600">{stuckCount}</span></div>
-                  <div className="text-xs text-muted-foreground border-t pt-1 mt-1">
-                    Total: {Array.isArray(assignments) ? assignments.length : 0}
-                  </div>
-                </div>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: '#212529',
+                marginBottom: '0.5rem'
+              }}>Search Assignments</label>
+              <div style={{ position: 'relative' }}>
+                <Search style={{
+                  position: 'absolute',
+                  left: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#6C757D',
+                  width: '16px',
+                  height: '16px'
+                }} />
+                <Input
+                  placeholder="Search by title or subject..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    paddingLeft: '2.5rem',
+                    background: '#FFFFFF',
+                    border: '1px solid #DEE2E6',
+                    borderRadius: '8px'
+                  }}
+                />
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Bulk Operations */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Bulk Operations</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: '#212529',
+                marginBottom: '0.5rem'
+              }}>Show Only</label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger style={{
+                  background: '#FFFFFF',
+                  border: '1px solid #DEE2E6',
+                  borderRadius: '8px'
+                }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Assignments</SelectItem>
+                  <SelectItem value="pending">Pending Only</SelectItem>
+                  <SelectItem value="completed">Completed Only</SelectItem>
+                  <SelectItem value="stuck">Need Help Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Advanced Controls - Collapsed */}
+            <div style={{ marginTop: '1rem' }}>
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#844FC1',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  padding: '0.5rem 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <span>{showAdvanced ? 'Hide Filters' : 'Show More Filters'}</span>
+                {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+              
+              {showAdvanced && (
+                <div style={{ marginTop: '1rem' }}>
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      color: '#212529',
+                      marginBottom: '0.5rem'
+                    }}>Date Range</label>
+                    <Select value={dateFilter} onValueChange={setDateFilter}>
+                      <SelectTrigger style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #DEE2E6',
+                        borderRadius: '8px'
+                      }}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="upcoming">Next 3 Weeks</SelectItem>
+                        <SelectItem value="this-week">This Week Only</SelectItem>
+                        <SelectItem value="overdue">Overdue Items</SelectItem>
+                        <SelectItem value="all">All Dates</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      color: '#212529',
+                      marginBottom: '0.5rem'
+                    }}>Source</label>
+                    <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                      <SelectTrigger style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #DEE2E6',
+                        borderRadius: '8px'
+                      }}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Sources</SelectItem>
+                        <SelectItem value="canvas">Canvas Only</SelectItem>
+                        <SelectItem value="manual">Manual Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Summary Stats */}
+          <div style={{
+            background: '#FFFFFF',
+            border: '1px solid #DEE2E6',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            marginBottom: '1rem',
+            boxShadow: '0 1px 2px rgba(33, 37, 41, 0.05)'
+          }}>
+            <h3 style={{
+              fontSize: '1rem',
+              fontWeight: '600',
+              color: '#212529',
+              marginBottom: '1rem'
+            }}>Summary</h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '0.75rem',
+              marginTop: '1rem'
+            }}>
+              <div style={{
+                textAlign: 'center',
+                padding: '0.75rem',
+                background: '#F1F3F4',
+                borderRadius: '8px'
+              }}>
+                <div style={{
+                  fontSize: '1.25rem',
+                  fontWeight: '700',
+                  marginBottom: '0.25rem',
+                  color: '#844FC1'
+                }}>{Array.isArray(assignments) ? assignments.length : 0}</div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: '#6C757D',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>Total</div>
+              </div>
+              <div style={{
+                textAlign: 'center',
+                padding: '0.75rem',
+                background: '#F1F3F4',
+                borderRadius: '8px'
+              }}>
+                <div style={{
+                  fontSize: '1.25rem',
+                  fontWeight: '700',
+                  marginBottom: '0.25rem',
+                  color: '#21BF06'
+                }}>{completedCount}</div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: '#6C757D',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>Done</div>
+              </div>
+              <div style={{
+                textAlign: 'center',
+                padding: '0.75rem',
+                background: '#F1F3F4',
+                borderRadius: '8px'
+              }}>
+                <div style={{
+                  fontSize: '1.25rem',
+                  fontWeight: '700',
+                  marginBottom: '0.25rem',
+                  color: '#3B86D1'
+                }}>{pendingCount}</div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: '#6C757D',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>Pending</div>
+              </div>
+              <div style={{
+                textAlign: 'center',
+                padding: '0.75rem',
+                background: '#F1F3F4',
+                borderRadius: '8px'
+              }}>
+                <div style={{
+                  fontSize: '1.25rem',
+                  fontWeight: '700',
+                  marginBottom: '0.25rem',
+                  color: '#6C7293'
+                }}>{stuckCount}</div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: '#6C757D',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>Stuck</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content - Assignment List */}
+        <main style={{
+          background: '#FFFFFF',
+          border: '1px solid #DEE2E6',
+          borderRadius: '12px',
+          boxShadow: '0 1px 2px rgba(33, 37, 41, 0.05)'
+        }}>
+          <div style={{
+            padding: '1.5rem',
+            borderBottom: '1px solid #DEE2E6',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div>
+              <h2 style={{
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                color: '#212529',
+                margin: 0
+              }}>Assignments for {selectedStudent}</h2>
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#6C757D',
+                margin: '0.25rem 0 0 0'
+              }}>Showing {filteredAssignments.length} of {Array.isArray(assignments) ? assignments.length : 0} assignments</p>
+            </div>
+          </div>
+
+          <div style={{
+            maxHeight: '70vh',
+            overflowY: 'auto'
+          }}>
+            {/* Bulk Operations Controls */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderBottom: '1px solid #DEE2E6',
+              background: '#F8F9FA',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Checkbox
                   checked={selectedAssignments.size === filteredAssignments.length && filteredAssignments.length > 0}
                   onCheckedChange={toggleSelectAll}
                 />
-                <span className="text-sm">
+                <span style={{ fontSize: '0.875rem' }}>
                   {selectedAssignments.size > 0 ? `${selectedAssignments.size} selected` : 'Select all'}
                 </span>
               </div>
               
               <Select value={bulkOperation} onValueChange={setBulkOperation}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger style={{
+                  width: '200px',
+                  background: '#FFFFFF',
+                  border: '1px solid #DEE2E6',
+                  borderRadius: '8px'
+                }}>
                   <SelectValue placeholder="Choose action..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -406,7 +647,16 @@ export default function AdminPanel() {
               <Button 
                 onClick={handleBulkAction}
                 disabled={selectedAssignments.size === 0 || !bulkOperation || bulkUpdateMutation.isPending || bulkDeleteMutation.isPending}
-                variant="outline"
+                style={{
+                  background: selectedAssignments.size === 0 || !bulkOperation ? '#F1F3F4' : '#844FC1',
+                  color: selectedAssignments.size === 0 || !bulkOperation ? '#6C757D' : 'white',
+                  border: 'none',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: selectedAssignments.size === 0 || !bulkOperation ? 'not-allowed' : 'pointer'
+                }}
               >
                 {bulkUpdateMutation.isPending || bulkDeleteMutation.isPending ? (
                   <RefreshCw className="h-4 w-4 animate-spin mr-2" />
@@ -414,126 +664,73 @@ export default function AdminPanel() {
                 Apply to {selectedAssignments.size} items
               </Button>
             </div>
-            
-            {/* Retroactive Due Date Extraction */}
-            <div className="mt-4 pt-4 border-t">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium mb-1">Smart Due Date Extraction</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Automatically extract due dates from assignment titles with "Due 1/15", "Test on 10/6", etc.
-                  </p>
-                </div>
-                <Button 
-                  onClick={() => extractDueDatesMutation.mutate({ studentName: selectedStudent })}
-                  disabled={extractDueDatesMutation.isPending}
-                  variant="secondary"
-                  size="sm"
-                >
-                  {extractDueDatesMutation.isPending ? (
-                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Clock className="h-4 w-4 mr-2" />
-                  )}
-                  Extract Due Dates
-                </Button>
-                <Button 
-                  onClick={() => extractDueDatesMutation.mutate({ studentName: selectedStudent, dryRun: true })}
-                  disabled={extractDueDatesMutation.isPending}
-                  variant="outline"
-                  size="sm"
-                >
-                  Test Run
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Assignment List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Assignments for {selectedStudent}
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                ({filteredAssignments.length} of {Array.isArray(assignments) ? assignments.length : 0})
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8">
-                <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">Loading assignments...</p>
-              </div>
-            ) : filteredAssignments.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No assignments found matching your criteria.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredAssignments.map((assignment) => (
-                  <div 
-                    key={assignment.id}
-                    className={`border rounded-lg p-4 hover:bg-muted/50 transition-colors ${
-                      selectedAssignments.has(assignment.id) ? 'ring-2 ring-primary bg-primary/5' : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Checkbox
-                          checked={selectedAssignments.has(assignment.id)}
-                          onCheckedChange={() => toggleAssignmentSelection(assignment.id)}
-                        />
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-foreground truncate">
-                              {assignment.title}
-                            </h3>
-                            {getStatusBadge(assignment.completionStatus || 'pending')}
-                            {assignment.isCanvasImport && (
-                              <Badge variant="secondary" className="text-xs">
-                                Canvas {assignment.canvasInstance || ''}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>{assignment.courseName || assignment.subject || 'No course'}</span>
-                            <span>Due: {formatDate(assignment.dueDate ? assignment.dueDate.toString() : null)}</span>
-                            {assignment.canvasCategory && (
-                              <span className="text-xs bg-muted px-2 py-1 rounded">
-                                {assignment.canvasCategory}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 ml-4">
-                        <Select
-                          value={assignment.completionStatus || 'pending'}
-                          onValueChange={(value) => handleStatusUpdate(assignment.id, value)}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="completed">Done</SelectItem>
-                            <SelectItem value="needs_more_time">Need More Time</SelectItem>
-                            <SelectItem value="stuck">Stuck</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+            {/* Assignment List */}
+            {filteredAssignments.map((assignment) => (
+              <div
+                key={assignment.id}
+                style={{
+                  padding: '1rem 1.5rem',
+                  borderBottom: '1px solid #DEE2E6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#F1F3F4'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <Checkbox
+                  checked={selectedAssignments.has(assignment.id)}
+                  onCheckedChange={() => toggleAssignmentSelection(assignment.id)}
+                  style={{ accentColor: '#844FC1' }}
+                />
+                
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontWeight: '600',
+                    color: '#212529',
+                    marginBottom: '0.25rem',
+                    wordWrap: 'break-word'
+                  }}>
+                    {assignment.title}
                   </div>
-                ))}
+                  <div style={{
+                    fontSize: '0.875rem',
+                    color: '#6C757D',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}>
+                    <span>{assignment.subject || assignment.courseName || 'No Subject'}</span>
+                    <span>Due: {formatDate(assignment.dueDate ? assignment.dueDate.toString() : null)}</span>
+                    <span>{assignment.isCanvasImport ? 'Canvas' : 'Manual'}</span>
+                  </div>
+                </div>
+                
+                <div style={{ marginLeft: 'auto' }}>
+                  {getStatusBadge(assignment.completionStatus || 'pending')}
+                </div>
+              </div>
+            ))}
+            
+            {filteredAssignments.length === 0 && (
+              <div style={{
+                padding: '3rem 1.5rem',
+                textAlign: 'center',
+                color: '#6C757D'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
+                <div style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '0.5rem' }}>
+                  No assignments found
+                </div>
+                <div style={{ fontSize: '0.875rem' }}>
+                  Try adjusting your filters or check back later
+                </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </main>
       </div>
     </div>
   );

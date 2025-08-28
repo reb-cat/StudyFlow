@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow - Assignment Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Purple-Based Palette */
+            --primary: #844FC1;
+            --primary-light: #9D6DD1;
+            --primary-dark: #6B3FA0;
+            --primary-subtle: #F3F0FF;
+            
+            --status-complete: #21BF06;
+            --status-progress: #3B86D1;
+            --status-blocked: #6C7293;
+            
+            --background: #F8F9FA;
+            --surface-secondary: #F1F3F4;
+            --card: #FFFFFF;
+            
+            --foreground: #212529;
+            --muted-foreground: #6C757D;
+            --text-tertiary: #ADB5BD;
+            
+            --border: #DEE2E6;
+            --shadow-sm: 0 1px 2px rgba(33, 37, 41, 0.05);
+            --shadow-md: 0 4px 6px rgba(33, 37, 41, 0.07);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+            line-height: 1.6;
+            background: linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%);
+            color: var(--foreground);
+            min-height: 100vh;
+        }
+
+        /* Header with breadcrumbs */
+        .header {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+            margin-bottom: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--foreground);
+        }
+
+        /* Main layout */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* Left sidebar - simplified controls */
+        .controls-sidebar {
+            position: sticky;
+            top: 2rem;
+        }
+
+        .control-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .control-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: var(--card);
+            color: var(--foreground);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(132, 79, 193, 0.1);
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted-foreground);
+            width: 16px;
+            height: 16px;
+        }
+
+        .search-input {
+            padding-left: 2.5rem;
+        }
+
+        /* Stats summary */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 0.75rem;
+            background: var(--surface-secondary);
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-complete { color: var(--status-complete); }
+        .stat-progress { color: var(--status-progress); }
+        .stat-blocked { color: var(--status-blocked); }
+        .stat-primary { color: var(--primary); }
+
+        /* Advanced controls - collapsed by default */
+        .advanced-controls {
+            margin-top: 1rem;
+        }
+
+        .advanced-toggle {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .advanced-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .advanced-content {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .advanced-content.show {
+            display: block;
+        }
+
+        /* Assignment list */
+        .assignments-container {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .assignments-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .assignments-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+
+        .assignments-count {
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+        }
+
+        .assignments-list {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .assignment-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .assignment-item:last-child {
+            border-bottom: none;
+        }
+
+        .assignment-item:hover {
+            background: var(--surface-secondary);
+        }
+
+        .assignment-checkbox {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+        }
+
+        .assignment-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .assignment-title {
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 0.25rem;
+            word-wrap: break-word;
+        }
+
+        .assignment-meta {
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .assignment-status {
+            margin-left: auto;
+        }
+
+        /* Status badges */
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid;
+        }
+
+        .status-pending {
+            background: var(--surface-secondary);
+            color: var(--muted-foreground);
+            border-color: var(--border);
+        }
+
+        .status-complete {
+            background: rgba(33, 191, 6, 0.1);
+            color: var(--status-complete);
+            border-color: rgba(33, 191, 6, 0.2);
+        }
+
+        .status-progress {
+            background: rgba(59, 134, 209, 0.1);
+            color: var(--status-progress);
+            border-color: rgba(59, 134, 209, 0.2);
+        }
+
+        .status-blocked {
+            background: rgba(108, 114, 147, 0.1);
+            color: var(--status-blocked);
+            border-color: rgba(108, 114, 147, 0.2);
+        }
+
+        /* Quick action button */
+        .quick-action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .quick-action-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .quick-action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .controls-sidebar {
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header with breadcrumbs -->
+    <div class="header">
+        <nav class="breadcrumb">
+            <a href="/">Home</a>
+            <span>›</span>
+            <a href="/admin">Admin</a>
+            <span>›</span>
+            <span>Assignment Management</span>
+        </nav>
+        <h1 class="page-title">Assignment Management</h1>
+    </div>
+
+    <div class="main-container">
+        <!-- Left Sidebar - Simplified Controls -->
+        <aside class="controls-sidebar">
+            <!-- Primary Controls -->
+            <div class="control-card">
+                <h3 class="control-title">Quick Filters</h3>
+                
+                <div class="form-group">
+                    <label class="form-label">Student</label>
+                    <select class="form-control">
+                        <option value="abigail">Abigail</option>
+                        <option value="khalil">Khalil</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Search Assignments</label>
+                    <div class="search-box">
+                        <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <input type="text" class="form-control search-input" placeholder="Search by title or subject...">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Show Only</label>
+                    <select class="form-control">
+                        <option value="all">All Assignments</option>
+                        <option value="pending">Pending Only</option>
+                        <option value="completed">Completed Only</option>
+                        <option value="stuck">Need Help Only</option>
+                    </select>
+                </div>
+
+                <!-- Advanced Controls - Collapsed -->
+                <div class="advanced-controls">
+                    <button class="advanced-toggle" onclick="toggleAdvanced()">
+                        <span id="advanced-text">Show More Filters</span>
+                        <svg id="advanced-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    
+                    <div class="advanced-content" id="advanced-content">
+                        <div class="form-group">
+                            <label class="form-label">Date Range</label>
+                            <select class="form-control">
+                                <option value="upcoming">Next 3 Weeks</option>
+                                <option value="this-week">This Week Only</option>
+                                <option value="overdue">Overdue Items</option>
+                                <option value="all">All Dates</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Source</label>
+                            <select class="form-control">
+                                <option value="all">All Sources</option>
+                                <option value="canvas">Canvas Only</option>
+                                <option value="manual">Manual Only</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="control-card">
+                <h3 class="control-title">Summary</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number stat-primary">24</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number stat-complete">12</div>
+                        <div class="stat-label">Done</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number stat-progress">8</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number stat-blocked">1</div>
+                        <div class="stat-label">Stuck</div>
+                    </div>
+                </div>
+                
+                <button class="quick-action-btn" onclick="markSelectedComplete()">
+                    Mark Selected as Done
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content - Assignment List -->
+        <main class="assignments-container">
+            <div class="assignments-header">
+                <div>
+                    <h2 class="assignments-title">Assignments for Abigail</h2>
+                    <p class="assignments-count">Showing 12 of 24 assignments</p>
+                </div>
+            </div>
+
+            <div class="assignments-list">
+                <!-- Sample assignments -->
+                <div class="assignment-item">
+                    <input type="checkbox" class="assignment-checkbox">
+                    <div class="assignment-content">
+                        <div class="assignment-title">Math - Fraction Operations Worksheet</div>
+                        <div class="assignment-meta">
+                            <span>Mathematics</span>
+                            <span>Due: Mon, Sep 2</span>
+                            <span>Canvas</span>
+                        </div>
+                    </div>
+                    <div class="assignment-status">
+                        <span class="status-badge status-pending">Pending</span>
+                    </div>
+                </div>
+
+                <div class="assignment-item">
+                    <input type="checkbox" class="assignment-checkbox" checked>
+                    <div class="assignment-content">
+                        <div class="assignment-title">Bible - Genesis Reading Reflection</div>
+                        <div class="assignment-meta">
+                            <span>Bible Study</span>
+                            <span>Due: Today</span>
+                            <span>Manual</span>
+                        </div>
+                    </div>
+                    <div class="assignment-status">
+                        <span class="status-badge status-complete">Done</span>
+                    </div>
+                </div>
+
+                <div class="assignment-item">
+                    <input type="checkbox" class="assignment-checkbox">
+                    <div class="assignment-content">
+                        <div class="assignment-title">Science - Cell Biology Lab Report</div>
+                        <div class="assignment-meta">
+                            <span>Life Science</span>
+                            <span>Due: Wed, Sep 4</span>
+                            <span>Canvas</span>
+                        </div>
+                    </div>
+                    <div class="assignment-status">
+                        <span class="status-badge status-blocked">Stuck</span>
+                    </div>
+                </div>
+
+                <div class="assignment-item">
+                    <input type="checkbox" class="assignment-checkbox">
+                    <div class="assignment-content">
+                        <div class="assignment-title">English - Character Analysis Essay Draft</div>
+                        <div class="assignment-meta">
+                            <span>Literature</span>
+                            <span>Due: Fri, Sep 6</span>
+                            <span>Canvas</span>
+                        </div>
+                    </div>
+                    <div class="assignment-status">
+                        <span class="status-badge status-progress">In Progress</span>
+                    </div>
+                </div>
+
+                <div class="assignment-item">
+                    <input type="checkbox" class="assignment-checkbox">
+                    <div class="assignment-content">
+                        <div class="assignment-title">History - American Revolution Timeline</div>
+                        <div class="assignment-meta">
+                            <span>World History</span>
+                            <span>Due: Thu, Sep 5</span>
+                            <span>Manual</span>
+                        </div>
+                    </div>
+                    <div class="assignment-status">
+                        <span class="status-badge status-pending">Pending</span>
+                    </div>
+                </div>
+
+                <!-- More assignments would go here -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function toggleAdvanced() {
+            const content = document.getElementById('advanced-content');
+            const text = document.getElementById('advanced-text');
+            const icon = document.getElementById('advanced-icon');
+            
+            if (content.classList.contains('show')) {
+                content.classList.remove('show');
+                text.textContent = 'Show More Filters';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                content.classList.add('show');
+                text.textContent = 'Hide Filters';
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        function markSelectedComplete() {
+            const checkboxes = document.querySelectorAll('.assignment-checkbox:checked');
+            alert(`Would mark ${checkboxes.length} assignments as complete`);
+        }
+    </script>
+</body>
+</html>
