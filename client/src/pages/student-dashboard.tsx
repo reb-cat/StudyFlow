@@ -94,6 +94,21 @@ export default function StudentDashboard() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // Initialize daily schedule for today
+  useEffect(() => {
+    const initializeSchedule = async () => {
+      try {
+        await apiRequest(`/api/schedule/${studentName}/${selectedDate}/initialize`, {
+          method: 'POST'
+        });
+      } catch (error) {
+        console.error('Failed to initialize schedule:', error);
+      }
+    };
+    
+    initializeSchedule();
+  }, [studentName, selectedDate]);
+
   // Fetch daily schedule status for Overview Mode
   const { data: dailyScheduleStatus = [], isLoading: isStatusLoading } = useQuery<Array<DailyScheduleStatus & { template: ScheduleTemplate }>>({
     queryKey: ['/api/schedule', studentName, selectedDate, 'status'],

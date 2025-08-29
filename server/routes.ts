@@ -667,7 +667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Validate status values
-      const validStatuses = ['not_started', 'in_progress', 'completed', 'stuck', 'skipped'];
+      const validStatuses = ['not-started', 'in-progress', 'complete', 'stuck', 'overtime'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ message: 'Invalid status value' });
       }

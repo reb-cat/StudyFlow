@@ -537,9 +537,9 @@ export class DatabaseStorage implements IStorage {
       };
 
       // Set timestamps based on status
-      if (status === 'in_progress') {
+      if (status === 'in-progress') {
         updateData.startedAt = new Date();
-      } else if (status === 'completed') {
+      } else if (status === 'complete') {
         updateData.completedAt = new Date();
       }
 
@@ -565,9 +565,9 @@ export class DatabaseStorage implements IStorage {
       // Get current weekday (0 = Sunday, 1 = Monday, etc.)
       const targetDate = new Date(date);
       const weekday = targetDate.getDay();
-      const weekdayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const weekdayName = weekdayNames[weekday];
-
+      
       // Get all schedule template blocks for this student and weekday
       const templateBlocks = await this.getScheduleTemplate(studentName, weekdayName);
 
@@ -590,7 +590,7 @@ export class DatabaseStorage implements IStorage {
           studentName,
           date,
           templateBlockId: block.id,
-          status: 'not_started',
+          status: 'not-started',
         }));
 
         await db.insert(dailyScheduleStatus).values(statusRecords);
