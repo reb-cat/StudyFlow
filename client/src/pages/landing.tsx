@@ -112,7 +112,7 @@ export default function LandingPage() {
             onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
             onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
-            Family Dashboard
+            Sign In
             <ArrowRight size={18} />
           </button>
         </div>
