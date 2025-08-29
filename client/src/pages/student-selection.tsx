@@ -34,8 +34,8 @@ export default function StudentSelection() {
   const { data: profiles = {} } = useQuery({
     queryKey: ['/api/students/profiles'],
     queryFn: async () => {
-      const abigailProfile = await apiRequest('/api/students/abigail/profile').catch(() => null);
-      const khalilProfile = await apiRequest('/api/students/khalil/profile').catch(() => null);
+      const abigailProfile = await apiRequest('GET', '/api/students/abigail/profile').then(res => res.json()).catch(() => null);
+      const khalilProfile = await apiRequest('GET', '/api/students/khalil/profile').then(res => res.json()).catch(() => null);
       return {
         abigail: abigailProfile,
         khalil: khalilProfile
@@ -46,10 +46,7 @@ export default function StudentSelection() {
   // Upload mutation
   const uploadMutation = useMutation({
     mutationFn: async ({ studentName, uploadUrl }: { studentName: string; uploadUrl: string }) => {
-      return apiRequest('/api/profile-image/complete', {
-        method: 'POST',
-        body: JSON.stringify({ uploadUrl, studentName })
-      });
+      return apiRequest('POST', '/api/profile-image/complete', { uploadUrl, studentName }).then(res => res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/students/profiles'] });
@@ -77,12 +74,11 @@ export default function StudentSelection() {
   ];
 
   const handleGetUploadParameters = async () => {
-    const response = await apiRequest('/api/profile-image/upload', {
-      method: 'POST'
-    });
+    const response = await apiRequest('POST', '/api/profile-image/upload');
+    const data = await response.json();
     return {
       method: 'PUT' as const,
-      url: response.url
+      url: data.url
     };
   };
 
