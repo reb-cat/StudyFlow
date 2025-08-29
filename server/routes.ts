@@ -639,6 +639,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Daily schedule status routes for Overview Mode
+  app.get('/api/schedule/:studentName/:date/status', async (req, res) => {
+    try {
+      const { studentName, date } = req.params;
+      
+      console.log(`Fetching daily schedule status for ${studentName} on ${date}`);
+      
+      const statusData = await storage.getDailyScheduleStatus(studentName, date);
+      
+      console.log(`Found ${statusData.length} schedule blocks with status`);
+      
+      res.json(statusData);
+    } catch (error) {
+      console.error('Error fetching daily schedule status:', error);
+      res.status(500).json({ message: 'Failed to fetch daily schedule status' });
+    }
+  });
+
+  app.patch('/api/schedule/:studentName/:date/block/:templateBlockId/status', async (req, res) => {
+    try {
+      const { studentName, date, templateBlockId } = req.params;
+      const { status, flags } = req.body;
+      
+      if (!status) {
+        return res.status(400).json({ message: 'Status is required' });
+      }
+      
+      // Validate status values
+      const validStatuses = ['not_started', 'in_progress', 'completed', 'stuck', 'skipped'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: 'Invalid status value' });
+      }
+      
+      console.log(`Updating block status: ${studentName}/${date}/${templateBlockId} -> ${status}`);
+      
+      const updated = await storage.updateBlockStatus(studentName, date, templateBlockId, status, flags);
+      
+      if (!updated) {
+        return res.status(404).json({ message: 'Schedule block not found' });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating block status:', error);
+      res.status(500).json({ message: 'Failed to update block status' });
+    }
+  });
+
+  app.post('/api/schedule/:studentName/:date/initialize', async (req, res) => {
+    try {
+      const { studentName, date } = req.params;
+      
+      console.log(`Initializing daily schedule for ${studentName} on ${date}`);
+      
+      await storage.initializeDailySchedule(studentName, date);
+      
+      res.json({ 
+        message: 'Daily schedule initialized successfully',
+        studentName,
+        date
+      });
+    } catch (error) {
+      console.error('Error initializing daily schedule:', error);
+      res.status(500).json({ message: 'Failed to initialize daily schedule' });
+    }
+  });
+
   // Schedule template routes - using real database data instead of hardcoded blocks
   app.get('/api/schedule-template/:studentName', async (req, res) => {
     try {
@@ -1304,8 +1371,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dashboardData = await storage.getFamilyDashboardData();
       
       // Calculate daily stats across all students
-      const totalCompleted = dashboardData.students.reduce((sum, s) => sum + s.completedToday, 0);
-      const totalRemaining = dashboardData.students.reduce((sum, s) => sum + (s.totalToday - s.completedToday), 0);
+      const totalCompleted = dashboardData.students.reduce((sum, s) => sum + (s.completedToday || 0), 0);
+      const totalRemaining = dashboardData.students.reduce((sum, s) => sum + ((s.totalToday || 0) - (s.completedToday || 0)), 0);
       
       // Get current date for display
       const today = new Date().toISOString().split('T')[0];

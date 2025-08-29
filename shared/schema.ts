@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, uuid, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, uuid, integer, date, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -164,6 +164,26 @@ export const scheduleTemplate = pgTable("schedule_template", {
   }).notNull(),
 });
 
+// ENHANCED: Daily schedule block status tracking for Overview Mode
+export const dailyScheduleStatus = pgTable("daily_schedule_status", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentName: text("student_name").notNull(), // "Abigail" or "Khalil"
+  date: date("date").notNull(), // "2025-08-29" format
+  templateBlockId: uuid("template_block_id").notNull(), // References scheduleTemplate.id
+  status: text("status", {
+    enum: ["not-started", "in-progress", "complete", "stuck", "overtime"]
+  }).notNull().default("not-started"),
+  completedAt: timestamp("completed_at"), // When marked complete
+  startedAt: timestamp("started_at"), // When started working
+  flags: jsonb("flags").default(sql`'{}'::jsonb`), // { neededMoreTime: false, wasStuck: false }
+  currentAssignmentId: uuid("current_assignment_id"), // Link to actual assignment being worked on
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  // Unique constraint: one status record per student/date/block
+  index("daily_schedule_unique").on(table.studentName, table.date, table.templateBlockId)
+]);
+
 // Bible curriculum - week/day progression
 export const bibleCurriculum = pgTable("bible_curriculum", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -206,6 +226,15 @@ export const updateAssignmentSchema = insertAssignmentSchema.partial();
 export const insertScheduleTemplateSchema = createInsertSchema(scheduleTemplate).omit({
   id: true,
 });
+
+// Daily schedule status schemas
+export const insertDailyScheduleStatusSchema = createInsertSchema(dailyScheduleStatus).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateDailyScheduleStatusSchema = insertDailyScheduleStatusSchema.partial();
 
 // Simple position tracking for sequential curriculum progression
 export const bibleCurriculumPosition = pgTable("bible_curriculum_position", {
@@ -301,6 +330,9 @@ export type Assignment = typeof assignments.$inferSelect;
 
 export type InsertScheduleTemplate = z.infer<typeof insertScheduleTemplateSchema>;
 export type ScheduleTemplate = typeof scheduleTemplate.$inferSelect;
+
+export type DailyScheduleStatus = typeof dailyScheduleStatus.$inferSelect;
+export type InsertDailyScheduleStatus = typeof dailyScheduleStatus.$inferInsert;
 
 export type InsertBibleCurriculum = z.infer<typeof insertBibleCurriculumSchema>;
 export type BibleCurriculum = typeof bibleCurriculum.$inferSelect;

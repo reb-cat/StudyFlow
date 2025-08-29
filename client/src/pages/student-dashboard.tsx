@@ -23,13 +23,18 @@ import {
   Activity,
   UtensilsCrossed,
   ArrowLeft,
-  Printer
+  Printer,
+  CheckCircle,
+  Circle,
+  AlertCircle,
+  Pause,
+  SkipForward
 } from 'lucide-react';
 import { Link, useParams } from 'wouter';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
 import { FixedBlock } from '@/components/FixedBlock';
-import type { Assignment } from '@shared/schema';
+import type { Assignment, DailyScheduleStatus, ScheduleTemplate } from '@shared/schema';
 
 export default function StudentDashboard() {
   const params = useParams<{ student: string }>();
@@ -89,9 +94,73 @@ export default function StudentDashboard() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // Fetch daily schedule status for Overview Mode
+  const { data: dailyScheduleStatus = [], isLoading: isStatusLoading } = useQuery<Array<DailyScheduleStatus & { template: ScheduleTemplate }>>({
+    queryKey: ['/api/schedule', studentName, selectedDate, 'status'],
+    queryFn: async () => {
+      const response = await fetch(`/api/schedule/${studentName}/${selectedDate}/status`);
+      if (!response.ok) throw new Error('Failed to fetch daily schedule status');
+      return response.json();
+    },
+    staleTime: 1000 * 30, // 30 seconds for real-time updates
+    enabled: !isGuidedMode, // Only fetch when in Overview Mode
+  });
+
   const handleAssignmentUpdate = () => {
     refetch();
     queryClient.invalidateQueries({ queryKey: ['/api/assignments', selectedDate, studentName] });
+  };
+
+  // Status badge helpers for Overview Mode
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      'not-started': {
+        variant: 'outline' as const,
+        color: 'text-gray-500 dark:text-muted-foreground bg-gray-50 dark:bg-muted/30 border-gray-200 dark:border-border/50',
+        icon: Circle,
+        text: 'not started'
+      },
+      'in-progress': {
+        variant: 'outline' as const,
+        color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50',
+        icon: Play,
+        text: 'in progress'
+      },
+      'complete': {
+        variant: 'outline' as const,
+        color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50',
+        icon: CheckCircle,
+        text: 'complete'
+      },
+      'stuck': {
+        variant: 'outline' as const,
+        color: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800/50',
+        icon: AlertCircle,
+        text: 'stuck'
+      },
+      'overtime': {
+        variant: 'outline' as const,
+        color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800/50',
+        icon: SkipForward,
+        text: 'overtime'
+      }
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['not-started'];
+    const IconComponent = config.icon;
+
+    return (
+      <Badge variant={config.variant} className={`text-xs px-2 py-0.5 rounded-md ${config.color}`}>
+        <IconComponent className="h-3 w-3 mr-1" />
+        {config.text}
+      </Badge>
+    );
+  };
+
+  // Get status for a specific schedule block
+  const getBlockStatus = (blockId: string): string => {
+    const statusEntry = dailyScheduleStatus.find(s => s.templateBlockId === blockId);
+    return statusEntry?.status || 'not-started';
   };
 
   const todayAssignments = assignments as Assignment[];
@@ -376,14 +445,26 @@ export default function StudentDashboard() {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Progress Bar - Apple Fitness style */}
+            {/* Progress Bar - Apple Fitness style with real-time progress */}
             <div className="bg-white dark:bg-card rounded-xl p-4 border border-gray-200 dark:border-border/50 no-print">
               <div className="flex justify-between text-sm mb-2">
                 <span className="font-medium text-muted-foreground">Daily Progress</span>
-                <span className="font-medium text-muted-foreground">0%</span>
+                <span className="font-medium text-muted-foreground">
+                  {dailyScheduleStatus.length > 0 
+                    ? `${Math.round((dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100)}%`
+                    : '0%'
+                  }
+                </span>
               </div>
               <div className="w-full bg-gray-100 dark:bg-muted rounded-full h-1">
-                <div className="bg-blue-500 h-1 rounded-full transition-all duration-500" style={{ width: '0%' }}></div>
+                <div 
+                  className="bg-blue-500 h-1 rounded-full transition-all duration-500" 
+                  style={{ 
+                    width: dailyScheduleStatus.length > 0 
+                      ? `${(dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100}%`
+                      : '0%'
+                  }}
+                ></div>
               </div>
             </div>
 
@@ -499,9 +580,7 @@ export default function StudentDashboard() {
                                   <span className="text-gray-500 dark:text-muted-foreground text-sm">
                                     {formatTime(block.startTime, block.endTime)}
                                   </span>
-                                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gray-50 dark:bg-muted/30 text-gray-600 dark:text-muted-foreground border-gray-200 dark:border-border/50 rounded-md">
-                                    not started
-                                  </Badge>
+                                  {getStatusBadge(getBlockStatus(block.id))}
                                 </div>
                                 
                                 {/* Bible curriculum content for print */}

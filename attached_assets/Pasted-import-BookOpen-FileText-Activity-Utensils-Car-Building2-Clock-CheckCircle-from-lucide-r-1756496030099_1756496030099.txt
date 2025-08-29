@@ -1,0 +1,377 @@
+import { BookOpen, FileText, Activity, Utensils, Car, Building2, Clock, CheckCircle } from 'lucide-react';
+
+// Your color system
+const colors = {
+  primary: '#844FC1',
+  complete: '#21BF06',
+  progress: '#3B86D1',
+  support: '#6C7293',
+  background: '#F8F9FA',
+  surface: '#FFFFFF',
+  text: '#212529',
+  textMuted: '#6C7293',
+  border: '#E9ECEF'
+};
+
+export default function ScheduleCardDemo() {
+  // Sample schedule data
+  const scheduleBlocks = [
+    { 
+      id: '1', 
+      title: 'Math - Algebra Practice', 
+      blockType: 'assignment',
+      startTime: '09:00',
+      endTime: '09:45',
+      status: 'complete',
+      assignment: { title: 'Algebra Chapter 5', courseName: 'Mathematics' }
+    },
+    { 
+      id: '2', 
+      title: 'Bible Reading', 
+      blockType: 'bible',
+      startTime: '10:00',
+      endTime: '10:30',
+      status: 'complete'
+    },
+    { 
+      id: '3', 
+      title: 'Science Lab Report', 
+      blockType: 'assignment',
+      startTime: '10:45',
+      endTime: '11:45',
+      status: 'in-progress',
+      assignment: { title: 'Photosynthesis Lab', courseName: 'Biology' }
+    },
+    { 
+      id: '4', 
+      title: 'Lunch Break', 
+      blockType: 'lunch',
+      startTime: '12:00',
+      endTime: '13:00',
+      status: 'not-started'
+    },
+    { 
+      id: '5', 
+      title: 'English Essay', 
+      blockType: 'assignment',
+      startTime: '13:15',
+      endTime: '14:15',
+      status: 'not-started',
+      assignment: { title: 'Romeo & Juliet Analysis', courseName: 'English Literature' }
+    },
+    { 
+      id: '6', 
+      title: 'Physical Activity', 
+      blockType: 'movement',
+      startTime: '14:30',
+      endTime: '15:00',
+      status: 'not-started'
+    }
+  ];
+
+  const formatTimeRange = (start, end) => {
+    const formatTime = (time) => {
+      if (!time || time === '00:00') return '12:00 AM';
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      return `${displayHour}:${minutes} ${ampm}`;
+    };
+    return `${formatTime(start)} – ${formatTime(end)}`;
+  };
+
+  const getDuration = (start, end) => {
+    const [startHour, startMin] = start.split(':').map(Number);
+    const [endHour, endMin] = end.split(':').map(Number);
+    const duration = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+    return duration;
+  };
+
+  const getBlockStyle = (blockType, status) => {
+    if (status === 'complete') {
+      return {
+        icon: CheckCircle,
+        bgColor: colors.complete,
+        textColor: 'white',
+        label: 'Complete'
+      };
+    }
+    
+    if (status === 'in-progress') {
+      return {
+        icon: Clock,
+        bgColor: colors.progress,
+        textColor: 'white',
+        label: 'In Progress'
+      };
+    }
+
+    const config = {
+      bible: { icon: BookOpen, label: 'Bible' },
+      assignment: { icon: FileText, label: 'Assignment' },
+      movement: { icon: Activity, label: 'Movement' },
+      lunch: { icon: Utensils, label: 'Lunch' },
+      travel: { icon: Car, label: 'Travel' },
+      'co-op': { icon: Building2, label: 'Co-op' }
+    };
+
+    const blockConfig = config[blockType] || { icon: FileText, label: 'Task' };
+    
+    return {
+      ...blockConfig,
+      bgColor: colors.primary,
+      textColor: 'white'
+    };
+  };
+
+  const currentBlockIndex = 2; // Science Lab is current
+
+  return (
+    <div style={{ 
+      padding: '40px',
+      backgroundColor: colors.background,
+      minHeight: '100vh'
+    }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        
+        {/* Header for context */}
+        <h1 style={{ 
+          fontSize: '28px',
+          fontWeight: 'bold',
+          color: colors.text,
+          marginBottom: '12px'
+        }}>
+          Overview Mode - Status Display
+        </h1>
+        <p style={{ 
+          fontSize: '14px',
+          color: colors.textMuted,
+          marginBottom: '24px'
+        }}>
+          Read-only view showing real-time status from Guided Mode
+        </p>
+
+        {/* The optimized schedule card */}
+        <div style={{
+          backgroundColor: colors.surface,
+          border: `1px solid ${colors.border}`,
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 2px 8px rgba(132, 79, 193, 0.08)'
+        }}>
+          <h3 style={{ 
+            fontSize: '20px', 
+            fontWeight: '600',
+            color: colors.text,
+            marginBottom: '20px'
+          }}>
+            Today's Schedule
+          </h3>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            {scheduleBlocks.map((block, index) => {
+              const style = getBlockStyle(block.blockType, block.status);
+              const Icon = style.icon;
+              const duration = getDuration(block.startTime, block.endTime);
+              const isCurrentBlock = index === currentBlockIndex;
+              
+              let displayTitle = block.title;
+              let subtitle = '';
+              
+              if (block.blockType === 'assignment' && block.assignment) {
+                displayTitle = block.assignment.title;
+                subtitle = block.assignment.courseName;
+              } else if (block.blockType === 'bible') {
+                displayTitle = 'Bible Reading';
+                subtitle = 'Daily devotion';
+              }
+              
+              return (
+                <div 
+                  key={block.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    backgroundColor: isCurrentBlock ? `${colors.progress}10` : 'transparent',
+                    border: isCurrentBlock ? `1px solid ${colors.progress}` : '1px solid transparent',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                >
+                  {/* Time column */}
+                  <div style={{
+                    minWidth: '140px',
+                    marginRight: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                  }}>
+                    <span style={{ 
+                      fontSize: '14px', 
+                      fontWeight: '500',
+                      color: colors.text
+                    }}>
+                      {formatTimeRange(block.startTime, block.endTime)}
+                    </span>
+                    <span style={{ 
+                      fontSize: '12px',
+                      color: colors.textMuted
+                    }}>
+                      {duration} min
+                    </span>
+                  </div>
+
+                  {/* Icon */}
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    backgroundColor: style.bgColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginRight: '12px'
+                  }}>
+                    <Icon size={18} color={style.textColor} />
+                  </div>
+
+                  {/* Content */}
+                  <div style={{ 
+                    flex: 1,
+                    minWidth: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                  }}>
+                    <span style={{ 
+                      fontSize: '16px',
+                      fontWeight: '500',
+                      color: colors.text
+                    }}>
+                      {displayTitle}
+                    </span>
+                    {subtitle && (
+                      <span style={{ 
+                        fontSize: '13px',
+                        color: colors.textMuted
+                      }}>
+                        {subtitle}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Status badge - only for complete/in-progress */}
+                  {block.status && block.status !== 'not-started' && (
+                    <div style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      backgroundColor: block.status === 'complete' ? `${colors.complete}20` : `${colors.progress}20`,
+                      color: block.status === 'complete' ? colors.complete : colors.progress,
+                      fontSize: '12px',
+                      fontWeight: '600'
+                    }}>
+                      {style.label}
+                    </div>
+                  )}
+
+                  {/* Current time indicator */}
+                  {isCurrentBlock && (
+                    <div style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '3px',
+                      height: '70%',
+                      backgroundColor: colors.progress,
+                      borderRadius: '0 2px 2px 0'
+                    }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Summary footer */}
+          <div style={{
+            marginTop: '20px',
+            paddingTop: '16px',
+            borderTop: `1px solid ${colors.border}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ display: 'flex', gap: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: colors.complete
+                }} />
+                <span style={{ fontSize: '13px', color: colors.textMuted }}>
+                  2 complete
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: colors.progress
+                }} />
+                <span style={{ fontSize: '13px', color: colors.textMuted }}>
+                  1 in progress
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: colors.border
+                }} />
+                <span style={{ fontSize: '13px', color: colors.textMuted }}>
+                  3 upcoming
+                </span>
+              </div>
+            </div>
+            
+            <span style={{ 
+              fontSize: '13px',
+              color: colors.textMuted,
+              fontWeight: '500'
+            }}>
+              Total: 5h 30min
+            </span>
+          </div>
+        </div>
+
+        {/* Key improvements list */}
+        <div style={{
+          marginTop: '32px',
+          padding: '20px',
+          backgroundColor: colors.surface,
+          borderRadius: '12px',
+          border: `1px solid ${colors.border}`
+        }}>
+          <h4 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '12px' }}>
+            Key Optimizations:
+          </h4>
+          <ul style={{ color: colors.textMuted, lineHeight: '1.8', paddingLeft: '20px' }}>
+            <li>Time shows duration (45 min) for better planning</li>
+            <li>Icons change color only for status (complete = green, in-progress = blue)</li>
+            <li>Current block has subtle blue highlight with left border</li>
+            <li>No "not started" badges - reduces visual clutter</li>
+            <li>Summary dots at bottom for quick progress scan</li>
+            <li>Total day duration helps with time management</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}

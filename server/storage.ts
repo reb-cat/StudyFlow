@@ -5,7 +5,8 @@ import {
   type BibleCurriculum, type InsertBibleCurriculum,
   type StudentProfile, type InsertStudentProfile,
   type StudentStatus, type InsertStudentStatus,
-  users, assignments, scheduleTemplate, bibleCurriculum, studentProfiles, studentStatus
+  type DailyScheduleStatus, type InsertDailyScheduleStatus,
+  users, assignments, scheduleTemplate, bibleCurriculum, studentProfiles, studentStatus, dailyScheduleStatus
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -50,6 +51,11 @@ export interface IStorage {
     students: Array<StudentStatus & { profile: StudentProfile | null }>;
     needsReview: Array<{ student: string; assignment: string; issue: string }>;
   }>;
+  
+  // Daily schedule status operations for Overview Mode
+  getDailyScheduleStatus(studentName: string, date: string): Promise<Array<DailyScheduleStatus & { template: ScheduleTemplate }>>;
+  updateBlockStatus(studentName: string, date: string, templateBlockId: string, status: string, flags?: object): Promise<DailyScheduleStatus | undefined>;
+  initializeDailySchedule(studentName: string, date: string): Promise<void>;
 }
 
 // Database storage implementation using local Replit database
@@ -486,6 +492,113 @@ export class DatabaseStorage implements IStorage {
       };
     }
   }
+
+  // Daily schedule status operations for Overview Mode
+  async getDailyScheduleStatus(studentName: string, date: string): Promise<Array<DailyScheduleStatus & { template: ScheduleTemplate }>> {
+    try {
+      // First initialize the daily schedule if it doesn't exist
+      await this.initializeDailySchedule(studentName, date);
+
+      // Get status records with template details
+      const result = await db
+        .select({
+          id: dailyScheduleStatus.id,
+          studentName: dailyScheduleStatus.studentName,
+          date: dailyScheduleStatus.date,
+          templateBlockId: dailyScheduleStatus.templateBlockId,
+          status: dailyScheduleStatus.status,
+          completedAt: dailyScheduleStatus.completedAt,
+          startedAt: dailyScheduleStatus.startedAt,
+          currentAssignmentId: dailyScheduleStatus.currentAssignmentId,
+          createdAt: dailyScheduleStatus.createdAt,
+          updatedAt: dailyScheduleStatus.updatedAt,
+          template: scheduleTemplate
+        })
+        .from(dailyScheduleStatus)
+        .innerJoin(scheduleTemplate, eq(dailyScheduleStatus.templateBlockId, scheduleTemplate.id))
+        .where(and(
+          eq(dailyScheduleStatus.studentName, studentName),
+          eq(dailyScheduleStatus.date, date)
+        ))
+        .orderBy(scheduleTemplate.startTime);
+
+      return result;
+    } catch (error) {
+      console.error('Error getting daily schedule status:', error);
+      return [];
+    }
+  }
+
+  async updateBlockStatus(studentName: string, date: string, templateBlockId: string, status: string, flags?: object): Promise<DailyScheduleStatus | undefined> {
+    try {
+      const updateData: any = {
+        status,
+        updatedAt: new Date(),
+      };
+
+      // Set timestamps based on status
+      if (status === 'in_progress') {
+        updateData.startedAt = new Date();
+      } else if (status === 'completed') {
+        updateData.completedAt = new Date();
+      }
+
+      const result = await db
+        .update(dailyScheduleStatus)
+        .set(updateData)
+        .where(and(
+          eq(dailyScheduleStatus.studentName, studentName),
+          eq(dailyScheduleStatus.date, date),
+          eq(dailyScheduleStatus.templateBlockId, templateBlockId)
+        ))
+        .returning();
+
+      return result[0] || undefined;
+    } catch (error) {
+      console.error('Error updating block status:', error);
+      return undefined;
+    }
+  }
+
+  async initializeDailySchedule(studentName: string, date: string): Promise<void> {
+    try {
+      // Get current weekday (0 = Sunday, 1 = Monday, etc.)
+      const targetDate = new Date(date);
+      const weekday = targetDate.getDay();
+      const weekdayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const weekdayName = weekdayNames[weekday];
+
+      // Get all schedule template blocks for this student and weekday
+      const templateBlocks = await this.getScheduleTemplate(studentName, weekdayName);
+
+      // Check which blocks already have status records
+      const existingStatuses = await db
+        .select()
+        .from(dailyScheduleStatus)
+        .where(and(
+          eq(dailyScheduleStatus.studentName, studentName),
+          eq(dailyScheduleStatus.date, date)
+        ));
+
+      const existingBlockIds = new Set(existingStatuses.map(s => s.templateBlockId));
+
+      // Create status records for missing blocks
+      const missingBlocks = templateBlocks.filter(block => !existingBlockIds.has(block.id));
+
+      if (missingBlocks.length > 0) {
+        const statusRecords = missingBlocks.map(block => ({
+          studentName,
+          date,
+          templateBlockId: block.id,
+          status: 'not_started',
+        }));
+
+        await db.insert(dailyScheduleStatus).values(statusRecords);
+      }
+    } catch (error) {
+      console.error('Error initializing daily schedule:', error);
+    }
+  }
 }
 
 // Keep MemStorage for fallback
@@ -887,6 +1000,26 @@ export class MemStorage implements IStorage {
         { student: 'Abigail', assignment: 'History Essay', issue: 'Due tomorrow - not started' }
       ]
     };
+  }
+
+  // Daily schedule status operations (stub methods for MemStorage)
+  async getDailyScheduleStatus(studentName: string, date: string): Promise<Array<DailyScheduleStatus & { template: ScheduleTemplate }>> {
+    // Stub implementation - return empty array
+    return [];
+  }
+
+  async updateBlockStatus(studentName: string, date: string, templateBlockId: string, status: string, flags?: object): Promise<DailyScheduleStatus | undefined> {
+    // Stub implementation - return undefined
+    return undefined;
+  }
+
+  async initializeDailySchedule(studentName: string, date: string): Promise<void> {
+    // Stub implementation - do nothing
+  }
+
+  async getAllAssignments(): Promise<Assignment[]> {
+    // Return all assignments for print queue functionality
+    return Array.from(this.assignments.values());
   }
 }
 
