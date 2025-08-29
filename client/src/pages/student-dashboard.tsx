@@ -615,12 +615,14 @@ export default function StudentDashboard() {
                               <div className="text-gray-500">{getBlockDuration(block.startTime, block.endTime)}</div>
                             </div>
 
-                            {/* Colored Icon */}
+                            {/* Colored Icon - Consistent by Subject Type */}
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              effectiveStatus === 'complete' ? 'bg-green-500' :
-                              effectiveStatus === 'in-progress' ? 'bg-blue-500' :
-                              effectiveStatus === 'stuck' ? 'bg-orange-500' :
-                              'bg-gray-400'  // not-started = gray
+                              block.blockType.toLowerCase() === 'bible' ? 'bg-green-500' :
+                              block.blockType.toLowerCase() === 'assignment' ? 'bg-purple-500' :
+                              block.blockType.toLowerCase() === 'co-op' ? 'bg-blue-500' :
+                              block.blockType.toLowerCase() === 'movement' ? 'bg-orange-500' :
+                              block.blockType.toLowerCase() === 'lunch' ? 'bg-yellow-500' :
+                              'bg-gray-500'
                             }`}>
                               {getBlockIcon(block.blockType)}
                             </div>
