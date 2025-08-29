@@ -39,6 +39,40 @@ export function detectPrintNeeds(assignment: {
       // Generate proper Canvas assignment URL: https://canvas.instructure.com/courses/6739821/assignments/40318135
       result.canvasUrl = `${baseUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
     }
+  }
+  // ENHANCED FALLBACK: Map course IDs for Canvas assignments with missing course data
+  else if (assignment.canvasId && assignment.canvasInstance) {
+    const baseUrl = assignment.canvasInstance === 1 
+      ? process.env.CANVAS_BASE_URL 
+      : process.env.CANVAS_BASE_URL_2;
+    if (baseUrl) {
+      // Map known course IDs based on assignment subject/courseName
+      let courseId: number | null = null;
+      const subject = (assignment.subject || '').toLowerCase();
+      const courseName = (assignment.courseName || '').toLowerCase();
+      
+      // Map based on known course patterns from Canvas logs
+      if (subject.includes('baking') || courseName.includes('baking')) {
+        courseId = 12112029; // 25/26 M4 MS/HS Baking
+      } else if (subject.includes('geometry') || courseName.includes('geometry')) {
+        courseId = 12060124; // 25/26 M4/T4 Geometry  
+      } else if (subject.includes('american lit') || subject.includes('literature') || courseName.includes('american lit') || subject.includes('10th-11th')) {
+        courseId = 6739821; // 25/26 T2 10th-11th Gr American Lit/Comp
+      } else if (subject.includes('photography') || courseName.includes('photography')) {
+        courseId = 12261099; // 25/26 T5 Photography
+      } else if (subject.includes('yearbook') || courseName.includes('yearbook')) {
+        courseId = 12267845; // 25/26 T6 Yearbook
+      }
+      
+      if (courseId) {
+        result.canvasUrl = `${baseUrl}/courses/${courseId}/assignments/${assignment.canvasId}`;
+        console.log(`🔗 Fixed Canvas URL for "${assignment.title}": ${result.canvasUrl}`);
+      } else {
+        // Final fallback to search
+        const searchTerm = encodeURIComponent(assignment.title.substring(0, 50));
+        result.canvasUrl = `${baseUrl}/search/all_courses?search=${searchTerm}`;
+      }
+    }
   } 
   // FALLBACK: Generate search URL for assignments without Canvas IDs
   else {
