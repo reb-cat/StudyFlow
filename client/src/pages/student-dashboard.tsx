@@ -584,6 +584,21 @@ export default function StudentDashboard() {
 
                         const currentStatus = getBlockStatus(block.id);
                         const isCurrentBlock = currentStatus === 'in-progress';
+                        
+                        // Different block types support different statuses
+                        const getValidStatusForBlock = (blockType: string, status: string) => {
+                          const lowerBlockType = blockType.toLowerCase();
+                          
+                          // Binary blocks (movement, lunch, travel) only support complete/not-started
+                          if (['movement', 'lunch', 'travel', 'prep/load'].includes(lowerBlockType)) {
+                            return status === 'complete' ? 'complete' : 'not-started';
+                          }
+                          
+                          // All other blocks support full status range
+                          return status;
+                        };
+                        
+                        const effectiveStatus = getValidStatusForBlock(block.blockType, currentStatus);
 
                         return (
                           <div 
@@ -602,10 +617,10 @@ export default function StudentDashboard() {
 
                             {/* Colored Icon */}
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              currentStatus === 'complete' ? 'bg-green-500' :
-                              currentStatus === 'in-progress' ? 'bg-blue-500' :
-                              currentStatus === 'stuck' ? 'bg-orange-500' :
-                              'bg-purple-500'
+                              effectiveStatus === 'complete' ? 'bg-green-500' :
+                              effectiveStatus === 'in-progress' ? 'bg-blue-500' :
+                              effectiveStatus === 'stuck' ? 'bg-orange-500' :
+                              'bg-gray-400'  // not-started = gray
                             }`}>
                               {getBlockIcon(block.blockType)}
                             </div>
@@ -618,11 +633,21 @@ export default function StudentDashboard() {
 
                             {/* Status Badge */}
                             <button 
-                              onClick={() => updateBlockStatus(block.id, getNextStatus(currentStatus))}
+                              onClick={() => {
+                                // Binary blocks cycle between not-started and complete only
+                                const lowerBlockType = block.blockType.toLowerCase();
+                                if (['movement', 'lunch', 'travel', 'prep/load'].includes(lowerBlockType)) {
+                                  const nextStatus = currentStatus === 'complete' ? 'not-started' : 'complete';
+                                  updateBlockStatus(block.id, nextStatus);
+                                } else {
+                                  // Other blocks use full status cycle
+                                  updateBlockStatus(block.id, getNextStatus(currentStatus));
+                                }
+                              }}
                               className="hover:scale-105 transition-transform duration-150"
                               data-testid={`button-status-${block.id}`}
                             >
-                              {getStatusBadge(currentStatus)}
+                              {getStatusBadge(effectiveStatus)}
                             </button>
                           </div>
                         );
