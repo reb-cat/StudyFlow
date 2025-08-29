@@ -227,13 +227,13 @@ export default function FamilyDashboard() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <CheckCircle size={20} color={colors.complete} />
               <span style={{ color: colors.text }}>
-                <strong>3</strong> tasks completed
+                <strong>{apiData.stats.totalCompleted}</strong> tasks completed
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Clock size={20} color={colors.progress} />
               <span style={{ color: colors.text }}>
-                <strong>8</strong> tasks remaining
+                <strong>{apiData.stats.totalRemaining}</strong> tasks remaining
               </span>
             </div>
             {dashboardData.needsReview.length > 0 && (

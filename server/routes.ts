@@ -1438,7 +1438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Initialize REAL status for Abigail based on actual data
       const abigailStatus = await storage.upsertStudentStatus({
         studentName: 'abigail',
-        currentMode: 'overview',
+        currentMode: 'guided',
         currentAssignmentId: null,
         currentAssignmentTitle: null, // No current assignment - real state
         sessionStartTime: null,
@@ -1456,7 +1456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Initialize REAL status for Khalil based on actual data  
       const khalilStatus = await storage.upsertStudentStatus({
         studentName: 'khalil',
-        currentMode: 'overview',
+        currentMode: 'guided',
         currentAssignmentId: null,
         currentAssignmentTitle: null, // No current assignment - real state
         sessionStartTime: null,
