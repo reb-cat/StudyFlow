@@ -588,77 +588,42 @@ export default function StudentDashboard() {
                         return (
                           <div 
                             key={block.id} 
-                            className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 border-2 ${
+                            className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 ${
                               isCurrentBlock 
-                                ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30' 
-                                : 'border-gray-100 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-card hover:dark:bg-muted/30'
-                            } print-schedule-item ${
-                              block.blockType === 'assignment' ? 'print-assignment' : 
-                              block.blockType === 'bible' ? 'print-bible' : ''
-                            }`}
+                                ? 'border-2 border-blue-300 bg-blue-50' 
+                                : 'bg-white hover:bg-gray-50'
+                            } print-schedule-item`}
                           >
-                            {/* Time Block - Left Side */}
-                            <div className="flex flex-col text-sm text-gray-600 dark:text-muted-foreground min-w-[120px]">
-                              <div className="font-medium">
-                                {formatTime(block.startTime, block.endTime)}
-                              </div>
-                              <div className="text-xs">
-                                {getBlockDuration(block.startTime, block.endTime)}
-                              </div>
+                            {/* Time + Duration */}
+                            <div className="flex flex-col text-sm text-gray-700 min-w-[120px]">
+                              <div className="font-medium">{formatTime(block.startTime, block.endTime)}</div>
+                              <div className="text-gray-500">{getBlockDuration(block.startTime, block.endTime)}</div>
                             </div>
 
-                            {/* Subject Icon */}
-                            <div className="flex-shrink-0">
-                              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                                currentStatus === 'complete' ? 'bg-green-500' :
-                                currentStatus === 'in-progress' ? 'bg-blue-500' :
-                                currentStatus === 'stuck' ? 'bg-orange-500' :
-                                'bg-purple-500'
-                              }`}>
-                                {getBlockIcon(block.blockType)}
-                              </div>
+                            {/* Colored Icon */}
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              currentStatus === 'complete' ? 'bg-green-500' :
+                              currentStatus === 'in-progress' ? 'bg-blue-500' :
+                              currentStatus === 'stuck' ? 'bg-orange-500' :
+                              'bg-purple-500'
+                            }`}>
+                              {getBlockIcon(block.blockType)}
                             </div>
 
-                            {/* Content - Middle */}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-lg text-gray-900 dark:text-foreground mb-1">
-                                {blockTitle}
-                              </h3>
-                              {blockDetails && (
-                                <p className="text-gray-600 dark:text-muted-foreground">
-                                  {blockDetails}
-                                </p>
-                              )}
+                            {/* Subject + Description */}
+                            <div className="flex-1">
+                              <div className="font-semibold text-gray-900">{blockTitle}</div>
+                              {blockDetails && <div className="text-gray-600 text-sm">{blockDetails}</div>}
                             </div>
 
-                            {/* Status Badge - Right Side */}
-                            <div className="flex-shrink-0">
-                              <button 
-                                onClick={() => updateBlockStatus(block.id, getNextStatus(currentStatus))}
-                                className="hover:scale-105 transition-transform duration-150"
-                                data-testid={`button-status-${block.id}`}
-                              >
-                                {getStatusBadge(currentStatus)}
-                              </button>
-                            </div>
-
-                            {/* Print content */}
-                            <div className="hidden print:block">
-                              {block.blockType === 'bible' && (
-                                <div className="print-bible-reference mt-2">
-                                  Genesis 1-2 (Daily Bible Reading)
-                                </div>
-                              )}
-                              
-                              {block.blockType === 'assignment' && populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment && (
-                                <div className="print-description mt-2">
-                                  Course: {populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.courseName || 'Unknown'}
-                                  {populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.dueDate && (
-                                    <div>Due: {new Date(populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.dueDate).toLocaleDateString()}</div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
+                            {/* Status Badge */}
+                            <button 
+                              onClick={() => updateBlockStatus(block.id, getNextStatus(currentStatus))}
+                              className="hover:scale-105 transition-transform duration-150"
+                              data-testid={`button-status-${block.id}`}
+                            >
+                              {getStatusBadge(currentStatus)}
+                            </button>
                           </div>
                         );
                       })}
