@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   firstName: text("first_name"),
   lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"), // URL to profile image in object storage
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -215,6 +216,17 @@ export const bibleCurriculumPosition = pgTable("bible_curriculum_position", {
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
 
+// Student profiles for managing avatars and personal settings
+export const studentProfiles = pgTable("student_profiles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentName: text("student_name").notNull().unique(), // "abigail", "khalil"
+  displayName: text("display_name").notNull(), // "Abigail", "Khalil"
+  profileImageUrl: text("profile_image_url"), // URL to profile image in object storage
+  themeColor: text("theme_color").default("#844FC1"), // Student's theme color
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Bible curriculum schemas
 export const insertBibleCurriculumSchema = createInsertSchema(bibleCurriculum).omit({
   id: true,
@@ -225,6 +237,15 @@ export const insertBibleCurriculumPositionSchema = createInsertSchema(bibleCurri
   id: true,
   lastUpdated: true,
 });
+
+// Student profile schemas
+export const insertStudentProfileSchema = createInsertSchema(studentProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateStudentProfileSchema = insertStudentProfileSchema.partial();
 
 // Progress session schemas
 export const insertProgressSessionSchema = createInsertSchema(progressSessions).omit({
@@ -264,3 +285,7 @@ export type BibleCurriculumPosition = typeof bibleCurriculumPosition.$inferSelec
 
 export type InsertProgressSession = z.infer<typeof insertProgressSessionSchema>;
 export type ProgressSession = typeof progressSessions.$inferSelect;
+
+export type InsertStudentProfile = z.infer<typeof insertStudentProfileSchema>;
+export type UpdateStudentProfile = z.infer<typeof updateStudentProfileSchema>;
+export type StudentProfile = typeof studentProfiles.$inferSelect;

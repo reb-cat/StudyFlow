@@ -1,6 +1,9 @@
-import { useState } from 'react';
-import { User, Settings, Clock, Calendar, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Settings, Clock, Calendar, Star, Camera } from 'lucide-react';
 import { Link } from 'wouter';
+import { ObjectUploader } from '@/components/ObjectUploader';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 // Your color system - matching the guided view
 const colors = {
@@ -17,6 +20,8 @@ const colors = {
 
 export default function StudentSelection() {
   const [hoveredStudent, setHoveredStudent] = useState<string | null>(null);
+  const [editingStudent, setEditingStudent] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   
   // Current date/time
   const now = new Date();
@@ -25,6 +30,33 @@ export default function StudentSelection() {
   const timeOfDay = now.getHours() < 12 ? 'morning' : now.getHours() < 17 ? 'afternoon' : 'evening';
   const greeting = `Good ${timeOfDay}! Let's make it a great day!`;
 
+  // Fetch student profiles
+  const { data: profiles = {} } = useQuery({
+    queryKey: ['/api/students/profiles'],
+    queryFn: async () => {
+      const abigailProfile = await apiRequest('/api/students/abigail/profile').catch(() => null);
+      const khalilProfile = await apiRequest('/api/students/khalil/profile').catch(() => null);
+      return {
+        abigail: abigailProfile,
+        khalil: khalilProfile
+      };
+    }
+  });
+
+  // Upload mutation
+  const uploadMutation = useMutation({
+    mutationFn: async ({ studentName, uploadUrl }: { studentName: string; uploadUrl: string }) => {
+      return apiRequest('/api/profile-image/complete', {
+        method: 'POST',
+        body: JSON.stringify({ uploadUrl, studentName })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/students/profiles'] });
+      setEditingStudent(null);
+    }
+  });
+
   const students = [
     { 
       id: 'abigail', 
@@ -32,7 +64,7 @@ export default function StudentSelection() {
       initial: 'A', 
       color: colors.primary,
       message: "You're doing amazing! Keep it up!",
-      profileImage: null // Can be a URL like '/images/abigail.jpg'
+      profileImage: profiles.abigail?.profileImageUrl
     },
     { 
       id: 'khalil', 
@@ -40,9 +72,25 @@ export default function StudentSelection() {
       initial: 'K', 
       color: colors.progress,
       message: "Ready for another great learning day!",
-      profileImage: null // Can be a URL like '/images/khalil.jpg'
+      profileImage: profiles.khalil?.profileImageUrl
     }
   ];
+
+  const handleGetUploadParameters = async () => {
+    const response = await apiRequest('/api/profile-image/upload', {
+      method: 'POST'
+    });
+    return {
+      method: 'PUT' as const,
+      url: response.url
+    };
+  };
+
+  const handleUploadComplete = (uploadedUrl: string) => {
+    if (editingStudent) {
+      uploadMutation.mutate({ studentName: editingStudent, uploadUrl: uploadedUrl });
+    }
+  };
 
   return (
     <div style={{
@@ -222,6 +270,32 @@ export default function StudentSelection() {
                   ) : (
                     student.initial
                   )}
+                  
+                  {/* Edit overlay */}
+                  {hoveredStudent === student.id && (
+                    <div
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setEditingStudent(student.id);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        borderRadius: '50%'
+                      }}
+                    >
+                      <Camera size={24} color="white" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Student Name */}
@@ -288,6 +362,69 @@ export default function StudentSelection() {
           Built for focused learning
         </div>
       </footer>
+
+      {/* Upload Modal */}
+      {editingStudent && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: colors.surface,
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)'
+          }}>
+            <h3 style={{ 
+              margin: '0 0 20px 0', 
+              fontSize: '20px', 
+              fontWeight: '600',
+              color: colors.text,
+              textAlign: 'center'
+            }}>
+              Update {editingStudent.charAt(0).toUpperCase() + editingStudent.slice(1)}'s Profile Photo
+            </h3>
+            
+            <ObjectUploader
+              onGetUploadParameters={handleGetUploadParameters}
+              onComplete={handleUploadComplete}
+              accept="image/*"
+              maxFileSize={5 * 1024 * 1024} // 5MB
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Camera size={18} />
+                Choose Photo
+              </div>
+            </ObjectUploader>
+
+            <button
+              onClick={() => setEditingStudent(null)}
+              style={{
+                marginTop: '16px',
+                width: '100%',
+                padding: '12px',
+                backgroundColor: 'transparent',
+                border: `1px solid ${colors.border}`,
+                borderRadius: '8px',
+                color: colors.textMuted,
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

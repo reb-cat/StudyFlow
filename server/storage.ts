@@ -3,7 +3,8 @@ import {
   type Assignment, type InsertAssignment, type UpdateAssignment,
   type ScheduleTemplate, type InsertScheduleTemplate,
   type BibleCurriculum, type InsertBibleCurriculum,
-  users, assignments, scheduleTemplate, bibleCurriculum
+  type StudentProfile, type InsertStudentProfile,
+  users, assignments, scheduleTemplate, bibleCurriculum, studentProfiles
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -35,6 +36,10 @@ export interface IStorage {
   getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]>;
   getBibleCurrentWeek(): Promise<BibleCurriculum[]>;
   updateBibleCompletion(weekNumber: number, dayOfWeek: number, completed: boolean): Promise<BibleCurriculum | undefined>;
+  
+  // Student profile operations
+  getStudentProfile(studentName: string): Promise<StudentProfile | undefined>;
+  upsertStudentProfile(profile: InsertStudentProfile): Promise<StudentProfile>;
 }
 
 // Database storage implementation using local Replit database
@@ -317,6 +322,43 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
   }
+
+  // Student profile operations
+  async getStudentProfile(studentName: string): Promise<StudentProfile | undefined> {
+    try {
+      const result = await db.select().from(studentProfiles).where(eq(studentProfiles.studentName, studentName)).limit(1);
+      return result[0] || undefined;
+    } catch (error) {
+      console.error('Error getting student profile:', error);
+      return undefined;
+    }
+  }
+
+  async upsertStudentProfile(profile: InsertStudentProfile): Promise<StudentProfile> {
+    try {
+      const existing = await this.getStudentProfile(profile.studentName);
+      
+      if (existing) {
+        // Update existing profile
+        const result = await db
+          .update(studentProfiles)
+          .set({
+            ...profile,
+            updatedAt: new Date()
+          })
+          .where(eq(studentProfiles.studentName, profile.studentName))
+          .returning();
+        return result[0];
+      } else {
+        // Create new profile
+        const result = await db.insert(studentProfiles).values(profile).returning();
+        return result[0];
+      }
+    } catch (error) {
+      console.error('Error upserting student profile:', error);
+      throw new Error('Failed to update student profile');
+    }
+  }
 }
 
 // Keep MemStorage for fallback
@@ -592,6 +634,42 @@ export class MemStorage implements IStorage {
         updatedAt: new Date()
       });
     });
+  }
+
+  // Student profile operations (stub methods for MemStorage)
+  async getStudentProfile(studentName: string): Promise<StudentProfile | undefined> {
+    // Stub implementation - return default profiles
+    const defaultProfiles: Record<string, StudentProfile> = {
+      'abigail': {
+        id: 'abigail-profile',
+        studentName: 'abigail',
+        displayName: 'Abigail',
+        profileImageUrl: null,
+        themeColor: '#844FC1',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      'khalil': {
+        id: 'khalil-profile',
+        studentName: 'khalil',
+        displayName: 'Khalil',
+        profileImageUrl: null,
+        themeColor: '#3B86D1',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    };
+    return defaultProfiles[studentName];
+  }
+
+  async upsertStudentProfile(profile: InsertStudentProfile): Promise<StudentProfile> {
+    // Stub implementation - just return the profile with generated fields
+    return {
+      id: 'temp-' + profile.studentName,
+      ...profile,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
   }
 }
 

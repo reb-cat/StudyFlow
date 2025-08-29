@@ -10,7 +10,8 @@ import {
   getWeeklyBibleProgress
 } from './lib/bibleCurriculum';
 import { extractDueDatesFromExistingAssignments, extractDueDateFromTitle } from './lib/assignmentIntelligence';
-import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas"; 
+import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas";
+import { ObjectStorageService } from "./objectStorage"; 
 // Email config moved inline since Supabase removed
 const emailConfig = {
   resendApiKey: process.env.RESEND_API_KEY || '',
@@ -1208,6 +1209,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching Bible curriculum progress:', error);
       res.status(500).json({ message: 'Failed to fetch curriculum progress' });
+    }
+  });
+
+  // Student Profile Management API endpoints
+  
+  // GET /api/students/:studentName/profile - Get student profile
+  app.get('/api/students/:studentName/profile', async (req, res) => {
+    try {
+      const { studentName } = req.params;
+      const profile = await storage.getStudentProfile(studentName);
+      res.json(profile);
+    } catch (error) {
+      console.error('Error fetching student profile:', error);
+      res.status(500).json({ message: 'Failed to fetch student profile' });
+    }
+  });
+
+  // PUT /api/students/:studentName/profile - Update student profile
+  app.put('/api/students/:studentName/profile', async (req, res) => {
+    try {
+      const { studentName } = req.params;
+      const { profileImageUrl, themeColor } = req.body;
+      
+      const profile = await storage.upsertStudentProfile({
+        studentName,
+        displayName: studentName.charAt(0).toUpperCase() + studentName.slice(1),
+        profileImageUrl,
+        themeColor
+      });
+      
+      res.json(profile);
+    } catch (error) {
+      console.error('Error updating student profile:', error);
+      res.status(500).json({ message: 'Failed to update student profile' });
+    }
+  });
+
+  // POST /api/profile-image/upload - Get upload URL for profile image
+  app.post('/api/profile-image/upload', async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ url: uploadURL });
+    } catch (error) {
+      console.error('Error getting upload URL:', error);
+      res.status(500).json({ message: 'Failed to get upload URL' });
+    }
+  });
+
+  // POST /api/profile-image/complete - Complete profile image upload
+  app.post('/api/profile-image/complete', async (req, res) => {
+    try {
+      const { uploadUrl, studentName } = req.body;
+      
+      if (!uploadUrl || !studentName) {
+        return res.status(400).json({ message: 'Upload URL and student name are required' });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadUrl);
+      
+      // Update student profile with new image URL
+      const profile = await storage.upsertStudentProfile({
+        studentName,
+        displayName: studentName.charAt(0).toUpperCase() + studentName.slice(1),
+        profileImageUrl: objectPath
+      });
+      
+      res.json({ objectPath, profile });
+    } catch (error) {
+      console.error('Error completing profile image upload:', error);
+      res.status(500).json({ message: 'Failed to complete upload' });
+    }
+  });
+
+  // GET /objects/:objectPath(*) - Serve uploaded profile images
+  app.get('/objects/:objectPath(*)', async (req, res) => {
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error('Error serving object:', error);
+      res.status(404).json({ error: 'File not found' });
     }
   });
 
