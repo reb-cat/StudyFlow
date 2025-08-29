@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { User, Settings, Clock, Calendar, Star } from 'lucide-react';
-import { Link } from 'wouter';
 
-// Your color system - matching the guided view
+// Your color system
 const colors = {
   primary: '#844FC1',
   complete: '#21BF06',
@@ -15,12 +14,12 @@ const colors = {
   border: '#E9ECEF'
 };
 
-export default function StudentSelection() {
-  const [hoveredStudent, setHoveredStudent] = useState<string | null>(null);
+export default function StudentSelectionPage() {
+  const [hoveredStudent, setHoveredStudent] = useState(null);
   
   // Current date/time
   const now = new Date();
-  const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   const dateDisplay = now.toLocaleDateString('en-US', dateOptions);
   const timeOfDay = now.getHours() < 12 ? 'morning' : now.getHours() < 17 ? 'afternoon' : 'evening';
   const greeting = `Good ${timeOfDay}! Let's make it a great day!`;
@@ -44,6 +43,15 @@ export default function StudentSelection() {
     }
   ];
 
+  const handleStudentClick = (studentId) => {
+    // Navigate to student dashboard
+    window.location.href = `/student/${studentId}`;
+  };
+
+  const handleAdminClick = () => {
+    window.location.href = '/admin';
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -61,7 +69,7 @@ export default function StudentSelection() {
         alignItems: 'center',
         boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
       }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
             width: '48px',
             height: '48px',
@@ -84,10 +92,10 @@ export default function StudentSelection() {
           }}>
             StudyFlow
           </h1>
-        </Link>
+        </div>
         
-        <Link
-          href="/admin"
+        <button
+          onClick={handleAdminClick}
           style={{
             padding: '10px 20px',
             backgroundColor: 'transparent',
@@ -99,23 +107,20 @@ export default function StudentSelection() {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            transition: 'all 0.2s',
-            textDecoration: 'none'
+            transition: 'all 0.2s'
           }}
           onMouseEnter={(e) => {
-            const target = e.currentTarget as HTMLElement;
-            target.style.backgroundColor = colors.background;
-            target.style.borderColor = colors.primary;
+            e.currentTarget.style.backgroundColor = colors.background;
+            e.currentTarget.style.borderColor = colors.primary;
           }}
           onMouseLeave={(e) => {
-            const target = e.currentTarget as HTMLElement;
-            target.style.backgroundColor = 'transparent';
-            target.style.borderColor = colors.border;
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.borderColor = colors.border;
           }}
         >
           <Settings size={18} />
           Admin
-        </Link>
+        </button>
       </header>
 
       {/* Main Content */}
@@ -170,105 +175,100 @@ export default function StudentSelection() {
           width: '100%'
         }}>
           {students.map((student) => (
-            <Link
+            <div
               key={student.id}
-              href={`/student/${student.id}`}
-              style={{ textDecoration: 'none' }}
+              onMouseEnter={() => setHoveredStudent(student.id)}
+              onMouseLeave={() => setHoveredStudent(null)}
+              style={{
+                backgroundColor: colors.surface,
+                border: `2px solid ${hoveredStudent === student.id ? student.color : colors.border}`,
+                borderRadius: '20px',
+                padding: '32px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                transform: hoveredStudent === student.id ? 'translateY(-4px)' : 'translateY(0)',
+                boxShadow: hoveredStudent === student.id 
+                  ? `0 12px 32px ${student.color}20` 
+                  : '0 2px 8px rgba(0,0,0,0.04)'
+              }}
+              onClick={() => handleStudentClick(student.id)}
             >
-              <div
-                onMouseEnter={() => setHoveredStudent(student.id)}
-                onMouseLeave={() => setHoveredStudent(null)}
+              {/* Student Avatar */}
+              <div style={{
+                width: '80px',
+                height: '80px',
+                backgroundColor: student.color,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 20px',
+                color: 'white',
+                fontSize: '36px',
+                fontWeight: 'bold',
+                boxShadow: `0 4px 12px ${student.color}30`,
+                overflow: 'hidden',
+                position: 'relative'
+              }}>
+                {student.profileImage ? (
+                  <img 
+                    src={student.profileImage} 
+                    alt={student.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                ) : (
+                  student.initial
+                )}
+              </div>
+
+              {/* Student Name */}
+              <h3 style={{
+                fontSize: '28px',
+                fontWeight: '600',
+                color: colors.text,
+                margin: '0 0 12px 0'
+              }}>
+                {student.name}
+              </h3>
+
+              {/* Motivational Message */}
+              <p style={{
+                color: colors.textMuted,
+                fontSize: '16px',
+                margin: '0 0 24px 0',
+                minHeight: '24px'
+              }}>
+                {student.message}
+              </p>
+
+              {/* Let's Go Button */}
+              <button
                 style={{
-                  backgroundColor: colors.surface,
-                  border: `2px solid ${hoveredStudent === student.id ? student.color : colors.border}`,
-                  borderRadius: '20px',
-                  padding: '32px',
-                  textAlign: 'center',
+                  width: '100%',
+                  padding: '14px 24px',
+                  backgroundColor: hoveredStudent === student.id ? student.color : colors.background,
+                  border: `2px solid ${student.color}`,
+                  borderRadius: '12px',
+                  color: hoveredStudent === student.id ? 'white' : student.color,
+                  fontSize: '18px',
+                  fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  transform: hoveredStudent === student.id ? 'translateY(-4px)' : 'translateY(0)',
-                  boxShadow: hoveredStudent === student.id 
-                    ? `0 12px 32px ${student.color}20` 
-                    : '0 2px 8px rgba(0,0,0,0.04)'
-                }}
-              >
-                {/* Student Avatar */}
-                <div style={{
-                  width: '80px',
-                  height: '80px',
-                  backgroundColor: student.color,
-                  borderRadius: '50%',
+                  transition: 'all 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '0 auto 20px',
-                  color: 'white',
-                  fontSize: '36px',
-                  fontWeight: 'bold',
-                  boxShadow: `0 4px 12px ${student.color}30`,
-                  overflow: 'hidden',
-                  position: 'relative'
-                }}>
-                  {student.profileImage ? (
-                    <img 
-                      src={student.profileImage} 
-                      alt={student.name}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                    />
-                  ) : (
-                    student.initial
-                  )}
-                </div>
-
-                {/* Student Name */}
-                <h3 style={{
-                  fontSize: '28px',
-                  fontWeight: '600',
-                  color: colors.text,
-                  margin: '0 0 12px 0'
-                }}>
-                  {student.name}
-                </h3>
-
-                {/* Motivational Message */}
-                <p style={{
-                  color: colors.textMuted,
-                  fontSize: '16px',
-                  margin: '0 0 24px 0',
-                  minHeight: '24px'
-                }}>
-                  {student.message}
-                </p>
-
-                {/* Let's Go Button */}
-                <button
-                  data-testid={`button-select-${student.id}`}
-                  style={{
-                    width: '100%',
-                    padding: '14px 24px',
-                    backgroundColor: hoveredStudent === student.id ? student.color : colors.background,
-                    border: `2px solid ${student.color}`,
-                    borderRadius: '12px',
-                    color: hoveredStudent === student.id ? 'white' : student.color,
-                    fontSize: '18px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  Let's Go!
-                  <Star size={20} />
-                </button>
-              </div>
-            </Link>
+                  gap: '8px'
+                }}
+              >
+                Let's Go!
+                <Star size={20} />
+              </button>
+            </div>
           ))}
         </div>
       </main>
