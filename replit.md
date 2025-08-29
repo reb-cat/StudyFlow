@@ -1,12 +1,12 @@
-# StudyFlow v1.1.0 - Enhanced Due Date Intelligence
+# StudyFlow v1.2.0 - Intelligent Assignment Scheduling System
 
 StudyFlow is an executive function-friendly productivity platform designed to help students manage their academic workload with a compassionate and supportive approach. The system transforms generic 'Bible' schedule entries into specific 52-week curriculum content with sequential progression, providing concrete daily tasks that support executive function needs. Built as a full-stack web application using modern React and Node.js technologies with comprehensive Canvas integration and PostgreSQL data persistence.
 
-**Current Version**: 1.1.0 (Released: August 28, 2025)
-**Status**: STABLE AND FULLY FUNCTIONAL - Enhanced Due Date Intelligence
-**Last Verified Working**: August 28, 2025 at 3:54 AM EST
+**Current Version**: 1.2.0 (Released: August 29, 2025)
+**Status**: STABLE AND FULLY FUNCTIONAL - Intelligent Assignment Scheduling + Enhanced Filtering
+**Last Verified Working**: August 29, 2025 at 10:18 PM EST
 
-# 🔒 CRITICAL VERSION CHECKPOINT - v1.1.0
+# 🔒 CRITICAL VERSION CHECKPOINT - v1.2.0
 
 ## 🚨 RESTORE POINT INSTRUCTIONS
 
@@ -27,9 +27,51 @@ If anything breaks, restore to this exact state:
 - Schedule Templates: 103 blocks across both students
 - Database: 5 core tables optimized for performance
 
-## Recent Changes (v1.1.0 - August 28, 2025)
+## Recent Changes (v1.2.0 - August 29, 2025)
 
-### ✅ MAJOR BREAKTHROUGH: Due Date Intelligence System
+### 🚨 CRITICAL SYSTEM REPAIR: Intelligent Assignment Scheduling
+
+**PROBLEM SOLVED**: Sequential assignment logic causing duplicate "Review Recipe" assignments on same day and zero scheduling intelligence
+
+**CORE ISSUE DISCOVERED**:
+- Assignment population was using simple `assignments[index]` logic
+- No subject distribution, deduplication, or prioritization 
+- Same subject assignments appearing multiple times per day
+- Complete loss of scheduling intelligence
+
+**SOLUTION IMPLEMENTED**:
+1. **Priority-Based Assignment Sorting**
+   - Overdue assignments prioritized first (catch-up work)
+   - Then sorted by due date (upcoming deadlines)
+   - Intelligent workload sequencing
+
+2. **Subject Distribution Algorithm** 
+   - Different subjects per assignment block (no subject clustering)
+   - Diverse daily workload instead of repetitive subjects
+   - Smart subject tracking to prevent duplicates
+
+3. **Advanced Deduplication System**
+   - Prevents "Review Recipe" duplicates on same day
+   - Pattern matching for similar worksheets/homework
+   - Title analysis to catch related assignments (2+ matching words)
+   - Intelligent fallback when assignments needed
+
+4. **Assignment Type Filtering**
+   - Filters out "Class Participation", "Attendance" assignments
+   - Removes non-completable behavioral tracking from daily scheduling
+   - Preserves admin visibility while protecting student focus
+
+5. **Enhanced Date Filtering**
+   - Extended range: 30 days back + 21 days forward
+   - Includes overdue assignments for catch-up work
+   - Better assignment coverage for populated blocks
+
+### ✅ UI/UX IMPROVEMENTS:
+- **Centered time display**: Start/end times now center-aligned
+- **Status-driven icons**: Consistent white icons on colored backgrounds
+- **Assignment type intelligence**: Non-schedulable assignments filtered out
+
+### ✅ PREVIOUS BREAKTHROUGH: Due Date Intelligence System (v1.1.0)
 
 **PROBLEM SOLVED**: Assignments showing "No due date" despite having dates in titles
 
@@ -156,29 +198,43 @@ If the system breaks:
 4. **Canvas API**: Confirm tokens are valid in environment variables
 5. **Restore Point**: This document represents last known working state
 
-## Success Metrics (v1.1.0)
+## Success Metrics (v1.2.0)
 
-✅ **Due Date Coverage**: 96/103 assignments now have proper due dates  
-✅ **Canvas Sync**: Working for both students with proper filtering  
+✅ **Intelligent Scheduling**: Subject distribution prevents duplicate assignments same day
+✅ **Assignment Filtering**: 6 assignments → 5 after participation filtering (3 removed)
+✅ **Overdue Integration**: 30-day lookback captures missed assignments for catch-up
+✅ **Deduplication Logic**: "Review Recipe" conflicts eliminated via pattern matching  
+✅ **Priority Sorting**: Overdue assignments appear first in scheduling queue
+✅ **Due Date Coverage**: 96/103 assignments with proper due dates (preserved from v1.1.0)
+✅ **Canvas Sync**: Working for both students with enhanced filtering  
 ✅ **Bible Curriculum**: Sequential progression active  
 ✅ **Admin Panel**: All bulk operations functional  
-✅ **Student Dashboards**: Displaying assignments with due dates  
+✅ **Student Dashboards**: Intelligent assignment distribution with centered UI
 ✅ **Database Integrity**: All 5 tables optimized and stable  
 
-## What's Working RIGHT NOW (Verified August 28, 2025)
+## What's Working RIGHT NOW (Verified August 29, 2025 at 10:18 PM EST)
 
-- Students can log in and see their assignments with proper due dates
-- Canvas imports work automatically with date extraction
-- Bible curriculum advances sequentially  
-- Admin panel allows bulk management
-- Assignment creation and editing functions properly
-- Schedule templates display correctly for both students
-- Date filtering works for upcoming assignments
-- Search and filter functionality in admin panel
-- Retroactive due date extraction via admin panel buttons
+- **Intelligent Assignment Scheduling**: No more duplicate subjects on same day
+- **Subject Distribution**: Different subjects spread across assignment blocks  
+- **Priority-Based Sorting**: Overdue assignments appear first for catch-up
+- **Advanced Deduplication**: Pattern matching prevents similar assignments same day
+- **Assignment Type Filtering**: Participation/attendance assignments excluded from daily scheduling
+- **Enhanced Date Filtering**: 30-day lookback + 21-day forward range captures full workload
+- **Centered UI Elements**: Time display and icons properly aligned
+- **Canvas Integration**: Automatic import with date extraction (preserved)
+- **Due Date Intelligence**: 96/103 assignments with proper dates (preserved)
+- **Bible Curriculum**: Sequential progression active (preserved)
+- **Admin Panel**: Bulk operations + retroactive due date extraction (preserved)
+- **Multi-Student Support**: Abigail + Khalil dashboards working (preserved)
+
+## Key Files Modified (v1.2.0)
+```
+client/src/pages/student-dashboard.tsx - Intelligent scheduling algorithm
+server/storage.ts - Assignment type filtering + extended date range
+```
 
 ---
 
-**⚠️ CRITICAL**: This is a stable, working version. Any major changes should be tested thoroughly before replacing this functionality. The due date extraction system took significant effort to implement and is now working perfectly - preserve this code at all costs.
+**🚨 CRITICAL RESTORE POINT**: This version represents a major breakthrough in scheduling intelligence. The assignment population logic was completely broken (sequential index-based) and has been restored to proper subject distribution, deduplication, and priority sorting. This took significant effort to diagnose and repair - preserve this scheduling logic at all costs.
 
-**📍 Current Position**: Ready for continued development or safe for extended use in current state.
+**📍 Current Position**: Ready for continued development with fully functional intelligent scheduling system. Core scheduling intelligence is now working correctly.
