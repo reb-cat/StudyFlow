@@ -1426,49 +1426,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/family/initialize - Initialize student status data for testing
   app.post('/api/family/initialize', async (req, res) => {
     try {
-      console.log('🔧 Initializing student status data...');
+      console.log('🔧 Initializing student status data with REAL current state...');
       
-      // Initialize default status for Abigail
+      // Get real assignments for both students today
+      const today = new Date().toISOString().split('T')[0];
+      const abigailAssignments = await storage.getAssignments('abigail-user', today, false);
+      const khalilAssignments = await storage.getAssignments('khalil-user', today, false);
+      
+      console.log(`📋 Real assignments today - Abigail: ${abigailAssignments.length}, Khalil: ${khalilAssignments.length}`);
+      
+      // Initialize REAL status for Abigail based on actual data
       const abigailStatus = await storage.upsertStudentStatus({
         studentName: 'abigail',
         currentMode: 'overview',
         currentAssignmentId: null,
-        currentAssignmentTitle: 'Math - Algebra Practice',
-        sessionStartTime: new Date(Date.now() - 30 * 60 * 1000), // Started 30 minutes ago
-        estimatedEndTime: new Date(Date.now() + 25 * 60 * 1000), // 25 minutes remaining
+        currentAssignmentTitle: null, // No current assignment - real state
+        sessionStartTime: null,
+        estimatedEndTime: null,
         isStuck: false,
         needsHelp: false,
         isOvertimeOnTask: false,
-        completedToday: 2,
-        totalToday: 6,
-        minutesWorkedToday: 45,
-        targetMinutesToday: 180,
+        completedToday: 0, // Real count - nothing completed today
+        totalToday: abigailAssignments.length, // Real total assignments for today
+        minutesWorkedToday: 0, // No time worked today
+        targetMinutesToday: 180, // Standard target
         lastActivity: new Date()
       });
 
-      // Initialize status for Khalil (showing stuck/overtime flags)
+      // Initialize REAL status for Khalil based on actual data  
       const khalilStatus = await storage.upsertStudentStatus({
         studentName: 'khalil',
-        currentMode: 'guided',
+        currentMode: 'overview',
         currentAssignmentId: null,
-        currentAssignmentTitle: 'Science Lab Report',
-        sessionStartTime: new Date(Date.now() - 50 * 60 * 1000), // Started 50 minutes ago
-        estimatedEndTime: new Date(Date.now() - 10 * 60 * 1000), // Should have finished 10 minutes ago
-        isStuck: true,
-        stuckSince: new Date(Date.now() - 20 * 60 * 1000), // Stuck for 20 minutes
+        currentAssignmentTitle: null, // No current assignment - real state
+        sessionStartTime: null,
+        estimatedEndTime: null,
+        isStuck: false,
         needsHelp: false,
-        isOvertimeOnTask: true,
-        completedToday: 1,
-        totalToday: 5,
-        minutesWorkedToday: 30,
-        targetMinutesToday: 150,
+        isOvertimeOnTask: false,
+        completedToday: 0, // Real count - nothing completed today
+        totalToday: khalilAssignments.length, // Real total assignments for today
+        minutesWorkedToday: 0, // No time worked today
+        targetMinutesToday: 150, // Standard target
         lastActivity: new Date()
       });
 
-      console.log('✅ Student status data initialized successfully');
+      console.log('✅ Student status initialized with REAL current state (no active work today)');
       res.json({
-        message: 'Student status data initialized successfully',
-        students: [abigailStatus, khalilStatus]
+        message: 'Student status initialized with real current state',
+        students: [abigailStatus, khalilStatus],
+        realData: {
+          abigailAssignments: abigailAssignments.length,
+          khalilAssignments: khalilAssignments.length
+        }
       });
     } catch (error) {
       console.error('Error initializing student status data:', error);
