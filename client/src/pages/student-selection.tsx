@@ -400,6 +400,7 @@ export default function StudentSelection() {
               onComplete={handleUploadComplete}
               accept="image/*"
               maxFileSize={5 * 1024 * 1024} // 5MB
+              buttonClassName="dark-cta-button"
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Camera size={18} />

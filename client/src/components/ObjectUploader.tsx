@@ -85,7 +85,13 @@ export function ObjectUploader({
       <Button 
         onClick={() => setShowModal(true)} 
         className={buttonClassName}
-        variant="outline"
+        style={{
+          backgroundColor: buttonClassName === 'dark-cta-button' ? '#2D3748' : undefined,
+          color: buttonClassName === 'dark-cta-button' ? 'white' : undefined,
+          border: buttonClassName === 'dark-cta-button' ? 'none' : undefined,
+          fontWeight: buttonClassName === 'dark-cta-button' ? '600' : undefined
+        }}
+        variant={buttonClassName === 'dark-cta-button' ? 'default' : 'outline'}
       >
         {children}
       </Button>
@@ -175,6 +181,12 @@ export function ObjectUploader({
               <Button
                 onClick={handleUpload}
                 disabled={!selectedFile || isUploading}
+                style={{
+                  backgroundColor: '#2D3748',
+                  color: 'white',
+                  border: 'none',
+                  fontWeight: '600'
+                }}
               >
                 {isUploading ? 'Uploading...' : 'Upload'}
               </Button>
