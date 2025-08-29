@@ -177,6 +177,26 @@ export default function StudentDashboard() {
     return statusEntry?.status || 'not-started';
   };
 
+  // Update block status functionality
+  const updateBlockStatus = async (blockId: string, newStatus: string) => {
+    try {
+      await apiRequest('PATCH', `/api/schedule/${studentName}/${selectedDate}/block/${blockId}/status`, {
+        status: newStatus
+      });
+      // Refresh status data immediately
+      queryClient.invalidateQueries({ queryKey: ['/api/schedule', studentName, selectedDate, 'status'] });
+    } catch (error) {
+      console.error('Failed to update block status:', error);
+    }
+  };
+
+  // Get next status in cycle: not-started -> in-progress -> complete -> not-started
+  const getNextStatus = (currentStatus: string): string => {
+    const statusCycle = ['not-started', 'in-progress', 'complete'];
+    const currentIndex = statusCycle.indexOf(currentStatus);
+    return statusCycle[(currentIndex + 1) % statusCycle.length];
+  };
+
   const todayAssignments = assignments as Assignment[];
   
   
@@ -465,20 +485,24 @@ export default function StudentDashboard() {
                 <span className="font-medium text-muted-foreground">Daily Progress</span>
                 <span className="font-medium text-muted-foreground">
                   {dailyScheduleStatus.length > 0 
-                    ? `${Math.round((dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100)}%`
+                    ? `${Math.round((dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100)}% (${dailyScheduleStatus.filter(s => s.status === 'complete').length}/${dailyScheduleStatus.length})`
                     : '0%'
                   }
                 </span>
               </div>
-              <div className="w-full bg-gray-100 dark:bg-muted rounded-full h-1">
+              <div className="w-full bg-gray-100 dark:bg-muted rounded-full h-3">
                 <div 
-                  className="bg-blue-500 h-1 rounded-full transition-all duration-500" 
+                  className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500" 
                   style={{ 
                     width: dailyScheduleStatus.length > 0 
                       ? `${(dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100}%`
                       : '0%'
                   }}
                 ></div>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                <span>Click status badges to update progress</span>
+                <span>{dailyScheduleStatus.filter(s => s.status === 'in-progress').length} in progress • {dailyScheduleStatus.filter(s => s.status === 'stuck').length} stuck</span>
               </div>
             </div>
 
@@ -594,7 +618,13 @@ export default function StudentDashboard() {
                                   <span className="text-gray-500 dark:text-muted-foreground text-sm">
                                     {formatTime(block.startTime, block.endTime)}
                                   </span>
-                                  {getStatusBadge(getBlockStatus(block.id))}
+                                  <button 
+                                    onClick={() => updateBlockStatus(block.id, getNextStatus(getBlockStatus(block.id)))}
+                                    className="hover:scale-105 transition-transform duration-150"
+                                    data-testid={`button-status-${block.id}`}
+                                  >
+                                    {getStatusBadge(getBlockStatus(block.id))}
+                                  </button>
                                 </div>
                                 
                                 {/* Bible curriculum content for print */}
