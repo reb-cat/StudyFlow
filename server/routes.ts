@@ -300,14 +300,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             priority: 'B',
             difficulty: 'medium',
             canvasId: canvasAssignment.id,
-            canvasCourseId: canvasAssignment.course_id, // CRITICAL: Add course ID for Canvas URLs
             canvasInstance: 1
           });
-          
-          // DEBUG: Check if course_id exists
-          if (!canvasAssignment.course_id) {
-            console.log(`⚠️ Missing course_id for assignment: ${canvasAssignment.name} (id: ${canvasAssignment.id})`);
-          }
         }
       }
       
@@ -330,7 +324,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             priority: 'B',
             difficulty: 'medium',
             canvasId: canvasAssignment.id,
-            canvasCourseId: canvasAssignment.course_id, // CRITICAL: Add course ID for Canvas URLs  
             canvasInstance: 2
           });
         }
@@ -367,7 +360,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Import from instance 1
       if (canvasData.instance1) {
-        console.log(`📥 Importing ${canvasData.instance1.length} assignments from Canvas Instance 1`);
         for (const canvasAssignment of canvasData.instance1) {
           // Skip assignments before June 15, 2025
           if (canvasAssignment.due_at) {
@@ -378,9 +370,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               continue;
             }
           }
-          
-          console.log(`✅ Importing assignment: "${canvasAssignment.name}" (course_id: ${canvasAssignment.course_id})`)
-          console.log(`🔍 Assignment data:`, JSON.stringify(canvasAssignment, null, 2).substring(0, 500))
           
           // Determine completion status based on Canvas grading info
           let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
@@ -413,7 +402,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             priority: 'B',
             difficulty: 'medium',
             canvasId: canvasAssignment.id,
-            canvasCourseId: canvasAssignment.course_id, // CRITICAL: Add course ID for Canvas URLs
             canvasInstance: 1,
             isCanvasImport: true
           });
@@ -465,7 +453,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             priority: 'B',
             difficulty: 'medium',
             canvasId: canvasAssignment.id,
-            canvasCourseId: canvasAssignment.course_id, // CRITICAL: Add course ID for Canvas URLs
             canvasInstance: 2,
             isCanvasImport: true
           });
