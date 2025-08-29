@@ -115,24 +115,31 @@ export class DatabaseStorage implements IStorage {
       if (date) {
         const requestDate = new Date(date);
         const futureLimit = new Date(requestDate);
-        futureLimit.setDate(requestDate.getDate() + 12); // 12 days ahead
+        futureLimit.setDate(requestDate.getDate() + 21); // 3 weeks ahead
         
-        console.log(`🗓️ Date filtering: ${date} (${requestDate.toISOString()}) to ${futureLimit.toISOString()}`);
+        // Allow overdue assignments up to 30 days back (for catch-up work)
+        const pastLimit = new Date(requestDate);
+        pastLimit.setDate(requestDate.getDate() - 30); 
+        
+        console.log(`🗓️ Date filtering: ${pastLimit.toISOString().split('T')[0]} to ${futureLimit.toISOString().split('T')[0]} (including overdue assignments)`);
         
         const beforeDateFilter = assignmentList.length;
         assignmentList = assignmentList.filter((assignment: any) => {
           // For assignments without due dates, include them (they're always relevant)
           if (!assignment.dueDate) {
+            console.log(`✅ Including assignment (no due date): ${assignment.title}`);
             return true;
           }
           
           const dueDate = new Date(assignment.dueDate);
-          const isInRange = dueDate >= requestDate && dueDate <= futureLimit;
+          // Include assignments due within our window (past or future)
+          const isInRange = dueDate >= pastLimit && dueDate <= futureLimit;
           
           if (isInRange) {
-            console.log(`✅ Including assignment due ${dueDate.toISOString().split('T')[0]}: ${assignment.title}`);
+            const isOverdue = dueDate < requestDate;
+            console.log(`✅ Including assignment due ${dueDate.toISOString().split('T')[0]}${isOverdue ? ' (overdue)' : ''}: ${assignment.title}`);
           } else {
-            console.log(`❌ Excluding assignment due ${dueDate.toISOString().split('T')[0]}: ${assignment.title}`);
+            console.log(`❌ Excluding assignment due ${dueDate.toISOString().split('T')[0]} (outside range): ${assignment.title}`);
           }
           
           return isInRange;
