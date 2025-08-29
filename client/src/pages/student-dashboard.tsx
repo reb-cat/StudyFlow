@@ -513,46 +513,32 @@ export default function StudentDashboard() {
                   {isToday ? "Today's" : `${dayName}'s`} Schedule
                 </h3>
                   
-                  <div className="space-y-1 print:space-y-0">
+                  <div className="space-y-3 print:space-y-0">
                     {/* Show ALL schedule blocks in chronological order with compact Apple-style layout */}
                     {allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((block, index) => {
-                        // Get appropriate icon component with consistent colored pill containers
+                        // Get appropriate icon component 
                         const getBlockIcon = (blockType: string) => {
-                          const iconClass = "h-4 w-4 text-white";
-                          const pillBg = 'bg-gradient-to-br from-blue-500 to-blue-600'; // Same background for ALL pills
+                          const iconClass = "h-6 w-6 text-white";
                           
-                          let icon;
-                          switch(blockType) {
+                          switch(blockType.toLowerCase()) {
                             case 'bible': 
-                              icon = <BookOpen className={iconClass} />;
-                              break;
+                              return <BookOpen className={iconClass} />;
                             case 'assignment': 
-                              icon = <FileText className={iconClass} />;
-                              break;
+                              return <FileText className={iconClass} />;
                             case 'movement': 
-                              icon = <Activity className={iconClass} />;
-                              break;
+                              return <Activity className={iconClass} />;
                             case 'lunch':
                             case 'prep/load': 
-                              icon = <Utensils className={iconClass} />;
-                              break;
+                              return <Utensils className={iconClass} />;
                             case 'travel': 
-                              icon = <Car className={iconClass} />;
-                              break;
+                              return <Car className={iconClass} />;
                             case 'co-op': 
-                              icon = <Building2 className={iconClass} />;
-                              break;
+                              return <Building2 className={iconClass} />;
                             default: 
-                              icon = <FileText className={iconClass} />;
+                              return <FileText className={iconClass} />;
                           }
-                          
-                          return (
-                            <div className={`p-2 rounded-full ${pillBg}`}>
-                              {icon}
-                            </div>
-                          );
                         };
                         
                         const formatTime = (start: string, end: string) => {
@@ -586,64 +572,92 @@ export default function StudentDashboard() {
                           blockDetails = 'Daily Bible Reading';
                         }
                         
+                        // Calculate duration
+                        const getBlockDuration = (startTime: string, endTime: string) => {
+                          const [startHour, startMin] = startTime.split(':').map(Number);
+                          const [endHour, endMin] = endTime.split(':').map(Number);
+                          const startMinutes = startHour * 60 + startMin;
+                          const endMinutes = endHour * 60 + endMin;
+                          const duration = endMinutes - startMinutes;
+                          return `${duration} min`;
+                        };
+
+                        const currentStatus = getBlockStatus(block.id);
+                        const isCurrentBlock = currentStatus === 'in-progress';
+
                         return (
                           <div 
                             key={block.id} 
-                            className={`group flex items-center justify-between py-2.5 px-3 hover:bg-gray-50 dark:hover:bg-muted/30 rounded-lg transition-colors duration-150 print-schedule-item ${
+                            className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 border-2 ${
+                              isCurrentBlock 
+                                ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30' 
+                                : 'border-gray-100 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-card hover:dark:bg-muted/30'
+                            } print-schedule-item ${
                               block.blockType === 'assignment' ? 'print-assignment' : 
                               block.blockType === 'bible' ? 'print-bible' : ''
                             }`}
                           >
-                            {/* Print-only time column */}
-                            <div className="hidden print:block print-time">
-                              {formatTime(block.startTime, block.endTime)}
+                            {/* Time Block - Left Side */}
+                            <div className="flex flex-col text-sm text-gray-600 dark:text-muted-foreground min-w-[120px]">
+                              <div className="font-medium">
+                                {formatTime(block.startTime, block.endTime)}
+                              </div>
+                              <div className="text-xs">
+                                {getBlockDuration(block.startTime, block.endTime)}
+                              </div>
                             </div>
-                            
-                            {/* Regular screen layout */}
-                            <div className="flex items-center gap-3 flex-1 min-w-0 print:ml-0 print-content">
-                              <div className="flex-shrink-0 print:hidden">
+
+                            {/* Subject Icon */}
+                            <div className="flex-shrink-0">
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                                currentStatus === 'complete' ? 'bg-green-500' :
+                                currentStatus === 'in-progress' ? 'bg-blue-500' :
+                                currentStatus === 'stuck' ? 'bg-orange-500' :
+                                'bg-purple-500'
+                              }`}>
                                 {getBlockIcon(block.blockType)}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-gray-900 dark:text-foreground text-xl truncate print-title">{blockTitle}</span>
-                                  {blockDetails && (
-                                    <>
-                                      <span className="text-gray-400 print:hidden">—</span>
-                                      <span className="text-gray-600 dark:text-muted-foreground text-sm truncate print-description">{blockDetails}</span>
-                                    </>
+                            </div>
+
+                            {/* Content - Middle */}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-lg text-gray-900 dark:text-foreground mb-1">
+                                {blockTitle}
+                              </h3>
+                              {blockDetails && (
+                                <p className="text-gray-600 dark:text-muted-foreground">
+                                  {blockDetails}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Status Badge - Right Side */}
+                            <div className="flex-shrink-0">
+                              <button 
+                                onClick={() => updateBlockStatus(block.id, getNextStatus(currentStatus))}
+                                className="hover:scale-105 transition-transform duration-150"
+                                data-testid={`button-status-${block.id}`}
+                              >
+                                {getStatusBadge(currentStatus)}
+                              </button>
+                            </div>
+
+                            {/* Print content */}
+                            <div className="hidden print:block">
+                              {block.blockType === 'bible' && (
+                                <div className="print-bible-reference mt-2">
+                                  Genesis 1-2 (Daily Bible Reading)
+                                </div>
+                              )}
+                              
+                              {block.blockType === 'assignment' && populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment && (
+                                <div className="print-description mt-2">
+                                  Course: {populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.courseName || 'Unknown'}
+                                  {populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.dueDate && (
+                                    <div>Due: {new Date(populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.dueDate).toLocaleDateString()}</div>
                                   )}
                                 </div>
-                                <div className="flex items-center justify-between mt-0.5 print:hidden">
-                                  <span className="text-gray-500 dark:text-muted-foreground text-sm">
-                                    {formatTime(block.startTime, block.endTime)}
-                                  </span>
-                                  <button 
-                                    onClick={() => updateBlockStatus(block.id, getNextStatus(getBlockStatus(block.id)))}
-                                    className="hover:scale-105 transition-transform duration-150"
-                                    data-testid={`button-status-${block.id}`}
-                                  >
-                                    {getStatusBadge(getBlockStatus(block.id))}
-                                  </button>
-                                </div>
-                                
-                                {/* Bible curriculum content for print */}
-                                {block.blockType === 'bible' && (
-                                  <div className="hidden print:block print-bible-reference mt-2">
-                                    Genesis 1-2 (Daily Bible Reading)
-                                  </div>
-                                )}
-                                
-                                {/* Assignment details for print */}
-                                {block.blockType === 'assignment' && populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment && (
-                                  <div className="hidden print:block print-description mt-2">
-                                    Course: {populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.courseName || 'Unknown'}
-                                    {populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.dueDate && (
-                                      <div>Due: {new Date(populatedAssignmentBlocks.find(pb => pb.id === block.id)?.assignment?.dueDate).toLocaleDateString()}</div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </div>
                         );
