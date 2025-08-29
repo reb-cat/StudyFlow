@@ -107,11 +107,32 @@ export class DatabaseStorage implements IStorage {
           assignment.completionStatus !== 'completed'
         );
         console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments)`);
+        
+        // SECOND: Filter out non-completable assignments (participation, attendance, etc.)
+        // These represent ongoing classroom behavior rather than discrete homework tasks
+        const beforeTypeFilter = assignmentList.length;
+        assignmentList = assignmentList.filter((assignment: any) => {
+          const title = (assignment.title || '').toLowerCase();
+          const isParticipation = 
+            title.includes('class participation') ||
+            title.includes('participation') ||
+            title.includes('attendance') ||
+            title.includes('classroom participation') ||
+            title.includes('class engagement') ||
+            title.includes('daily participation');
+          
+          if (isParticipation) {
+            console.log(`🚫 Excluding non-completable assignment: ${assignment.title}`);
+            return false;
+          }
+          return true;
+        });
+        console.log(`🎯 Type filtering: ${beforeTypeFilter} → ${assignmentList.length} assignments (excluded participation/attendance)`);
       } else {
         console.log(`🔧 Admin mode: Including all assignments (${assignmentList.length} total)`);
       }
       
-      // SECOND: Apply date filtering for daily scheduling
+      // THIRD: Apply date filtering for daily scheduling
       if (date) {
         const requestDate = new Date(date);
         const futureLimit = new Date(requestDate);
