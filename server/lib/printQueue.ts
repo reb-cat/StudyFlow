@@ -58,7 +58,14 @@ export function detectPrintNeeds(assignment: {
   const highPriorityKeywords = [
     'worksheet', 'handout', 'print', 'fill out', 'complete the chart',
     'table to fill', 'answer sheet', 'activity page', 'lab sheet',
-    'periodic table', 'map activity', 'timeline', 'graphic organizer'
+    'periodic table', 'map activity', 'timeline', 'graphic organizer',
+    // ENHANCED: Study materials and test prep
+    'study guide', 'study for', 'notebook', 'tear out', 'hole punch',
+    'test booklet', 'floppy folder', 'turn in', 'bring to class',
+    // ENHANCED: Assignment types that benefit from printing
+    'homework due', 'assignment due', 'complete p.', 'read p.', 'pages',
+    'chapter', 'exercises', 'problems', 'practice', 'review',
+    'questions', 'workbook', 'textbook', 'student notebook'
   ];
 
   for (const keyword of highPriorityKeywords) {
@@ -131,6 +138,23 @@ export function detectPrintNeeds(assignment: {
       result.printReason = 'history_reference';
       result.priority = 'low';
     }
+
+    // ENHANCED: Any assignment with meaningful instructions (not just "Assignment from Canvas")
+    if (instructions.length > 50 && !instructions.includes('assignment from canvas')) {
+      // Check for study-related content
+      const studyKeywords = ['study', 'test', 'quiz', 'exam', 'prepare', 'review'];
+      if (studyKeywords.some(keyword => fullText.includes(keyword))) {
+        result.needsPrinting = true;
+        result.printReason = 'study_material';
+        result.priority = 'medium';
+      }
+      // Check for homework with specific instructions (page numbers, etc.)
+      else if (fullText.includes('p.') || fullText.includes('page') || instructions.length > 100) {
+        result.needsPrinting = true;
+        result.printReason = 'detailed_homework';
+        result.priority = 'low';
+      }
+    }
   }
 
   return result;
@@ -199,6 +223,8 @@ export function getPrintReasonText(reason: string): string {
     case 'math_problems': return '🔢 Math Problems';
     case 'reference_list': return '📝 Reference Material';
     case 'history_reference': return '📚 History Guide';
+    case 'study_material': return '📚 Study Material';
+    case 'detailed_homework': return '📝 Homework Instructions';
     default: return '📄 Printable Material';
   }
 }
