@@ -199,6 +199,15 @@ export default function StudentDashboard() {
 
   const todayAssignments = assignments as Assignment[];
   
+  // Time formatting utility
+  const formatSingleTime = (timeStr: string) => {
+    if (!timeStr || timeStr === '00:00') return '12:00 AM';
+    const [hours, minutes] = timeStr.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
   
   // Date utilities - Fix timezone issue by using UTC
   const selectedDateObj = new Date(selectedDate + 'T12:00:00.000Z'); // Noon UTC avoids timezone issues
@@ -541,17 +550,6 @@ export default function StudentDashboard() {
                           }
                         };
                         
-                        const formatTime = (start: string, end: string) => {
-                          const formatTimeString = (timeStr: string) => {
-                            if (!timeStr || timeStr === '00:00') return '12:00 AM';
-                            const [hours, minutes] = timeStr.split(':');
-                            const hour = parseInt(hours);
-                            const ampm = hour >= 12 ? 'PM' : 'AM';
-                            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                            return `${displayHour}:${minutes} ${ampm}`;
-                          };
-                          return `${formatTimeString(start)} – ${formatTimeString(end)}`;
-                        };
                         
                         // Get block title and details
                         let blockTitle = block.title;
@@ -609,20 +607,18 @@ export default function StudentDashboard() {
                                 : 'bg-white hover:bg-gray-50'
                             } print-schedule-item`}
                           >
-                            {/* Time + Duration */}
-                            <div className="flex flex-col text-sm text-gray-700 min-w-[120px]">
-                              <div className="font-medium">{formatTime(block.startTime, block.endTime)}</div>
-                              <div className="text-gray-500">{getBlockDuration(block.startTime, block.endTime)}</div>
+                            {/* Start/End Time Vertical */}
+                            <div className="flex flex-col text-gray-700 min-w-[80px]">
+                              <div className="text-base font-medium">{formatSingleTime(block.startTime)}</div>
+                              <div className="text-sm text-gray-500">{formatSingleTime(block.endTime)}</div>
                             </div>
 
-                            {/* Colored Icon - Consistent by Subject Type */}
+                            {/* Status-colored Pill with Consistent White Icons */}
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              block.blockType.toLowerCase() === 'bible' ? 'bg-green-500' :
-                              block.blockType.toLowerCase() === 'assignment' ? 'bg-purple-500' :
-                              block.blockType.toLowerCase() === 'co-op' ? 'bg-blue-500' :
-                              block.blockType.toLowerCase() === 'movement' ? 'bg-orange-500' :
-                              block.blockType.toLowerCase() === 'lunch' ? 'bg-yellow-500' :
-                              'bg-gray-500'
+                              effectiveStatus === 'complete' ? 'bg-green-500' :
+                              effectiveStatus === 'in-progress' ? 'bg-blue-500' :
+                              effectiveStatus === 'stuck' ? 'bg-orange-500' :
+                              'bg-gray-400'  // not-started
                             }`}>
                               {getBlockIcon(block.blockType)}
                             </div>
