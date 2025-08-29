@@ -608,7 +608,7 @@ export default function StudentDashboard() {
                             } print-schedule-item`}
                           >
                             {/* Start/End Time Vertical - Centered */}
-                            <div className="flex flex-col justify-center text-gray-700 min-w-[80px]">
+                            <div className="flex flex-col justify-center text-center text-gray-700 min-w-[80px]">
                               <div className="text-base font-medium">{formatSingleTime(block.startTime)}</div>
                               <div className="text-sm text-gray-500">{formatSingleTime(block.endTime)}</div>
                             </div>
