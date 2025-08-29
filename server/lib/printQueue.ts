@@ -30,7 +30,7 @@ export function detectPrintNeeds(assignment: {
     priority: 'low'
   };
 
-  // Generate Canvas URL if we have Canvas ID and Course ID
+  // Generate Canvas URL ONLY if we have both Canvas ID AND Course ID
   if (assignment.canvasId && assignment.canvasCourseId && assignment.canvasInstance) {
     const baseUrl = assignment.canvasInstance === 1 
       ? process.env.CANVAS_BASE_URL 
@@ -40,15 +40,8 @@ export function detectPrintNeeds(assignment: {
       result.canvasUrl = `${baseUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
     }
   } 
-  // FALLBACK: Generate search URL for assignments without Canvas IDs
-  else {
-    const baseUrl = process.env.CANVAS_BASE_URL;
-    if (baseUrl && assignment.title) {
-      // Create a Canvas search URL to help find the assignment
-      const searchTerm = encodeURIComponent(assignment.title.substring(0, 50));
-      result.canvasUrl = `${baseUrl}/search/all_courses?search=${searchTerm}`;
-    }
-  }
+  // NO FALLBACK: Don't generate search URLs that confuse users
+  // Manual assignments should not have Canvas URLs at all
 
   const title = assignment.title.toLowerCase();
   const instructions = (assignment.instructions || '').toLowerCase();

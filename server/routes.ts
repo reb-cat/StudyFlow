@@ -402,6 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             priority: 'B',
             difficulty: 'medium',
             canvasId: canvasAssignment.id,
+            canvasCourseId: canvasAssignment.course_id, // CRITICAL FIX: Add course ID for Canvas URLs
             canvasInstance: 1,
             isCanvasImport: true
           });
@@ -453,6 +454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             priority: 'B',
             difficulty: 'medium',
             canvasId: canvasAssignment.id,
+            canvasCourseId: canvasAssignment.course_id, // CRITICAL FIX: Add course ID for Canvas URLs
             canvasInstance: 2,
             isCanvasImport: true
           });
