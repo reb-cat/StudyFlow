@@ -34,7 +34,10 @@ export default function FamilyDashboard() {
   // Fetch family dashboard data from API
   const { data: apiData, isLoading, error } = useQuery({
     queryKey: ['/api/family/dashboard'],
-    refetchInterval: 30000 // Refresh every 30 seconds for real-time updates
+    refetchInterval: 30000, // Refresh every 30 seconds for real-time updates
+    staleTime: 0, // Always consider data stale so it refetches
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 
   // Loading state
