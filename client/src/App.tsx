@@ -6,7 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import LandingPage from "@/pages/landing";
-import FamilyDashboard from "@/pages/student-selection";
+import StudentSelection from "@/pages/student-selection";
+import FamilyDashboard from "@/pages/family-dashboard";
 import StudentDashboard from "@/pages/student-dashboard";
 import AdminPanel from "@/pages/admin-panel";
 import PrintQueue from "@/pages/print-queue";
@@ -16,6 +17,7 @@ function Router() {
     <Switch>
       <Route path="/" component={LandingPage} />
       <Route path="/family" component={FamilyDashboard} />
+      <Route path="/students" component={StudentSelection} />
       <Route path="/student/:student" component={StudentDashboard} />
       <Route path="/admin" component={AdminPanel} />
       <Route path="/print-queue" component={PrintQueue} />
