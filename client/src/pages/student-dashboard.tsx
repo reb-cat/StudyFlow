@@ -34,6 +34,7 @@ import { Link, useParams } from 'wouter';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
 import { FixedBlock } from '@/components/FixedBlock';
+import { apiRequest } from '@/lib/queryClient';
 import type { Assignment, DailyScheduleStatus, ScheduleTemplate } from '@shared/schema';
 
 export default function StudentDashboard() {
@@ -98,9 +99,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     const initializeSchedule = async () => {
       try {
-        await apiRequest(`/api/schedule/${studentName}/${selectedDate}/initialize`, {
-          method: 'POST'
-        });
+        await apiRequest('POST', `/api/schedule/${studentName}/${selectedDate}/initialize`);
       } catch (error) {
         console.error('Failed to initialize schedule:', error);
       }
