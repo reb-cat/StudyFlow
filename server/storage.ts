@@ -82,7 +82,10 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
-      const result = await db.insert(users).values(insertUser).returning();
+      const result = await db.insert(users).values({
+        ...insertUser,
+        profileImageUrl: insertUser.profileImageUrl || null
+      }).returning();
       return result[0];
     } catch (error) {
       console.error('Error creating user:', error);
@@ -209,19 +212,42 @@ export class DatabaseStorage implements IStorage {
         userId: data.userId,
         title: data.title,
         dueDate: data.dueDate || null,
-        subject: data.subject,
-        courseName: data.courseName,
-        instructions: data.instructions,
+        subject: data.subject || null,
+        courseName: data.courseName || null,
+        instructions: data.instructions || null,
         // Canvas integration fields - CRITICAL for print queue Canvas links!
         canvasId: data.canvasId || null,
         canvasCourseId: data.canvasCourseId || null,
         canvasInstance: data.canvasInstance || null,
+        isCanvasImport: data.isCanvasImport || false,
         // Additional Canvas metadata
         scheduledDate: data.scheduledDate || null,
+        scheduledBlock: data.scheduledBlock || null,
+        blockStart: data.blockStart || null,
+        blockEnd: data.blockEnd || null,
         actualEstimatedMinutes: data.actualEstimatedMinutes || 30,
         completionStatus: data.completionStatus || 'pending',
+        blockType: data.blockType || 'assignment',
+        isAssignmentBlock: data.isAssignmentBlock !== undefined ? data.isAssignmentBlock : true,
         priority: data.priority || 'B',
-        difficulty: data.difficulty || 'medium'
+        difficulty: data.difficulty || 'medium',
+        timeSpent: data.timeSpent || 0,
+        notes: data.notes || null,
+        // Additional Canvas fields
+        canvasCategory: data.canvasCategory || null,
+        submissionTypes: data.submissionTypes || [],
+        pointsValue: data.pointsValue || null,
+        availableFrom: data.availableFrom || null,
+        availableUntil: data.availableUntil || null,
+        isRecurring: data.isRecurring || false,
+        academicYear: data.academicYear || null,
+        confidenceScore: data.confidenceScore || null,
+        // Print queue fields
+        needsPrinting: data.needsPrinting || false,
+        printStatus: data.printStatus || 'not_needed',
+        printReason: data.printReason || null,
+        printedAt: data.printedAt || null,
+        canvasUrl: data.canvasUrl || null
       };
       
       const result = await db.insert(assignments).values(assignmentData).returning();
@@ -388,6 +414,8 @@ export class DatabaseStorage implements IStorage {
           .update(studentProfiles)
           .set({
             ...profile,
+            profileImageUrl: profile.profileImageUrl || null,
+            themeColor: profile.themeColor || null,
             updatedAt: new Date()
           })
           .where(eq(studentProfiles.studentName, profile.studentName))
@@ -395,7 +423,10 @@ export class DatabaseStorage implements IStorage {
         return result[0];
       } else {
         // Create new profile
-        const result = await db.insert(studentProfiles).values(profile).returning();
+        const result = await db.insert(studentProfiles).values({
+          ...profile,
+          profileImageUrl: profile.profileImageUrl || null
+        }).returning();
         return result[0];
       }
     } catch (error) {
@@ -423,12 +454,40 @@ export class DatabaseStorage implements IStorage {
         .insert(studentStatus)
         .values({
           ...status,
+          currentAssignmentId: status.currentAssignmentId || null,
+          currentMode: status.currentMode || null,
+          currentAssignmentTitle: status.currentAssignmentTitle || null,
+          sessionStartTime: status.sessionStartTime || null,
+          estimatedEndTime: status.estimatedEndTime || null,
+          isStuck: status.isStuck || null,
+          stuckSince: status.stuckSince || null,
+          needsHelp: status.needsHelp || null,
+          isOvertimeOnTask: status.isOvertimeOnTask || null,
+          completedToday: status.completedToday || null,
+          totalToday: status.totalToday || null,
+          minutesWorkedToday: status.minutesWorkedToday || null,
+          targetMinutesToday: status.targetMinutesToday || null,
+          lastActivity: status.lastActivity || null,
           updatedAt: new Date()
         })
         .onConflictDoUpdate({
           target: studentStatus.studentName,
           set: {
             ...status,
+            currentAssignmentId: status.currentAssignmentId || null,
+            currentMode: status.currentMode || null,
+            currentAssignmentTitle: status.currentAssignmentTitle || null,
+            sessionStartTime: status.sessionStartTime || null,
+            estimatedEndTime: status.estimatedEndTime || null,
+            isStuck: status.isStuck || null,
+            stuckSince: status.stuckSince || null,
+            needsHelp: status.needsHelp || null,
+            isOvertimeOnTask: status.isOvertimeOnTask || null,
+            completedToday: status.completedToday || null,
+            totalToday: status.totalToday || null,
+            minutesWorkedToday: status.minutesWorkedToday || null,
+            targetMinutesToday: status.targetMinutesToday || null,
+            lastActivity: status.lastActivity || null,
             updatedAt: new Date()
           }
         })
@@ -481,7 +540,7 @@ export class DatabaseStorage implements IStorage {
         const profile = await this.getStudentProfile(status.studentName);
         studentsData.push({
           ...status,
-          profile
+          profile: profile || null
         });
       }
 
@@ -538,6 +597,7 @@ export class DatabaseStorage implements IStorage {
           completedAt: dailyScheduleStatus.completedAt,
           startedAt: dailyScheduleStatus.startedAt,
           currentAssignmentId: dailyScheduleStatus.currentAssignmentId,
+          flags: dailyScheduleStatus.flags,
           createdAt: dailyScheduleStatus.createdAt,
           updatedAt: dailyScheduleStatus.updatedAt,
           template: scheduleTemplate
@@ -618,7 +678,7 @@ export class DatabaseStorage implements IStorage {
           studentName,
           date,
           templateBlockId: block.id,
-          status: 'not-started',
+          status: 'not-started' as const,
         }));
 
         await db.insert(dailyScheduleStatus).values(statusRecords);
@@ -660,6 +720,7 @@ export class MemStorage implements IStorage {
       id,
       firstName: insertUser.firstName ?? null,
       lastName: insertUser.lastName ?? null,
+      profileImageUrl: insertUser.profileImageUrl ?? null,
       isActive: insertUser.isActive ?? true,
       createdAt: now,
       updatedAt: now
@@ -706,6 +767,23 @@ export class MemStorage implements IStorage {
       difficulty: data.difficulty || 'medium',
       timeSpent: data.timeSpent || 0,
       notes: data.notes || null,
+      canvasId: data.canvasId || null,
+      canvasCourseId: data.canvasCourseId || null,
+      canvasInstance: data.canvasInstance || null,
+      canvasUrl: data.canvasUrl || null,
+      isCanvasImport: data.isCanvasImport || null,
+      isQuizAssignment: data.isQuizAssignment || null,
+      isDiscussionAssignment: data.isDiscussionAssignment || null,
+      originalCanvasUrl: data.originalCanvasUrl || null,
+      canvasPointsPossible: data.canvasPointsPossible || null,
+      canvasSubmissionTypes: data.canvasSubmissionTypes || null,
+      canvasGradingType: data.canvasGradingType || null,
+      canvasWorkflowState: data.canvasWorkflowState || null,
+      canvasPublished: data.canvasPublished || null,
+      canvasLockAt: data.canvasLockAt || null,
+      canvasUnlockAt: data.canvasUnlockAt || null,
+      canvasAllowedAttempts: data.canvasAllowedAttempts || null,
+      canvasGroupCategoryId: data.canvasGroupCategoryId || null,
       createdAt: now,
       updatedAt: now
     };
@@ -803,6 +881,7 @@ export class MemStorage implements IStorage {
       password: "demo",
       firstName: "Demo",
       lastName: "Student",
+      profileImageUrl: null,
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -898,6 +977,23 @@ export class MemStorage implements IStorage {
         difficulty: assignment.difficulty || 'medium',
         timeSpent: assignment.timeSpent || 0,
         notes: assignment.notes || null,
+        canvasId: null,
+        canvasCourseId: null,
+        canvasInstance: null,
+        canvasUrl: null,
+        isCanvasImport: null,
+        isQuizAssignment: null,
+        isDiscussionAssignment: null,
+        originalCanvasUrl: null,
+        canvasPointsPossible: null,
+        canvasSubmissionTypes: null,
+        canvasGradingType: null,
+        canvasWorkflowState: null,
+        canvasPublished: null,
+        canvasLockAt: null,
+        canvasUnlockAt: null,
+        canvasAllowedAttempts: null,
+        canvasGroupCategoryId: null,
         createdAt: new Date(),
         updatedAt: new Date()
       });
@@ -935,6 +1031,8 @@ export class MemStorage implements IStorage {
     return {
       id: 'temp-' + profile.studentName,
       ...profile,
+      profileImageUrl: profile.profileImageUrl || null,
+      themeColor: profile.themeColor || null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -969,6 +1067,20 @@ export class MemStorage implements IStorage {
     return {
       id: 'status-' + status.studentName,
       ...status,
+      currentMode: status.currentMode || null,
+      currentAssignmentId: status.currentAssignmentId || null,
+      currentAssignmentTitle: status.currentAssignmentTitle || null,
+      sessionStartTime: status.sessionStartTime || null,
+      estimatedEndTime: status.estimatedEndTime || null,
+      isStuck: status.isStuck || null,
+      stuckSince: status.stuckSince || null,
+      needsHelp: status.needsHelp || null,
+      isOvertimeOnTask: status.isOvertimeOnTask || null,
+      completedToday: status.completedToday || null,
+      totalToday: status.totalToday || null,
+      minutesWorkedToday: status.minutesWorkedToday || null,
+      targetMinutesToday: status.targetMinutesToday || null,
+      lastActivity: status.lastActivity || null,
       updatedAt: new Date()
     };
   }
