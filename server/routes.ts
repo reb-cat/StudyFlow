@@ -1296,6 +1296,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Family Dashboard API endpoints
+  
+  // GET /api/family/dashboard - Get family dashboard data
+  app.get('/api/family/dashboard', async (req, res) => {
+    try {
+      const dashboardData = await storage.getFamilyDashboardData();
+      
+      // Calculate daily stats across all students
+      const totalCompleted = dashboardData.students.reduce((sum, s) => sum + s.completedToday, 0);
+      const totalRemaining = dashboardData.students.reduce((sum, s) => sum + (s.totalToday - s.completedToday), 0);
+      
+      // Get current date for display
+      const today = new Date().toISOString().split('T')[0];
+      
+      res.json({
+        date: today,
+        stats: {
+          totalCompleted,
+          totalRemaining,
+          needsAttention: dashboardData.needsReview.length
+        },
+        students: dashboardData.students,
+        needsReview: dashboardData.needsReview,
+        // Connect to existing print queue
+        printQueueCount: 0 // Will be updated when we integrate with print queue
+      });
+    } catch (error) {
+      console.error('Error fetching family dashboard data:', error);
+      res.status(500).json({ message: 'Failed to fetch family dashboard data' });
+    }
+  });
+
+  // POST /api/family/student/:studentName/flags - Update student flags (stuck, need help, etc.)
+  app.post('/api/family/student/:studentName/flags', async (req, res) => {
+    try {
+      const { studentName } = req.params;
+      const { isStuck, needsHelp, isOvertimeOnTask } = req.body;
+      
+      const updatedStatus = await storage.updateStudentFlags(studentName, {
+        isStuck,
+        needsHelp,
+        isOvertimeOnTask
+      });
+      
+      if (!updatedStatus) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+      
+      res.json(updatedStatus);
+    } catch (error) {
+      console.error('Error updating student flags:', error);
+      res.status(500).json({ message: 'Failed to update student flags' });
+    }
+  });
+
+  // POST /api/family/student/:studentName/status - Update student activity status
+  app.post('/api/family/student/:studentName/status', async (req, res) => {
+    try {
+      const { studentName } = req.params;
+      const { 
+        currentMode, 
+        currentAssignmentId, 
+        currentAssignmentTitle, 
+        sessionStartTime,
+        estimatedEndTime,
+        completedToday,
+        totalToday,
+        minutesWorkedToday,
+        targetMinutesToday 
+      } = req.body;
+      
+      const statusUpdate = await storage.upsertStudentStatus({
+        studentName,
+        currentMode: currentMode || 'overview',
+        currentAssignmentId,
+        currentAssignmentTitle,
+        sessionStartTime: sessionStartTime ? new Date(sessionStartTime) : null,
+        estimatedEndTime: estimatedEndTime ? new Date(estimatedEndTime) : null,
+        completedToday: completedToday || 0,
+        totalToday: totalToday || 0,
+        minutesWorkedToday: minutesWorkedToday || 0,
+        targetMinutesToday: targetMinutesToday || 180,
+        lastActivity: new Date()
+      });
+      
+      res.json(statusUpdate);
+    } catch (error) {
+      console.error('Error updating student status:', error);
+      res.status(500).json({ message: 'Failed to update student status' });
+    }
+  });
+
+  // GET /api/family/student/:studentName/status - Get current student status
+  app.get('/api/family/student/:studentName/status', async (req, res) => {
+    try {
+      const { studentName } = req.params;
+      const status = await storage.getStudentStatus(studentName);
+      
+      if (!status) {
+        // Return default status if not found
+        return res.json({
+          studentName,
+          currentMode: 'overview',
+          currentAssignmentId: null,
+          currentAssignmentTitle: null,
+          sessionStartTime: null,
+          estimatedEndTime: null,
+          isStuck: false,
+          stuckSince: null,
+          needsHelp: false,
+          isOvertimeOnTask: false,
+          completedToday: 0,
+          totalToday: 0,
+          minutesWorkedToday: 0,
+          targetMinutesToday: 180,
+          lastActivity: new Date(),
+          updatedAt: new Date()
+        });
+      }
+      
+      res.json(status);
+    } catch (error) {
+      console.error('Error fetching student status:', error);
+      res.status(500).json({ message: 'Failed to fetch student status' });
+    }
+  });
+
+  // POST /api/family/initialize - Initialize student status data for testing
+  app.post('/api/family/initialize', async (req, res) => {
+    try {
+      console.log('🔧 Initializing student status data...');
+      
+      // Initialize default status for Abigail
+      const abigailStatus = await storage.upsertStudentStatus({
+        studentName: 'abigail',
+        currentMode: 'overview',
+        currentAssignmentId: null,
+        currentAssignmentTitle: 'Math - Algebra Practice',
+        sessionStartTime: new Date(Date.now() - 30 * 60 * 1000), // Started 30 minutes ago
+        estimatedEndTime: new Date(Date.now() + 25 * 60 * 1000), // 25 minutes remaining
+        isStuck: false,
+        needsHelp: false,
+        isOvertimeOnTask: false,
+        completedToday: 2,
+        totalToday: 6,
+        minutesWorkedToday: 45,
+        targetMinutesToday: 180,
+        lastActivity: new Date()
+      });
+
+      // Initialize status for Khalil (showing stuck/overtime flags)
+      const khalilStatus = await storage.upsertStudentStatus({
+        studentName: 'khalil',
+        currentMode: 'guided',
+        currentAssignmentId: null,
+        currentAssignmentTitle: 'Science Lab Report',
+        sessionStartTime: new Date(Date.now() - 50 * 60 * 1000), // Started 50 minutes ago
+        estimatedEndTime: new Date(Date.now() - 10 * 60 * 1000), // Should have finished 10 minutes ago
+        isStuck: true,
+        stuckSince: new Date(Date.now() - 20 * 60 * 1000), // Stuck for 20 minutes
+        needsHelp: false,
+        isOvertimeOnTask: true,
+        completedToday: 1,
+        totalToday: 5,
+        minutesWorkedToday: 30,
+        targetMinutesToday: 150,
+        lastActivity: new Date()
+      });
+
+      console.log('✅ Student status data initialized successfully');
+      res.json({
+        message: 'Student status data initialized successfully',
+        students: [abigailStatus, khalilStatus]
+      });
+    } catch (error) {
+      console.error('Error initializing student status data:', error);
+      res.status(500).json({ message: 'Failed to initialize student status data' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

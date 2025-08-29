@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { 
   User, 
   Settings, 
@@ -30,62 +31,66 @@ const colors = {
 export default function FamilyDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   
-  // This data would come from your backend
-  // Showing sample structure for integration reference
+  // Fetch family dashboard data from API
+  const { data: apiData, isLoading, error } = useQuery({
+    queryKey: ['/api/family/dashboard'],
+    refetchInterval: 30000 // Refresh every 30 seconds for real-time updates
+  });
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading family dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state or no data
+  if (error || !apiData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600 mb-2">Unable to load dashboard data</p>
+          <p className="text-sm text-gray-500">Please check your connection and try again.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Transform API data to match component expectations
   const dashboardData = {
-    students: [
-      { 
-        id: 'abigail',
-        name: 'Abigail',
-        initial: 'A',
-        profileImage: null,
-        currentMode: 'overview', // 'overview' or 'guided'
-        todayStats: {
-          completed: 2,
-          total: 6,
-          inProgress: 'Math - Algebra Practice',
-          minutesWorked: 45,
-          targetMinutes: 180
-        },
-        flags: {
-          stuck: false,
-          needsHelp: false,
-          overtimeOnTask: false
-        }
+    students: apiData.students.map((student: any) => ({
+      id: student.studentName,
+      name: student.profile?.displayName || (student.studentName.charAt(0).toUpperCase() + student.studentName.slice(1)),
+      initial: (student.profile?.displayName || student.studentName)[0].toUpperCase(),
+      profileImage: student.profile?.profileImageUrl,
+      currentMode: student.currentMode || 'overview',
+      todayStats: {
+        completed: student.completedToday || 0,
+        total: student.totalToday || 0,
+        inProgress: student.currentAssignmentTitle || 'No current assignment',
+        minutesWorked: student.minutesWorkedToday || 0,
+        targetMinutes: student.targetMinutesToday || 180
       },
-      { 
-        id: 'khalil',
-        name: 'Khalil', 
-        initial: 'K',
-        profileImage: null,
-        currentMode: 'guided',
-        todayStats: {
-          completed: 1,
-          total: 5,
-          inProgress: 'Science Lab Report',
-          minutesWorked: 30,
-          targetMinutes: 150
-        },
-        flags: {
-          stuck: true, // This would trigger from Guided Mode "Stuck" button
-          needsHelp: false,
-          overtimeOnTask: true // Been on same task > estimated time
-        }
+      flags: {
+        stuck: student.isStuck || false,
+        needsHelp: student.needsHelp || false,
+        overtimeOnTask: student.isOvertimeOnTask || false
       }
-    ],
+    })),
     
-    // Items ready for parent review/printing
+    // Items ready for parent review/printing (placeholder for now)
     printQueue: [
-      { id: '1', student: 'Abigail', title: 'Math Worksheet', type: 'worksheet', pages: 2 },
-      { id: '2', student: 'Khalil', title: 'Science Lab Instructions', type: 'instructions', pages: 1 },
-      { id: '3', student: 'Abigail', title: 'Weekly Schedule', type: 'schedule', pages: 1 }
+      // Will be populated from real print queue data when integrated
     ],
     
-    // Assignments that need parent attention
-    needsReview: [
-      { student: 'Khalil', assignment: 'Science Lab Report', issue: 'Marked as stuck for 20+ minutes' },
-      { student: 'Abigail', assignment: 'History Essay', issue: 'Due tomorrow - not started' }
-    ]
+    // Assignments that need parent attention from API
+    needsReview: apiData.needsReview || []
   };
 
   const getTotalFlags = (student: any) => {

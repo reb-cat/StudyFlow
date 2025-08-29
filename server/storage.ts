@@ -4,7 +4,8 @@ import {
   type ScheduleTemplate, type InsertScheduleTemplate,
   type BibleCurriculum, type InsertBibleCurriculum,
   type StudentProfile, type InsertStudentProfile,
-  users, assignments, scheduleTemplate, bibleCurriculum, studentProfiles
+  type StudentStatus, type InsertStudentStatus,
+  users, assignments, scheduleTemplate, bibleCurriculum, studentProfiles, studentStatus
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -40,6 +41,15 @@ export interface IStorage {
   // Student profile operations
   getStudentProfile(studentName: string): Promise<StudentProfile | undefined>;
   upsertStudentProfile(profile: InsertStudentProfile): Promise<StudentProfile>;
+  
+  // Student status operations for family dashboard
+  getStudentStatus(studentName: string): Promise<StudentStatus | undefined>;
+  upsertStudentStatus(status: InsertStudentStatus): Promise<StudentStatus>;
+  updateStudentFlags(studentName: string, flags: { isStuck?: boolean; needsHelp?: boolean; isOvertimeOnTask?: boolean }): Promise<StudentStatus | undefined>;
+  getFamilyDashboardData(): Promise<{
+    students: Array<StudentStatus & { profile: StudentProfile | null }>;
+    needsReview: Array<{ student: string; assignment: string; issue: string }>;
+  }>;
 }
 
 // Database storage implementation using local Replit database
@@ -359,6 +369,123 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Failed to update student profile');
     }
   }
+
+  // Student status operations for family dashboard
+  async getStudentStatus(studentName: string): Promise<StudentStatus | undefined> {
+    try {
+      const result = await db.select().from(studentStatus).where(eq(studentStatus.studentName, studentName)).limit(1);
+      return result[0] || undefined;
+    } catch (error) {
+      console.error('Error getting student status:', error);
+      return undefined;
+    }
+  }
+
+  async upsertStudentStatus(status: InsertStudentStatus): Promise<StudentStatus> {
+    try {
+      console.log(`📊 Upserting student status for: ${status.studentName}`);
+      
+      const [result] = await db
+        .insert(studentStatus)
+        .values({
+          ...status,
+          updatedAt: new Date()
+        })
+        .onConflictDoUpdate({
+          target: studentStatus.studentName,
+          set: {
+            ...status,
+            updatedAt: new Date()
+          }
+        })
+        .returning();
+
+      return result;
+    } catch (error) {
+      console.error('Error upserting student status:', error);
+      throw new Error('Failed to upsert student status');
+    }
+  }
+
+  async updateStudentFlags(studentName: string, flags: { isStuck?: boolean; needsHelp?: boolean; isOvertimeOnTask?: boolean }): Promise<StudentStatus | undefined> {
+    try {
+      const updateData: any = { updatedAt: new Date() };
+      
+      if (flags.isStuck !== undefined) {
+        updateData.isStuck = flags.isStuck;
+        updateData.stuckSince = flags.isStuck ? new Date() : null;
+      }
+      if (flags.needsHelp !== undefined) updateData.needsHelp = flags.needsHelp;
+      if (flags.isOvertimeOnTask !== undefined) updateData.isOvertimeOnTask = flags.isOvertimeOnTask;
+
+      const [result] = await db
+        .update(studentStatus)
+        .set(updateData)
+        .where(eq(studentStatus.studentName, studentName))
+        .returning();
+
+      return result;
+    } catch (error) {
+      console.error('Error updating student flags:', error);
+      return undefined;
+    }
+  }
+
+  async getFamilyDashboardData(): Promise<{
+    students: Array<StudentStatus & { profile: StudentProfile | null }>;
+    needsReview: Array<{ student: string; assignment: string; issue: string }>;
+  }> {
+    try {
+      // Get all student statuses with their profiles
+      const statusResults = await db
+        .select()
+        .from(studentStatus);
+
+      const studentsData = [];
+      
+      for (const status of statusResults) {
+        const profile = await this.getStudentProfile(status.studentName);
+        studentsData.push({
+          ...status,
+          profile
+        });
+      }
+
+      // Get assignments that need parent attention
+      const today = new Date().toISOString().split('T')[0];
+      const needsReviewAssignments = await db
+        .select()
+        .from(assignments)
+        .where(
+          and(
+            eq(assignments.completionStatus, 'stuck')
+          )
+        );
+
+      const needsReview = needsReviewAssignments.map(assignment => {
+        // Map user ID to student name
+        const studentName = assignment.userId === 'abigail-user' ? 'Abigail' : 
+                            assignment.userId === 'khalil-user' ? 'Khalil' : assignment.userId;
+        
+        return {
+          student: studentName,
+          assignment: assignment.title,
+          issue: 'Marked as stuck - needs assistance'
+        };
+      });
+
+      return {
+        students: studentsData,
+        needsReview
+      };
+    } catch (error) {
+      console.error('Error getting family dashboard data:', error);
+      return {
+        students: [],
+        needsReview: []
+      };
+    }
+  }
 }
 
 // Keep MemStorage for fallback
@@ -669,6 +796,96 @@ export class MemStorage implements IStorage {
       ...profile,
       createdAt: new Date(),
       updatedAt: new Date()
+    };
+  }
+
+  // Student status operations (stub methods for MemStorage)
+  async getStudentStatus(studentName: string): Promise<StudentStatus | undefined> {
+    // Stub implementation - return default status
+    return {
+      id: 'status-' + studentName,
+      studentName,
+      currentMode: 'overview',
+      currentAssignmentId: null,
+      currentAssignmentTitle: null,
+      sessionStartTime: null,
+      estimatedEndTime: null,
+      isStuck: false,
+      stuckSince: null,
+      needsHelp: false,
+      isOvertimeOnTask: false,
+      completedToday: 0,
+      totalToday: 0,
+      minutesWorkedToday: 0,
+      targetMinutesToday: 180,
+      lastActivity: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  async upsertStudentStatus(status: InsertStudentStatus): Promise<StudentStatus> {
+    // Stub implementation - return status with generated fields
+    return {
+      id: 'status-' + status.studentName,
+      ...status,
+      updatedAt: new Date()
+    };
+  }
+
+  async updateStudentFlags(studentName: string, flags: { isStuck?: boolean; needsHelp?: boolean; isOvertimeOnTask?: boolean }): Promise<StudentStatus | undefined> {
+    // Stub implementation - return updated status
+    return {
+      id: 'status-' + studentName,
+      studentName,
+      currentMode: 'overview',
+      currentAssignmentId: null,
+      currentAssignmentTitle: null,
+      sessionStartTime: null,
+      estimatedEndTime: null,
+      isStuck: flags.isStuck || false,
+      stuckSince: flags.isStuck ? new Date() : null,
+      needsHelp: flags.needsHelp || false,
+      isOvertimeOnTask: flags.isOvertimeOnTask || false,
+      completedToday: 0,
+      totalToday: 0,
+      minutesWorkedToday: 0,
+      targetMinutesToday: 180,
+      lastActivity: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  async getFamilyDashboardData(): Promise<{
+    students: Array<StudentStatus & { profile: StudentProfile | null }>;
+    needsReview: Array<{ student: string; assignment: string; issue: string }>;
+  }> {
+    // Stub implementation - return sample data
+    const abigailProfile = await this.getStudentProfile('abigail');
+    const khalilProfile = await this.getStudentProfile('khalil');
+    
+    return {
+      students: [
+        {
+          ...(await this.getStudentStatus('abigail'))!,
+          profile: abigailProfile || null,
+          completedToday: 2,
+          totalToday: 6,
+          currentAssignmentTitle: 'Math - Algebra Practice'
+        },
+        {
+          ...(await this.getStudentStatus('khalil'))!,
+          profile: khalilProfile || null,
+          completedToday: 1,
+          totalToday: 5,
+          currentAssignmentTitle: 'Science Lab Report',
+          isStuck: true,
+          isOvertimeOnTask: true
+        }
+      ],
+      needsReview: [
+        { student: 'Khalil', assignment: 'Science Lab Report', issue: 'Marked as stuck for 20+ minutes' },
+        { student: 'Abigail', assignment: 'History Essay', issue: 'Due tomorrow - not started' }
+      ]
     };
   }
 }

@@ -227,6 +227,31 @@ export const studentProfiles = pgTable("student_profiles", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Student status for real-time family dashboard
+export const studentStatus = pgTable("student_status", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentName: text("student_name").notNull().unique(), // "abigail", "khalil"
+  currentMode: text("current_mode", { 
+    enum: ["overview", "guided"] 
+  }).default("overview"),
+  currentAssignmentId: uuid("current_assignment_id").references(() => assignments.id),
+  currentAssignmentTitle: text("current_assignment_title"), // Cache for performance
+  sessionStartTime: timestamp("session_start_time"),
+  estimatedEndTime: timestamp("estimated_end_time"),
+  // Real-time flags
+  isStuck: boolean("is_stuck").default(false),
+  stuckSince: timestamp("stuck_since"),
+  needsHelp: boolean("needs_help").default(false),
+  isOvertimeOnTask: boolean("is_overtime_on_task").default(false), // Calculated field
+  // Daily stats
+  completedToday: integer("completed_today").default(0),
+  totalToday: integer("total_today").default(0),
+  minutesWorkedToday: integer("minutes_worked_today").default(0),
+  targetMinutesToday: integer("target_minutes_today").default(0),
+  lastActivity: timestamp("last_activity").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Bible curriculum schemas
 export const insertBibleCurriculumSchema = createInsertSchema(bibleCurriculum).omit({
   id: true,
@@ -289,3 +314,6 @@ export type ProgressSession = typeof progressSessions.$inferSelect;
 export type InsertStudentProfile = z.infer<typeof insertStudentProfileSchema>;
 export type UpdateStudentProfile = z.infer<typeof updateStudentProfileSchema>;
 export type StudentProfile = typeof studentProfiles.$inferSelect;
+
+export type StudentStatus = typeof studentStatus.$inferSelect;
+export type InsertStudentStatus = typeof studentStatus.$inferInsert;
