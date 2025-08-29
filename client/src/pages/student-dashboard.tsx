@@ -607,8 +607,8 @@ export default function StudentDashboard() {
                                 : 'bg-white hover:bg-gray-50'
                             } print-schedule-item`}
                           >
-                            {/* Start/End Time Vertical */}
-                            <div className="flex flex-col text-gray-700 min-w-[80px]">
+                            {/* Start/End Time Vertical - Centered */}
+                            <div className="flex flex-col justify-center text-gray-700 min-w-[80px]">
                               <div className="text-base font-medium">{formatSingleTime(block.startTime)}</div>
                               <div className="text-sm text-gray-500">{formatSingleTime(block.endTime)}</div>
                             </div>
