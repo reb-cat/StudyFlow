@@ -238,6 +238,7 @@ export function GuidedDayView({
       // Determine type and estimated time
       let type: 'bible' | 'fixed' | 'assignment' = 'fixed';
       let estimatedMinutes = 30;
+      let matchedAssignment: Assignment | undefined;
       
       if (blockType === 'bible') {
         type = 'bible';
@@ -245,6 +246,13 @@ export function GuidedDayView({
       } else if (blockType === 'assignment') {
         type = 'assignment';
         estimatedMinutes = block.estimatedMinutes || 30;
+        
+        // Find matching assignment for this block to get instructions
+        matchedAssignment = assignments.find(assignment => 
+          assignment.userId === studentName &&
+          assignment.scheduledDate === selectedDate &&
+          assignment.scheduledBlock === block.blockNumber
+        );
       } else {
         type = 'fixed';
         estimatedMinutes = 15; // Short fixed blocks
@@ -258,7 +266,8 @@ export function GuidedDayView({
         endTime: block.endTime?.substring(0, 5) || '00:00',
         estimatedMinutes,
         blockType,
-        subject: block.subject
+        subject: block.subject,
+        assignment: matchedAssignment
       };
     })
     // Filter out non-essential blocks for guided mode (keep assignments, bible, important fixed blocks)
@@ -277,7 +286,7 @@ export function GuidedDayView({
   const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
   const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  const [showInstructions, setShowInstructions] = useState(false);
+  // Remove showInstructions state - instructions will be shown by default
   const [exitClickCount, setExitClickCount] = useState(0);
 
   const currentBlock = scheduleBlocks[currentIndex];
@@ -431,57 +440,100 @@ export function GuidedDayView({
             fontSize: '24px', 
             fontWeight: 'bold', 
             color: colors.text,
-            marginBottom: '12px'
+            marginBottom: '8px'
           }}>
             {currentBlock.title}
           </h2>
 
-          {/* Time display */}
+          {/* Time and due date display */}
           <div style={{ 
             fontSize: '14px', 
             color: colors.textMuted, 
-            marginBottom: '12px' 
+            marginBottom: '16px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '12px'
           }}>
-            {currentBlock.startTime} - {currentBlock.endTime} • {currentBlock.estimatedMinutes} min
+            <span>{currentBlock.startTime} - {currentBlock.endTime}</span>
+            <span>• {currentBlock.estimatedMinutes} min</span>
+            {currentBlock.assignment?.dueDate && (
+              <span>• Due: {new Date(currentBlock.assignment.dueDate).toLocaleDateString()}</span>
+            )}
           </div>
 
-          {/* Instructions toggle for assignments */}
-          {currentBlock.type === 'assignment' && (
-            <button
-              onClick={() => setShowInstructions(!showInstructions)}
-              style={{
-                marginTop: '12px',
-                padding: '8px 12px',
-                backgroundColor: colors.surface,
-                border: `1px solid ${blockStyle.borderColor}`,
-                borderRadius: '8px',
-                color: blockStyle.borderColor,
-                cursor: 'pointer',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              {showInstructions ? 'Hide' : 'Show'} Instructions
-              <ChevronRight size={14} style={{ 
-                transform: showInstructions ? 'rotate(90deg)' : 'none',
-                transition: 'transform 0.2s'
-              }} />
-            </button>
-          )}
-          
-          {showInstructions && (
+          {/* Assignment Instructions - Always visible for assignments */}
+          {currentBlock.type === 'assignment' && currentBlock.assignment && (
             <div style={{
-              marginTop: '12px',
-              padding: '12px',
+              marginBottom: '12px',
+              padding: '16px',
               backgroundColor: colors.surface,
               borderRadius: '8px',
+              border: `1px solid ${colors.background}`,
               fontSize: '14px',
-              color: colors.textMuted,
               lineHeight: '1.6'
             }}>
-              Check your course materials for specific requirements.
+              {currentBlock.assignment.instructions ? (
+                <div>
+                  <div style={{ 
+                    fontWeight: '600', 
+                    color: colors.text, 
+                    marginBottom: '8px',
+                    fontSize: '15px'
+                  }}>
+                    📝 What to do:
+                  </div>
+                  <div 
+                    style={{ color: colors.text }}
+                    dangerouslySetInnerHTML={{ 
+                      __html: currentBlock.assignment.instructions.replace(/\n/g, '<br/>') 
+                    }}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <div style={{ 
+                    fontWeight: '600', 
+                    color: colors.text, 
+                    marginBottom: '8px',
+                    fontSize: '15px'
+                  }}>
+                    📚 {currentBlock.assignment.courseName || currentBlock.assignment.subject || 'Assignment'}:
+                  </div>
+                  <div style={{ color: colors.text }}>
+                    Work on: {currentBlock.assignment.title}
+                    {currentBlock.assignment.pointsValue && (
+                      <div style={{ marginTop: '4px', fontSize: '13px', color: colors.textMuted }}>
+                        Worth {currentBlock.assignment.pointsValue} points
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Bible reading instructions */}
+          {currentBlock.type === 'bible' && (
+            <div style={{
+              marginBottom: '12px',
+              padding: '16px',
+              backgroundColor: colors.surface,
+              borderRadius: '8px',
+              border: `1px solid ${colors.background}`,
+              fontSize: '14px',
+              lineHeight: '1.6'
+            }}>
+              <div style={{ 
+                fontWeight: '600', 
+                color: colors.text, 
+                marginBottom: '8px',
+                fontSize: '15px'
+              }}>
+                📖 Today's Bible Reading:
+              </div>
+              <div style={{ color: colors.text }}>
+                Continue reading from where you left off yesterday. Take notes on key verses or insights.
+              </div>
             </div>
           )}
         </div>
