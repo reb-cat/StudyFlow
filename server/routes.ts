@@ -1283,6 +1283,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Student Profile Management API endpoints
   
+  // GET /api/students/:studentName/assignments - Get assignments for specific student
+  app.get('/api/students/:studentName/assignments', async (req, res) => {
+    try {
+      const { studentName } = req.params;
+      const { date, includeCompleted } = req.query;
+      
+      // Map student name to user ID
+      const userIdMap: Record<string, string> = {
+        'abigail': 'abigail-user',
+        'khalil': 'khalil-user'
+      };
+      
+      const userId = userIdMap[studentName.toLowerCase()] || `${studentName.toLowerCase()}-user`;
+      const includeCompletedBool = includeCompleted === 'true';
+      
+      const assignments = await storage.getAssignments(userId, date as string, includeCompletedBool);
+      console.log(`📚 Retrieved ${assignments.length} assignments for ${studentName}`);
+      res.json(assignments);
+    } catch (error) {
+      console.error('Error fetching student assignments:', error);
+      res.status(500).json({ message: 'Failed to fetch student assignments' });
+    }
+  });
+
   // GET /api/students/:studentName/profile - Get student profile
   app.get('/api/students/:studentName/profile', async (req, res) => {
     try {

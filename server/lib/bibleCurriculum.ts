@@ -251,4 +251,5 @@ export async function getWeeklyBibleProgress(weekNumber: number) {
   }
 }
 
-export { SCHOOL_YEAR_START_DATE };
+// Define the school year start date constant
+export const SCHOOL_YEAR_START_DATE = new Date('2025-08-26');
