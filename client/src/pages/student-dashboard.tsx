@@ -271,16 +271,92 @@ export default function StudentDashboard() {
   );
   const assignmentBlocks = allScheduleBlocks.filter((block) => block.blockType === 'assignment');
 
-  // Fill assignment blocks with available assignments (no duplicates - each assignment used only once)
-  const populatedAssignmentBlocks = assignmentBlocks.map((block, index) => {
-    // Only assign if we have an assignment at this index (no round-robin duplicates)
-    const assignment = index < assignments.length ? assignments[index] : null;
+  // INTELLIGENT ASSIGNMENT SCHEDULING with subject distribution and deduplication
+  const populatedAssignmentBlocks = (() => {
+    // Create a copy of assignments for scheduling
+    const availableAssignments = [...assignments];
+    const usedSubjects = new Set<string>();
+    const scheduledAssignments: any[] = [];
     
-    return {
-      ...block,
-      assignment: assignment
-    };
-  });
+    // Sort assignments by priority: overdue first, then by due date
+    availableAssignments.sort((a, b) => {
+      const aOverdue = a.dueDate && new Date(a.dueDate) < new Date();
+      const bOverdue = b.dueDate && new Date(b.dueDate) < new Date();
+      
+      // Overdue assignments come first
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      
+      // Then sort by due date
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      if (a.dueDate && !b.dueDate) return -1;
+      if (!a.dueDate && b.dueDate) return 1;
+      return 0;
+    });
+    
+    return assignmentBlocks.map((block, index) => {
+      let selectedAssignment = null;
+      
+      // First pass: try to find assignment from unused subject
+      for (let i = 0; i < availableAssignments.length; i++) {
+        const assignment = availableAssignments[i];
+        const subject = assignment.subject || 'General';
+        
+        if (!usedSubjects.has(subject)) {
+          selectedAssignment = assignment;
+          availableAssignments.splice(i, 1);
+          usedSubjects.add(subject);
+          break;
+        }
+      }
+      
+      // Second pass: if no unused subject, take next available (but avoid similar titles)
+      if (!selectedAssignment && availableAssignments.length > 0) {
+        for (let i = 0; i < availableAssignments.length; i++) {
+          const assignment = availableAssignments[i];
+          
+          // Check for similar titles in already scheduled assignments
+          const similarExists = scheduledAssignments.some(scheduled => {
+            if (!scheduled) return false;
+            const titleA = assignment.title.toLowerCase().replace(/[^a-z\s]/g, '');
+            const titleB = scheduled.title.toLowerCase().replace(/[^a-z\s]/g, '');
+            
+            // Check for similar recipe assignments or identical prefixes
+            if (titleA.includes('review recipe') && titleB.includes('review recipe')) {
+              return true;
+            }
+            
+            // Check for similar worksheet/homework patterns
+            const wordsA = titleA.split(' ').filter(w => w.length > 3);
+            const wordsB = titleB.split(' ').filter(w => w.length > 3);
+            const commonWords = wordsA.filter(w => wordsB.includes(w));
+            
+            return commonWords.length >= 2; // Similar if 2+ significant words match
+          });
+          
+          if (!similarExists) {
+            selectedAssignment = assignment;
+            availableAssignments.splice(i, 1);
+            break;
+          }
+        }
+        
+        // If still no assignment and we have extras, take next available anyway
+        if (!selectedAssignment && availableAssignments.length > 0) {
+          selectedAssignment = availableAssignments.shift();
+        }
+      }
+      
+      scheduledAssignments.push(selectedAssignment);
+      
+      return {
+        ...block,
+        assignment: selectedAssignment
+      };
+    });
+  })();
 
   if (isWeekend) {
     return (
