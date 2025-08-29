@@ -285,11 +285,18 @@ export function GuidedDayView({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
   const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  // Remove showInstructions state - instructions will be shown by default
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(20 * 60);
   const [exitClickCount, setExitClickCount] = useState(0);
 
   const currentBlock = scheduleBlocks[currentIndex];
+  
+  // Reset timer when block changes
+  useEffect(() => {
+    if (currentBlock) {
+      setTimeRemaining((currentBlock.estimatedMinutes || 20) * 60);
+      setIsTimerRunning(true); // Auto-start for new block
+    }
+  }, [currentIndex]);
   const totalBlocks = scheduleBlocks.length;
   const completedCount = completedBlocks.size;
   const progressPercentage = Math.round((completedCount / totalBlocks) * 100);
@@ -320,9 +327,8 @@ export function GuidedDayView({
     // Move to next block
     if (currentIndex < scheduleBlocks.length - 1) {
       setCurrentIndex(prev => prev + 1);
-      setTimeRemaining(null);
-      // Don't auto-start timer for next block
-      setIsTimerRunning(false);
+      // Timer will be reset by useEffect when currentIndex changes
+      setIsTimerRunning(true);
     } else {
       // Day complete
       onModeToggle?.();
@@ -332,7 +338,7 @@ export function GuidedDayView({
   const handleNeedMoreTime = () => {
     if (currentIndex < scheduleBlocks.length - 1) {
       setCurrentIndex(prev => prev + 1);
-      setTimeRemaining(null);
+      // Timer will be reset by useEffect when currentIndex changes
       setIsTimerRunning(true);
     }
   };
@@ -340,7 +346,7 @@ export function GuidedDayView({
   const handleStuck = () => {
     if (currentIndex < scheduleBlocks.length - 1) {
       setCurrentIndex(prev => prev + 1);
-      setTimeRemaining(null);
+      // Timer will be reset by useEffect when currentIndex changes
       setIsTimerRunning(true);
     }
   };
@@ -445,21 +451,16 @@ export function GuidedDayView({
             {currentBlock.title}
           </h2>
 
-          {/* Time and due date display */}
-          <div style={{ 
-            fontSize: '14px', 
-            color: colors.textMuted, 
-            marginBottom: '16px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}>
-            <span>{currentBlock.startTime} - {currentBlock.endTime}</span>
-            <span>• {currentBlock.estimatedMinutes} min</span>
-            {currentBlock.assignment?.dueDate && (
-              <span>• Due: {new Date(currentBlock.assignment.dueDate).toLocaleDateString()}</span>
-            )}
-          </div>
+          {/* Due date only - remove redundant time info */}
+          {currentBlock.assignment?.dueDate && (
+            <div style={{ 
+              fontSize: '14px', 
+              color: colors.textMuted, 
+              marginBottom: '16px'
+            }}>
+              Due: {new Date(currentBlock.assignment.dueDate).toLocaleDateString()}
+            </div>
+          )}
 
           {/* Assignment Instructions - Always visible for assignments */}
           {currentBlock.type === 'assignment' && currentBlock.assignment && (
