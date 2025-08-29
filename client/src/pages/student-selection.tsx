@@ -18,7 +18,7 @@ const colors = {
   border: '#E9ECEF'
 };
 
-export default function StudentSelection() {
+export default function FamilyDashboard() {
   const [hoveredStudent, setHoveredStudent] = useState<string | null>(null);
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
   const queryClient = useQueryClient();
