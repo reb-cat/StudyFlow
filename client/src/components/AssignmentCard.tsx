@@ -20,7 +20,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
     title: assignment.title,
     course: assignment.courseName,
     instructions: assignment.instructions,
-    dueAt: assignment.dueDate
+    dueAt: assignment.dueDate || null
   });
 
   // Check if this is a split assignment (Part 2)
@@ -152,8 +152,13 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="text-xl font-medium text-foreground truncate" data-testid={`assignment-title-${assignment.id}`}>
-                  {assignment.title}
+                  {normalized.displayTitle}
                 </h3>
+                {normalized.courseLabel && (
+                  <span className="shrink-0 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-medium text-slate-600">
+                    {normalized.courseLabel}
+                  </span>
+                )}
                 {isPartTwo && (
                   <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800 text-xs px-2 py-0.5">
                     <Star className="h-3 w-3 mr-1" />
@@ -189,8 +194,13 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
             </div>
             <div className="flex items-center gap-2 mt-1 mb-2">
               <h3 className="text-xl font-semibold text-foreground" data-testid={`assignment-title-${assignment.id}`}>
-                {assignment.title}
+                {normalized.displayTitle}
               </h3>
+              {normalized.courseLabel && (
+                <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
+                  {normalized.courseLabel}
+                </span>
+              )}
               {isPartTwo && (
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
                   <Star className="h-3 w-3 mr-1" />
