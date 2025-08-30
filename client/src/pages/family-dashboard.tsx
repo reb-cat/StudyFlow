@@ -255,7 +255,7 @@ export default function FamilyDashboard() {
           marginBottom: '40px'
         }}>
           {dashboardData.students.map(student => {
-            const flagCount = getTotalFlags(student: any);
+            const flagCount = getTotalFlags(student);
             const progressPercent = (student.todayStats.completed / student.todayStats.total) * 100;
             
             return (
