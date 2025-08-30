@@ -958,7 +958,7 @@ export class MemStorage implements IStorage {
       }
     ];
     
-    sampleAssignments?.forEach(assignment => {
+    sampleAssignments.forEach(assignment => {
       this.assignments.set(assignment.id, {
         id: assignment.id,
         userId: assignment.userId,
