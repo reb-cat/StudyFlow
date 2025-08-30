@@ -11,6 +11,7 @@ import {
 } from './lib/bibleCurriculum';
 import { extractDueDatesFromExistingAssignments, extractDueDateFromTitle } from './lib/assignmentIntelligence';
 import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas";
+import { normalizeAssignment, type AssignmentLike } from './lib/assignmentNormalizer';
 import { ObjectStorageService } from "./objectStorage"; 
 // Email config moved inline since Supabase removed
 const emailConfig = {
@@ -284,15 +285,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process instance 1 assignments
       if (canvasData.instance1) {
         for (const canvasAssignment of canvasData.instance1) {
-          // ENHANCED DUE DATE EXTRACTION: Use Canvas due_at OR extract from title
-          let finalDueDate = canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null;
-          if (!finalDueDate) {
-            finalDueDate = extractDueDateFromTitle(canvasAssignment.name);
-          }
+          // Use assignment normalizer for improved titles and due dates
+          const assignmentLike: AssignmentLike = {
+            id: canvasAssignment.id.toString(),
+            title: canvasAssignment.name,
+            course: canvasAssignment.courseName,
+            instructions: canvasAssignment.description,
+            dueAt: canvasAssignment.due_at
+          };
+          
+          const normalized = normalizeAssignment(assignmentLike);
+          const finalDueDate = normalized.effectiveDueAt ? new Date(normalized.effectiveDueAt) : null;
           
           transformedAssignments.push({
-            title: canvasAssignment.name,
-            subject: canvasAssignment.courseName || 'Unknown Course',
+            title: normalized.displayTitle,
+            subject: normalized.courseLabel || 'Unknown Course',
             instructions: canvasAssignment.description || '',
             dueDate: finalDueDate,
             actualEstimatedMinutes: 60, // Default to 1 hour
@@ -308,15 +315,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process instance 2 assignments (Abigail only)
       if (canvasData.instance2) {
         for (const canvasAssignment of canvasData.instance2) {
-          // ENHANCED DUE DATE EXTRACTION: Use Canvas due_at OR extract from title
-          let finalDueDate = canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null;
-          if (!finalDueDate) {
-            finalDueDate = extractDueDateFromTitle(canvasAssignment.name);
-          }
+          // Use assignment normalizer for improved titles and due dates
+          const assignmentLike: AssignmentLike = {
+            id: canvasAssignment.id.toString(),
+            title: canvasAssignment.name,
+            course: canvasAssignment.courseName,
+            instructions: canvasAssignment.description,
+            dueAt: canvasAssignment.due_at
+          };
+          
+          const normalized = normalizeAssignment(assignmentLike);
+          const finalDueDate = normalized.effectiveDueAt ? new Date(normalized.effectiveDueAt) : null;
           
           transformedAssignments.push({
-            title: canvasAssignment.name,
-            subject: canvasAssignment.courseName || 'Unknown Course 2',
+            title: normalized.displayTitle,
+            subject: normalized.courseLabel || 'Unknown Course 2',
             instructions: canvasAssignment.description || '',
             dueDate: finalDueDate,
             actualEstimatedMinutes: 60,
@@ -377,23 +390,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             completionStatus = 'completed';
           }
 
-          // ENHANCED DUE DATE EXTRACTION: Use Canvas due_at OR extract from title
-          let finalDueDate = canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null;
+          // Use assignment normalizer for improved titles and due dates
+          const assignmentLike: AssignmentLike = {
+            id: canvasAssignment.id.toString(),
+            title: canvasAssignment.name,
+            course: canvasAssignment.courseName,
+            instructions: canvasAssignment.description,
+            dueAt: canvasAssignment.due_at
+          };
           
-          // If no Canvas due date, try to extract from title
-          if (!finalDueDate) {
-            const extractedDate = extractDueDateFromTitle(canvasAssignment.name);
-            if (extractedDate) {
-              finalDueDate = extractedDate;
-              console.log(`📅 Extracted due date from "${canvasAssignment.name}": ${extractedDate.toDateString()}`);
-            }
+          const normalized = normalizeAssignment(assignmentLike);
+          const finalDueDate = normalized.effectiveDueAt ? new Date(normalized.effectiveDueAt) : null;
+          
+          // Log improved titles and due dates
+          if (normalized.displayTitle !== canvasAssignment.name) {
+            console.log(`📝 Improved title: "${canvasAssignment.name}" → "${normalized.displayTitle}"`);
+          }
+          if (finalDueDate && !canvasAssignment.due_at) {
+            console.log(`📅 Extracted due date from content: "${normalized.displayTitle}": ${finalDueDate.toDateString()}`);
           }
 
           const assignment = await storage.createAssignment({
             userId: userId,
-            title: canvasAssignment.name,
-            subject: canvasAssignment.courseName || 'Unknown Course',
-            courseName: canvasAssignment.courseName || 'Unknown Course',
+            title: normalized.displayTitle,
+            subject: normalized.courseLabel || 'Unknown Course',
+            courseName: normalized.courseLabel || 'Unknown Course',
             instructions: canvasAssignment.description || 'Assignment from Canvas',
             dueDate: finalDueDate,
             scheduledDate: today, // Schedule for today for testing
@@ -430,23 +451,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             completionStatus = 'completed';
           }
 
-          // ENHANCED DUE DATE EXTRACTION: Use Canvas due_at OR extract from title
-          let finalDueDate = canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null;
+          // Use assignment normalizer for improved titles and due dates
+          const assignmentLike: AssignmentLike = {
+            id: canvasAssignment.id.toString(),
+            title: canvasAssignment.name,
+            course: canvasAssignment.courseName,
+            instructions: canvasAssignment.description,
+            dueAt: canvasAssignment.due_at
+          };
           
-          // If no Canvas due date, try to extract from title
-          if (!finalDueDate) {
-            const extractedDate = extractDueDateFromTitle(canvasAssignment.name);
-            if (extractedDate) {
-              finalDueDate = extractedDate;
-              console.log(`📅 Extracted due date from "${canvasAssignment.name} (Canvas 2)": ${extractedDate.toDateString()}`);
-            }
+          const normalized = normalizeAssignment(assignmentLike);
+          const finalDueDate = normalized.effectiveDueAt ? new Date(normalized.effectiveDueAt) : null;
+          
+          // Log improved titles and due dates for Canvas 2
+          if (normalized.displayTitle !== canvasAssignment.name) {
+            console.log(`📝 Improved title (Canvas 2): "${canvasAssignment.name}" → "${normalized.displayTitle}"`);
+          }
+          if (finalDueDate && !canvasAssignment.due_at) {
+            console.log(`📅 Extracted due date from content (Canvas 2): "${normalized.displayTitle}": ${finalDueDate.toDateString()}`);
           }
 
           const assignment = await storage.createAssignment({
             userId: userId,
-            title: `${canvasAssignment.name} (Canvas 2)`,
-            subject: canvasAssignment.courseName || 'Unknown Course 2',
-            courseName: canvasAssignment.courseName || 'Unknown Course 2',
+            title: `${normalized.displayTitle} (Canvas 2)`,
+            subject: normalized.courseLabel || 'Unknown Course 2',
+            courseName: normalized.courseLabel || 'Unknown Course 2',
             instructions: canvasAssignment.description || 'Assignment from Canvas instance 2',
             dueDate: finalDueDate,
             scheduledDate: today,
