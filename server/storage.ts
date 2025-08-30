@@ -284,6 +284,119 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Bulk update assignment scheduling
+  async updateAssignmentScheduling(id: string, scheduling: {
+    scheduledDate: string;
+    scheduledBlock: number | null;
+    blockStart?: string | null;
+    blockEnd?: string | null;
+  }): Promise<Assignment | undefined> {
+    try {
+      const result = await db.update(assignments)
+        .set({ 
+          scheduledDate: scheduling.scheduledDate,
+          scheduledBlock: scheduling.scheduledBlock,
+          blockStart: scheduling.blockStart || null,
+          blockEnd: scheduling.blockEnd || null,
+          updatedAt: new Date()
+        })
+        .where(eq(assignments.id, id))
+        .returning();
+      return result[0] || undefined;
+    } catch (error) {
+      console.error('Error updating assignment scheduling:', error);
+      return undefined;
+    }
+  }
+
+  // Auto-schedule assignments for a specific student and date
+  async autoScheduleAssignmentsForDate(studentName: string, targetDate: string): Promise<{
+    scheduled: number;
+    total: number;
+    assignments: Assignment[];
+  }> {
+    try {
+      const userId = `${studentName.toLowerCase()}-user`;
+      
+      // Get unscheduled assignments
+      const userAssignments = await this.getAssignments(userId);
+      const unscheduledAssignments = userAssignments.filter(a => 
+        a.completionStatus === 'pending' && 
+        (!a.scheduledDate || !a.scheduledBlock)
+      );
+      
+      // Get schedule template blocks
+      const targetDateObj = new Date(targetDate);
+      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const weekday = weekdays[targetDateObj.getDay()];
+      const scheduleBlocks = await this.getScheduleTemplate(studentName, weekday);
+      
+      // Use auto-scheduler
+      const { autoScheduleAssignments } = await import('./lib/assignmentIntelligence');
+      
+      const assignmentsToSchedule = unscheduledAssignments.map(a => ({
+        id: a.id,
+        title: a.title,
+        priority: a.priority as 'A' | 'B' | 'C',
+        dueDate: a.dueDate ? new Date(a.dueDate) : null,
+        difficulty: a.difficulty as 'easy' | 'medium' | 'hard',
+        actualEstimatedMinutes: a.actualEstimatedMinutes || 60,
+        completionStatus: a.completionStatus,
+        scheduledDate: a.scheduledDate,
+        scheduledBlock: a.scheduledBlock
+      }));
+      
+      const scheduleBlocksFormatted = scheduleBlocks.map(b => ({
+        id: b.id,
+        studentName: b.studentName,
+        weekday: b.weekday,
+        blockNumber: b.blockNumber,
+        startTime: b.startTime,
+        endTime: b.endTime,
+        subject: b.subject,
+        blockType: b.blockType
+      }));
+      
+      const schedulingResults = autoScheduleAssignments(
+        assignmentsToSchedule,
+        scheduleBlocksFormatted,
+        studentName,
+        targetDate,
+        'America/New_York'
+      );
+      
+      // Update assignments in database
+      const updatedAssignments: Assignment[] = [];
+      let scheduledCount = 0;
+      
+      for (const [assignmentId, result] of schedulingResults.entries()) {
+        const updated = await this.updateAssignmentScheduling(assignmentId, {
+          scheduledDate: result.scheduledDate,
+          scheduledBlock: result.scheduledBlock,
+          blockStart: result.blockStart,
+          blockEnd: result.blockEnd
+        });
+        
+        if (updated) {
+          updatedAssignments.push(updated);
+          scheduledCount++;
+        }
+      }
+      
+      console.log(`🎯 Auto-Scheduling Complete: ${scheduledCount}/${unscheduledAssignments.length} assignments scheduled for ${studentName} on ${targetDate}`);
+      
+      return {
+        scheduled: scheduledCount,
+        total: unscheduledAssignments.length,
+        assignments: updatedAssignments
+      };
+      
+    } catch (error) {
+      console.error('Error auto-scheduling assignments:', error);
+      throw new Error('Failed to auto-schedule assignments');
+    }
+  }
+
   async updateAdministrativeAssignments(): Promise<void> {
     try {
       // Get all assignments and update administrative ones

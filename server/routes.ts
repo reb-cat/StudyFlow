@@ -608,6 +608,245 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Auto-scheduling route
+  app.post('/api/assignments/auto-schedule', async (req, res) => {
+    try {
+      const { studentName, targetDate } = req.body;
+      
+      if (!studentName || !targetDate) {
+        return res.status(400).json({ message: 'Student name and target date are required' });
+      }
+      
+      console.log(`🤖 Auto-scheduling assignments for ${studentName} on ${targetDate}`);
+      
+      const result = await storage.autoScheduleAssignmentsForDate(studentName, targetDate);
+      
+      res.json({
+        message: `Successfully scheduled ${result.scheduled} of ${result.total} assignments`,
+        ...result
+      });
+      
+    } catch (error) {
+      console.error('Auto-scheduling failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to auto-schedule assignments', error: errorMessage });
+    }
+  });
+
+  // GUIDED MODE ACTIONS
+  
+  // Done Action: Mark assignment completed with optional time banking
+  app.post('/api/assignments/:id/done', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { timeSpent, earlyFinish, bankMinutes } = req.body;
+      
+      console.log(`✅ Done Action: Assignment ${id} - timeSpent: ${timeSpent}, earlyFinish: ${earlyFinish}, bankMinutes: ${bankMinutes}`);
+      
+      // Mark assignment as completed
+      let updateData: any = {
+        completionStatus: 'completed',
+        timeSpent: timeSpent || 0,
+        updatedAt: new Date()
+      };
+      
+      // If student finished early, offer time banking
+      if (earlyFinish && bankMinutes > 0) {
+        updateData.notes = `Finished ${bankMinutes} minutes early - time banked for later use`;
+        console.log(`💰 Time Banking: ${bankMinutes} minutes banked for student`);
+      }
+      
+      const updatedAssignment = await storage.updateAssignment(id, updateData);
+      
+      if (!updatedAssignment) {
+        return res.status(404).json({ message: 'Assignment not found' });
+      }
+      
+      res.json({
+        message: earlyFinish ? `Assignment completed! ${bankMinutes} minutes banked for later.` : 'Assignment completed successfully!',
+        assignment: updatedAssignment,
+        timeбанked: earlyFinish ? bankMinutes : 0
+      });
+      
+    } catch (error) {
+      console.error('Done action failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to complete assignment', error: errorMessage });
+    }
+  });
+  
+  // Need More Time Action: Smart rescheduling based on due date
+  app.post('/api/assignments/:id/need-more-time', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason, estimatedMinutesNeeded } = req.body;
+      
+      console.log(`⏰ Need More Time: Assignment ${id} - reason: ${reason}, estimated: ${estimatedMinutesNeeded}`);
+      
+      // Get the assignment to check due date
+      const assignment = await storage.getAssignment(id);
+      if (!assignment) {
+        return res.status(404).json({ message: 'Assignment not found' });
+      }
+      
+      // Smart rescheduling logic based on due date
+      let newScheduledDate = null;
+      let reschedulingStrategy = '';
+      
+      if (assignment.dueDate) {
+        const dueDate = new Date(assignment.dueDate);
+        const today = new Date();
+        const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysUntilDue <= 1) {
+          // Due today/tomorrow - reschedule to today if possible, tomorrow otherwise
+          reschedulingStrategy = 'URGENT: Rescheduled to today/tomorrow due to proximity to due date';
+          newScheduledDate = today.toISOString().split('T')[0];
+        } else if (daysUntilDue <= 3) {
+          // Due soon - reschedule to tomorrow
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          newScheduledDate = tomorrow.toISOString().split('T')[0];
+          reschedulingStrategy = 'Due soon - rescheduled to tomorrow';
+        } else {
+          // Due later - reschedule to next available day
+          const nextDay = new Date(today);
+          nextDay.setDate(nextDay.getDate() + 1);
+          newScheduledDate = nextDay.toISOString().split('T')[0];
+          reschedulingStrategy = 'Flexible - rescheduled to next day';
+        }
+      } else {
+        // No due date - reschedule to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        newScheduledDate = tomorrow.toISOString().split('T')[0];
+        reschedulingStrategy = 'No due date - rescheduled to tomorrow';
+      }
+      
+      // Update assignment with new scheduling and status
+      const updateData = {
+        completionStatus: 'needs_more_time' as const,
+        scheduledDate: newScheduledDate,
+        scheduledBlock: null, // Will be auto-scheduled later
+        actualEstimatedMinutes: estimatedMinutesNeeded || assignment.actualEstimatedMinutes,
+        notes: `${assignment.notes || ''}\nNeed More Time: ${reason} (${reschedulingStrategy})`.trim(),
+        updatedAt: new Date()
+      };
+      
+      const updatedAssignment = await storage.updateAssignment(id, updateData);
+      
+      res.json({
+        message: `Assignment rescheduled to ${newScheduledDate}. ${reschedulingStrategy}`,
+        assignment: updatedAssignment,
+        newScheduledDate,
+        reschedulingStrategy
+      });
+      
+    } catch (error) {
+      console.error('Need More Time action failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to reschedule assignment', error: errorMessage });
+    }
+  });
+  
+  // Stuck Action: Mark stuck, remove from today, log event, with 15-second undo
+  app.post('/api/assignments/:id/stuck', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason, needsHelp } = req.body;
+      
+      console.log(`🆘 Stuck Action: Assignment ${id} - reason: ${reason}, needsHelp: ${needsHelp}`);
+      
+      // Get original assignment state for undo
+      const originalAssignment = await storage.getAssignment(id);
+      if (!originalAssignment) {
+        return res.status(404).json({ message: 'Assignment not found' });
+      }
+      
+      // Mark assignment as stuck and remove from today
+      const updateData = {
+        completionStatus: 'stuck' as const,
+        scheduledDate: null, // Remove from today
+        scheduledBlock: null, // Remove from specific block
+        notes: `${originalAssignment.notes || ''}\nSTUCK: ${reason} ${needsHelp ? '(Parent notification sent)' : ''}`.trim(),
+        updatedAt: new Date()
+      };
+      
+      const updatedAssignment = await storage.updateAssignment(id, updateData);
+      
+      // Send parent notification if requested
+      if (needsHelp) {
+        try {
+          await fetch('http://localhost:5000/api/notify-parent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              studentName: 'Student', // Will be derived from context
+              assignmentTitle: originalAssignment.title,
+              message: `Student is stuck on assignment: ${reason}`
+            })
+          });
+          console.log('📧 Parent notification sent for stuck assignment');
+        } catch (notifyError) {
+          console.warn('Parent notification failed:', notifyError);
+        }
+      }
+      
+      res.json({
+        message: needsHelp 
+          ? 'Assignment marked as stuck and parent notified. Removed from today\'s schedule.'
+          : 'Assignment marked as stuck and removed from today\'s schedule.',
+        assignment: updatedAssignment,
+        originalState: {
+          scheduledDate: originalAssignment.scheduledDate,
+          scheduledBlock: originalAssignment.scheduledBlock,
+          completionStatus: originalAssignment.completionStatus
+        },
+        undoAvailable: true,
+        undoTimeoutSeconds: 15
+      });
+      
+    } catch (error) {
+      console.error('Stuck action failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to mark assignment as stuck', error: errorMessage });
+    }
+  });
+  
+  // Undo Stuck Action (15-second window)
+  app.post('/api/assignments/:id/undo-stuck', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { originalState } = req.body;
+      
+      console.log(`↩️ Undo Stuck: Assignment ${id}`);
+      
+      if (!originalState) {
+        return res.status(400).json({ message: 'Original state required for undo' });
+      }
+      
+      // Restore original assignment state
+      const updateData = {
+        completionStatus: originalState.completionStatus,
+        scheduledDate: originalState.scheduledDate,
+        scheduledBlock: originalState.scheduledBlock,
+        updatedAt: new Date()
+      };
+      
+      const restoredAssignment = await storage.updateAssignment(id, updateData);
+      
+      res.json({
+        message: 'Assignment restored to original state',
+        assignment: restoredAssignment
+      });
+      
+    } catch (error) {
+      console.error('Undo stuck action failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to undo stuck status', error: errorMessage });
+    }
+  });
+
   // Attendance tracking routes for fixed blocks
   app.get('/api/attendance/:userId', async (req, res) => {
     try {

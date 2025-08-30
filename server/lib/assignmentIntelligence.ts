@@ -27,6 +27,7 @@ export interface AssignmentIntelligence {
     allowsLateSubs: boolean;
   };
   confidence: number;
+  priority: 'A' | 'B' | 'C';
 }
 
 /**
@@ -414,6 +415,38 @@ export function analyzeAssignmentWithCanvas(
       suggestedScheduleDate = extractedDueDate;
     }
   }
+
+  // Determine priority based on assignment characteristics
+  let priority: 'A' | 'B' | 'C' = 'B'; // Default to B (Important)
+  
+  if (extractedDueDate) {
+    const daysUntilDue = Math.ceil((extractedDueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    
+    // A = Critical (due today/tomorrow or overdue)
+    if (daysUntilDue <= 1) {
+      priority = 'A';
+    }
+    // C = Flexible (due more than a week away)
+    else if (daysUntilDue > 7) {
+      priority = 'C';
+    }
+    // B = Important (due this week)
+    else {
+      priority = 'B';
+    }
+  }
+  
+  // High-value assignments get priority bump
+  if (canvasData?.points_possible && canvasData.points_possible >= 100) {
+    if (priority === 'C') priority = 'B';
+    if (priority === 'B') priority = 'A';
+  }
+  
+  // Quizzes and tests get priority bump
+  if (category === 'quiz' || category === 'test') {
+    if (priority === 'C') priority = 'B';
+    if (priority === 'B') priority = 'A';
+  }
   
   // Calculate confidence score
   let confidence = 0.5; // Base confidence
@@ -435,7 +468,8 @@ export function analyzeAssignmentWithCanvas(
     suggestedScheduleDate,
     availabilityWindow,
     submissionContext,
-    confidence: Math.min(confidence, 1.0)
+    confidence: Math.min(confidence, 1.0),
+    priority
   };
 }
 
@@ -463,6 +497,165 @@ export function getSmartSchedulingDate(intelligence: AssignmentIntelligence, fal
   }
   
   return fallbackDate;
+}
+
+/**
+ * Comprehensive Auto-Scheduler for Assignments
+ * Schedules assignments into specific schedule blocks by priority, due date, and effort alternation
+ */
+export interface SchedulingResult {
+  scheduledDate: string;
+  scheduledBlock: number | null;
+  blockStart: string | null;
+  blockEnd: string | null;
+  reason: string;
+}
+
+export interface ScheduleBlock {
+  id: string;
+  studentName: string;
+  weekday: string;
+  blockNumber: number | null;
+  startTime: string;
+  endTime: string;
+  subject: string;
+  blockType: string;
+}
+
+export interface AssignmentToSchedule {
+  id: string;
+  title: string;
+  priority: 'A' | 'B' | 'C';
+  dueDate: Date | null;
+  difficulty: 'easy' | 'medium' | 'hard';
+  actualEstimatedMinutes: number;
+  completionStatus: string;
+  scheduledDate?: string | null;
+  scheduledBlock?: number | null;
+}
+
+/**
+ * Auto-schedule assignments into specific schedule blocks
+ */
+export function autoScheduleAssignments(
+  assignments: AssignmentToSchedule[],
+  scheduleBlocks: ScheduleBlock[],
+  studentName: string,
+  targetDate: string,
+  timeZone: string = 'America/New_York'
+): Map<string, SchedulingResult> {
+  
+  console.log(`🤖 Auto-Scheduler: Processing ${assignments.length} assignments for ${studentName} on ${targetDate}`);
+  
+  const results = new Map<string, SchedulingResult>();
+  const today = new Date().toLocaleDateString('en-CA', { timeZone }); // Get today in America/New_York
+  
+  // 1. Filter assignments that need scheduling
+  const unscheduledAssignments = assignments.filter(a => 
+    a.completionStatus === 'pending' && 
+    (!a.scheduledDate || !a.scheduledBlock)
+  );
+  
+  // 2. Get available assignment blocks for target date
+  const targetDateObj = new Date(targetDate);
+  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const weekday = weekdays[targetDateObj.getDay()];
+  
+  const assignmentBlocks = scheduleBlocks.filter(block => 
+    block.studentName === studentName &&
+    block.weekday === weekday &&
+    block.blockType === 'Assignment' &&
+    block.blockNumber !== null
+  ).sort((a, b) => (a.blockNumber || 0) - (b.blockNumber || 0));
+  
+  console.log(`📅 Found ${assignmentBlocks.length} assignment blocks for ${weekday}`);
+  
+  // 3. Sort assignments by priority and due date
+  const sortedAssignments = unscheduledAssignments.sort((a, b) => {
+    // Priority: A > B > C
+    const priorityOrder = { 'A': 3, 'B': 2, 'C': 1 };
+    if (a.priority !== b.priority) {
+      return priorityOrder[b.priority] - priorityOrder[a.priority];
+    }
+    
+    // Within same priority, sort by due date (overdue/today first)
+    if (a.dueDate && b.dueDate) {
+      return a.dueDate.getTime() - b.dueDate.getTime();
+    }
+    if (a.dueDate && !b.dueDate) return -1;
+    if (!a.dueDate && b.dueDate) return 1;
+    
+    return 0;
+  });
+  
+  // 4. Track effort levels for alternation
+  const effortRotation = ['easy', 'medium', 'hard'];
+  let currentEffortIndex = 0;
+  const usedBlocks = new Set<number>();
+  
+  // 5. Schedule assignments to blocks
+  for (const assignment of sortedAssignments) {
+    if (usedBlocks.size >= assignmentBlocks.length) {
+      // No more blocks available for this day
+      console.log(`⚠️ No more assignment blocks available for ${assignment.title}`);
+      continue;
+    }
+    
+    // Find best block for this assignment
+    let selectedBlock: ScheduleBlock | null = null;
+    
+    // Priority A assignments get first available blocks
+    if (assignment.priority === 'A') {
+      selectedBlock = assignmentBlocks.find(block => 
+        !usedBlocks.has(block.blockNumber!)
+      ) || null;
+    }
+    // For B and C, try to alternate effort levels
+    else {
+      // Try to find a block that maintains effort alternation
+      const preferredEffort = effortRotation[currentEffortIndex];
+      
+      // First try: match effort level if assignment difficulty matches preference
+      if (assignment.difficulty === preferredEffort) {
+        selectedBlock = assignmentBlocks.find(block => 
+          !usedBlocks.has(block.blockNumber!)
+        ) || null;
+      }
+      // Second try: any available block
+      else {
+        selectedBlock = assignmentBlocks.find(block => 
+          !usedBlocks.has(block.blockNumber!)
+        ) || null;
+      }
+    }
+    
+    if (selectedBlock) {
+      usedBlocks.add(selectedBlock.blockNumber!);
+      currentEffortIndex = (currentEffortIndex + 1) % effortRotation.length;
+      
+      // Calculate scheduling reason
+      let reason = `Priority ${assignment.priority}`;
+      if (assignment.dueDate) {
+        const daysUntilDue = Math.ceil((assignment.dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        if (daysUntilDue <= 0) reason += ' (OVERDUE)';
+        else if (daysUntilDue === 1) reason += ' (due tomorrow)';
+        else if (daysUntilDue <= 7) reason += ` (due in ${daysUntilDue} days)`;
+      }
+      
+      results.set(assignment.id, {
+        scheduledDate: targetDate,
+        scheduledBlock: selectedBlock.blockNumber!,
+        blockStart: selectedBlock.startTime,
+        blockEnd: selectedBlock.endTime,
+        reason
+      });
+      
+      console.log(`✅ Scheduled "${assignment.title}" to Block ${selectedBlock.blockNumber} (${selectedBlock.startTime}-${selectedBlock.endTime}) - ${reason}`);
+    }
+  }
+  
+  console.log(`🎯 Auto-Scheduler Complete: ${results.size} assignments scheduled`);
+  return results;
 }
 
 /**

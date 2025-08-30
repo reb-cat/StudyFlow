@@ -36,6 +36,7 @@ import { AssignmentCard } from '@/components/AssignmentCard';
 import { FixedBlock } from '@/components/FixedBlock';
 import { apiRequest } from '@/lib/queryClient';
 import type { Assignment, DailyScheduleStatus, ScheduleTemplate } from '@shared/schema';
+import { getTodayString, getToday, parseDateString, formatDateDisplay, getDayName, addDays, isToday } from '@shared/dateUtils';
 
 export default function StudentDashboard() {
   const params = useParams<{ student: string }>();
@@ -210,18 +211,12 @@ export default function StudentDashboard() {
   };
   
   // Date utilities - Fix timezone issue by using UTC
-  const selectedDateObj = new Date(selectedDate + 'T12:00:00.000Z'); // Noon UTC avoids timezone issues
-  const today = new Date();
-  const isToday = selectedDate === today.toISOString().split('T')[0];
+  const selectedDateObj = parseDateString(selectedDate);
+  const todayString = getTodayString();
+  const isTodaySelected = isToday(selectedDate);
   const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
-  const dayName = selectedDateObj.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
-  const dateDisplay = selectedDateObj.toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric',
-    timeZone: 'UTC'
-  });
+  const dayName = getDayName(selectedDate);
+  const dateDisplay = formatDateDisplay(selectedDate);
   
   // Debug current date calculation
   console.log('🗓️ Date Debug:', {
@@ -229,28 +224,24 @@ export default function StudentDashboard() {
     selectedDateObj: selectedDateObj.toString(),
     dayName,
     dateDisplay,
-    today: new Date().toISOString().split('T')[0]
+    today: todayString
   });
 
   // Schedule template for the selected day
   const isThursday = selectedDateObj.getDay() === 4;
-  const weekdayName = selectedDateObj.toLocaleDateString('en-US', { weekday: 'long' });
+  const weekdayName = dayName;
 
   // Date navigation functions
   const goToPreviousDay = () => {
-    const prevDay = new Date(selectedDateObj);
-    prevDay.setDate(prevDay.getDate() - 1);
-    setSelectedDate(prevDay.toISOString().split('T')[0]);
+    setSelectedDate(addDays(selectedDate, -1));
   };
 
   const goToNextDay = () => {
-    const nextDay = new Date(selectedDateObj);
-    nextDay.setDate(nextDay.getDate() + 1);
-    setSelectedDate(nextDay.toISOString().split('T')[0]);
+    setSelectedDate(addDays(selectedDate, 1));
   };
 
   const goToToday = () => {
-    setSelectedDate(new Date().toISOString().split('T')[0]);
+    setSelectedDate(getTodayString());
   };
 
   // Use real schedule template data from database (fix field mapping)
@@ -507,7 +498,7 @@ export default function StudentDashboard() {
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
                   <div className="px-4 text-base font-semibold min-w-[90px] text-center">
-                    {isToday ? 'Today' : dayName}
+                    {isTodaySelected ? 'Today' : dayName}
                   </div>
                   <Button
                     variant="ghost"
@@ -595,7 +586,7 @@ export default function StudentDashboard() {
             <Card className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/50 print:hidden">
               <CardContent className="p-4">
                 <h3 className="text-lg font-semibold text-foreground mb-4">
-                  {isToday ? "Today's" : `${dayName}'s`} Schedule
+                  {isTodaySelected ? "Today's" : `${dayName}'s`} Schedule
                 </h3>
                   
                   <div className="space-y-3 print:space-y-0">

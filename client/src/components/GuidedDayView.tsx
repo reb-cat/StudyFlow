@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, CheckCircle, Clock, HelpCircle, Volume2, VolumeX, AlertCircle, ChevronRight } from 'lucide-react';
+import { Play, Pause, RotateCcw, CheckCircle, Clock, HelpCircle, Volume2, VolumeX, AlertCircle, ChevronRight, Undo } from 'lucide-react';
 import type { Assignment } from '@shared/schema';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { getTodayString, formatDateShort } from '@shared/dateUtils';
 
 // StudyFlow color system
 const colors = {
@@ -212,7 +215,7 @@ interface GuidedDayViewProps {
 export function GuidedDayView({ 
   assignments = [], 
   studentName = "Student", 
-  selectedDate = new Date().toISOString().split('T')[0],
+  selectedDate = getTodayString(),
   scheduleTemplate = [],
   onAssignmentUpdate,
   onModeToggle 
@@ -287,6 +290,12 @@ export function GuidedDayView({
   const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());
   const [timeRemaining, setTimeRemaining] = useState<number | null>(20 * 60);
   const [exitClickCount, setExitClickCount] = useState(0);
+  const [showDoneDialog, setShowDoneDialog] = useState(false);
+  const [showNeedTimeDialog, setShowNeedTimeDialog] = useState(false);
+  const [showStuckDialog, setShowStuckDialog] = useState(false);
+  const [undoStuckState, setUndoStuckState] = useState<any>(null);
+  const [undoTimeLeft, setUndoTimeLeft] = useState(0);
+  const { toast } = useToast();
 
   const currentBlock = scheduleBlocks[currentIndex];
   
@@ -313,41 +322,191 @@ export function GuidedDayView({
     return styles[blockType as keyof typeof styles] || styles.assignment;
   };
 
-  const handleBlockComplete = () => {
+  // Undo countdown effect
+  useEffect(() => {
+    if (undoTimeLeft > 0) {
+      const timer = setTimeout(() => {
+        setUndoTimeLeft(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (undoTimeLeft === 0 && undoStuckState) {
+      // Undo window expired
+      setUndoStuckState(null);
+    }
+  }, [undoTimeLeft, undoStuckState]);
+
+  const handleBlockComplete = async () => {
+    if (!currentBlock) return;
+    
+    if (currentBlock.type === 'assignment' && currentBlock.assignment) {
+      // Show Done dialog for assignments
+      setShowDoneDialog(true);
+    } else {
+      // Complete non-assignment blocks immediately
+      await completeBlock();
+    }
+  };
+
+  const completeBlock = async (timeSpent?: number, earlyFinish?: boolean, bankMinutes?: number) => {
     if (!currentBlock) return;
     
     setCompletedBlocks(prev => new Set([...Array.from(prev), currentBlock.id]));
     setIsTimerRunning(false);
     
-    // Call assignment update if this was an assignment
-    if (currentBlock.type === 'assignment' && onAssignmentUpdate) {
-      onAssignmentUpdate();
+    // Call API for assignment completion
+    if (currentBlock.type === 'assignment' && currentBlock.assignment) {
+      try {
+        const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/done`, {
+          timeSpent: timeSpent || 0,
+          earlyFinish: earlyFinish || false,
+          bankMinutes: bankMinutes || 0
+        }) as any;
+        
+        toast({
+          title: "Assignment Completed!",
+          description: response.message,
+          variant: "default"
+        });
+        
+        if (onAssignmentUpdate) {
+          onAssignmentUpdate();
+        }
+      } catch (error) {
+        console.error('Failed to complete assignment:', error);
+        toast({
+          title: "Error",
+          description: "Failed to mark assignment as complete",
+          variant: "destructive"
+        });
+      }
     }
     
     // Move to next block
     if (currentIndex < scheduleBlocks.length - 1) {
       setCurrentIndex(prev => prev + 1);
-      // Timer will be reset by useEffect when currentIndex changes
       setIsTimerRunning(true);
     } else {
       // Day complete
       onModeToggle?.();
     }
+    
+    setShowDoneDialog(false);
   };
 
   const handleNeedMoreTime = () => {
-    if (currentIndex < scheduleBlocks.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-      // Timer will be reset by useEffect when currentIndex changes
-      setIsTimerRunning(true);
+    setShowNeedTimeDialog(true);
+  };
+
+  const rescheduleAssignment = async (reason: string, estimatedMinutesNeeded?: number) => {
+    if (!currentBlock?.assignment) return;
+    
+    try {
+      const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/need-more-time`, {
+        reason,
+        estimatedMinutesNeeded
+      }) as any;
+      
+      toast({
+        title: "Assignment Rescheduled",
+        description: response.message,
+        variant: "default"
+      });
+      
+      if (onAssignmentUpdate) {
+        onAssignmentUpdate();
+      }
+      
+      // Move to next block
+      if (currentIndex < scheduleBlocks.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+        setIsTimerRunning(true);
+      }
+      
+    } catch (error) {
+      console.error('Failed to reschedule assignment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reschedule assignment",
+        variant: "destructive"
+      });
     }
+    
+    setShowNeedTimeDialog(false);
   };
 
   const handleStuck = () => {
-    if (currentIndex < scheduleBlocks.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-      // Timer will be reset by useEffect when currentIndex changes
-      setIsTimerRunning(true);
+    setShowStuckDialog(true);
+  };
+
+  const markAsStuck = async (reason: string, needsHelp: boolean) => {
+    if (!currentBlock?.assignment) return;
+    
+    try {
+      const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/stuck`, {
+        reason,
+        needsHelp
+      }) as any;
+      
+      // Set up undo state with 15-second timer
+      setUndoStuckState(response.originalState);
+      setUndoTimeLeft(15);
+      
+      toast({
+        title: "Assignment Marked as Stuck",
+        description: `${response.message} Undo available for 15 seconds.`,
+        variant: "default"
+      });
+      
+      if (onAssignmentUpdate) {
+        onAssignmentUpdate();
+      }
+      
+      // Move to next block
+      if (currentIndex < scheduleBlocks.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+        setIsTimerRunning(true);
+      }
+      
+    } catch (error) {
+      console.error('Failed to mark as stuck:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark assignment as stuck",
+        variant: "destructive"
+      });
+    }
+    
+    setShowStuckDialog(false);
+  };
+
+  const undoStuck = async () => {
+    if (!undoStuckState || !currentBlock?.assignment) return;
+    
+    try {
+      await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/undo-stuck`, {
+        originalState: undoStuckState
+      });
+      
+      setUndoStuckState(null);
+      setUndoTimeLeft(0);
+      
+      toast({
+        title: "Undo Successful",
+        description: "Assignment restored to original state",
+        variant: "default"
+      });
+      
+      if (onAssignmentUpdate) {
+        onAssignmentUpdate();
+      }
+      
+    } catch (error) {
+      console.error('Failed to undo stuck:', error);
+      toast({
+        title: "Error",
+        description: "Failed to undo stuck status",
+        variant: "destructive"
+      });
     }
   };
 
@@ -458,7 +617,7 @@ export function GuidedDayView({
               color: colors.textMuted, 
               marginBottom: '16px'
             }}>
-              Due: {new Date(currentBlock.assignment.dueDate).toLocaleDateString()}
+              Due: {formatDateShort(currentBlock.assignment.dueDate)}
             </div>
           )}
 
@@ -556,6 +715,42 @@ export function GuidedDayView({
           />
         </div>
 
+        {/* Undo Stuck Banner (if active) */}
+        {undoStuckState && undoTimeLeft > 0 && (
+          <div style={{
+            backgroundColor: '#FEF3C7',
+            border: '1px solid #F59E0B',
+            borderRadius: '8px',
+            padding: '12px',
+            marginBottom: '16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '14px', color: '#92400E' }}>
+              Assignment marked as stuck. Undo in {undoTimeLeft}s
+            </span>
+            <button
+              onClick={undoStuck}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                backgroundColor: '#F59E0B',
+                color: 'white',
+                border: 'none',
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <Undo size={12} />
+              Undo
+            </button>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <button
@@ -575,6 +770,7 @@ export function GuidedDayView({
             }}
             onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
             onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            data-testid="button-done"
           >
             ✓ Done
           </button>
@@ -594,6 +790,7 @@ export function GuidedDayView({
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
+              data-testid="button-need-more-time"
             >
               Need More Time
             </button>
@@ -612,6 +809,7 @@ export function GuidedDayView({
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
+              data-testid="button-stuck"
             >
               Stuck
             </button>
@@ -643,6 +841,261 @@ export function GuidedDayView({
           </button>
         </div>
       </div>
+
+      {/* Done Dialog */}
+      {showDoneDialog && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: colors.surface,
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>
+              Assignment Complete!
+            </h3>
+            <p style={{ marginBottom: '20px', color: colors.textMuted }}>
+              Did you finish early and want to bank some time?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                onClick={() => {
+                  const totalMinutes = currentBlock.estimatedMinutes || 20;
+                  const timeSpentMinutes = Math.max(1, totalMinutes - Math.floor((timeRemaining || 0) / 60));
+                  const bankMinutes = Math.max(0, totalMinutes - timeSpentMinutes);
+                  completeBlock(timeSpentMinutes, bankMinutes > 0, bankMinutes);
+                }}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: colors.complete,
+                  color: 'white',
+                  border: 'none',
+                  fontSize: '16px',
+                  cursor: 'pointer'
+                }}
+              >
+                ✅ Yes, finished early! (Bank time)
+              </button>
+              <button
+                onClick={() => completeBlock()}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: 'transparent',
+                  border: `1px solid ${colors.textMuted}`,
+                  color: colors.textMuted,
+                  fontSize: '16px',
+                  cursor: 'pointer'
+                }}
+              >
+                ✅ Used full time
+              </button>
+              <button
+                onClick={() => setShowDoneDialog(false)}
+                style={{
+                  padding: '8px',
+                  borderRadius: '8px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: colors.textMuted,
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Need More Time Dialog */}
+      {showNeedTimeDialog && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: colors.surface,
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>
+              Need More Time?
+            </h3>
+            <p style={{ marginBottom: '20px', color: colors.textMuted }}>
+              Why do you need more time for this assignment?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                onClick={() => rescheduleAssignment('More complex than expected', 60)}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: colors.progress,
+                  color: 'white',
+                  border: 'none',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                📚 More complex than expected (need 1hr)
+              </button>
+              <button
+                onClick={() => rescheduleAssignment('Need to research/review', 45)}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: colors.progress,
+                  color: 'white',
+                  border: 'none',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                🔍 Need to research/review (need 45min)
+              </button>
+              <button
+                onClick={() => rescheduleAssignment('Technical issues', 30)}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: colors.progress,
+                  color: 'white',
+                  border: 'none',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                💻 Technical issues (need 30min)
+              </button>
+              <button
+                onClick={() => setShowNeedTimeDialog(false)}
+                style={{
+                  padding: '8px',
+                  borderRadius: '8px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: colors.textMuted,
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stuck Dialog */}
+      {showStuckDialog && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: colors.surface,
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>
+              What's the Problem?
+            </h3>
+            <p style={{ marginBottom: '20px', color: colors.textMuted }}>
+              Let us know what you're stuck on so we can help better:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                onClick={() => markAsStuck('Instructions unclear', true)}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: colors.support,
+                  color: 'white',
+                  border: 'none',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                ❓ Instructions unclear (need help)
+              </button>
+              <button
+                onClick={() => markAsStuck('Missing information/resources', true)}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: colors.support,
+                  color: 'white',
+                  border: 'none',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                📋 Missing information/resources (need help)
+              </button>
+              <button
+                onClick={() => markAsStuck('Too difficult right now', false)}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: colors.support,
+                  color: 'white',
+                  border: 'none',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                😵 Too difficult right now (skip for now)
+              </button>
+              <button
+                onClick={() => setShowStuckDialog(false)}
+                style={{
+                  padding: '8px',
+                  borderRadius: '8px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: colors.textMuted,
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
