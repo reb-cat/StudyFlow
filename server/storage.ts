@@ -143,13 +143,24 @@ export class DatabaseStorage implements IStorage {
       
       // THIRD: Apply date filtering for daily scheduling
       if (date) {
-        const requestDate = new Date(date);
-        const futureLimit = new Date(requestDate);
-        futureLimit.setDate(requestDate.getDate() + 21); // 3 weeks ahead
+        let pastLimit: Date, futureLimit: Date;
         
-        // Allow overdue assignments up to 30 days back (for catch-up work)
-        const pastLimit = new Date(requestDate);
-        pastLimit.setDate(requestDate.getDate() - 30); 
+        // Check if this is a date range (comma-separated) or single date
+        if (date.includes(',')) {
+          // Parse date range: "startDate,endDate"
+          const [startDate, endDate] = date.split(',');
+          pastLimit = new Date(startDate);
+          futureLimit = new Date(endDate);
+        } else {
+          // Single date - use existing logic for daily scheduling
+          const requestDate = new Date(date);
+          futureLimit = new Date(requestDate);
+          futureLimit.setDate(requestDate.getDate() + 21); // 3 weeks ahead
+          
+          // Allow overdue assignments up to 30 days back (for catch-up work)
+          pastLimit = new Date(requestDate);
+          pastLimit.setDate(requestDate.getDate() - 30);
+        } 
         
         console.log(`🗓️ Date filtering: ${pastLimit.toISOString().split('T')[0]} to ${futureLimit.toISOString().split('T')[0]} (including overdue assignments)`);
         

@@ -54,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/assignments - Get assignments for a user/date
   app.get('/api/assignments', async (req, res) => {
     try {
-      const { date, studentName, includeCompleted } = req.query;
+      const { date, startDate, endDate, studentName, includeCompleted } = req.query;
       
       // Use student-specific user ID mapping  
       let userId = "demo-user-1"; // fallback
@@ -70,10 +70,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId = studentUserMap[normalizedStudentName] || userId;
       }
       
-      // Get assignments for daily scheduling (filtered to next 12 days when date provided)
+      // Get assignments for daily scheduling (filtered by date range if provided)
       // Admin mode can include completed assignments
       const includeCompletedBool = includeCompleted === 'true';
-      const assignments = await storage.getAssignments(userId, date as string, includeCompletedBool);
+      
+      // Use date range if provided, otherwise fall back to single date
+      let filterDate = date as string;
+      if (startDate && endDate) {
+        // For date range filtering, we'll pass the range to the storage method
+        filterDate = `${startDate},${endDate}`;
+      }
+      
+      const assignments = await storage.getAssignments(userId, filterDate, includeCompletedBool);
       
       // Apply normalization to assignment titles for meaningful display
       const normalizedAssignments = assignments.map(assignment => {

@@ -24,11 +24,25 @@ export default function AdminPanel() {
   const [selectedAssignments, setSelectedAssignments] = useState<Set<string>>(new Set());
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Get all assignments for the selected student
+  // Get assignments for the selected student (limited to current week for better usability)
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
-    queryKey: ['/api/assignments', selectedStudent],
+    queryKey: ['/api/assignments', selectedStudent, dateFilter],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/assignments?studentName=${selectedStudent}`);
+      // Calculate date range for current week plus buffer
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - 7); // 1 week back
+      const weekEnd = new Date(today);
+      weekEnd.setDate(today.getDate() + 14); // 2 weeks forward
+      
+      const params = new URLSearchParams({
+        studentName: selectedStudent,
+        includeCompleted: 'true', // Admin needs to see completed assignments
+        startDate: weekStart.toISOString().split('T')[0],
+        endDate: weekEnd.toISOString().split('T')[0]
+      });
+      
+      const response = await apiRequest('GET', `/api/assignments?${params.toString()}`);
       return await response.json();
     }
   });
