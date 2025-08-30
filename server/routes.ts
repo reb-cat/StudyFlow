@@ -608,7 +608,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auto-scheduling route
+  // Auto-scheduling route - triggers assignment allocation via daily schedule initialization
   app.post('/api/assignments/auto-schedule', async (req, res) => {
     try {
       const { studentName, targetDate } = req.body;
@@ -619,11 +619,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`🤖 Auto-scheduling assignments for ${studentName} on ${targetDate}`);
       
-      const result = await storage.autoScheduleAssignmentsForDate(studentName, targetDate);
+      // Use the new allocation system by triggering daily schedule initialization
+      // This automatically calls allocateAssignmentsToTemplate
+      await storage.initializeDailySchedule(studentName, targetDate);
+      
+      // Get updated assignments to return allocation results
+      const userId = `${studentName.toLowerCase()}-user`;
+      const assignments = await storage.getAssignments(userId, targetDate);
+      const scheduledAssignments = assignments.filter(a => a.scheduledDate === targetDate && a.scheduledBlock);
       
       res.json({
-        message: `Successfully scheduled ${result.scheduled} of ${result.total} assignments`,
-        ...result
+        message: `Successfully allocated ${scheduledAssignments.length} assignments using sophisticated scoring system`,
+        scheduled: scheduledAssignments.length,
+        total: assignments.length,
+        assignments: scheduledAssignments,
+        targetDate,
+        studentName
       });
       
     } catch (error) {
@@ -1816,6 +1827,155 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error initializing student status data:', error);
       res.status(500).json({ message: 'Failed to initialize student status data' });
+    }
+  });
+
+  // Guided Mode endpoints
+  
+  // In-memory store for stuck assignment pending actions (60-second undo window)
+  const stuckPendingActions = new Map<string, { 
+    assignmentId: string, 
+    studentName: string, 
+    timeout: NodeJS.Timeout,
+    timestamp: number 
+  }>();
+
+  // POST /api/guided/:studentName/:date/need-more-time - Reschedule assignment needing more time
+  app.post('/api/guided/:studentName/:date/need-more-time', async (req, res) => {
+    try {
+      const { studentName, date } = req.params;
+      const { assignmentId } = req.body;
+      
+      if (!assignmentId) {
+        return res.status(400).json({ message: 'Assignment ID is required' });
+      }
+      
+      console.log(`⏰ Processing need-more-time request for assignment ${assignmentId} on ${date}`);
+      
+      // Call the storage method to reschedule the assignment
+      await storage.rescheduleNeedMoreTime(assignmentId, date);
+      
+      // Get updated assignments for the day to return current allocation
+      const userId = `${studentName.toLowerCase()}-user`;
+      const updatedAssignments = await storage.getAssignments(userId, date);
+      
+      // Get schedule template for the day
+      const dateObj = new Date(date);
+      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const weekday = weekdays[dateObj.getDay()];
+      const scheduleBlocks = await storage.getScheduleTemplate(studentName, weekday);
+      
+      res.json({
+        message: 'Assignment rescheduled successfully',
+        assignmentId,
+        date,
+        updatedAssignments,
+        scheduleBlocks
+      });
+      
+    } catch (error) {
+      console.error('Error processing need-more-time request:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to reschedule assignment', error: errorMessage });
+    }
+  });
+
+  // POST /api/guided/:studentName/:date/stuck - Mark assignment as stuck with 60-second undo window
+  app.post('/api/guided/:studentName/:date/stuck', async (req, res) => {
+    try {
+      const { studentName, date } = req.params;
+      const { assignmentId } = req.body;
+      
+      if (!assignmentId) {
+        return res.status(400).json({ message: 'Assignment ID is required' });
+      }
+      
+      console.log(`🚩 Processing stuck request for assignment ${assignmentId} - starting 60-second countdown`);
+      
+      // Create unique key for this pending action
+      const pendingKey = `${studentName}-${assignmentId}-${Date.now()}`;
+      
+      // Set up 60-second timeout to mark as stuck
+      const timeout = setTimeout(async () => {
+        try {
+          // Check if the action is still pending (not cancelled)
+          if (stuckPendingActions.has(pendingKey)) {
+            console.log(`⏱️ 60 seconds elapsed - marking assignment ${assignmentId} as stuck`);
+            
+            // Mark the assignment as stuck
+            await storage.markStuckWithUndo(assignmentId);
+            
+            // Clean up the pending action
+            stuckPendingActions.delete(pendingKey);
+            
+            console.log(`✅ Assignment ${assignmentId} marked as stuck and added to needs review`);
+          }
+        } catch (error) {
+          console.error('Error marking assignment as stuck after timeout:', error);
+          stuckPendingActions.delete(pendingKey);
+        }
+      }, 60000); // 60 seconds
+      
+      // Store the pending action
+      stuckPendingActions.set(pendingKey, {
+        assignmentId,
+        studentName,
+        timeout,
+        timestamp: Date.now()
+      });
+      
+      // Get current assignment queue for response
+      const userId = `${studentName.toLowerCase()}-user`;
+      const currentAssignments = await storage.getAssignments(userId, date);
+      
+      res.json({
+        message: 'Assignment marked as stuck - 60 second undo window started',
+        assignmentId,
+        pendingKey,
+        countdown: 60,
+        currentQueue: currentAssignments,
+        timestamp: Date.now()
+      });
+      
+    } catch (error) {
+      console.error('Error processing stuck request:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to mark assignment as stuck', error: errorMessage });
+    }
+  });
+
+  // POST /api/guided/:studentName/:date/stuck/cancel - Cancel stuck marking (undo)
+  app.post('/api/guided/:studentName/:date/stuck/cancel', async (req, res) => {
+    try {
+      const { pendingKey } = req.body;
+      
+      if (!pendingKey) {
+        return res.status(400).json({ message: 'Pending key is required' });
+      }
+      
+      const pendingAction = stuckPendingActions.get(pendingKey);
+      if (!pendingAction) {
+        return res.status(404).json({ message: 'Pending action not found or already completed' });
+      }
+      
+      console.log(`↩️ Cancelling stuck marking for assignment ${pendingAction.assignmentId}`);
+      
+      // Clear the timeout to prevent marking as stuck
+      clearTimeout(pendingAction.timeout);
+      
+      // Remove from pending actions
+      stuckPendingActions.delete(pendingKey);
+      
+      res.json({
+        message: 'Stuck marking cancelled successfully',
+        assignmentId: pendingAction.assignmentId,
+        cancelled: true
+      });
+      
+    } catch (error) {
+      console.error('Error cancelling stuck request:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to cancel stuck marking', error: errorMessage });
     }
   });
 
