@@ -173,7 +173,7 @@ export default function StudentDashboard() {
 
   // Get status for a specific schedule block
   const getBlockStatus = (blockId: string): string => {
-    const statusEntry = dailyScheduleStatus.find(s => s.templateBlockId === blockId);
+    const statusEntry = dailyScheduleStatus?.find(s => s.templateBlockId === blockId);
     return statusEntry?.status || 'not-started';
   };
 
@@ -569,7 +569,7 @@ export default function StudentDashboard() {
               <div className="flex justify-between text-sm mb-2">
                 <span className="font-medium text-muted-foreground">Daily Progress</span>
                 <span className="font-medium text-muted-foreground">
-                  {dailyScheduleStatus.length > 0 
+                  {(dailyScheduleStatus && dailyScheduleStatus.length > 0)
                     ? `${Math.round((dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100)}% (${dailyScheduleStatus.filter(s => s.status === 'complete').length}/${dailyScheduleStatus.length})`
                     : '0%'
                   }
@@ -579,7 +579,7 @@ export default function StudentDashboard() {
                 <div 
                   className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500" 
                   style={{ 
-                    width: dailyScheduleStatus.length > 0 
+                    width: (dailyScheduleStatus && dailyScheduleStatus.length > 0)
                       ? `${(dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100}%`
                       : '0%'
                   }}
@@ -587,7 +587,7 @@ export default function StudentDashboard() {
               </div>
               <div className="flex justify-between text-xs text-muted-foreground mt-2">
                 <span>Click status badges to update progress</span>
-                <span>{dailyScheduleStatus.filter(s => s.status === 'in-progress').length} in progress • {dailyScheduleStatus.filter(s => s.status === 'stuck').length} stuck</span>
+                <span>{dailyScheduleStatus?.filter(s => s.status === 'in-progress')?.length || 0} in progress • {dailyScheduleStatus?.filter(s => s.status === 'stuck')?.length || 0} stuck</span>
               </div>
             </div>
 
@@ -600,7 +600,7 @@ export default function StudentDashboard() {
                   
                   <div className="space-y-3 print:space-y-0">
                     {/* Show ALL schedule blocks in chronological order with compact Apple-style layout */}
-                    {allScheduleBlocks
+                    {(allScheduleBlocks || [])
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((block, index) => {
                         // Get appropriate icon component 
@@ -633,7 +633,7 @@ export default function StudentDashboard() {
                         
                         if (block.blockType === 'assignment') {
                           // Use round-robin assignment from our populated blocks
-                          const populatedBlock = populatedAssignmentBlocks.find(pb => pb.id === block.id);
+                          const populatedBlock = populatedAssignmentBlocks?.find(pb => pb.id === block.id);
                           if (populatedBlock && populatedBlock.assignment) {
                             blockTitle = populatedBlock.assignment.title; // Show assignment title as the main title
                             blockDetails = ''; // No subtitle needed

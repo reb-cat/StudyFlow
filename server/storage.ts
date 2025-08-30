@@ -11,6 +11,7 @@ import {
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, sql, desc } from "drizzle-orm";
+import { logger } from "./lib/logger";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -65,7 +66,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
       return result[0] || undefined;
     } catch (error) {
-      console.error('Error getting user:', error);
+      logger.error('Error getting user:', error);
       return undefined;
     }
   }
@@ -75,7 +76,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
       return result[0] || undefined;
     } catch (error) {
-      console.error('Error getting user by username:', error);
+      logger.error('Error getting user by username:', error);
       return undefined;
     }
   }
@@ -88,7 +89,7 @@ export class DatabaseStorage implements IStorage {
       }).returning();
       return result[0];
     } catch (error) {
-      console.error('Error creating user:', error);
+      logger.error('Error creating user:', error);
       throw new Error('Failed to create user');
     }
   }
@@ -106,15 +107,15 @@ export class DatabaseStorage implements IStorage {
       // Only show assignments that are actively workable (pending, needs_more_time, stuck)
       if (!includeCompleted) {
         const beforeCompletionFilter = assignmentList.length;
-        assignmentList = assignmentList.filter((assignment: any) => 
+        assignmentList = (assignmentList || []).filter((assignment: any) => 
           assignment.completionStatus !== 'completed'
         );
-        console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments)`);
+        logger.debug(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments)`);
         
         // SECOND: Filter out non-completable assignments (participation, attendance, etc.)
         // These represent ongoing classroom behavior rather than discrete homework tasks
         const beforeTypeFilter = assignmentList.length;
-        assignmentList = assignmentList.filter((assignment: any) => {
+        assignmentList = (assignmentList || []).filter((assignment: any) => {
           const title = (assignment.title || '').toLowerCase();
           const isParticipation = 
             title.includes('class participation') ||
@@ -125,14 +126,14 @@ export class DatabaseStorage implements IStorage {
             title.includes('daily participation');
           
           if (isParticipation) {
-            console.log(`🚫 Excluding non-completable assignment: ${assignment.title}`);
+            logger.debug(`🚫 Excluding non-completable assignment: ${assignment.title}`);
             return false;
           }
           return true;
         });
-        console.log(`🎯 Type filtering: ${beforeTypeFilter} → ${assignmentList.length} assignments (excluded participation/attendance)`);
+        logger.debug(`🎯 Type filtering: ${beforeTypeFilter} → ${assignmentList.length} assignments (excluded participation/attendance)`);
       } else {
-        console.log(`🔧 Admin mode: Including all assignments (${assignmentList.length} total)`);
+        logger.debug(`🔧 Admin mode: Including all assignments (${assignmentList.length} total)`);
       }
       
       // THIRD: Apply date filtering for daily scheduling
@@ -145,13 +146,13 @@ export class DatabaseStorage implements IStorage {
         const pastLimit = new Date(requestDate);
         pastLimit.setDate(requestDate.getDate() - 30); 
         
-        console.log(`🗓️ Date filtering: ${pastLimit.toISOString().split('T')[0]} to ${futureLimit.toISOString().split('T')[0]} (including overdue assignments)`);
+        logger.debug(`🗓️ Date filtering: ${pastLimit.toISOString().split('T')[0]} to ${futureLimit.toISOString().split('T')[0]} (including overdue assignments)`);
         
         const beforeDateFilter = assignmentList.length;
-        assignmentList = assignmentList.filter((assignment: any) => {
+        assignmentList = (assignmentList || []).filter((assignment: any) => {
           // For assignments without due dates, include them (they're always relevant)
           if (!assignment.dueDate) {
-            console.log(`✅ Including assignment (no due date): ${assignment.title}`);
+            logger.debug(`✅ Including assignment (no due date): ${assignment.title}`);
             return true;
           }
           
@@ -161,20 +162,20 @@ export class DatabaseStorage implements IStorage {
           
           if (isInRange) {
             const isOverdue = dueDate < requestDate;
-            console.log(`✅ Including assignment due ${dueDate.toISOString().split('T')[0]}${isOverdue ? ' (overdue)' : ''}: ${assignment.title}`);
+            logger.debug(`✅ Including assignment due ${dueDate.toISOString().split('T')[0]}${isOverdue ? ' (overdue)' : ''}: ${assignment.title}`);
           } else {
-            console.log(`❌ Excluding assignment due ${dueDate.toISOString().split('T')[0]} (outside range): ${assignment.title}`);
+            logger.debug(`❌ Excluding assignment due ${dueDate.toISOString().split('T')[0]} (outside range): ${assignment.title}`);
           }
           
           return isInRange;
         });
         
-        console.log(`📊 Date filtering: ${beforeDateFilter} → ${assignmentList.length} assignments`);
+        logger.debug(`📊 Date filtering: ${beforeDateFilter} → ${assignmentList.length} assignments`);
       }
       
       return assignmentList;
     } catch (error) {
-      console.error('Error getting assignments:', error);
+      logger.error('Error getting assignments:', error);
       return [];
     }
   }
@@ -185,7 +186,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.select().from(assignments);
       return result || [];
     } catch (error) {
-      console.error('Error getting all assignments:', error);
+      logger.error('Error getting all assignments:', error);
       return [];
     }
   }
@@ -195,7 +196,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.select().from(assignments).where(eq(assignments.id, id)).limit(1);
       return result[0] || undefined;
     } catch (error) {
-      console.error('Error getting assignment:', error);
+      logger.error('Error getting assignment:', error);
       return undefined;
     }
   }
@@ -253,7 +254,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.insert(assignments).values(assignmentData).returning();
       return result[0];
     } catch (error) {
-      console.error('Error creating assignment:', error);
+      logger.error('Error creating assignment:', error);
       throw new Error('Failed to create assignment');
     }
   }
@@ -263,7 +264,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.update(assignments).set(update).where(eq(assignments.id, id)).returning();
       return result[0] || undefined;
     } catch (error) {
-      console.error('Error updating assignment:', error);
+      logger.error('Error updating assignment:', error);
       return undefined;
     }
   }
@@ -279,7 +280,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return result[0] || undefined;
     } catch (error) {
-      console.error('Error updating assignment status:', error);
+      logger.error('Error updating assignment status:', error);
       return undefined;
     }
   }
@@ -300,11 +301,11 @@ export class DatabaseStorage implements IStorage {
             .set({ completionStatus: 'completed' })
             .where(eq(assignments.id, assignment.id));
           
-          console.log(`Updated admin assignment: ${assignment.title}`);
+          logger.debug(`Updated admin assignment: ${assignment.title}`);
         }
       }
     } catch (error) {
-      console.error('Error updating administrative assignments:', error);
+      logger.error('Error updating administrative assignments:', error);
     }
   }
 
@@ -313,7 +314,7 @@ export class DatabaseStorage implements IStorage {
       await db.delete(assignments).where(eq(assignments.id, id));
       return true;
     } catch (error) {
-      console.error('Error deleting assignment:', error);
+      logger.error('Error deleting assignment:', error);
       return false;
     }
   }
@@ -331,7 +332,7 @@ export class DatabaseStorage implements IStorage {
       
       return result || [];
     } catch (error) {
-      console.error('Error getting schedule template:', error);
+      logger.error('Error getting schedule template:', error);
       return [];
     }
   }
@@ -341,7 +342,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.insert(scheduleTemplate).values(template).returning();
       return result[0];
     } catch (error) {
-      console.error('Error creating schedule template:', error);
+      logger.error('Error creating schedule template:', error);
       throw new Error('Failed to create schedule template');
     }
   }
@@ -357,7 +358,7 @@ export class DatabaseStorage implements IStorage {
       
       return result || [];
     } catch (error) {
-      console.error('Error getting bible curriculum:', error);
+      logger.error('Error getting bible curriculum:', error);
       return [];
     }
   }
@@ -369,7 +370,7 @@ export class DatabaseStorage implements IStorage {
       const currentWeek = 1;
       return this.getBibleCurriculum(currentWeek);
     } catch (error) {
-      console.error('Error getting current bible week:', error);
+      logger.error('Error getting current bible week:', error);
       return [];
     }
   }
@@ -388,7 +389,7 @@ export class DatabaseStorage implements IStorage {
       
       return result[0] || undefined;
     } catch (error) {
-      console.error('Error updating bible completion:', error);
+      logger.error('Error updating bible completion:', error);
       return undefined;
     }
   }
@@ -399,7 +400,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.select().from(studentProfiles).where(eq(studentProfiles.studentName, studentName)).limit(1);
       return result[0] || undefined;
     } catch (error) {
-      console.error('Error getting student profile:', error);
+      logger.error('Error getting student profile:', error);
       return undefined;
     }
   }
@@ -430,7 +431,7 @@ export class DatabaseStorage implements IStorage {
         return result[0];
       }
     } catch (error) {
-      console.error('Error upserting student profile:', error);
+      logger.error('Error upserting student profile:', error);
       throw new Error('Failed to update student profile');
     }
   }
@@ -441,14 +442,14 @@ export class DatabaseStorage implements IStorage {
       const result = await db.select().from(studentStatus).where(eq(studentStatus.studentName, studentName)).limit(1);
       return result[0] || undefined;
     } catch (error) {
-      console.error('Error getting student status:', error);
+      logger.error('Error getting student status:', error);
       return undefined;
     }
   }
 
   async upsertStudentStatus(status: InsertStudentStatus): Promise<StudentStatus> {
     try {
-      console.log(`📊 Upserting student status for: ${status.studentName}`);
+      logger.debug(`📊 Upserting student status for: ${status.studentName}`);
       
       const [result] = await db
         .insert(studentStatus)
@@ -495,7 +496,7 @@ export class DatabaseStorage implements IStorage {
 
       return result;
     } catch (error) {
-      console.error('Error upserting student status:', error);
+      logger.error('Error upserting student status:', error);
       throw new Error('Failed to upsert student status');
     }
   }
@@ -519,7 +520,7 @@ export class DatabaseStorage implements IStorage {
 
       return result;
     } catch (error) {
-      console.error('Error updating student flags:', error);
+      logger.error('Error updating student flags:', error);
       return undefined;
     }
   }
@@ -555,7 +556,7 @@ export class DatabaseStorage implements IStorage {
           )
         );
 
-      const needsReview = needsReviewAssignments.map(assignment => {
+      const needsReview = (needsReviewAssignments || []).map(assignment => {
         // Map user ID to student name
         const studentName = assignment.userId === 'abigail-user' ? 'Abigail' : 
                             assignment.userId === 'khalil-user' ? 'Khalil' : assignment.userId;
@@ -572,7 +573,7 @@ export class DatabaseStorage implements IStorage {
         needsReview
       };
     } catch (error) {
-      console.error('Error getting family dashboard data:', error);
+      logger.error('Error getting family dashboard data:', error);
       return {
         students: [],
         needsReview: []
@@ -612,7 +613,7 @@ export class DatabaseStorage implements IStorage {
 
       return result;
     } catch (error) {
-      console.error('Error getting daily schedule status:', error);
+      logger.error('Error getting daily schedule status:', error);
       return [];
     }
   }
@@ -643,7 +644,7 @@ export class DatabaseStorage implements IStorage {
 
       return result[0] || undefined;
     } catch (error) {
-      console.error('Error updating block status:', error);
+      logger.error('Error updating block status:', error);
       return undefined;
     }
   }
@@ -668,13 +669,13 @@ export class DatabaseStorage implements IStorage {
           eq(dailyScheduleStatus.date, date)
         ));
 
-      const existingBlockIds = new Set(existingStatuses.map(s => s.templateBlockId));
+      const existingBlockIds = new Set((existingStatuses || []).map(s => s.templateBlockId));
 
       // Create status records for missing blocks
-      const missingBlocks = templateBlocks.filter(block => !existingBlockIds.has(block.id));
+      const missingBlocks = (templateBlocks || []).filter(block => !existingBlockIds.has(block.id));
 
       if (missingBlocks.length > 0) {
-        const statusRecords = missingBlocks.map(block => ({
+        const statusRecords = (missingBlocks || []).map(block => ({
           studentName,
           date,
           templateBlockId: block.id,
@@ -684,7 +685,7 @@ export class DatabaseStorage implements IStorage {
         await db.insert(dailyScheduleStatus).values(statusRecords);
       }
     } catch (error) {
-      console.error('Error initializing daily schedule:', error);
+      logger.error('Error initializing daily schedule:', error);
     }
   }
 }
@@ -707,7 +708,7 @@ export class MemStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
+    return Array.from(this.users.values() || []).find(
       (user) => user.username === username,
     );
   }
@@ -732,10 +733,10 @@ export class MemStorage implements IStorage {
   // Assignment methods
   async getAssignments(userId: string, date?: string): Promise<Assignment[]> {
     const allAssignments = Array.from(this.assignments.values())
-      .filter(a => a.userId === userId);
+      .filter(a => a.userId === userId) || [];
     
     if (date) {
-      return allAssignments.filter(a => a.scheduledDate === date);
+      return (allAssignments || []).filter(a => a.scheduledDate === date);
     }
     return allAssignments;
   }
@@ -832,7 +833,7 @@ export class MemStorage implements IStorage {
       
       if (isAdministrative) {
         assignment.completionStatus = 'completed';
-        console.log(`Updated admin assignment: ${assignment.title}`);
+        logger.debug(`Updated admin assignment: ${assignment.title}`);
       }
     }
   }
@@ -1167,9 +1168,9 @@ export class MemStorage implements IStorage {
 let storage: IStorage;
 try {
   storage = new DatabaseStorage();
-  console.log('✓ Using database storage');
+  logger.info('✓ Using database storage');
 } catch (error) {
-  console.warn('⚠ Database connection failed, using memory storage:', error instanceof Error ? error.message : String(error));
+  logger.warn('⚠ Database connection failed, using memory storage:', error instanceof Error ? error.message : String(error));
   storage = new MemStorage();
 }
 

@@ -1,4 +1,5 @@
 import { canvasConfig } from './supabase';
+import { logger } from './logger';
 
 export interface CanvasAssignment {
   id: number;
@@ -146,7 +147,7 @@ export class CanvasClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Canvas API request failed:', { url, error });
+      logger.error('Canvas API request failed:', { url, error });
       throw error;
     }
   }
@@ -164,7 +165,7 @@ export class CanvasClient {
       const courses = await this.getCourses();
       const allAssignments: CanvasAssignment[] = [];
       
-      console.log(`📚 Found ${courses.length} active courses`);
+      logger.debug(`📚 Found ${courses.length} active courses`);
       
       for (const course of courses) {
         try {
@@ -176,7 +177,7 @@ export class CanvasClient {
             this.makeRequest<any[]>(`/courses/${course.id}/modules?per_page=100`)
           ]);
           
-          console.log(`  📖 Course "${course.name}" (${course.id}): ${assignments.length} assignments, ${modules.length} modules`);
+          logger.debug(`  📖 Course "${course.name}" (${course.id}): ${assignments.length} assignments, ${modules.length} modules`);
           
           // Create module lookup for timing resolution
           const moduleMap = new Map();
@@ -210,7 +211,7 @@ export class CanvasClient {
             if (!enhanced.due_at && !enhanced.unlock_at && !enhanced.lock_at) {
               const moduleData = this.findModuleForAssignment(enhanced, moduleMap);
               if (moduleData) {
-                console.log(`🔗 "${enhanced.name}" linked to module: "${moduleData.name}" (unlock: ${moduleData.unlock_at})`);
+                logger.debug(`🔗 "${enhanced.name}" linked to module: "${moduleData.name}" (unlock: ${moduleData.unlock_at})`);
                 enhanced.module_data = moduleData;
                 enhanced.inferred_start_date = moduleData.unlock_at;
                 enhanced.inferred_end_date = moduleData.end_at;
@@ -222,11 +223,11 @@ export class CanvasClient {
           
           allAssignments.push(...assignmentsWithMetadata);
         } catch (error) {
-          console.warn(`Failed to get assignments for course ${course.id} (${course.name}):`, error);
+          logger.warn(`Failed to get assignments for course ${course.id} (${course.name}):`, error);
         }
       }
       
-      console.log(`📊 Total assignments across all courses: ${allAssignments.length}`);
+      logger.debug(`📊 Total assignments across all courses: ${allAssignments.length}`);
       return allAssignments;
     }
   }
@@ -403,9 +404,9 @@ export async function getAllAssignmentsForStudent(studentName: string): Promise<
     const client1 = getCanvasClient(studentName, 1);
     // Get ALL assignments, not just upcoming ones - this is the key fix!
     result.instance1 = await client1.getAssignments();
-    console.log(`✅ Canvas Instance 1: Retrieved ${result.instance1.length} assignments for ${studentName}`);
+    logger.info(`✅ Canvas Instance 1: Retrieved ${result.instance1.length} assignments for ${studentName}`);
   } catch (error) {
-    console.error(`Failed to get assignments from Canvas instance 1 for ${studentName}:`, error);
+    logger.error(`Failed to get assignments from Canvas instance 1 for ${studentName}:`, error);
   }
 
   // Check if Abigail has a second Canvas instance
@@ -414,14 +415,14 @@ export async function getAllAssignmentsForStudent(studentName: string): Promise<
       const client2 = getCanvasClient(studentName, 2);
       // Get ALL assignments from instance 2 as well
       result.instance2 = await client2.getAssignments();
-      console.log(`✅ Canvas Instance 2: Retrieved ${result.instance2?.length || 0} assignments for ${studentName}`);
+      logger.info(`✅ Canvas Instance 2: Retrieved ${result.instance2?.length || 0} assignments for ${studentName}`);
     } catch (error) {
-      console.error(`Failed to get assignments from Canvas instance 2 for ${studentName}:`, error);
+      logger.error(`Failed to get assignments from Canvas instance 2 for ${studentName}:`, error);
       result.instance2 = [];
     }
   }
 
   const totalCount = result.instance1.length + (result.instance2?.length || 0);
-  console.log(`📊 Total Canvas assignments for ${studentName}: ${totalCount}`);
+  logger.info(`📊 Total Canvas assignments for ${studentName}: ${totalCount}`);
   return result;
 }

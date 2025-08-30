@@ -3,6 +3,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema } from "@shared/schema";
+import { sanitizeAssignmentData, sanitizeObject } from "./lib/sanitizer";
+import rateLimit from "express-rate-limit";
 import { getElevenLabsService } from "./lib/elevenlabs";
 import { 
   getBibleSubjectForSchedule, 
@@ -22,6 +24,33 @@ const emailConfig = {
 import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+
+  // 🔒 SECURITY: Rate limiting to prevent DoS attacks
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: {
+      error: 'Too many requests from this IP, please try again later.',
+      retryAfter: '15 minutes'
+    },
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  });
+
+  const strictLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes  
+    max: 10, // Very strict limit for write operations
+    message: {
+      error: 'Too many write requests from this IP, please try again later.',
+      retryAfter: '15 minutes'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => req.method === 'GET', // Only apply to write operations
+  });
+
+  // Apply rate limiting to all API routes
+  app.use('/api/', apiLimiter);
 
   // Assignment API routes
   
@@ -80,10 +109,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // POST /api/assignments - Create new assignment
-  app.post('/api/assignments', async (req, res) => {
+  app.post('/api/assignments', strictLimiter, async (req, res) => {
     try {
       const { studentName, ...assignmentData } = req.body;
-      const validatedAssignmentData = insertAssignmentSchema.parse(assignmentData);
+      
+      // 🔒 SECURITY: Sanitize all user input to prevent XSS attacks
+      const sanitizedData = sanitizeAssignmentData(assignmentData);
+      const validatedAssignmentData = insertAssignmentSchema.parse(sanitizedData);
       
       // Use student-specific user ID or fallback
       let userId = "demo-user-1";
@@ -103,8 +135,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // PATCH /api/assignments - Update assignment
-  app.patch('/api/assignments', async (req, res) => {
+  // PATCH /api/assignments - Update assignment  
+  app.patch('/api/assignments', strictLimiter, async (req, res) => {
     try {
       const { id, ...updateData } = req.body;
       
@@ -112,7 +144,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Assignment ID is required' });
       }
       
-      const validatedUpdate = updateAssignmentSchema.parse(updateData);
+      // 🔒 SECURITY: Sanitize all user input to prevent XSS attacks  
+      const sanitizedData = sanitizeAssignmentData(updateData);
+      const validatedUpdate = updateAssignmentSchema.parse(sanitizedData);
       const assignment = await storage.updateAssignment(id, validatedUpdate);
       
       if (!assignment) {
@@ -775,7 +809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { detectPrintNeeds, estimatePageCount } = await import('./lib/printQueue.js');
       
       // Filter assignments by due date range
-      const filteredAssignments = allAssignments.filter(assignment => {
+      const filteredAssignments = (allAssignments || []).filter(assignment => {
         if (!assignment.dueDate) return false;
         
         const dueDate = new Date(assignment.dueDate);
@@ -945,7 +979,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get all assignments and filter/update the problematic ones
       const allAssignments = await storage.getAllAssignments();
-      const inClassAssignments = allAssignments.filter(assignment => 
+      const inClassAssignments = (allAssignments || []).filter(assignment => 
         assignment.title.toLowerCase().includes('in class') &&
         assignment.blockType === 'assignment' &&
         assignment.isAssignmentBlock === true
@@ -1006,12 +1040,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let foundInInstance = null;
       
       if (canvasData.instance1) {
-        targetAssignment = canvasData.instance1.find(a => a.name === title);
+        targetAssignment = canvasData.instance1?.find(a => a.name === title);
         if (targetAssignment) foundInInstance = 1;
       }
       
       if (!targetAssignment && canvasData.instance2) {
-        targetAssignment = canvasData.instance2.find(a => a.name === title);
+        targetAssignment = canvasData.instance2?.find(a => a.name === title);
         if (targetAssignment) foundInInstance = 2;
       }
       
@@ -1027,7 +1061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check our database to see what timing data we stored
       const dbAssignment = await storage.getAssignments(`${studentName.toLowerCase()}-user`);
-      const dbMatch = dbAssignment.find(a => a.title === title);
+      const dbMatch = dbAssignment?.find(a => a.title === title);
       
       // Apply assignment intelligence to see what should be extracted
       const { analyzeAssignmentWithCanvas } = await import('./lib/assignmentIntelligence.js');

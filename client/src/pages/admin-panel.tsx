@@ -57,7 +57,7 @@ export default function AdminPanel() {
   // Bulk update assignments
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ assignmentIds, status }: { assignmentIds: string[]; status: string }) => {
-      const promises = assignmentIds.map(id => 
+      const promises = (assignmentIds || []).map(id => 
         apiRequest('PATCH', `/api/assignments/${id}`, { completionStatus: status })
       );
       return Promise.all(promises);
@@ -75,7 +75,7 @@ export default function AdminPanel() {
   // Bulk delete assignments (for problematic imports)
   const bulkDeleteMutation = useMutation({
     mutationFn: async (assignmentIds: string[]) => {
-      const promises = assignmentIds.map(id => 
+      const promises = (assignmentIds || []).map(id => 
         apiRequest('DELETE', `/api/assignments/${id}`)
       );
       return Promise.all(promises);
@@ -162,7 +162,7 @@ export default function AdminPanel() {
   };
 
   // Filter assignments based on search, status, source, and smart date filtering
-  const filteredAssignments = Array.isArray(assignments) ? getDateFilteredAssignments(assignments).filter(assignment => {
+  const filteredAssignments = Array.isArray(assignments) ? (getDateFilteredAssignments(assignments) || []).filter(assignment => {
     const matchesSearch = assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          assignment.subject?.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -224,7 +224,7 @@ export default function AdminPanel() {
     if (selectedAssignments.size === filteredAssignments.length) {
       setSelectedAssignments(new Set());
     } else {
-      setSelectedAssignments(new Set(filteredAssignments.map(a => a.id)));
+      setSelectedAssignments(new Set((filteredAssignments || []).map(a => a.id)));
     }
   };
 
@@ -666,7 +666,7 @@ export default function AdminPanel() {
             </div>
 
             {/* Assignment List */}
-            {filteredAssignments.map((assignment) => (
+            {(filteredAssignments || []).map((assignment) => (
               <div
                 key={assignment.id}
                 style={{
