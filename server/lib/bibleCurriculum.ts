@@ -73,9 +73,14 @@ export async function getNextBibleCurriculumForStudent(studentName: string) {
   let week = pos.currentWeek;
   let day = pos.currentDay;
 
+  console.log(`📖 Bible Curriculum Debug: ${studentName} at Week ${week}, Day ${day}`);
+
   // Try current (week, day). If missing (e.g., not seeded), advance to next existing.
   let reading = await getDailyReading(week, day);
+  console.log(`📖 getDailyReading(${week}, ${day}) result:`, reading ? reading.readingTitle : 'null');
+  
   if (!reading) {
+    console.log(`⚠️ No reading found for Week ${week}, Day ${day} - using fallback logic`);
     const rows = await db
       .select()
       .from(bibleCurriculum)
@@ -85,6 +90,7 @@ export async function getNextBibleCurriculumForStudent(studentName: string) {
       (r) => !r.completed && r.dayOfWeek != null && r.weekNumber != null
     );
     if (next) {
+      console.log(`📖 Fallback found: Week ${next.weekNumber}, Day ${next.dayOfWeek} - ${next.readingTitle}`);
       week = next.weekNumber!;
       day = next.dayOfWeek!;
       reading = next;
@@ -96,6 +102,8 @@ export async function getNextBibleCurriculumForStudent(studentName: string) {
     } else {
       return { dailyReading: null, memoryVerse: null };
     }
+  } else {
+    console.log(`✅ Found correct reading: ${reading.readingTitle} (Week ${week}, Day ${day})`);
   }
 
   const memoryVerse = await getMemoryVerseForWeek(week);

@@ -249,7 +249,7 @@ class JobScheduler {
               if (canvasAssignment.due_at) {
                 const dueDate = new Date(canvasAssignment.due_at);
                 if (dueDate < currentSchoolYearStart || dueDate > currentSchoolYearEnd) {
-                  console.log(`⏭️ Skipping out-of-range assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - outside current school year`);
+                  console.log(`⏭️ Skipping out-of-range assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - outside current school year`);
                   continue;
                 }
               }
@@ -259,7 +259,7 @@ class JobScheduler {
                 const createdDate = new Date(canvasAssignment.created_at);
                 const previousYearCutoff = new Date('2025-01-01');
                 if (createdDate < previousYearCutoff && !canvasAssignment.due_at) {
-                  console.log(`⏭️ Skipping old template assignment "${canvasAssignment.name} (Canvas 2)" (created: ${createdDate.toDateString()}) - from previous year`);
+                  console.log(`⏭️ Skipping old template assignment "${canvasAssignment.name}" (created: ${createdDate.toDateString()}) - from previous year`);
                   continue;
                 }
               }
@@ -274,7 +274,7 @@ class JobScheduler {
                 'course info', 'welcome', 'introduction', 'orientation'
               ];
               if (adminPatterns.some(pattern => assignmentTitle.includes(pattern))) {
-                console.log(`⏭️ Skipping administrative assignment: "${canvasAssignment.name} (Canvas 2)"`);
+                console.log(`⏭️ Skipping administrative assignment: "${canvasAssignment.name}"`);
                 continue;
               }
               
@@ -284,7 +284,7 @@ class JobScheduler {
                 'class activity', 'classroom', 'in-class', 'class work'
               ];
               if (inClassPatterns.some(pattern => assignmentTitle.includes(pattern))) {
-                console.log(`⏭️ Skipping in-class only assignment: "${canvasAssignment.name} (Canvas 2)"`);
+                console.log(`⏭️ Skipping in-class only assignment: "${canvasAssignment.name}"`);
                 continue;
               }
               
@@ -294,18 +294,18 @@ class JobScheduler {
                 assignmentTitle.includes('attendance') ||
                 assignmentTitle.includes('participation')
               )) {
-                console.log(`⏭️ Skipping recurring template assignment: "${canvasAssignment.name} (Canvas 2)" - no due date`);
+                console.log(`⏭️ Skipping recurring template assignment: "${canvasAssignment.name}" - no due date`);
                 continue;
               }
               
               const existingAssignments = await storage.getAssignments(userId);
               const alreadyExists = existingAssignments.some(
-                assignment => assignment.title === `${canvasAssignment.name} (Canvas 2)`
+                assignment => assignment.title === canvasAssignment.name
               );
               
               if (!alreadyExists) {
                 // Apply comprehensive intelligent assignment processing for Canvas 2 with metadata
-                const title = `${canvasAssignment.name} (Canvas 2)`;
+                const title = canvasAssignment.name;
                 const intelligence = analyzeAssignmentWithCanvas(
                   title, 
                   canvasAssignment.description,
@@ -403,11 +403,11 @@ class JobScheduler {
                 totalImported++;
               } else {
                 // Update existing assignment if it's now graded
-                const existingAssignment = existingAssignments.find(a => a.title === `${canvasAssignment.name} (Canvas 2)`);
+                const existingAssignment = existingAssignments.find(a => a.title === canvasAssignment.name);
                 if (existingAssignment && existingAssignment.completionStatus === 'pending' && 
                     (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions)) {
                   await storage.updateAssignment(existingAssignment.id, { completionStatus: 'completed' });
-                  console.log(`✅ Updated "${canvasAssignment.name} (Canvas 2)" to completed (now graded in Canvas)`);
+                  console.log(`✅ Updated "${canvasAssignment.name}" to completed (now graded in Canvas)`);
                 }
               }
             } catch (error) {

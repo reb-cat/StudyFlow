@@ -1,5 +1,5 @@
 // DEBUG_ORDERING toggle for schedule pipeline tracing
-export const DEBUG_ORDERING = process.env.DEBUG_ORDERING === '1' || true; // TEMPORARILY ENABLED
+export const DEBUG_ORDERING = process.env.DEBUG_ORDERING === '1' || false;
 
 export function logOrderTrace(source: string, label: string, blocks: any[]) {
   if (!DEBUG_ORDERING) return;

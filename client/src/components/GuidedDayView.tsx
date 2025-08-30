@@ -312,7 +312,7 @@ export function GuidedDayView({
       : buildScheduleBlocks();
 
   // DEBUG LOGGING: Client Guided composition
-  const DEBUG_ORDERING = process.env.NODE_ENV === 'development' && true; // TEMPORARILY ENABLED
+  const DEBUG_ORDERING = process.env.NODE_ENV === 'development' && false; // Enable when needed
   if (DEBUG_ORDERING && studentName === 'Abigail') {
     const source = composedSchedule ? 'CLIENT_GUIDED (composed)' : 'CLIENT_GUIDED (local)';
     console.log(`\n🧭 ORDER TRACE / ${source.toUpperCase()}`);
