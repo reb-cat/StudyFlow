@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Clock, AlertTriangle, PlayCircle } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, PlayCircle, Zap, Star, Timer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Assignment } from '@shared/schema';
 
@@ -13,6 +13,75 @@ interface AssignmentCardProps {
 
 export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: AssignmentCardProps) {
   const { toast } = useToast();
+
+  // Check if this is a split assignment (Part 2)
+  const isPartTwo = assignment.title.includes('(Part 2)');
+  
+  // Enhanced priority badge configuration
+  const getPriorityBadge = () => {
+    if (!assignment.priority || assignment.priority === 'B') return null;
+    
+    const priorityConfig = {
+      'A': { 
+        label: 'High Priority', 
+        color: 'bg-red-100 text-red-800 border-red-200', 
+        icon: Zap,
+        darkColor: 'dark:bg-red-950 dark:text-red-300 dark:border-red-800'
+      },
+      'C': { 
+        label: 'Low Priority', 
+        color: 'bg-gray-100 text-gray-600 border-gray-200', 
+        icon: Timer,
+        darkColor: 'dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600'
+      }
+    };
+    
+    const config = priorityConfig[assignment.priority as keyof typeof priorityConfig];
+    if (!config) return null;
+    
+    const PriorityIcon = config.icon;
+    return (
+      <Badge variant="outline" className={`${config.color} ${config.darkColor} font-medium`}>
+        <PriorityIcon className="h-3 w-3 mr-1" />
+        {config.label}
+      </Badge>
+    );
+  };
+  
+  // Check if assignment is overdue or due soon for urgency indicators
+  const getUrgencyBadge = () => {
+    if (!assignment.dueDate) return null;
+    
+    const dueDate = new Date(assignment.dueDate);
+    const today = new Date();
+    const timeDiff = dueDate.getTime() - today.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    
+    if (daysDiff < 0) {
+      return (
+        <Badge className="bg-red-600 text-white border-red-700">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Overdue
+        </Badge>
+      );
+    } else if (daysDiff === 0) {
+      return (
+        <Badge className="bg-orange-500 text-white border-orange-600">
+          <Clock className="h-3 w-3 mr-1" />
+          Due Today
+        </Badge>
+      );
+    } else if (daysDiff === 1) {
+      return (
+        <Badge className="bg-yellow-500 text-white border-yellow-600">
+          <Timer className="h-3 w-3 mr-1" />
+          Due Tomorrow
+        </Badge>
+      );
+    }
+    
+    return null;
+  };
 
   const statusConfig = {
     pending: { label: 'Not Started', color: 'bg-gray-100 text-gray-800', icon: PlayCircle },
@@ -72,12 +141,24 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <h3 className="text-xl font-medium text-foreground truncate" data-testid={`assignment-title-${assignment.id}`}>
-                {assignment.title}
-              </h3>
-              <p className="text-sm text-muted-foreground" data-testid={`assignment-subject-${assignment.id}`}>
-                {assignment.subject} • {assignment.actualEstimatedMinutes || 30} min
-              </p>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-xl font-medium text-foreground truncate" data-testid={`assignment-title-${assignment.id}`}>
+                  {assignment.title}
+                </h3>
+                {isPartTwo && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800 text-xs px-2 py-0.5">
+                    <Star className="h-3 w-3 mr-1" />
+                    Split Task
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm text-muted-foreground" data-testid={`assignment-subject-${assignment.id}`}>
+                  {assignment.subject} • {assignment.actualEstimatedMinutes || 30} min
+                </p>
+                {getPriorityBadge()}
+                {getUrgencyBadge()}
+              </div>
             </div>
             <Badge className={`${status.color} ml-2`} data-testid={`assignment-status-${assignment.id}`}>
               <StatusIcon className="h-3 w-3 mr-1" />
@@ -97,9 +178,21 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
             <div className="text-sm text-muted-foreground" data-testid={`assignment-subject-${assignment.id}`}>
               {assignment.subject || assignment.courseName || 'Assignment'}
             </div>
-            <h3 className="text-xl font-semibold text-foreground mt-1" data-testid={`assignment-title-${assignment.id}`}>
-              {assignment.title}
-            </h3>
+            <div className="flex items-center gap-2 mt-1 mb-2">
+              <h3 className="text-xl font-semibold text-foreground" data-testid={`assignment-title-${assignment.id}`}>
+                {assignment.title}
+              </h3>
+              {isPartTwo && (
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+                  <Star className="h-3 w-3 mr-1" />
+                  Split Task
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {getPriorityBadge()}
+              {getUrgencyBadge()}
+            </div>
           </div>
           <Badge className={status.color} data-testid={`assignment-status-${assignment.id}`}>
             <StatusIcon className="h-3 w-3 mr-1" />
@@ -115,11 +208,6 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
             <span data-testid={`assignment-due-${assignment.id}`}>
               Due: {new Date(assignment.dueDate).toLocaleDateString()}
             </span>
-          )}
-          {assignment.priority && assignment.priority !== 'B' && (
-            <Badge variant="outline" className="capitalize">
-              {assignment.priority}
-            </Badge>
           )}
         </div>
 
