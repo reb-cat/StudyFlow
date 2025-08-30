@@ -125,11 +125,13 @@ export class CanvasClient {
   }
 
   private async makeRequest<T>(endpoint: string): Promise<T> {
-    // Ensure baseUrl starts with https://
+    // Ensure baseUrl starts with https:// and remove trailing slash
     let baseUrl = this.baseUrl;
     if (!baseUrl.startsWith('https://') && !baseUrl.startsWith('http://')) {
       baseUrl = `https://${baseUrl}`;
     }
+    // Remove trailing slash to prevent double slashes in URL construction
+    baseUrl = baseUrl.replace(/\/$/, '');
     const url = `${baseUrl}/api/v1${endpoint}`;
     
     try {
