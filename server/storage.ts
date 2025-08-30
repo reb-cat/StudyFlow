@@ -883,8 +883,8 @@ export class DatabaseStorage implements IStorage {
         // Not completed
         if (assignment.completionStatus === 'completed') return false;
         
-        // Check if already scheduled for this date
-        if (assignment.scheduledDate === date) return false;
+        // Allow re-scheduling: Remove the scheduledDate check that was blocking allocation
+        // This allows flexible assignment distribution and rescheduling as needed
         
         // Within window or no due date
         if (!assignment.dueDate) return true;
@@ -979,14 +979,56 @@ export class DatabaseStorage implements IStorage {
         return b.score - a.score;
       });
       
-      // Assign to blocks in time order, avoiding back-to-back heavy assignments
-      let assignmentIndex = 0;
+      // INTELLIGENT SUBJECT DISTRIBUTION for optimal learning experience
+      console.log(`🎨 Optimizing subject distribution across ${assignmentBlocks.length} assignment blocks`);
+      
+      // Group assignments by subject for better distribution
+      const assignmentsBySubject = new Map<string, typeof scoredAssignments>();
+      scoredAssignments.forEach(scoredAssignment => {
+        const subject = scoredAssignment.assignment.subject || 'General';
+        if (!assignmentsBySubject.has(subject)) {
+          assignmentsBySubject.set(subject, []);
+        }
+        assignmentsBySubject.get(subject)!.push(scoredAssignment);
+      });
+      
+      // Create optimized assignment sequence with subject distribution
+      const optimizedSequence: typeof scoredAssignments = [];
+      const subjectKeys = Array.from(assignmentsBySubject.keys());
+      let subjectIndex = 0;
+      
+      // Distribute assignments ensuring subject variety throughout the day
+      while (optimizedSequence.length < Math.min(scoredAssignments.length, assignmentBlocks.length)) {
+        let assigned = false;
+        
+        // Try each subject starting from current index to distribute evenly
+        for (let i = 0; i < subjectKeys.length; i++) {
+          const currentSubjectIndex = (subjectIndex + i) % subjectKeys.length;
+          const subject = subjectKeys[currentSubjectIndex];
+          const subjectAssignments = assignmentsBySubject.get(subject)!;
+          
+          if (subjectAssignments.length > 0) {
+            const assignment = subjectAssignments.shift()!; // Take highest priority from this subject
+            optimizedSequence.push(assignment);
+            console.log(`📝 Block ${optimizedSequence.length}: ${subject} - ${assignment.assignment.title}`);
+            assigned = true;
+            subjectIndex = (currentSubjectIndex + 1) % subjectKeys.length; // Move to next subject
+            break;
+          }
+        }
+        
+        // Safety check to prevent infinite loop
+        if (!assigned) break;
+      }
+      
+      console.log(`✨ Subject distribution complete: ${optimizedSequence.length} assignments across ${subjectKeys.length} subjects`);
+      
+      // Assign optimized sequence to blocks in time order
       const assignedAssignments: string[] = [];
       
-      for (const block of assignmentBlocks) {
-        if (assignmentIndex >= scoredAssignments.length) break;
-        
-        const { assignment } = scoredAssignments[assignmentIndex];
+      for (let blockIndex = 0; blockIndex < assignmentBlocks.length && blockIndex < optimizedSequence.length; blockIndex++) {
+        const block = assignmentBlocks[blockIndex];
+        const { assignment } = optimizedSequence[blockIndex];
         
         // Calculate block duration in minutes
         const startTime = new Date(`2000-01-01T${block.startTime}`);
@@ -1006,7 +1048,6 @@ export class DatabaseStorage implements IStorage {
           });
           
           assignedAssignments.push(assignment.title);
-          assignmentIndex++;
         } else {
           // Assignment too long - split it
           const part1Minutes = blockMinutes;
@@ -1035,7 +1076,6 @@ export class DatabaseStorage implements IStorage {
           });
           
           assignedAssignments.push(`${assignment.title} (split: ${part1Minutes}min + ${part2Minutes}min)`);
-          assignmentIndex++;
         }
       }
       
