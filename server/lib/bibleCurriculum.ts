@@ -62,7 +62,7 @@ async function getDailyReading(
 export async function getBibleSubjectForSchedule(studentName: string): Promise<string> {
   const result = await getNextBibleCurriculumForStudent(studentName);
   if (result.dailyReading) {
-    return result.dailyReading.title || "Bible Reading";
+    return result.dailyReading.readingTitle || "Bible Reading";
   }
   return "Bible Reading"; // Fallback
 }

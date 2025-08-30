@@ -1426,10 +1426,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/bible-curriculum/current - Get current Bible curriculum for today
   app.get('/api/bible-curriculum/current', async (req, res) => {
     try {
-      const { date } = req.query;
+      const { date, studentName } = req.query;
       const targetDate = date ? new Date(date as string) : new Date();
-      
-      const curriculum = await getNextBibleCurriculumForStudent("Abigail");
+      const student = typeof studentName === 'string' ? studentName : 'Abigail';
+      const curriculum = await getNextBibleCurriculumForStudent(student);
       const weekNumber = curriculum?.dailyReading?.weekNumber || 1;
       
       res.json({
@@ -1466,7 +1466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/bible-curriculum/complete - Mark curriculum item as completed
   app.post('/api/bible-curriculum/complete', async (req, res) => {
     try {
-      const { weekNumber, dayOfWeek, readingType } = req.body;
+      const { weekNumber, dayOfWeek, readingType, studentName } = req.body;
       
       if (!weekNumber || !readingType) {
         return res.status(400).json({ 
@@ -1475,9 +1475,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const success = await markBibleCurriculumCompleted(
-        weekNumber, 
-        dayOfWeek || null, 
-        readingType
+        weekNumber,
+        dayOfWeek || null,
+        readingType,
+        typeof studentName === 'string' ? studentName : undefined
       );
       
       if (success) {
