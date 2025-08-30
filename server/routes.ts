@@ -1,3 +1,4 @@
+import { logger } from "./lib/logger";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -41,7 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ message: 'Assignment status updated successfully', assignment });
     } catch (error) {
-      console.error('Error updating assignment status:', error);
+      logger.error('Error updating assignment status:', error);
       res.status(500).json({ message: 'Failed to update assignment status' });
     }
   });
@@ -69,10 +70,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Admin mode can include completed assignments
       const includeCompletedBool = includeCompleted === 'true';
       const assignments = await storage.getAssignments(userId, date as string, includeCompletedBool);
-      console.log(`📚 Retrieved ${assignments.length} assignments for daily planning for ${studentName} on ${date}`);
+      logger.log(`📚 Retrieved ${assignments.length} assignments for daily planning for ${studentName} on ${date}`);
       res.json(assignments);
     } catch (error) {
-      console.error('Error fetching assignments:', error);
+      logger.error('Error fetching assignments:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to fetch assignments', error: errorMessage });
     }
@@ -97,7 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const assignment = await storage.createAssignment({ ...validatedAssignmentData, userId });
       res.status(201).json(assignment);
     } catch (error) {
-      console.error('Error creating assignment:', error);
+      logger.error('Error creating assignment:', error);
       res.status(400).json({ message: 'Failed to create assignment' });
     }
   });
@@ -120,7 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(assignment);
     } catch (error) {
-      console.error('Error updating assignment:', error);
+      logger.error('Error updating assignment:', error);
       res.status(400).json({ message: 'Failed to update assignment' });
     }
   });
@@ -137,7 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(204).send();
     } catch (error) {
-      console.error('Error deleting assignment:', error);
+      logger.error('Error deleting assignment:', error);
       res.status(500).json({ message: 'Failed to delete assignment' });
     }
   });
@@ -147,14 +148,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { studentName, dryRun = false } = req.body;
       
-      console.log(`🚀 Starting retroactive due date extraction for ${studentName || 'all students'} (dryRun: ${dryRun})`);
+      logger.log(`🚀 Starting retroactive due date extraction for ${studentName || 'all students'} (dryRun: ${dryRun})`);
       
       const results = await extractDueDatesFromExistingAssignments(storage, {
         studentName,
         dryRun,
         onProgress: (processed, total, assignment) => {
           if (processed % 10 === 0) {
-            console.log(`📊 Progress: ${processed}/${total} assignments processed`);
+            logger.log(`📊 Progress: ${processed}/${total} assignments processed`);
           }
         }
       });
@@ -167,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
     } catch (error) {
-      console.error('Due date extraction failed:', error);
+      logger.error('Due date extraction failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to extract due dates', error: errorMessage });
     }
@@ -242,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         assignments: createdAssignments 
       });
     } catch (error) {
-      console.error('Error setting up demo:', error);
+      logger.error('Error setting up demo:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to setup demo data', error: errorMessage });
     }
@@ -261,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(user);
     } catch (error) {
-      console.error('Error fetching user:', error);
+      logger.error('Error fetching user:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to fetch user', error: errorMessage });
     }
@@ -339,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (error) {
-      console.error('Canvas API failed:', error);
+      logger.error('Canvas API failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to fetch Canvas data', error: errorMessage });
     }
@@ -366,7 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const dueDate = new Date(canvasAssignment.due_at);
             const cutoffDate = new Date('2025-06-15');
             if (dueDate < cutoffDate) {
-              console.log(`⏭️ Skipping old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
+              logger.log(`⏭️ Skipping old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
               continue;
             }
           }
@@ -385,7 +386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const extractedDate = extractDueDateFromTitle(canvasAssignment.name);
             if (extractedDate) {
               finalDueDate = extractedDate;
-              console.log(`📅 Extracted due date from "${canvasAssignment.name}": ${extractedDate.toDateString()}`);
+              logger.log(`📅 Extracted due date from "${canvasAssignment.name}": ${extractedDate.toDateString()}`);
             }
           }
 
@@ -418,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const dueDate = new Date(canvasAssignment.due_at);
             const cutoffDate = new Date('2025-06-15');
             if (dueDate < cutoffDate) {
-              console.log(`⏭️ Skipping old assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
+              logger.log(`⏭️ Skipping old assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
               continue;
             }
           }
@@ -437,7 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const extractedDate = extractDueDateFromTitle(canvasAssignment.name);
             if (extractedDate) {
               finalDueDate = extractedDate;
-              console.log(`📅 Extracted due date from "${canvasAssignment.name} (Canvas 2)": ${extractedDate.toDateString()}`);
+              logger.log(`📅 Extracted due date from "${canvasAssignment.name} (Canvas 2)": ${extractedDate.toDateString()}`);
             }
           }
 
@@ -471,7 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
     } catch (error) {
-      console.error('Canvas import failed:', error);
+      logger.error('Canvas import failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to import Canvas assignments', error: errorMessage });
     }
@@ -487,7 +488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const weekday = weekdays[dateObj.getDay()];
       
-      console.log(`Fetching schedule for ${studentName} on ${weekday} (${date})`);
+      logger.log(`Fetching schedule for ${studentName} on ${weekday} (${date})`);
       
       // Get schedule template for this student and weekday
       const scheduleBlocks = await storage.getScheduleTemplate(studentName, weekday);
@@ -504,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 originalSubject: 'Bible' // Keep track of original for reference
               };
             } catch (error) {
-              console.warn('Error getting Bible curriculum, using fallback:', error);
+              logger.warn('Error getting Bible curriculum, using fallback:', error);
               return block; // Return original if Bible curriculum fails
             }
           }
@@ -512,11 +513,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
-      console.log(`Found ${enhancedScheduleBlocks.length} schedule blocks:`, scheduleBlocks);
+      logger.log(`Found ${enhancedScheduleBlocks.length} schedule blocks:`, scheduleBlocks);
       
       res.json(enhancedScheduleBlocks);
     } catch (error) {
-      console.error("Error fetching schedule:", error);
+      logger.error("Error fetching schedule:", error);
       res.status(500).json({ message: "Failed to fetch schedule" });
     }
   });
@@ -527,7 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { studentName, assignmentTitle, message } = req.body;
       
       // For now, just log the notification (we can add Resend integration later)
-      console.log('📧 Parent Notification:', {
+      logger.log('📧 Parent Notification:', {
         student: studentName,
         assignment: assignmentTitle,
         message,
@@ -542,7 +543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
     } catch (error) {
-      console.error('Parent notification failed:', error);
+      logger.error('Parent notification failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to send parent notification', error: errorMessage });
     }
@@ -558,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         assignments: assignments.slice(0, 2) // Return first 2 for testing
       });
     } catch (error) {
-      console.error('Database test failed:', error);
+      logger.error('Database test failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Database connection failed', error: errorMessage });
     }
@@ -570,7 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bibleData = await storage.getBibleCurrentWeek();
       res.json(bibleData);
     } catch (error) {
-      console.error('Error fetching current Bible week:', error);
+      logger.error('Error fetching current Bible week:', error);
       res.status(500).json({ message: 'Failed to fetch Bible curriculum' });
     }
   });
@@ -581,7 +582,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bibleData = await storage.getBibleCurriculum(weekNumber);
       res.json(bibleData);
     } catch (error) {
-      console.error('Error fetching Bible week:', error);
+      logger.error('Error fetching Bible week:', error);
       res.status(500).json({ message: 'Failed to fetch Bible curriculum' });
     }
   });
@@ -602,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updated);
     } catch (error) {
-      console.error('Error updating Bible completion:', error);
+      logger.error('Error updating Bible completion:', error);
       res.status(500).json({ message: 'Failed to update Bible completion' });
     }
   });
@@ -616,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For now, return empty array - will implement attendance storage later
       res.json([]);
     } catch (error) {
-      console.error('Error fetching attendance:', error);
+      logger.error('Error fetching attendance:', error);
       res.status(500).json({ message: 'Failed to fetch attendance' });
     }
   });
@@ -636,7 +637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date()
       });
     } catch (error) {
-      console.error('Error recording attendance:', error);
+      logger.error('Error recording attendance:', error);
       res.status(500).json({ message: 'Failed to record attendance' });
     }
   });
@@ -646,15 +647,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { studentName, date } = req.params;
       
-      console.log(`Fetching daily schedule status for ${studentName} on ${date}`);
+      logger.log(`Fetching daily schedule status for ${studentName} on ${date}`);
       
       const statusData = await storage.getDailyScheduleStatus(studentName, date);
       
-      console.log(`Found ${statusData.length} schedule blocks with status`);
+      logger.log(`Found ${statusData.length} schedule blocks with status`);
       
       res.json(statusData);
     } catch (error) {
-      console.error('Error fetching daily schedule status:', error);
+      logger.error('Error fetching daily schedule status:', error);
       res.status(500).json({ message: 'Failed to fetch daily schedule status' });
     }
   });
@@ -674,7 +675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid status value' });
       }
       
-      console.log(`Updating block status: ${studentName}/${date}/${templateBlockId} -> ${status}`);
+      logger.log(`Updating block status: ${studentName}/${date}/${templateBlockId} -> ${status}`);
       
       const updated = await storage.updateBlockStatus(studentName, date, templateBlockId, status, flags);
       
@@ -684,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updated);
     } catch (error) {
-      console.error('Error updating block status:', error);
+      logger.error('Error updating block status:', error);
       res.status(500).json({ message: 'Failed to update block status' });
     }
   });
@@ -693,7 +694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { studentName, date } = req.params;
       
-      console.log(`Initializing daily schedule for ${studentName} on ${date}`);
+      logger.log(`Initializing daily schedule for ${studentName} on ${date}`);
       
       await storage.initializeDailySchedule(studentName, date);
       
@@ -703,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date
       });
     } catch (error) {
-      console.error('Error initializing daily schedule:', error);
+      logger.error('Error initializing daily schedule:', error);
       res.status(500).json({ message: 'Failed to initialize daily schedule' });
     }
   });
@@ -717,7 +718,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const templateData = await storage.getScheduleTemplate(studentName, weekday);
       res.json(templateData);
     } catch (error) {
-      console.error('Error fetching schedule template:', error);
+      logger.error('Error fetching schedule template:', error);
       res.status(500).json({ message: 'Failed to fetch schedule template' });
     }
   });
@@ -725,11 +726,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Manual Canvas sync trigger (for testing)
   app.post('/api/sync-canvas', async (req, res) => {
     try {
-      console.log('🔧 Manual Canvas sync triggered via API');
+      logger.log('🔧 Manual Canvas sync triggered via API');
       await jobScheduler.runSyncNow();
       
       // Update administrative assignments
-      console.log('🔧 Updating administrative assignments...');
+      logger.log('🔧 Updating administrative assignments...');
       await storage.updateAdministrativeAssignments();
       
       res.json({ 
@@ -737,7 +738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Manual Canvas sync failed:', error);
+      logger.error('Manual Canvas sync failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Canvas sync failed', error: errorMessage });
     }
@@ -766,7 +767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fromDateStr = fromDate.toISOString().split('T')[0];
       const toDateStr = toDate.toISOString().split('T')[0];
       
-      console.log(`📋 Fetching print queue for ${fromDateStr} to ${toDateStr}`);
+      logger.log(`📋 Fetching print queue for ${fromDateStr} to ${toDateStr}`);
       
       // Get ALL assignments (including completed ones for print queue)
       const allAssignments = await storage.getAllAssignments();
@@ -783,7 +784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return dueDateStr >= fromDateStr && dueDateStr <= toDateStr;
       });
 
-      console.log(`📋 Found ${filteredAssignments.length} assignments due ${fromDateStr} to ${toDateStr}`);
+      logger.log(`📋 Found ${filteredAssignments.length} assignments due ${fromDateStr} to ${toDateStr}`);
 
       // Process assignments and detect print needs
       const printQueue: any[] = [];
@@ -850,11 +851,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
       };
       
-      console.log(`📋 Found ${printQueue.length} items needing printing for ${fromDateStr} to ${toDateStr}`);
+      logger.log(`📋 Found ${printQueue.length} items needing printing for ${fromDateStr} to ${toDateStr}`);
       res.json(response);
       
     } catch (error) {
-      console.error('Print queue fetch error:', error);
+      logger.error('Print queue fetch error:', error);
       res.status(500).json({ error: 'Failed to fetch print queue' });
     }
   });
@@ -868,11 +869,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid status' });
       }
       
-      console.log(`📋 Updated print status for assignment ${assignmentId}: ${status}`);
+      logger.log(`📋 Updated print status for assignment ${assignmentId}: ${status}`);
       res.json({ success: true, status, assignmentId });
       
     } catch (error) {
-      console.error('Print status update error:', error);
+      logger.error('Print status update error:', error);
       res.status(500).json({ error: 'Failed to update print status' });
     }
   });
@@ -910,7 +911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.send(audioBuffer);
     } catch (error) {
-      console.error('TTS generation error:', error);
+      logger.error('TTS generation error:', error);
       res.status(500).json({ error: 'Failed to generate speech' });
     }
   });
@@ -918,7 +919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Manual cleanup endpoint for testing problematic assignments
   app.post('/api/cleanup-assignments', async (req, res) => {
     try {
-      console.log('🧹 Manual assignment cleanup triggered via API');
+      logger.log('🧹 Manual assignment cleanup triggered via API');
       // Access the private method using bracket notation for testing
       await (jobScheduler as any).cleanupProblematicAssignments();
       
@@ -927,7 +928,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Manual cleanup failed:', error);
+      logger.error('Manual cleanup failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ 
         message: 'Cleanup failed', 
@@ -940,7 +941,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fix misclassified In Class assignments endpoint
   app.post('/api/fix-in-class-assignments', async (req, res) => {
     try {
-      console.log('🔧 Fixing misclassified In Class assignments via direct database update...');
+      logger.log('🔧 Fixing misclassified In Class assignments via direct database update...');
       
       // Get all assignments and filter/update the problematic ones
       const allAssignments = await storage.getAllAssignments();
@@ -965,9 +966,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalFixed = result?.length || 0;
       
       if (totalFixed > 0) {
-        console.log(`🎉 Successfully fixed ${totalFixed} In Class assignments`);
+        logger.log(`🎉 Successfully fixed ${totalFixed} In Class assignments`);
         result.forEach((assignment: any) => {
-          console.log(`   ✅ "${assignment.title}" -> co-op block (non-schedulable)`);
+          logger.log(`   ✅ "${assignment.title}" -> co-op block (non-schedulable)`);
         });
       }
       
@@ -977,7 +978,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Fix In Class assignments failed:', error);
+      logger.error('Fix In Class assignments failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ 
         message: 'Fix failed', 
@@ -1091,7 +1092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Canvas investigation failed:', error);
+      logger.error('Canvas investigation failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ 
         message: 'Investigation failed', 
@@ -1134,7 +1135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Pattern testing failed:', error);
+      logger.error('Pattern testing failed:', error);
       res.status(500).json({ 
         message: 'Pattern testing failed', 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -1151,7 +1152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Templates must be an array' });
       }
       
-      console.log(`📅 Uploading ${templates.length} schedule templates...`);
+      logger.log(`📅 Uploading ${templates.length} schedule templates...`);
       
       const insertedTemplates = [];
       for (const template of templates) {
@@ -1165,7 +1166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count: insertedTemplates.length
       });
     } catch (error) {
-      console.error('Error uploading schedule templates:', error);
+      logger.error('Error uploading schedule templates:', error);
       res.status(400).json({ message: 'Failed to upload schedule templates', error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
@@ -1188,7 +1189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         weekday: targetDate.toLocaleDateString('en-US', { weekday: 'long' })
       });
     } catch (error) {
-      console.error('Error fetching current Bible curriculum:', error);
+      logger.error('Error fetching current Bible curriculum:', error);
       res.status(500).json({ message: 'Failed to fetch Bible curriculum' });
     }
   });
@@ -1207,7 +1208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(progress);
     } catch (error) {
-      console.error('Error fetching weekly Bible curriculum:', error);
+      logger.error('Error fetching weekly Bible curriculum:', error);
       res.status(500).json({ message: 'Failed to fetch weekly Bible curriculum' });
     }
   });
@@ -1241,7 +1242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ message: 'Failed to mark curriculum item as completed' });
       }
     } catch (error) {
-      console.error('Error marking Bible curriculum completed:', error);
+      logger.error('Error marking Bible curriculum completed:', error);
       res.status(500).json({ message: 'Failed to mark curriculum item as completed' });
     }
   });
@@ -1276,7 +1277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         schoolYearStartDate: process.env.SCHOOL_YEAR_START_DATE || '2025-08-14'
       });
     } catch (error) {
-      console.error('Error fetching Bible curriculum progress:', error);
+      logger.error('Error fetching Bible curriculum progress:', error);
       res.status(500).json({ message: 'Failed to fetch curriculum progress' });
     }
   });
@@ -1299,10 +1300,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const includeCompletedBool = includeCompleted === 'true';
       
       const assignments = await storage.getAssignments(userId, date as string, includeCompletedBool);
-      console.log(`📚 Retrieved ${assignments.length} assignments for ${studentName}`);
+      logger.log(`📚 Retrieved ${assignments.length} assignments for ${studentName}`);
       res.json(assignments);
     } catch (error) {
-      console.error('Error fetching student assignments:', error);
+      logger.error('Error fetching student assignments:', error);
       res.status(500).json({ message: 'Failed to fetch student assignments' });
     }
   });
@@ -1314,7 +1315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profile = await storage.getStudentProfile(studentName);
       res.json(profile);
     } catch (error) {
-      console.error('Error fetching student profile:', error);
+      logger.error('Error fetching student profile:', error);
       res.status(500).json({ message: 'Failed to fetch student profile' });
     }
   });
@@ -1334,7 +1335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(profile);
     } catch (error) {
-      console.error('Error updating student profile:', error);
+      logger.error('Error updating student profile:', error);
       res.status(500).json({ message: 'Failed to update student profile' });
     }
   });
@@ -1346,7 +1347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       res.json({ url: uploadURL });
     } catch (error) {
-      console.error('Error getting upload URL:', error);
+      logger.error('Error getting upload URL:', error);
       res.status(500).json({ message: 'Failed to get upload URL' });
     }
   });
@@ -1372,7 +1373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ objectPath, profile });
     } catch (error) {
-      console.error('Error completing profile image upload:', error);
+      logger.error('Error completing profile image upload:', error);
       res.status(500).json({ message: 'Failed to complete upload' });
     }
   });
@@ -1384,7 +1385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
       objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
-      console.error('Error serving object:', error);
+      logger.error('Error serving object:', error);
       res.status(404).json({ error: 'File not found' });
     }
   });
@@ -1416,7 +1417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         printQueueCount: 0 // Will be updated when we integrate with print queue
       });
     } catch (error) {
-      console.error('Error fetching family dashboard data:', error);
+      logger.error('Error fetching family dashboard data:', error);
       res.status(500).json({ message: 'Failed to fetch family dashboard data' });
     }
   });
@@ -1439,7 +1440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updatedStatus);
     } catch (error) {
-      console.error('Error updating student flags:', error);
+      logger.error('Error updating student flags:', error);
       res.status(500).json({ message: 'Failed to update student flags' });
     }
   });
@@ -1476,7 +1477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(statusUpdate);
     } catch (error) {
-      console.error('Error updating student status:', error);
+      logger.error('Error updating student status:', error);
       res.status(500).json({ message: 'Failed to update student status' });
     }
   });
@@ -1511,7 +1512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(status);
     } catch (error) {
-      console.error('Error fetching student status:', error);
+      logger.error('Error fetching student status:', error);
       res.status(500).json({ message: 'Failed to fetch student status' });
     }
   });
@@ -1519,14 +1520,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/family/initialize - Initialize student status data for testing
   app.post('/api/family/initialize', async (req, res) => {
     try {
-      console.log('🔧 Initializing student status data with REAL current state...');
+      logger.log('🔧 Initializing student status data with REAL current state...');
       
       // Get real assignments for both students today
       const today = new Date().toISOString().split('T')[0];
       const abigailAssignments = await storage.getAssignments('abigail-user', today, false);
       const khalilAssignments = await storage.getAssignments('khalil-user', today, false);
       
-      console.log(`📋 Real assignments today - Abigail: ${abigailAssignments.length}, Khalil: ${khalilAssignments.length}`);
+      logger.log(`📋 Real assignments today - Abigail: ${abigailAssignments.length}, Khalil: ${khalilAssignments.length}`);
       
       // Initialize REAL status for Abigail based on actual data
       const abigailStatus = await storage.upsertStudentStatus({
@@ -1564,7 +1565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastActivity: new Date()
       });
 
-      console.log('✅ Student status initialized with REAL current state (no active work today)');
+      logger.log('✅ Student status initialized with REAL current state (no active work today)');
       res.json({
         message: 'Student status initialized with real current state',
         students: [abigailStatus, khalilStatus],
@@ -1574,7 +1575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (error) {
-      console.error('Error initializing student status data:', error);
+      logger.error('Error initializing student status data:', error);
       res.status(500).json({ message: 'Failed to initialize student status data' });
     }
   });
