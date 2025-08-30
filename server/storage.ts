@@ -1,4 +1,3 @@
-import { logger } from "./lib/logger";
 import { 
   type User, type InsertUser, 
   type Assignment, type InsertAssignment, type UpdateAssignment,
@@ -890,75 +889,6 @@ export class MemStorage implements IStorage {
     };
     this.users.set(sampleUserId, demoUser);
     
-    // Create sample assignments with your executive function features
-    const sampleAssignments: (InsertAssignment & { userId: string; id: string })[] = [
-      {
-        id: randomUUID(),
-        userId: sampleUserId,
-        title: "Math Practice - Algebra Review",
-        subject: "Mathematics",
-        courseName: "Algebra II",
-        instructions: "Complete problems 1-15 on page 84. Focus on quadratic equations and show your work clearly.",
-        scheduledDate: today,
-        scheduledBlock: 1,
-        blockStart: "09:00",
-        blockEnd: "09:45",
-        actualEstimatedMinutes: 45,
-        completionStatus: "pending",
-        priority: "A",
-        difficulty: "medium"
-      },
-      {
-        id: randomUUID(),
-        userId: sampleUserId,
-        title: "English Essay - Character Analysis",
-        subject: "English Literature",
-        courseName: "English 11",
-        instructions: "Write a 500-word character analysis of Elizabeth Bennet from Pride and Prejudice. Include specific examples from chapters 1-10.",
-        scheduledDate: today,
-        scheduledBlock: 2,
-        blockStart: "10:00",
-        blockEnd: "11:30",
-        actualEstimatedMinutes: 90,
-        completionStatus: "pending",
-        priority: "B",
-        difficulty: "hard"
-      },
-      {
-        id: randomUUID(),
-        userId: sampleUserId,
-        title: "Science Lab Report",
-        subject: "Chemistry",
-        courseName: "Chemistry I",
-        instructions: "Complete the lab report on chemical reactions. Include hypothesis, observations, and conclusion.",
-        scheduledDate: today,
-        scheduledBlock: 3,
-        blockStart: "13:00",
-        blockEnd: "13:30",
-        actualEstimatedMinutes: 30,
-        completionStatus: "pending",
-        priority: "B",
-        difficulty: "medium"
-      },
-      {
-        id: randomUUID(),
-        userId: sampleUserId,
-        title: "History Reading Assignment",
-        subject: "History",
-        courseName: "World History",
-        instructions: "Read Chapter 12: The Industrial Revolution. Take notes on key inventions and their impact on society.",
-        scheduledDate: today,
-        scheduledBlock: 4,
-        blockStart: "14:00",
-        blockEnd: "14:45",
-        actualEstimatedMinutes: 45,
-        completionStatus: "pending",
-        priority: "C",
-        difficulty: "easy"
-      }
-    ];
-    
-    sampleAssignments?.forEach(assignment => {
       this.assignments.set(assignment.id, {
         id: assignment.id,
         userId: assignment.userId,
@@ -1169,9 +1099,9 @@ export class MemStorage implements IStorage {
 let storage: IStorage;
 try {
   storage = new DatabaseStorage();
-  logger.info('✓ Using database storage');
+  console.log('✓ Using database storage');
 } catch (error) {
-  logger.warn('⚠ Database connection failed, using memory storage:', error instanceof Error ? error.message : String(error));
+  console.warn('⚠ Database connection failed, using memory storage:', error instanceof Error ? error.message : String(error));
   storage = new MemStorage();
 }
 
