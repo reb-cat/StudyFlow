@@ -293,8 +293,9 @@ export function GuidedDayView({
   const [showDoneDialog, setShowDoneDialog] = useState(false);
   const [showNeedTimeDialog, setShowNeedTimeDialog] = useState(false);
   const [showStuckDialog, setShowStuckDialog] = useState(false);
-  const [undoStuckState, setUndoStuckState] = useState<any>(null);
-  const [undoTimeLeft, setUndoTimeLeft] = useState(0);
+  const [stuckCountdown, setStuckCountdown] = useState(0);
+  const [stuckPendingKey, setStuckPendingKey] = useState<string | null>(null);
+  const [isProcessingStuck, setIsProcessingStuck] = useState(false);
   const { toast } = useToast();
 
   const currentBlock = scheduleBlocks[currentIndex];
@@ -322,18 +323,24 @@ export function GuidedDayView({
     return styles[blockType as keyof typeof styles] || styles.assignment;
   };
 
-  // Undo countdown effect
+  // Stuck countdown effect
   useEffect(() => {
-    if (undoTimeLeft > 0) {
+    if (stuckCountdown > 0) {
       const timer = setTimeout(() => {
-        setUndoTimeLeft(prev => prev - 1);
+        setStuckCountdown(prev => prev - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (undoTimeLeft === 0 && undoStuckState) {
-      // Undo window expired
-      setUndoStuckState(null);
+    } else if (stuckCountdown === 0 && stuckPendingKey) {
+      // Countdown completed - assignment should now be marked as stuck on server
+      setStuckPendingKey(null);
+      setIsProcessingStuck(false);
+      
+      // Trigger refetch after server processing completes
+      if (onAssignmentUpdate) {
+        onAssignmentUpdate();
+      }
     }
-  }, [undoTimeLeft, undoStuckState]);
+  }, [stuckCountdown, stuckPendingKey, onAssignmentUpdate]);
 
   const handleBlockComplete = async () => {
     if (!currentBlock) return;
@@ -356,7 +363,8 @@ export function GuidedDayView({
     // Call API for assignment completion
     if (currentBlock.type === 'assignment' && currentBlock.assignment) {
       try {
-        const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/done`, {
+        const response = await apiRequest('PATCH', `/api/assignments/${currentBlock.assignment.id}`, {
+          completionStatus: 'completed',
           timeSpent: timeSpent || 0,
           earlyFinish: earlyFinish || false,
           bankMinutes: bankMinutes || 0
@@ -364,10 +372,11 @@ export function GuidedDayView({
         
         toast({
           title: "Assignment Completed!",
-          description: response.message,
+          description: "Assignment marked as complete",
           variant: "default"
         });
         
+        // Refetch assignments and re-derive blocks
         if (onAssignmentUpdate) {
           onAssignmentUpdate();
         }
@@ -378,10 +387,11 @@ export function GuidedDayView({
           description: "Failed to mark assignment as complete",
           variant: "destructive"
         });
+        return; // Don't advance if API call failed
       }
     }
     
-    // Move to next block
+    // Move to next block (fallback - primary flow should refetch and re-derive)
     if (currentIndex < scheduleBlocks.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setIsTimerRunning(true);
@@ -401,9 +411,8 @@ export function GuidedDayView({
     if (!currentBlock?.assignment) return;
     
     try {
-      const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/need-more-time`, {
-        reason,
-        estimatedMinutesNeeded
+      const response = await apiRequest('POST', `/api/guided/${studentName}/${selectedDate}/need-more-time`, {
+        assignmentId: currentBlock.assignment.id
       }) as any;
       
       toast({
@@ -412,15 +421,18 @@ export function GuidedDayView({
         variant: "default"
       });
       
+      // Primary flow: refetch assignments and re-derive blocks
       if (onAssignmentUpdate) {
         onAssignmentUpdate();
       }
       
-      // Move to next block
-      if (currentIndex < scheduleBlocks.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-        setIsTimerRunning(true);
-      }
+      // Fallback: Move to next block if refetch doesn't update currentIndex
+      setTimeout(() => {
+        if (currentIndex < scheduleBlocks.length - 1) {
+          setCurrentIndex(prev => prev + 1);
+          setIsTimerRunning(true);
+        }
+      }, 100);
       
     } catch (error) {
       console.error('Failed to reschedule assignment:', error);
@@ -441,70 +453,65 @@ export function GuidedDayView({
   const markAsStuck = async (reason: string, needsHelp: boolean) => {
     if (!currentBlock?.assignment) return;
     
+    setIsProcessingStuck(true);
+    
     try {
-      const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/stuck`, {
-        reason,
-        needsHelp
+      const response = await apiRequest('POST', `/api/guided/${studentName}/${selectedDate}/stuck`, {
+        assignmentId: currentBlock.assignment.id
       }) as any;
       
-      // Set up undo state with 15-second timer
-      setUndoStuckState(response.originalState);
-      setUndoTimeLeft(15);
+      // Start 60-second countdown
+      setStuckCountdown(60);
+      setStuckPendingKey(response.pendingKey);
       
       toast({
-        title: "Assignment Marked as Stuck",
-        description: `${response.message} Undo available for 15 seconds.`,
+        title: "Assignment Will Be Marked as Stuck",
+        description: "60-second undo window started. Assignment will be marked as stuck unless cancelled.",
         variant: "default"
       });
       
-      if (onAssignmentUpdate) {
-        onAssignmentUpdate();
-      }
-      
-      // Move to next block
+      // Move to next block immediately (fallback)
       if (currentIndex < scheduleBlocks.length - 1) {
         setCurrentIndex(prev => prev + 1);
         setIsTimerRunning(true);
       }
       
     } catch (error) {
-      console.error('Failed to mark as stuck:', error);
+      console.error('Failed to start stuck process:', error);
       toast({
         title: "Error",
         description: "Failed to mark assignment as stuck",
         variant: "destructive"
       });
+      setIsProcessingStuck(false);
     }
     
     setShowStuckDialog(false);
   };
 
-  const undoStuck = async () => {
-    if (!undoStuckState || !currentBlock?.assignment) return;
+  const cancelStuck = async () => {
+    if (!stuckPendingKey) return;
     
     try {
-      await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/undo-stuck`, {
-        originalState: undoStuckState
+      await apiRequest('POST', `/api/guided/${studentName}/${selectedDate}/stuck/cancel`, {
+        pendingKey: stuckPendingKey
       });
       
-      setUndoStuckState(null);
-      setUndoTimeLeft(0);
+      setStuckCountdown(0);
+      setStuckPendingKey(null);
+      setIsProcessingStuck(false);
       
       toast({
-        title: "Undo Successful",
-        description: "Assignment restored to original state",
+        title: "Stuck Marking Cancelled",
+        description: "Assignment will not be marked as stuck",
         variant: "default"
       });
       
-      if (onAssignmentUpdate) {
-        onAssignmentUpdate();
-      }
-      
     } catch (error) {
-      console.error('Failed to undo stuck:', error);
+      console.error('Failed to cancel stuck marking:', error);
       toast({
         title: "Error",
-        description: "Failed to undo stuck status",
+        description: "Failed to cancel stuck marking",
         variant: "destructive"
       });
     }
@@ -715,8 +722,8 @@ export function GuidedDayView({
           />
         </div>
 
-        {/* Undo Stuck Banner (if active) */}
-        {undoStuckState && undoTimeLeft > 0 && (
+        {/* Stuck Countdown Banner (if active) */}
+        {stuckCountdown > 0 && stuckPendingKey && (
           <div style={{
             backgroundColor: '#FEF3C7',
             border: '1px solid #F59E0B',
@@ -728,10 +735,10 @@ export function GuidedDayView({
             alignItems: 'center'
           }}>
             <span style={{ fontSize: '14px', color: '#92400E' }}>
-              Assignment marked as stuck. Undo in {undoTimeLeft}s
+              Assignment will be marked as stuck in {stuckCountdown}s
             </span>
             <button
-              onClick={undoStuck}
+              onClick={cancelStuck}
               style={{
                 padding: '4px 8px',
                 borderRadius: '4px',
@@ -746,7 +753,7 @@ export function GuidedDayView({
               }}
             >
               <Undo size={12} />
-              Undo
+              Cancel
             </button>
           </div>
         )}
