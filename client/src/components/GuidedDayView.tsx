@@ -5,6 +5,17 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { getTodayString, formatDateShort } from '@shared/dateUtils';
 
+// Minimal shape Guided can consume when parent pre-composes the day
+type GuidedBlock = {
+  id: string;
+  type: 'assignment' | 'bible' | 'fixed';
+  title: string;
+  startTime: string; // 'HH:MM'
+  endTime: string;   // 'HH:MM'
+  estimatedMinutes?: number;
+  assignmentId?: string | null;
+};
+
 // StudyFlow color system
 const colors = {
   primary: '#844FC1',
@@ -208,6 +219,8 @@ interface GuidedDayViewProps {
   studentName: string;
   selectedDate: string;
   scheduleTemplate?: any[];
+  /** NEW: when provided, Guided will use this EXACT sequence (matches Overview) */
+  composedSchedule?: GuidedBlock[];
   onAssignmentUpdate?: () => void;
   onModeToggle?: () => void;
 }
@@ -217,11 +230,12 @@ export function GuidedDayView({
   studentName = "Student", 
   selectedDate = getTodayString(),
   scheduleTemplate = [],
+  composedSchedule = [],
   onAssignmentUpdate,
   onModeToggle 
 }: GuidedDayViewProps) {
   
-  // Build actual schedule from schedule template (like the existing system)
+  // Build actual schedule from schedule template (fallback) OR use parent-composed
   const buildScheduleBlocks = (): ScheduleBlock[] => {
     if (scheduleTemplate.length === 0) {
       // Demo schedule for testing
@@ -283,7 +297,10 @@ export function GuidedDayView({
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
   };
 
-  const scheduleBlocks = buildScheduleBlocks();
+  const scheduleBlocks: any[] =
+    (composedSchedule && composedSchedule.length > 0)
+      ? composedSchedule
+      : buildScheduleBlocks();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
