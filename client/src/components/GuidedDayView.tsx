@@ -334,7 +334,19 @@ export function GuidedDayView({
     return null;
   }, [currentBlock]);
   const hasAssignmentInstructions = useMemo(() => {
-    return currentBlock?.type === 'assignment' && !!currentBlock?.assignment?.instructions?.trim();
+    const hasInstructions = currentBlock?.type === 'assignment' && !!currentBlock?.assignment?.instructions?.trim();
+    
+    // Debug logging to see what's happening
+    if (currentBlock?.type === 'assignment') {
+      console.log('🔍 Assignment Instructions Debug:', {
+        title: currentBlock.title,
+        hasInstructions,
+        instructionsLength: currentBlock?.assignment?.instructions?.length || 0,
+        instructions: currentBlock?.assignment?.instructions?.substring(0, 100) || 'No instructions'
+      });
+    }
+    
+    return hasInstructions;
   }, [currentBlock]);
   const hasBibleDetails = useMemo(() => currentBlock?.type === 'bible', [currentBlock]);
   
