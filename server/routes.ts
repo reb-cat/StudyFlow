@@ -413,12 +413,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import from instance 2 (Abigail only)
       if (canvasData.instance2) {
         for (const canvasAssignment of canvasData.instance2) {
-          // Skip assignments before June 15, 2025
+          // More lenient date filtering for Canvas Instance 2 - allow assignments from current academic year
+          // Skip only assignments before January 1, 2024 (extremely old assignments)
           if (canvasAssignment.due_at) {
             const dueDate = new Date(canvasAssignment.due_at);
-            const cutoffDate = new Date('2025-06-15');
+            const cutoffDate = new Date('2024-01-01');
             if (dueDate < cutoffDate) {
-              console.log(`⏭️ Skipping old assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
+              console.log(`⏭️ Skipping very old assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - before January 1, 2024`);
               continue;
             }
           }
