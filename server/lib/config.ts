@@ -1,4 +1,5 @@
-// Supabase removed - now using local Replit database via Drizzle ORM
+// Configuration for Canvas API and email services
+// Using local PostgreSQL database via Drizzle ORM (no external services)
 
 // Canvas configuration
 export const canvasConfig = {

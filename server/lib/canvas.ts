@@ -1,4 +1,4 @@
-import { canvasConfig } from './supabase';
+import { canvasConfig } from './config';
 
 export interface CanvasAssignment {
   id: number;
