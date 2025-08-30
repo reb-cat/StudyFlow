@@ -1,0 +1,188 @@
+@@
+-import { db } from '../db';
+-import { bibleCurriculum } from '@shared/schema';
+-import { eq, and, asc } from 'drizzle-orm';
+-import { sql } from 'drizzle-orm';
+-
+-/**
+- * Bible Curriculum Integration System - SIMPLIFIED SEQUENTIAL APPROACH
+- * Replaces generic 'Bible' schedule entries with specific daily readings
+- * Uses simple sequential progression through 52-week curriculum
+- */
+-
+-/**
+- * Get or create position tracking for a student
+- * @param studentName - Student name
+- * @returns Current position object
+- */
+-...
+-// Define the school year start date constant
+-export const SCHOOL_YEAR_START_DATE = new Date('2025-08-26');
++import { db } from "../db";
++import {
++  bibleCurriculum,
++  bibleCurriculumPosition,
++  type BibleCurriculum as BCRow,
++} from "@shared/schema";
++import { and, asc, eq, isNull } from "drizzle-orm";
++
++// ——————————————————————————————————————————————
++// Helpers
++async function getOrCreatePosition(studentName: string) {
++  const [pos] = await db
++    .select()
++    .from(bibleCurriculumPosition)
++    .where(eq(bibleCurriculumPosition.studentName, studentName))
++    .limit(1);
++  if (pos) return pos;
++  const [inserted] = await db
++    .insert(bibleCurriculumPosition)
++    .values({ studentName, currentWeek: 1, currentDay: 1 })
++    .returning();
++  return inserted;
++}
++
++async function getMemoryVerseForWeek(weekNumber: number) {
++  const [mv] = await db
++    .select()
++    .from(bibleCurriculum)
++    .where(
++      and(
++        eq(bibleCurriculum.weekNumber, weekNumber),
++        eq(bibleCurriculum.readingType, "memory_verse"),
++        isNull(bibleCurriculum.dayOfWeek)
++      )
++    )
++    .limit(1);
++  return mv ?? null;
++}
++
++async function getDailyReading(
++  weekNumber: number,
++  dayOfWeek: number
++): Promise<BCRow | null> {
++  const [row] = await db
++    .select()
++    .from(bibleCurriculum)
++    .where(
++      and(
++        eq(bibleCurriculum.weekNumber, weekNumber),
++        eq(bibleCurriculum.dayOfWeek, dayOfWeek),
++        eq(bibleCurriculum.readingType, "daily_reading")
++      )
++    )
++    .limit(1);
++  return row ?? null;
++}
++
++// ——————————————————————————————————————————————
++// Public API used by routes
++
++/** Get the next Bible curriculum entry for a student (sequential). */
++export async function getNextBibleCurriculumForStudent(studentName: string) {
++  const pos = await getOrCreatePosition(studentName);
++  let week = pos.currentWeek;
++  let day = pos.currentDay;
++
++  // Try current (week, day). If missing (e.g., not seeded), advance to next existing.
++  let reading = await getDailyReading(week, day);
++  if (!reading) {
++    const rows = await db
++      .select()
++      .from(bibleCurriculum)
++      .where(eq(bibleCurriculum.readingType, "daily_reading"))
++      .orderBy(asc(bibleCurriculum.weekNumber), asc(bibleCurriculum.dayOfWeek));
++    const next = rows.find(
++      (r) => !r.completed && r.dayOfWeek != null && r.weekNumber != null
++    );
++    if (next) {
++      week = next.weekNumber!;
++      day = next.dayOfWeek!;
++      reading = next;
++      // realign pointer to the next unfinished slot
++      await db
++        .update(bibleCurriculumPosition)
++        .set({ currentWeek: week, currentDay: day })
++        .where(eq(bibleCurriculumPosition.studentName, studentName));
++    } else {
++      return { dailyReading: null, memoryVerse: null };
++    }
++  }
++
++  const memoryVerse = await getMemoryVerseForWeek(week);
++  return {
++    dailyReading: reading,
++    memoryVerse,
++  };
++}
++
++/** Mark a curriculum item completed, and advance pointer if daily reading. */
++export async function markBibleCurriculumCompleted(
++  weekNumber: number,
++  dayOfWeek: number | null,
++  readingType: "daily_reading" | "memory_verse",
++  studentName?: string
++) {
++  if (readingType === "memory_verse") {
++    // Mark MV for the week as completed (dayOfWeek is null)
++    await db
++      .update(bibleCurriculum)
++      .set({ completed: true, completedAt: new Date() })
++      .where(
++        and(
++          eq(bibleCurriculum.weekNumber, weekNumber),
++          eq(bibleCurriculum.readingType, "memory_verse"),
++          isNull(bibleCurriculum.dayOfWeek)
++        )
++      );
++    return true;
++  }
++
++  if (dayOfWeek == null) return false;
++  await db
++    .update(bibleCurriculum)
++    .set({ completed: true, completedAt: new Date() })
++    .where(
++      and(
++        eq(bibleCurriculum.weekNumber, weekNumber),
++        eq(bibleCurriculum.dayOfWeek, dayOfWeek),
++        eq(bibleCurriculum.readingType, "daily_reading")
++      )
++    );
++
++  // Advance pointer for the student if provided
++  if (studentName) {
++    const pos = await getOrCreatePosition(studentName);
++    let nextWeek = pos.currentWeek;
++    let nextDay = pos.currentDay + 1;
++    // If next day doesn't exist, roll to the first day of the next available week
++    const nextExists = await getDailyReading(nextWeek, nextDay);
++    if (!nextExists) {
++      nextWeek = pos.currentWeek + 1;
++      nextDay = 1;
++    }
++    await db
++      .update(bibleCurriculumPosition)
++      .set({ currentWeek: nextWeek, currentDay: nextDay, lastUpdated: new Date() })
++      .where(eq(bibleCurriculumPosition.studentName, studentName));
++  }
++  return true;
++}
++
++/** Weekly progress for UI (overview ribbons, etc.). */
++export async function getWeeklyBibleProgress(weekNumber: number) {
++  const rows = await db
++    .select()
++    .from(bibleCurriculum)
++    .where(eq(bibleCurriculum.weekNumber, weekNumber))
++    .orderBy(asc(bibleCurriculum.readingType), asc(bibleCurriculum.dayOfWeek));
++  const total = rows.filter((r) => r.readingType === "daily_reading").length;
++  const completed = rows.filter((r) => r.readingType === "daily_reading" && r.completed).length;
++  return {
++    weekNumber,
++    completed,
++    total,
++    percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
++    items: rows,
++  };
++}
