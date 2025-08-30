@@ -999,7 +999,25 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      console.log(`✅ Allocated ${assignedAssignments.length} assignments:`, assignedAssignments);
+      // Apply normalization to assignment titles for logging
+      const { normalizeAssignment: normalizeAssignmentNew } = await import('@shared/normalize');
+      const normalizedAssignments = assignedAssignments.map(title => {
+        // Find the assignment object to get full details for normalization
+        const assignment = candidateAssignments.find(a => a.title === title);
+        if (!assignment) return title;
+        
+        const normalized = normalizeAssignmentNew({
+          id: assignment.id,
+          title: assignment.title,
+          course: assignment.courseName,
+          instructions: assignment.instructions,
+          dueAt: assignment.dueDate || null
+        });
+        
+        return normalized.displayTitle || title;
+      });
+      
+      console.log(`✅ Allocated ${assignedAssignments.length} assignments:`, normalizedAssignments);
       
     } catch (error) {
       console.error('Error allocating assignments to template:', error);

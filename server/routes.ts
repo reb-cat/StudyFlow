@@ -15,6 +15,7 @@ import { eq } from 'drizzle-orm';
 import { extractDueDatesFromExistingAssignments, extractDueDateFromTitle } from './lib/assignmentIntelligence';
 import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas";
 import { normalizeAssignment, type AssignmentLike } from './lib/assignmentNormalizer';
+import { normalizeAssignment as normalizeAssignmentNew } from '@shared/normalize';
 import { ObjectStorageService } from "./objectStorage"; 
 // Email config moved inline since Supabase removed
 const emailConfig = {
@@ -73,8 +74,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Admin mode can include completed assignments
       const includeCompletedBool = includeCompleted === 'true';
       const assignments = await storage.getAssignments(userId, date as string, includeCompletedBool);
+      
+      // Apply normalization to assignment titles for meaningful display
+      const normalizedAssignments = assignments.map(assignment => {
+        const normalized = normalizeAssignmentNew({
+          id: assignment.id,
+          title: assignment.title,
+          course: assignment.courseName,
+          instructions: assignment.instructions,
+          dueAt: assignment.dueDate || null
+        });
+        
+        return {
+          ...assignment,
+          title: normalized.displayTitle || assignment.title
+        };
+      });
+      
       console.log(`📚 Retrieved ${assignments.length} assignments for daily planning for ${studentName} on ${date}`);
-      res.json(assignments);
+      res.json(normalizedAssignments);
     } catch (error) {
       console.error('Error fetching assignments:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -1583,8 +1601,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const includeCompletedBool = includeCompleted === 'true';
       
       const assignments = await storage.getAssignments(userId, date as string, includeCompletedBool);
+      
+      // Apply normalization to assignment titles for meaningful display
+      const normalizedAssignments = assignments.map(assignment => {
+        const normalized = normalizeAssignmentNew({
+          id: assignment.id,
+          title: assignment.title,
+          course: assignment.courseName,
+          instructions: assignment.instructions,
+          dueAt: assignment.dueDate || null
+        });
+        
+        return {
+          ...assignment,
+          title: normalized.displayTitle || assignment.title
+        };
+      });
+      
       console.log(`📚 Retrieved ${assignments.length} assignments for ${studentName}`);
-      res.json(assignments);
+      res.json(normalizedAssignments);
     } catch (error) {
       console.error('Error fetching student assignments:', error);
       res.status(500).json({ message: 'Failed to fetch student assignments' });
