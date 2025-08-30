@@ -61,7 +61,7 @@ export default function FamilyDashboard() {
       initial: 'A', 
       color: colors.primary,
       message: "You're doing amazing! Keep it up!",
-      profileImage: profiles.abigail?.profileImageUrl
+      profileImage: (profiles as any)?.abigail?.profileImageUrl
     },
     { 
       id: 'khalil', 
@@ -69,7 +69,7 @@ export default function FamilyDashboard() {
       initial: 'K', 
       color: colors.progress,
       message: "Ready for another great learning day!",
-      profileImage: profiles.khalil?.profileImageUrl
+      profileImage: (profiles as any)?.khalil?.profileImageUrl
     }
   ];
 

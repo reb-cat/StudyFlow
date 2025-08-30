@@ -329,9 +329,9 @@ export default function StudentDashboard() {
             }
             
             // Check for similar worksheet/homework patterns
-            const wordsA = titleA.split(' ').filter(w => w.length > 3);
-            const wordsB = titleB.split(' ').filter(w => w.length > 3);
-            const commonWords = wordsA.filter(w => wordsB.includes(w));
+            const wordsA = titleA.split(' ').filter((w: string) => w.length > 3);
+            const wordsB = titleB.split(' ').filter((w: string) => w.length > 3);
+            const commonWords = wordsA.filter((w: string) => wordsB.includes(w));
             
             return commonWords.length >= 2; // Similar if 2+ significant words match
           });
