@@ -529,7 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // BIBLE CURRICULUM INTEGRATION: Replace generic "Bible" entries with specific curriculum content
       const enhancedScheduleBlocks = await Promise.all(
-        scheduleBlocks?.map(async (block) => {
+        scheduleBlocks.map(async (block) => {
           if (block.subject === 'Bible' || block.blockType === 'Bible') {
             try {
               const bibleSubject = await getBibleSubjectForSchedule(studentName);
@@ -1158,9 +1158,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const summary = {
         total: results.length,
-        successful: results?.filter(r => r.success).length,
-        failed: results?.filter(r => !r.success).length,
-        successRate: `${Math.round((results?.filter(r => r.success).length / results.length) * 100)}%`
+        successful: results.filter(r => r.success).length,
+        failed: results.filter(r => !r.success).length,
+        successRate: `${Math.round((results.filter(r => r.success).length / results.length) * 100)}%`
       };
       
       res.json({
