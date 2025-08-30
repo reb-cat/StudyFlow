@@ -413,12 +413,13 @@ export function GuidedDayView({
     if (currentBlock.type === 'assignment' && currentBlock.assignment) {
       // Show Done dialog for assignments
       setShowDoneDialog(true);
-    } else if (currentBlock.type === 'bible') {
-      // Complete Bible reading directly
-      await fetch('/api/bible-curriculum/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentName })
+    } else if (currentBlock.type === 'bible' && bibleData?.dailyReading) {
+      // Complete Bible reading directly with proper parameters
+      await apiRequest('POST', '/api/bible-curriculum/complete', {
+        weekNumber: bibleData.dailyReading.weekNumber,
+        dayOfWeek: bibleData.dailyReading.dayOfWeek,
+        readingType: 'daily_reading',
+        studentName: studentName
       });
       
       toast({

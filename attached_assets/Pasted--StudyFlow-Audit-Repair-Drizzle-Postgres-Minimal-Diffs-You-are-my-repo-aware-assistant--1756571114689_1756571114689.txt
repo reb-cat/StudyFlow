@@ -1,0 +1,135 @@
+🧪 StudyFlow — Audit & Repair (Drizzle + Postgres • Minimal Diffs)
+
+You are my repo-aware assistant. Audit first, then repair only if a check fails. Use Drizzle + PostgreSQL only; no Supabase. Keep changes surgical.
+
+✅ Audit checks (fix only if failing)
+A) Bible progression per student
+
+server/routes.ts
+
+GET /api/bible-curriculum/current must read studentName from req.query and pass it to getNextBibleCurriculumForStudent(studentName).
+
+POST /api/bible-curriculum/complete must accept { studentName, weekNumber, dayOfWeek, readingType } and call the completion function that advances the pointer; return { ok:true, next }.
+
+POST /api/admin/bible/reset present with { studentName, scope }, resets completed flags and/or pointer, returns { ok:true, next }.
+
+B) Guided “Done” for Bible actually calls complete
+
+client/src/components/GuidedDayView.tsx
+
+In the Done handler: when currentBlock.type === 'bible', POST /api/bible-curriculum/complete with current reading { weekNumber, dayOfWeek, readingType:'daily_reading', studentName }, then invalidate any bible query and advance.
+
+C) Instructions live on the timer card (collapsible pill)
+
+GuidedDayView.tsx
+
+Blue title header contains a “Show Instructions › / Hide Instructions ⌄” pill.
+
+Expanded panel renders assignment instructions (pre-wrap) or Bible details (reading title + memory verse) above the timer.
+
+D) Readable assignment info (do NOT overwrite DB title)
+
+shared/normalize.ts exists and exports normalizeAssignment.
+
+GuidedDayView.tsx and AssignmentCard.tsx:
+
+Use normalizeAssignment(assignment) to derive:
+
+displayTitle (e.g., “Health Reading & Notebook Work”)
+
+effectiveDueAt (inferred “Due 8/21” when DB dueAt is missing)
+
+courseLabel
+
+Render displayTitle and a right-aligned course chip; show Due from effectiveDueAt ?? assignment.dueAt.
+
+server/routes.ts
+
+⚠️ Do not overwrite assignment.title in API responses. If you currently map to { ...assignment, title: normalized.displayTitle }, change to:
+
+{...assignment, displayTitle: normalized.displayTitle, effectiveDueAt: normalized.effectiveDueAt, courseLabel: normalized.courseLabel}
+
+
+Rationale: preserve original title for matching/backfills; let UI prefer displayTitle.
+
+E) Guided mirrors Overview exactly
+
+client/src/pages/student-dashboard.tsx
+
+After Overview composes the day, pass composedSchedule into <GuidedDayView composedSchedule={...} />.
+
+GuidedDayView.tsx prefers props.composedSchedule and only falls back to its internal builder if empty.
+
+F) Icon mapping (Prep/Load)
+
+student-dashboard.tsx (or centralized icon file)
+
+“prep/load” uses Package (or Boxes) — not Utensils.
+
+G) Timezone helper (America/New_York)
+
+Replace any new Date().toISOString().split('T')[0] in:
+
+client/src/pages/student-dashboard.tsx
+
+client/src/pages/family-dashboard.tsx
+
+client/src/components/GuidedDayView.tsx
+
+Use:
+
+const toNYDateString = (d = new Date()) => {
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(d);
+  const y = p.find(x=>x.type==='year')!.value, m = p.find(x=>x.type==='month')!.value, da = p.find(x=>x.type==='day')!.value;
+  return `${y}-${m}-${da}`;
+};
+
+H) Need More Time / Stuck (minimum viability)
+
+Buttons should not only advance the index. At minimum, post to endpoints (even if they just log for now) so we can extend later:
+
+POST /api/guided/:studentName/:date/need-more-time { assignmentId }
+
+POST /api/guided/:studentName/:date/stuck { assignmentId } (with 60-second undo client-side)
+
+🛠 Repair rules
+
+Only touch files relevant to a failing check.
+
+Keep diffs minimal; no refactors.
+
+Preserve existing types and props.
+
+If the server was overwriting assignment.title, switch to adding displayTitle/effectiveDueAt/courseLabel without removing title.
+
+📌 After repairs, run smoke tests
+
+Bible:
+
+GET /api/bible-curriculum/current?studentName=Abigail returns a reading.
+
+In Guided, mark Bible Done → next reading appears next time.
+
+Admin reset returns Week 1 Day 1.
+
+Instructions:
+
+Guided shows a Show Instructions › pill; panel opens above the timer.
+
+Normalized display:
+
+“Homework Due 8/21” becomes “[Course] Reading & Notebook Work” with a course chip and a Due date (inferred if needed).
+
+Icons:
+
+Prep/Load shows Package/Boxes, not Utensils.
+
+Timezone:
+
+“Today” matches ET (no off-by-one near midnight).
+
+Guided = Overview:
+
+Titles/order identical.
+
+Proceed with the audit and apply tiny fixes only where checks fail. Print each check with PASS/FAIL and show the diff if changed.

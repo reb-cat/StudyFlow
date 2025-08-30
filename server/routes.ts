@@ -87,7 +87,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         return {
           ...assignment,
-          title: normalized.displayTitle || assignment.title
+          displayTitle: normalized.displayTitle,
+          effectiveDueAt: normalized.effectiveDueAt,
+          courseLabel: normalized.courseLabel
         };
       });
       
@@ -1614,7 +1616,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         return {
           ...assignment,
-          title: normalized.displayTitle || assignment.title
+          displayTitle: normalized.displayTitle,
+          effectiveDueAt: normalized.effectiveDueAt,
+          courseLabel: normalized.courseLabel
         };
       });
       

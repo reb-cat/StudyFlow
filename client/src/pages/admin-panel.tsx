@@ -10,6 +10,7 @@ import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, Che
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { Assignment } from '@shared/schema';
+import { BibleResetButton } from '@/components/admin/BibleResetButton';
 
 export default function AdminPanel() {
   const { toast } = useToast();
@@ -338,6 +339,26 @@ export default function AdminPanel() {
                   <SelectItem value="Khalil">Khalil</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Bible Reset Controls */}
+            <div style={{ marginBottom: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #DEE2E6' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: '#212529',
+                marginBottom: '0.5rem'
+              }}>Bible Curriculum</label>
+              <BibleResetButton 
+                studentName={selectedStudent} 
+                onSuccess={() => {
+                  toast({
+                    title: 'Success',
+                    description: `${selectedStudent}'s Bible progress has been reset`
+                  });
+                }}
+              />
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>

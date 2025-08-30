@@ -659,7 +659,7 @@ export default function StudentDashboard() {
                           // Use round-robin assignment from our populated blocks
                           const populatedBlock = populatedAssignmentBlocks.find(pb => pb.id === block.id);
                           if (populatedBlock && populatedBlock.assignment) {
-                            blockTitle = populatedBlock.assignment.title; // Show assignment title as the main title
+                            blockTitle = populatedBlock.assignment.displayTitle || populatedBlock.assignment.title; // Use normalized title
                             blockDetails = ''; // No subtitle needed
                           } else {
                             blockTitle = 'Open Assignment Block';
@@ -778,7 +778,7 @@ export default function StudentDashboard() {
                       if (block.blockType === 'assignment') {
                         const populatedBlock = populatedAssignmentBlocks.find(pb => pb.id === block.id);
                         if (populatedBlock && populatedBlock.assignment) {
-                          blockTitle = populatedBlock.assignment.title;
+                          blockTitle = populatedBlock.assignment.displayTitle || populatedBlock.assignment.title;
                           blockDetails = populatedBlock.assignment.courseName || '';
                         } else {
                           blockTitle = 'Open Assignment Block';
