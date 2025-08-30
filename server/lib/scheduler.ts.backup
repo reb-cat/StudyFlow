@@ -1,5 +1,4 @@
 import { logger } from "../lib/logger";
-import { logger } from "../lib/logger";
 import { getAllAssignmentsForStudent } from './canvas';
 import { storage } from '../storage';
 import { analyzeAssignmentWithCanvas, getSmartSchedulingDate, extractDueDateFromTitle } from './assignmentIntelligence';
@@ -155,7 +154,7 @@ class JobScheduler {
                     logger.log(`🧠 Extracted due date from title "${canvasAssignment.name}": ${extractedFromTitle.toDateString()}`);
                   }
                 } catch (error) {
-                  logger.warn(`Failed to extract due date from title: ${canvasAssignment.name}`);
+                  console.warn(`Failed to extract due date from title: ${canvasAssignment.name}`);
                 }
                 
                 // Use the best available due date source
@@ -340,7 +339,7 @@ class JobScheduler {
                     logger.log(`🧠 Extracted due date from title "${title}": ${extractedFromTitle.toDateString()}`);
                   }
                 } catch (error) {
-                  logger.warn(`Failed to extract due date from title: ${title}`);
+                  console.warn(`Failed to extract due date from title: ${title}`);
                 }
                 
                 // Use the best available due date source
