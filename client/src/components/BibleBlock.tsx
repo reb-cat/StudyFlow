@@ -19,27 +19,29 @@ interface BibleBlockProps {
   blockStart?: string;
   blockEnd?: string;
   className?: string;
+  studentName: string;
 }
 
-export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", className }: BibleBlockProps) {
+export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", className, studentName }: BibleBlockProps) {
   const queryClient = useQueryClient();
 
-  // Get current week's Bible curriculum
-  const { data: bibleData = [], isLoading } = useQuery<BibleCurriculum[]>({
-    queryKey: ['/api/bible/current-week'],
+  // Get current student's Bible curriculum
+  const { data: bibleResponse, isLoading } = useQuery({
+    queryKey: ['/api/bible-curriculum/current', studentName],
+    enabled: !!studentName,
   });
+  
+  const bibleData = bibleResponse?.curriculum;
 
-  // Get today's reading based on sequential curriculum progression
+  // Get today's reading from student's sequential curriculum progression
   const today = new Date(date);
   const jsDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
   
   // Skip weekends - only show Bible on school days (Monday-Friday)
   const isWeekend = jsDay === 0 || jsDay === 6;
   
-  // TODO: This should track actual curriculum progress, not calendar days
-  // For now, use a simple sequential approach starting from day 1
-  // In production, this would be stored in user preferences/progress
-  const todaysReading = !isWeekend && bibleData.length > 0 ? bibleData[0] : null;
+  // Use the current daily reading from the student's progression
+  const todaysReading = !isWeekend && bibleData?.dailyReading ? bibleData.dailyReading : null;
 
   // Mutation to update completion status
   const completionMutation = useMutation({
@@ -54,7 +56,7 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
     },
     onSuccess: () => {
       // Refresh the Bible curriculum data
-      queryClient.invalidateQueries({ queryKey: ['/api/bible/current-week'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bible-curriculum/current', studentName] });
     }
   });
 
