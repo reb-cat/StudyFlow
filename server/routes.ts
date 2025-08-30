@@ -1001,7 +1001,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (totalFixed > 0) {
         logger.log(`🎉 Successfully fixed ${totalFixed} In Class assignments`);
-        result.forEach((assignment: any) => {
+        result?.forEach((assignment: any) => {
           logger.log(`   ✅ "${assignment.title}" -> co-op block (non-schedulable)`);
         });
       }
@@ -1432,8 +1432,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dashboardData = await storage.getFamilyDashboardData();
       
       // Calculate daily stats across all students
-      const totalCompleted = dashboardData.students.reduce((sum, s) => sum + (s.completedToday || 0), 0);
-      const totalRemaining = dashboardData.students.reduce((sum, s) => sum + ((s.totalToday || 0) - (s.completedToday || 0)), 0);
+      const totalCompleted = dashboardData?.students?.reduce((sum, s) => sum + (s.completedToday || 0), 0);
+      const totalRemaining = dashboardData?.students?.reduce((sum, s) => sum + ((s.totalToday || 0) - (s.completedToday || 0)), 0);
       
       // Get current date for display
       const today = new Date().toISOString().split('T')[0];
