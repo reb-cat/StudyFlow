@@ -1,0 +1,158 @@
+FILE-BY-FILE CHANGES
+1) server/routes.ts
+
+Edit GET /api/bible-curriculum/current:
+
+Accept studentName from query (default to “Abigail” if absent).
+
+Call getNextBibleCurriculumForStudent(studentName).
+
+Edit POST /api/bible-curriculum/complete:
+
+Accept { studentName } in body.
+
+Call completeBibleReadingAndAdvance(studentName) (not markBibleCurriculumCompleted).
+
+Return { ok:true, next: <current> } from getNextBibleCurriculumForStudent(studentName).
+
+Add POST /api/admin/bible/reset:
+
+Body { studentName, scope: 'both'|'position'|'completed' }.
+
+If completed in scope → set all bible_curriculum.completed=false.
+
+If position in scope → upsert bible_curriculum_position to week 1 day 1.
+
+Return { ok:true, next: <current> }.
+
+Keep imports minimal: db, bibleCurriculum, bibleCurriculumPosition, and the two Bible lib functions.
+
+2) client/src/components/GuidedDayView.tsx
+
+Title card + instructions pill:
+
+Add showInstructions state and the pill button in the blue header.
+
+When expanded:
+
+Assignment → show assignment.instructions (pre-wrap).
+
+Bible → show reading title + memory verse (fetch via /api/bible-curriculum/current?studentName=...).
+
+Bible Done:
+
+In handleBlockComplete, if currentBlock.type === 'bible', await fetch('/api/bible-curriculum/complete', { method:'POST', body:{ studentName } }), then advance.
+
+Readable info:
+
+Import normalizeAssignment from @/shared/normalize.
+
+For assignment title, render normalized.displayTitle and a right-aligned course chip (normalized.courseLabel || assignment.courseName || assignment.subject).
+
+Due date: use normalized.effectiveDueAt ?? assignment.dueDate.
+
+ET date default:
+
+Replace any new Date().toISOString().split('T')[0] with toNYDateString() (see helper below).
+
+3) client/src/pages/student-dashboard.tsx
+
+Icon fix:
+
+In the icon switch, change 'prep/load' case to return <Package className={iconClass} />;
+
+ET helper (top-level function):
+
+const toNYDateString = (d = new Date()) => {
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(d);
+  const y = p.find(x=>x.type==='year')!.value, m=p.find(x=>x.type==='month')!.value, da=p.find(x=>x.type==='day')!.value;
+  return `${y}-${m}-${da}`;
+};
+
+
+Replace every *.toISOString().split('T')[0] with toNYDateString(*).
+
+4) client/src/pages/family-dashboard.tsx and client/src/components/GuidedDayView.tsx
+
+Apply the same ET helper replacement for any toISOString().split('T')[0].
+
+5) client/src/components/AssignmentCard.tsx
+
+Import normalizeAssignment and use:
+
+title → displayTitle
+
+due → effectiveDueAt ?? assignment.dueAt
+
+(optional) a small course chip if not already present
+
+6) New shared/normalize.ts
+
+Create:
+
+export type AssignmentLike = { id:string; title:string; course?:string|null; instructions?:string|null; dueAt?:string|null; };
+export type NormalizedAssignment = { displayTitle:string; effectiveDueAt?:string|null; courseLabel?:string|null; };
+
+function inferDueDateFromText(text:string, now=new Date()): Date | null {
+  if (!text) return null;
+  const s = text.replace(/\u00A0/g,' ');
+  const md = s.match(/due[^0-9a-zA-Z]{0,5}(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/i)
+        || s.match(/(?:due[^a-z0-9]{0,5})?([A-Za-z]{3,9})\s+(\d{1,2})/i);
+  let M:null|number=null, D:null|number=null, Y:null|number=null;
+  if (md) {
+    if (md.length>=4 && /^\d/.test(md[1])) { M=+md[1]-1; D=+md[2]; Y=md[3]? (+md[3]<100? 2000+(+md[3]) : +md[3]) : null; }
+    else { const names=['january','february','march','april','may','june','july','august','september','october','november','december'];
+           M=names.findIndex(n=>n.startsWith(md[1].toLowerCase())); D=+md[2]; }
+  }
+  if (M==null||D==null) return null;
+  const y = Y ?? now.getFullYear(); const d = new Date(y,M,D,23,59,0,0);
+  if (!Y && ((d.getTime()-now.getTime())/86400000 < -120)) d.setFullYear(y+1);
+  return d;
+}
+
+function cleanTitleNoise(title:string){ return title.replace(/\bhomework\b/ig,'').replace(/\bdue\b[^,;:]*$/i,'').replace(/\s{2,}/g,' ').trim(); }
+
+function titleFromInstructions(instr:string|null|undefined, fallback:string, course?:string|null): string {
+  const t=(instr||'').toLowerCase(); const bits:string[]=[];
+  if (/\bread(ing)?\b/.test(t)||/\bp\.\s*\d+/.test(t)) bits.push('Reading');
+  if (/\bstudy\s*guide\b/.test(t)) bits.push('Study Guide');
+  if (/\bstudent\s*notebook\b|\bnotebook\b/.test(t)) bits.push('Notebook Work');
+  if (/\bworksheet\b/.test(t)) bits.push('Worksheet');
+  if (/\bpractice\b/.test(t)) bits.push('Practice');
+  if (/\bvideo\b|\bwatch\b/.test(t)) bits.push('Video');
+  if (/\bquiz\b|\bcheck\b/.test(t)) bits.push('Quiz');
+  if (/\blab\b/.test(t)) bits.push('Lab');
+  if (/\bessay\b|\bparagraph\b|\bwrite\b/.test(t)) bits.push('Writing');
+  const combo=[...new Set(bits)].join(' & ') || cleanTitleNoise(fallback||'Assignment');
+  const prefix=course && !new RegExp(`^${course}\\b`,'i').test(combo) ? `${course} ` : '';
+  return `${prefix}${combo}`.trim();
+}
+
+export function normalizeAssignment(a:AssignmentLike, now=new Date()): NormalizedAssignment {
+  const courseLabel=a.course??null;
+  const inferred = inferDueDateFromText(a.title,now) || inferDueDateFromText(a.instructions||'',now) || null;
+  const effectiveDueAt = a.dueAt ?? (inferred ? inferred.toISOString() : null);
+  const looksGeneric = /\bhomework\b/i.test(a.title) || /\bdue\b/i.test(a.title);
+  const displayTitle = looksGeneric ? titleFromInstructions(a.instructions, a.title, courseLabel) : cleanTitleNoise(a.title);
+  return { displayTitle, effectiveDueAt, courseLabel };
+}
+
+7) New client/src/components/admin/BibleResetButton.tsx
+
+Create a small button that POSTs /api/admin/bible/reset { studentName, scope:'both' } and shows a toast/message. Mount it in your Admin page header.
+
+ACCEPTANCE
+
+Marking Done on a Bible block advances to the next reading (no more repeating Week 1 Day 1).
+
+Admin “Clear Bible Progress” resets to Week 1 Day 1.
+
+Guided card shows a Show Instructions › pill in the blue header; expanding shows full text (or Bible reading + memory verse) above the timer.
+
+A generic “Homework Due 8/21” becomes a friendly course-prefixed title; a course chip is visible; a Due date appears even if DB was empty.
+
+Prep/Load shows Package icon (not fork/knife).
+
+All client “today” calculations use America/New_York.
+
+Proceed now. Keep changes surgical and only in the files listed.

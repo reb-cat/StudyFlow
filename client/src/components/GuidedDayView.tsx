@@ -1,10 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
-import { normalizeAssignment } from '@shared/assignmentNormalizer';
+import { normalizeAssignment } from '@shared/normalize';
 import { Play, Pause, RotateCcw, CheckCircle, Clock, HelpCircle, Volume2, VolumeX, AlertCircle, ChevronRight, Undo } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { Assignment } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { getTodayString, formatDateShort } from '@shared/dateUtils';
+
+// Timezone-safe New York date string function
+const toNYDateString = (d = new Date()) => {
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(d);
+  const y = p.find(x=>x.type==='year')!.value, m=p.find(x=>x.type==='month')!.value, da=p.find(x=>x.type==='day')!.value;
+  return `${y}-${m}-${da}`;
+};
 
 // Minimal shape Guided can consume when parent pre-composes the day
 type GuidedBlock = {
@@ -325,10 +333,8 @@ export function GuidedDayView({
         id: currentBlock.assignment.id,
         title: currentBlock.assignment.title,
         course: currentBlock.assignment.courseName,
-        courseName: currentBlock.assignment.courseName,
-        subject: currentBlock.assignment.subject,
         instructions: currentBlock.assignment.instructions,
-        dueDate: currentBlock.assignment.dueDate
+        dueAt: currentBlock.assignment.dueDate
       });
     }
     return null;
@@ -407,8 +413,30 @@ export function GuidedDayView({
     if (currentBlock.type === 'assignment' && currentBlock.assignment) {
       // Show Done dialog for assignments
       setShowDoneDialog(true);
+    } else if (currentBlock.type === 'bible') {
+      // Complete Bible reading directly
+      await fetch('/api/bible-curriculum/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentName })
+      });
+      
+      toast({
+        title: "Bible Reading Completed!",
+        description: "Your Bible reading has been completed and progress advanced.",
+        variant: "default"
+      });
+      
+      // Advance to the next block
+      if (currentIndex < scheduleBlocks.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+        setIsTimerRunning(true);
+      } else {
+        // Day complete
+        onModeToggle?.();
+      }
     } else {
-      // Complete non-assignment blocks immediately
+      // Complete other blocks immediately
       await completeBlock();
     }
   };

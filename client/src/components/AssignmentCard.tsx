@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, AlertTriangle, PlayCircle, Zap, Star, Timer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { normalizeAssignment } from '@shared/normalize';
 import type { Assignment } from '@shared/schema';
 
 interface AssignmentCardProps {
@@ -13,6 +14,14 @@ interface AssignmentCardProps {
 
 export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: AssignmentCardProps) {
   const { toast } = useToast();
+  
+  const normalized = normalizeAssignment({
+    id: assignment.id,
+    title: assignment.title,
+    course: assignment.courseName,
+    instructions: assignment.instructions,
+    dueAt: assignment.dueDate
+  });
 
   // Check if this is a split assignment (Part 2)
   const isPartTwo = assignment.title.includes('(Part 2)');

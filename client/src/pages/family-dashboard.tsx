@@ -29,7 +29,14 @@ const colors = {
 };
 
 export default function FamilyDashboard() {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  // Timezone-safe New York date string function
+  const toNYDateString = (d = new Date()) => {
+    const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(d);
+    const y = p.find(x=>x.type==='year')!.value, m=p.find(x=>x.type==='month')!.value, da=p.find(x=>x.type==='day')!.value;
+    return `${y}-${m}-${da}`;
+  };
+
+  const [selectedDate, setSelectedDate] = useState(toNYDateString());
   
   // Fetch family dashboard data from API
   const { data: apiData, isLoading, error } = useQuery({

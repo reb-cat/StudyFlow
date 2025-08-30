@@ -640,7 +640,7 @@ export default function StudentDashboard() {
                               return <Activity className={iconClass} />;
                             case 'lunch':
                             case 'prep/load': 
-                              return <Utensils className={iconClass} />;
+                              return <Package className={iconClass} />;
                             case 'travel': 
                               return <Car className={iconClass} />;
                             case 'co-op': 

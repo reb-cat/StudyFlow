@@ -9,6 +9,9 @@ import {
   markBibleCurriculumCompleted, 
   getWeeklyBibleProgress
 } from './lib/bibleCurriculum';
+import { db } from './db';
+import { bibleCurriculum, bibleCurriculumPosition } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 import { extractDueDatesFromExistingAssignments, extractDueDateFromTitle } from './lib/assignmentIntelligence';
 import { getAllAssignmentsForStudent, getCanvasClient } from "./lib/canvas";
 import { normalizeAssignment, type AssignmentLike } from './lib/assignmentNormalizer';
@@ -1495,28 +1498,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/bible-curriculum/complete - Mark curriculum item as completed
   app.post('/api/bible-curriculum/complete', async (req, res) => {
     try {
-      const { weekNumber, dayOfWeek, readingType, studentName } = req.body;
+      const { studentName } = req.body;
+      const student = typeof studentName === 'string' ? studentName : 'Abigail';
       
-      if (!weekNumber || !readingType) {
-        return res.status(400).json({ 
-          message: 'Week number and reading type are required' 
-        });
+      // Get current curriculum to complete
+      const current = await getNextBibleCurriculumForStudent(student);
+      if (!current?.dailyReading) {
+        return res.status(400).json({ message: 'No current Bible reading found' });
       }
       
       const success = await markBibleCurriculumCompleted(
-        weekNumber,
-        dayOfWeek || null,
-        readingType,
-        typeof studentName === 'string' ? studentName : undefined
+        current.dailyReading.weekNumber,
+        current.dailyReading.dayOfWeek,
+        'daily_reading',
+        student
       );
       
       if (success) {
+        // Get next curriculum after completion
+        const next = await getNextBibleCurriculumForStudent(student);
         res.json({ 
-          message: 'Bible curriculum item marked as completed',
-          weekNumber,
-          dayOfWeek,
-          readingType,
-          completedAt: new Date().toISOString()
+          ok: true,
+          next: next
         });
       } else {
         res.status(500).json({ message: 'Failed to mark curriculum item as completed' });
@@ -2009,25 +2012,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin endpoint to reset Bible progress per student
-  app.post('/api/admin/bible-curriculum/reset', async (req, res) => {
+  // Admin endpoint to reset Bible progress
+  app.post('/api/admin/bible/reset', async (req, res) => {
     try {
-      const { studentName } = req.body;
+      const { studentName, scope = 'both' } = req.body;
       
       if (!studentName) {
         return res.status(400).json({ message: 'Student name is required' });
       }
       
-      // Reset student position to Week 1, Day 1
-      await db
-        .update(bibleCurriculumPosition)
-        .set({ currentWeek: 1, currentDay: 1, lastUpdated: new Date() })
-        .where(eq(bibleCurriculumPosition.studentName, studentName));
+      // Reset completed status if requested
+      if (scope === 'both' || scope === 'completed') {
+        await db
+          .update(bibleCurriculum)
+          .set({ completed: false, completedAt: null });
+      }
+      
+      // Reset position if requested
+      if (scope === 'both' || scope === 'position') {
+        await db
+          .insert(bibleCurriculumPosition)
+          .values({ 
+            studentName, 
+            currentWeek: 1, 
+            currentDay: 1, 
+            lastUpdated: new Date() 
+          })
+          .onConflictDoUpdate({
+            target: bibleCurriculumPosition.studentName,
+            set: { currentWeek: 1, currentDay: 1, lastUpdated: new Date() }
+          });
+      }
+      
+      // Get next curriculum after reset
+      const next = await getNextBibleCurriculumForStudent(studentName);
       
       res.json({
-        message: `Bible curriculum progress reset for ${studentName}`,
-        studentName,
-        resetTo: { week: 1, day: 1 }
+        ok: true,
+        next: next
       });
     } catch (error) {
       console.error('Error resetting Bible curriculum progress:', error);
