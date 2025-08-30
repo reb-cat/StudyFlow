@@ -127,7 +127,8 @@ export class DatabaseStorage implements IStorage {
             title.includes('attendance') ||
             title.includes('classroom participation') ||
             title.includes('class engagement') ||
-            title.includes('daily participation');
+            title.includes('daily participation') ||
+            title.startsWith('cap:');
           
           if (isParticipation) {
             console.log(`🚫 Excluding non-completable assignment: ${assignment.title}`);
