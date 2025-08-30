@@ -336,15 +336,6 @@ export function GuidedDayView({
   const hasAssignmentInstructions = useMemo(() => {
     const hasInstructions = currentBlock?.type === 'assignment' && !!currentBlock?.assignment?.instructions?.trim();
     
-    // Debug logging to see what's happening
-    if (currentBlock?.type === 'assignment') {
-      console.log('🔍 Assignment Instructions Debug:', {
-        title: currentBlock.title,
-        hasInstructions,
-        instructionsLength: currentBlock?.assignment?.instructions?.length || 0,
-        instructions: currentBlock?.assignment?.instructions?.substring(0, 100) || 'No instructions'
-      });
-    }
     
     return hasInstructions;
   }, [currentBlock]);
@@ -453,6 +444,30 @@ export function GuidedDayView({
         toast({
           title: "Error",
           description: "Failed to mark assignment as complete",
+          variant: "destructive"
+        });
+        return; // Don't advance if API call failed
+      }
+    } else if (currentBlock.type === 'bible' && bibleData?.dailyReading) {
+      // Complete Bible reading and advance student position
+      try {
+        await apiRequest('POST', '/api/bible-curriculum/complete', {
+          weekNumber: bibleData.dailyReading.weekNumber,
+          dayOfWeek: bibleData.dailyReading.dayOfWeek,
+          readingType: 'daily_reading',
+          studentName: studentName
+        });
+        
+        toast({
+          title: "Bible Reading Completed!",
+          description: `"${bibleData.dailyReading.readingTitle || 'Bible Reading'}" has been completed.`,
+          variant: "default"
+        });
+      } catch (error) {
+        console.error('Failed to complete Bible reading:', error);
+        toast({
+          title: "Error",
+          description: "Failed to mark Bible reading as complete",
           variant: "destructive"
         });
         return; // Don't advance if API call failed

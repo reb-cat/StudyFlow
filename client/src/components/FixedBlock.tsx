@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, Clock, Car, Coffee, Users } from 'lucide-react';
+import { Check, Clock, Car, Coffee, Users, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -17,7 +17,7 @@ interface FixedBlockProps {
 
 const blockIcons: Record<string, any> = {
   travel: Car,
-  'prep/load': Clock,
+  'prep/load': Package,
   lunch: Coffee,
   coop: Users,
   break: Clock,

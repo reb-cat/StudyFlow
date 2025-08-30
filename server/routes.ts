@@ -2009,6 +2009,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoint to reset Bible progress per student
+  app.post('/api/admin/bible-curriculum/reset', async (req, res) => {
+    try {
+      const { studentName } = req.body;
+      
+      if (!studentName) {
+        return res.status(400).json({ message: 'Student name is required' });
+      }
+      
+      // Reset student position to Week 1, Day 1
+      await db
+        .update(bibleCurriculumPosition)
+        .set({ currentWeek: 1, currentDay: 1, lastUpdated: new Date() })
+        .where(eq(bibleCurriculumPosition.studentName, studentName));
+      
+      res.json({
+        message: `Bible curriculum progress reset for ${studentName}`,
+        studentName,
+        resetTo: { week: 1, day: 1 }
+      });
+    } catch (error) {
+      console.error('Error resetting Bible curriculum progress:', error);
+      res.status(500).json({ message: 'Failed to reset Bible curriculum progress' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
