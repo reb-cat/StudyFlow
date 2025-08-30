@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Play, Pause, RotateCcw, CheckCircle, Clock, HelpCircle, Volume2, VolumeX, AlertCircle, ChevronRight, Undo } from 'lucide-react';
 import type { Assignment } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
@@ -313,9 +313,15 @@ export function GuidedDayView({
   const [stuckCountdown, setStuckCountdown] = useState(0);
   const [stuckPendingKey, setStuckPendingKey] = useState<string | null>(null);
   const [isProcessingStuck, setIsProcessingStuck] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [bibleData, setBibleData] = useState<any>(null);
   const { toast } = useToast();
 
   const currentBlock = scheduleBlocks[currentIndex];
+  const hasAssignmentInstructions = useMemo(() => {
+    return currentBlock?.type === 'assignment' && !!currentBlock?.assignment?.instructions?.trim();
+  }, [currentBlock]);
+  const hasBibleDetails = useMemo(() => currentBlock?.type === 'bible', [currentBlock]);
   
   // Reset timer when block changes
   useEffect(() => {
@@ -324,6 +330,24 @@ export function GuidedDayView({
       setIsTimerRunning(true); // Auto-start for new block
     }
   }, [currentIndex]);
+
+  // Fetch Bible curriculum data for Bible blocks
+  useEffect(() => {
+    if (currentBlock?.type === 'bible') {
+      const fetchBibleData = async () => {
+        try {
+          const response = await fetch(`/api/bible-curriculum/current?studentName=${studentName}&date=${selectedDate}`);
+          if (response.ok) {
+            const data = await response.json();
+            setBibleData(data.curriculum);
+          }
+        } catch (error) {
+          console.error('Failed to fetch Bible data:', error);
+        }
+      };
+      fetchBibleData();
+    }
+  }, [currentBlock?.type, studentName, selectedDate]);
   const totalBlocks = scheduleBlocks.length;
   const completedCount = completedBlocks.size;
   const progressPercentage = Math.round((completedCount / totalBlocks) * 100);
@@ -618,109 +642,108 @@ export function GuidedDayView({
           </div>
         </div>
 
-        {/* Current Task Card */}
-        <div style={{
-          backgroundColor: blockStyle.bgColor,
-          borderRadius: '12px',
-          padding: '20px',
-          marginBottom: '32px'
-        }}>
-          <h2 style={{ 
-            fontSize: '24px', 
+        {/* Title card + Instructions pill */}
+        <div className="mb-4 rounded-2xl bg-blue-50/60 px-5 py-4" style={{ marginBottom: '16px' }}>
+          <h2 className="mb-3 text-[20px] font-bold text-slate-800" style={{ 
+            fontSize: '20px', 
             fontWeight: 'bold', 
             color: colors.text,
-            marginBottom: '8px'
+            marginBottom: '12px'
           }}>
-            {currentBlock.title}
+            {currentBlock.type === 'bible'
+              ? (bibleData?.dailyReading?.readingTitle
+                  ? `Bible — ${bibleData.dailyReading.readingTitle}`
+                  : 'Bible')
+              : currentBlock.title}
           </h2>
-
-          {/* Due date only - remove redundant time info */}
           {currentBlock.assignment?.dueDate && (
             <div style={{ 
               fontSize: '14px', 
               color: colors.textMuted, 
-              marginBottom: '16px'
+              marginBottom: '12px'
             }}>
               Due: {formatDateShort(currentBlock.assignment.dueDate)}
             </div>
           )}
-
-          {/* Assignment Instructions - Always visible for assignments */}
-          {currentBlock.type === 'assignment' && currentBlock.assignment && (
-            <div style={{
-              marginBottom: '12px',
-              padding: '16px',
-              backgroundColor: colors.surface,
-              borderRadius: '8px',
-              border: `1px solid ${colors.background}`,
-              fontSize: '14px',
-              lineHeight: '1.6'
-            }}>
-              {currentBlock.assignment.instructions ? (
-                <div>
-                  <div style={{ 
-                    fontWeight: '600', 
-                    color: colors.text, 
-                    marginBottom: '8px',
-                    fontSize: '15px'
-                  }}>
-                    📝 What to do:
-                  </div>
-                  <div 
-                    style={{ color: colors.text }}
-                    dangerouslySetInnerHTML={{ 
-                      __html: currentBlock.assignment.instructions.replace(/\n/g, '<br/>') 
-                    }}
-                  />
-                </div>
-              ) : (
-                <div>
-                  <div style={{ 
-                    fontWeight: '600', 
-                    color: colors.text, 
-                    marginBottom: '8px',
-                    fontSize: '15px'
-                  }}>
-                    📚 {currentBlock.assignment.courseName || currentBlock.assignment.subject || 'Assignment'}:
-                  </div>
-                  <div style={{ color: colors.text }}>
-                    Work on: {currentBlock.assignment.title}
-                    {currentBlock.assignment.pointsValue && (
-                      <div style={{ marginTop: '4px', fontSize: '13px', color: colors.textMuted }}>
-                        Worth {currentBlock.assignment.pointsValue} points
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Bible reading instructions */}
-          {currentBlock.type === 'bible' && (
-            <div style={{
-              marginBottom: '12px',
-              padding: '16px',
-              backgroundColor: colors.surface,
-              borderRadius: '8px',
-              border: `1px solid ${colors.background}`,
-              fontSize: '14px',
-              lineHeight: '1.6'
-            }}>
-              <div style={{ 
-                fontWeight: '600', 
-                color: colors.text, 
-                marginBottom: '8px',
-                fontSize: '15px'
-              }}>
-                📖 Today's Bible Reading:
-              </div>
-              <div style={{ color: colors.text }}>
-                Continue reading from where you left off yesterday. Take notes on key verses or insights.
-              </div>
-            </div>
+          {(hasAssignmentInstructions || hasBibleDetails) && (
+            <button
+              type="button"
+              onClick={() => setShowInstructions((v) => !v)}
+              aria-expanded={showInstructions}
+              aria-controls="guided-instructions-panel"
+              className="inline-flex items-center justify-between gap-2 rounded-xl border border-blue-200 bg-white/80 px-4 py-2 text-blue-700 transition hover:bg-white"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '12px',
+                border: '1px solid #BFDBFE',
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                color: '#1D4ED8',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              <span>{showInstructions ? 'Hide Instructions' : 'Show Instructions'}</span>
+              <span style={{ transform: 'translateY(1px)' }}>{showInstructions ? '⌄' : '›'}</span>
+            </button>
           )}
         </div>
+
+        {/* Collapsible Instructions panel */}
+        {showInstructions && (
+          <div
+            id="guided-instructions-panel"
+            style={{
+              marginBottom: '16px',
+              borderRadius: '12px',
+              border: '1px solid #E2E8F0',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              padding: '16px',
+              fontSize: '14px',
+              lineHeight: 1.35,
+              color: colors.text
+            }}
+          >
+            {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
+              <div data-testid={`guided-instructions-${currentBlock.assignment.id}`} style={{ whiteSpace: 'pre-wrap' }}>
+                {currentBlock.assignment.instructions}
+              </div>
+            )}
+            {currentBlock.type === 'assignment' && !currentBlock.assignment?.instructions && (
+              <div>
+                <div style={{ fontWeight: '600', marginBottom: '8px' }}>
+                  📚 {currentBlock.assignment?.courseName || currentBlock.assignment?.subject || 'Assignment'}:
+                </div>
+                <div>
+                  Work on: {currentBlock.assignment?.title}
+                  {currentBlock.assignment?.pointsValue && (
+                    <div style={{ marginTop: '4px', fontSize: '13px', color: colors.textMuted }}>
+                      Worth {currentBlock.assignment.pointsValue} points
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {currentBlock.type === 'bible' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontWeight: '600' }}>
+                  {bibleData?.dailyReading?.readingTitle || 'Daily Reading'}
+                </div>
+                {bibleData?.memoryVerse?.readingTitle && (
+                  <div style={{ fontSize: '13px', color: colors.textMuted }}>
+                    Memory Verse: {bibleData.memoryVerse.readingTitle}
+                  </div>
+                )}
+                <div style={{ marginTop: '4px' }}>
+                  Continue reading from where you left off yesterday. Take notes on key verses or insights.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Timer */}
         <div style={{ marginBottom: '32px' }}>

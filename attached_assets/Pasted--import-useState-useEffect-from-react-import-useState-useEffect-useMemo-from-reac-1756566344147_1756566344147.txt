@@ -1,0 +1,121 @@
+@@
+-import { useState, useEffect } from 'react';
++import { useState, useEffect, useMemo } from 'react';
+@@
+ export function GuidedDayView({
+   assignments = [],
+   studentName = "Student",
+   selectedDate = new Date().toISOString().split('T')[0],
+   scheduleTemplate = [],
+   composedSchedule = [],
+   onAssignmentUpdate,
+   onModeToggle
+ }: GuidedDayViewProps) {
+@@
+-  const currentBlock = scheduleBlocks[currentIndex];
++  const currentBlock = scheduleBlocks[currentIndex];
++  const [showInstructions, setShowInstructions] = useState(false);
++  const hasAssignmentInstructions = useMemo(() => {
++    return currentBlock?.type === 'assignment' && !!currentBlock?.assignment?.instructions?.trim();
++  }, [currentBlock]);
++  const hasBibleDetails = useMemo(() => currentBlock?.type === 'bible', [currentBlock]);
+@@
+-  return (
+-    <div className="guided-container">
++  return (
++    <div className="guided-container">
+       {/* progress header ... unchanged */}
+@@
+-      {/* Title & due date */}
+-      <h2 style={{ fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 8 }}>
+-        {currentBlock.type === 'bible'
+-          ? (bibleData?.dailyReading?.readingTitle ? `Bible — ${bibleData.dailyReading.readingTitle}` : 'Bible')
+-          : currentBlock.title}
+-      </h2>
++      {/* Title card + Instructions pill (like your screenshot) */}
++      <div className="mb-4 rounded-2xl bg-blue-50/60 px-5 py-4">
++        <h2 className="mb-3 text-[20px] font-bold text-slate-800">
++          {currentBlock.type === 'bible'
++            ? (bibleData?.dailyReading?.readingTitle
++                ? `Bible — ${bibleData.dailyReading.readingTitle}`
++                : 'Bible')
++            : currentBlock.title}
++        </h2>
++        {(hasAssignmentInstructions || hasBibleDetails) && (
++          <button
++            type="button"
++            onClick={() => setShowInstructions((v) => !v)}
++            aria-expanded={showInstructions}
++            aria-controls="guided-instructions-panel"
++            className="inline-flex items-center justify-between gap-2 rounded-xl border border-blue-200 bg-white/80 px-4 py-2 text-blue-700 transition hover:bg-white"
++          >
++            <span className="font-medium">{showInstructions ? 'Hide Instructions' : 'Show Instructions'}</span>
++            <span aria-hidden className="translate-y-[1px]">{showInstructions ? '⌄' : '›'}</span>
++          </button>
++        )}
++      </div>
+@@
+-      {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
+-        <div
+-          style={{
+-            marginBottom: 12,
+-            padding: 12,
+-            backgroundColor: colors.surface,
+-            borderRadius: 8,
+-            border: `1px solid ${colors.background}`,
+-            whiteSpace: 'pre-wrap',
+-            lineHeight: 1.35,
+-            fontSize: 14,
+-            color: colors.text
+-          }}
+-          data-testid={`guided-instructions-${currentBlock.assignment.id}`}
+-        >
+-          {currentBlock.assignment.instructions}
+-        </div>
+-      )}
++      {/* Collapsible Instructions panel (on the timer card) */}
++      {showInstructions && (
++        <div
++          id="guided-instructions-panel"
++          className="mb-4 rounded-xl border border-slate-200 bg-white/90 p-4 text-[14px] leading-[1.35] text-slate-800"
++        >
++          {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
++            <div data-testid={`guided-instructions-${currentBlock.assignment.id}`} className="whitespace-pre-wrap">
++              {currentBlock.assignment.instructions}
++            </div>
++          )}
++          {currentBlock.type === 'bible' && (
++            <div className="space-y-2">
++              <div className="font-semibold">
++                {bibleData?.dailyReading?.readingTitle || 'Daily Reading'}
++              </div>
++              {bibleData?.memoryVerse?.readingTitle && (
++                <div className="text-[13px] text-slate-500">
++                  Memory Verse: {bibleData.memoryVerse.readingTitle}
++                </div>
++              )}
++            </div>
++          )}
++        </div>
++      )}
+@@
+-          {/* Bible reading details */}
+-          {currentBlock.type === 'bible' && (
+-            <div style={{
+-              marginBottom: '12px',
+-              padding: '16px',
+-              backgroundColor: colors.surface,
+-              borderRadius: '8px',
+-              border: `1px solid ${colors.background}`,
+-            }}>
+-              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
+-                {bibleData?.dailyReading?.readingTitle || 'Daily Reading'}
+-              </div>
+-              {bibleData?.memoryVerse?.readingTitle && (
+-                <div style={{ fontSize: 13, color: colors.textMuted }}>
+-                  Memory Verse: {bibleData.memoryVerse.readingTitle}
+-                </div>
+-              )}
+-            </div>
+-          )}
++          {/* (Removed duplicate bible box; bible details now live in the collapsible panel above) */}
