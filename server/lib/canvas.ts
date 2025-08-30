@@ -169,6 +169,12 @@ export class CanvasClient {
       console.log(`📚 Found ${courses.length} active courses`);
       
       for (const course of courses) {
+        // Skip TEXTBOOK courses as they contain only reference material, not actual assignments
+        if (course.name.toUpperCase().includes('TEXTBOOK')) {
+          console.log(`  📖 Skipping TEXTBOOK course: "${course.name}" (reference material only)`);
+          continue;
+        }
+        
         try {
           // Fetch assignments AND modules for comprehensive timing data
           const [assignments, modules] = await Promise.all([
