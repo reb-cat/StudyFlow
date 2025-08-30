@@ -327,9 +327,9 @@ export default function StudentDashboard() {
             }
             
             // Check for similar worksheet/homework patterns
-            const wordsA = titleA.split(' ').filter(w => w.length > 3);
-            const wordsB = titleB.split(' ').filter(w => w.length > 3);
-            const commonWords = wordsA.filter(w => wordsB.includes(w));
+            const wordsA = titleA.split(' ').filter((w: string) => w.length > 3);
+            const wordsB = titleB.split(' ').filter((w: string) => w.length > 3);
+            const commonWords = wordsA.filter((w: string) => wordsB.includes(w));
             
             return commonWords.length >= 2; // Similar if 2+ significant words match
           });
@@ -355,6 +355,31 @@ export default function StudentDashboard() {
       };
     });
   })();
+
+  // NEW: Compose the exact sequence Guided should show (mirrors Overview)
+  const composedForGuided = allScheduleBlocks.map((block) => {
+    const base = {
+      id: block.id ?? `block-${block.blockNumber ?? crypto.randomUUID()}`,
+      startTime: block.startTime?.slice(0,5) || '00:00',
+      endTime: block.endTime?.slice(0,5) || '00:00',
+    };
+    if (block.blockType === 'assignment') {
+      const pb = populatedAssignmentBlocks.find(pb => pb.id === block.id);
+      const a = pb?.assignment;
+      return {
+        ...base,
+        type: 'assignment' as const,
+        title: a?.title || 'Open Assignment Block',
+        estimatedMinutes: a?.estimatedMinutes ?? 30,
+        assignmentId: a?.id ?? null,
+      };
+    }
+    if (block.blockType === 'bible') {
+      return { ...base, type: 'bible' as const, title: 'Bible' };
+    }
+    // fixed: travel, co-op, lunch, movement, prep/load, etc.
+    return { ...base, type: 'fixed' as const, title: block.subject || 'Fixed Block' };
+  });
 
   if (isWeekend) {
     return (
@@ -556,6 +581,7 @@ export default function StudentDashboard() {
               studentName={studentName}
               selectedDate={selectedDate}
               scheduleTemplate={scheduleTemplate}
+              composedSchedule={composedForGuided}
               onAssignmentUpdate={handleAssignmentUpdate}
               onModeToggle={() => setIsGuidedMode(false)}
             />
