@@ -28,7 +28,24 @@ import {
   Circle,
   AlertCircle,
   Pause,
-  SkipForward
+  SkipForward,
+  // New cleaner icon imports
+  BookOpenText, 
+  GraduationCap, 
+  BusFront, 
+  Coffee,
+  Boxes, 
+  Truck, 
+  ClipboardList, 
+  ListTodo, 
+  Timer, 
+  AlarmClock,
+  CheckCircle2, 
+  AlertTriangle, 
+  Ban, 
+  BookMarked, 
+  CalendarClock, 
+  School
 } from 'lucide-react';
 import { Link, useParams } from 'wouter';
 import { GuidedDayView } from '@/components/GuidedDayView';
@@ -43,6 +60,29 @@ const toNYDateString = (d = new Date()) => {
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
   const [{ value: y },,{ value: m },,{ value: da }] = (fmt.formatToParts(d));
   return `${y}-${m}-${da}`; // YYYY-MM-DD
+};
+
+// Clean icon mapping system
+export type BlockKind = "bible" | "co-op" | "travel" | "lunch" | "break" | "prep" | "assignment" | "timer" | "done" | "needMoreTime" | "stuck" | "fixed" | "movement" | "prep/load";
+
+export const iconFor = (kind: BlockKind, label?: string) => {
+  switch (kind) {
+    case "bible":        return BookOpenText;
+    case "co-op":        return School;           // or GraduationCap
+    case "travel":       return Car;              // or BusFront if bus
+    case "lunch":        return Utensils;
+    case "break":        return Coffee;
+    case "prep":         
+    case "prep/load":    return Boxes;            // FIX: was Package; use Boxes/Package/Truck
+    case "movement":     return Activity;
+    case "assignment":   return ClipboardList;    // or ListTodo
+    case "timer":        return Timer;            // or AlarmClock
+    case "done":         return CheckCircle2;
+    case "needMoreTime": return CalendarClock;
+    case "stuck":        return AlertTriangle;
+    case "fixed":        return BookMarked;       // generic fixed item
+    default:             return ListTodo;
+  }
 };
 
 export default function StudentDashboard() {
@@ -649,27 +689,11 @@ export default function StudentDashboard() {
                     {allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((block, index) => {
-                        // Get appropriate icon component 
+                        // Get appropriate icon component using cleaner mapping
                         const getBlockIcon = (blockType: string) => {
                           const iconClass = "h-6 w-6 text-white";
-                          
-                          switch(blockType.toLowerCase()) {
-                            case 'bible': 
-                              return <BookOpen className={iconClass} />;
-                            case 'assignment': 
-                              return <FileText className={iconClass} />;
-                            case 'movement': 
-                              return <Activity className={iconClass} />;
-                            case 'lunch':
-                            case 'prep/load': 
-                              return <Package className={iconClass} />;
-                            case 'travel': 
-                              return <Car className={iconClass} />;
-                            case 'co-op': 
-                              return <Building2 className={iconClass} />;
-                            default: 
-                              return <FileText className={iconClass} />;
-                          }
+                          const IconComponent = iconFor(blockType.toLowerCase() as BlockKind);
+                          return <IconComponent className={iconClass} />;
                         };
                         
                         
