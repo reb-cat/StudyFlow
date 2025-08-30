@@ -1,6 +1,47 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+
+// Family authentication middleware
+const requireAuth = (req: any, res: any, next: any) => {
+  if (req.session.authenticated) {
+    return next();
+  }
+  res.status(401).json({ message: 'Authentication required' });
+};
+
+// Simple unlock endpoint for family password
+const setupFamilyAuth = (app: Express) => {
+  app.post('/api/unlock', (req, res) => {
+    const { password } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({ message: 'Password required' });
+    }
+    
+    if (password === process.env.FAMILY_PASSWORD) {
+      req.session.authenticated = true;
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ message: 'Invalid password' });
+    }
+  });
+  
+  // Check authentication status
+  app.get('/api/auth/status', (req, res) => {
+    res.json({ authenticated: !!req.session.authenticated });
+  });
+  
+  // Logout endpoint
+  app.post('/api/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Failed to logout' });
+      }
+      res.json({ success: true });
+    });
+  });
+};
 import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema } from "@shared/schema";
 import { getElevenLabsService } from "./lib/elevenlabs";
 import { 
@@ -26,11 +67,14 @@ const emailConfig = {
 import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Setup family authentication
+  setupFamilyAuth(app);
 
   // Assignment API routes
   
   // PATCH /api/assignments/:id - Update assignment status
-  app.patch('/api/assignments/:id', async (req, res) => {
+  app.patch('/api/assignments/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { completionStatus } = req.body;
@@ -52,7 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/assignments - Get assignments for a user/date
-  app.get('/api/assignments', async (req, res) => {
+  app.get('/api/assignments', requireAuth, async (req, res) => {
     try {
       const { date, startDate, endDate, studentName, includeCompleted } = req.query;
       
@@ -111,7 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // POST /api/assignments - Create new assignment
-  app.post('/api/assignments', async (req, res) => {
+  app.post('/api/assignments', requireAuth, async (req, res) => {
     try {
       const { studentName, ...assignmentData } = req.body;
       const validatedAssignmentData = insertAssignmentSchema.parse(assignmentData);
@@ -158,7 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // DELETE /api/assignments/:id - Delete assignment
-  app.delete('/api/assignments/:id', async (req, res) => {
+  app.delete('/api/assignments/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteAssignment(id);
@@ -539,7 +583,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get schedule template for a specific student and date with Bible curriculum integration
-  app.get('/api/schedule/:studentName/:date', async (req, res) => {
+  app.get('/api/schedule/:studentName/:date', requireAuth, async (req, res) => {
     try {
       const { studentName, date } = req.params;
       
@@ -953,7 +997,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Daily schedule status routes for Overview Mode
-  app.get('/api/schedule/:studentName/:date/status', async (req, res) => {
+  app.get('/api/schedule/:studentName/:date/status', requireAuth, async (req, res) => {
     try {
       const { studentName, date } = req.params;
       
@@ -970,7 +1014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/schedule/:studentName/:date/block/:templateBlockId/status', async (req, res) => {
+  app.patch('/api/schedule/:studentName/:date/block/:templateBlockId/status', requireAuth, async (req, res) => {
     try {
       const { studentName, date, templateBlockId } = req.params;
       const { status, flags } = req.body;
@@ -1000,7 +1044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/schedule/:studentName/:date/initialize', async (req, res) => {
+  app.post('/api/schedule/:studentName/:date/initialize', requireAuth, async (req, res) => {
     try {
       const { studentName, date } = req.params;
       

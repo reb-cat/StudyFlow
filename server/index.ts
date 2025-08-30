@@ -1,9 +1,22 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { jobScheduler } from "./lib/scheduler";
 
 const app = express();
+
+// Session middleware for family authentication
+app.use(session({
+  secret: process.env.FAMILY_PASSWORD || 'fallback-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // Set to true in production with HTTPS
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
