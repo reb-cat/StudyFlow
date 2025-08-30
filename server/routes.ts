@@ -90,7 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: assignment.title,
           course: assignment.courseName,
           instructions: assignment.instructions,
-          dueAt: assignment.dueDate || null
+          dueAt: assignment.dueDate ? assignment.dueDate.toISOString() : null
         });
         
         return {
@@ -1619,7 +1619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: assignment.title,
           course: assignment.courseName,
           instructions: assignment.instructions,
-          dueAt: assignment.dueDate || null
+          dueAt: assignment.dueDate ? assignment.dueDate.toISOString() : null
         });
         
         return {

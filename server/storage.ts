@@ -177,7 +177,9 @@ export class DatabaseStorage implements IStorage {
           const isInRange = dueDate >= pastLimit && dueDate <= futureLimit;
           
           if (isInRange) {
-            const isOverdue = dueDate < requestDate;
+            // For date ranges, check if overdue against current date
+            const now = new Date();
+            const isOverdue = dueDate < now;
             console.log(`✅ Including assignment due ${dueDate.toISOString().split('T')[0]}${isOverdue ? ' (overdue)' : ''}: ${assignment.title}`);
           } else {
             console.log(`❌ Excluding assignment due ${dueDate.toISOString().split('T')[0]} (outside range): ${assignment.title}`);
