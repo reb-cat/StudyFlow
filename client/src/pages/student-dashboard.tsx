@@ -369,7 +369,7 @@ export default function StudentDashboard() {
       return {
         ...base,
         type: 'assignment' as const,
-        title: a?.title || 'Open Assignment Block',
+        title: a?.displayTitle || a?.title || 'Open Assignment Block',
         estimatedMinutes: a?.estimatedMinutes ?? 30,
         assignmentId: a?.id ?? null,
       };
@@ -380,6 +380,28 @@ export default function StudentDashboard() {
     // fixed: travel, co-op, lunch, movement, prep/load, etc.
     return { ...base, type: 'fixed' as const, title: block.subject || 'Fixed Block' };
   });
+
+  // DEBUG LOGGING: Client Overview composition
+  const DEBUG_ORDERING = process.env.NODE_ENV === 'development' && true; // TEMPORARILY ENABLED
+  if (DEBUG_ORDERING && studentName === 'Abigail') {
+    console.log('\n🧭 ORDER TRACE / CLIENT_OVERVIEW: allScheduleBlocks');
+    allScheduleBlocks.forEach((block, i) => {
+      const startMinute = block.startTime ? parseInt(block.startTime.split(':')[0]) * 60 + parseInt(block.startTime.split(':')[1]) : 999;
+      console.log(`  [${i}] ${block.id} | ${startMinute}min (${block.startTime}) | ${block.blockType} | ${block.title}`);
+    });
+    
+    // Verify strict ascending order
+    for (let i = 1; i < allScheduleBlocks.length; i++) {
+      const prev = allScheduleBlocks[i - 1];
+      const curr = allScheduleBlocks[i];
+      const prevMinute = prev.startTime ? parseInt(prev.startTime.split(':')[0]) * 60 + parseInt(prev.startTime.split(':')[1]) : 999;
+      const currMinute = curr.startTime ? parseInt(curr.startTime.split(':')[0]) * 60 + parseInt(curr.startTime.split(':')[1]) : 999;
+      
+      if (prevMinute > currMinute) {
+        console.error(`❌ ORDER VIOLATION in CLIENT_OVERVIEW: [${i-1}] ${prevMinute}min > [${i}] ${currMinute}min`);
+      }
+    }
+  }
 
   if (isWeekend) {
     return (

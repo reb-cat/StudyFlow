@@ -826,6 +826,32 @@ export class DatabaseStorage implements IStorage {
         block.blockType === 'Assignment' || block.subject === 'Assignment'
       ).sort((a, b) => a.startTime.localeCompare(b.startTime));
       
+      // DEBUG LOGGING: Import debug utilities
+      const { logOrderTrace, assertStrictOrder } = await import('@shared/debug');
+      
+      // Log template order
+      logOrderTrace('SERVER', 'templateOrder', templateBlocks.map(block => ({
+        blockId: block.id,
+        blockType: block.blockType,
+        startMinute: null, // Will be computed from startTime
+        endMinute: null,
+        startTime: block.startTime,
+        endTime: block.endTime,
+        label: block.subject || `Block ${block.blockNumber}`
+      })));
+      
+      // Log assignment slots
+      logOrderTrace('SERVER', 'assignmentSlots', assignmentBlocks.map(block => ({
+        blockId: block.id,
+        blockType: 'assignment-slot',
+        startTime: block.startTime,
+        endTime: block.endTime,
+        label: `Assignment Block ${block.blockNumber || 'N/A'}`
+      })));
+      
+      // Assert template order
+      assertStrictOrder('SERVER_TEMPLATE', templateBlocks);
+      
       if (assignmentBlocks.length === 0) {
         console.log(`📝 No assignment blocks found for ${studentName} on ${weekdayName}`);
         return;
@@ -1011,13 +1037,22 @@ export class DatabaseStorage implements IStorage {
           title: assignment.title,
           course: assignment.courseName,
           instructions: assignment.instructions,
-          dueAt: assignment.dueDate || null
+          dueAt: assignment.dueDate ? assignment.dueDate.toISOString() : null
         });
         
         return normalized.displayTitle || title;
       });
       
       console.log(`✅ Allocated ${assignedAssignments.length} assignments:`, normalizedAssignments);
+      
+      // DEBUG LOGGING: Show filled assignments (using assignment titles as strings)
+      logOrderTrace('SERVER', 'filledAssignments', assignedAssignments.map((assignmentTitle, index) => ({
+        slotBlockId: `block-${index}`,
+        assignmentId: `assignment-${index}`,
+        assignmentTitle: assignmentTitle,
+        startTime: null, // Will be computed from block
+        startMinute: null
+      })));
       
     } catch (error) {
       console.error('Error allocating assignments to template:', error);

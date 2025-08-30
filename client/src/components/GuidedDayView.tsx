@@ -311,6 +311,29 @@ export function GuidedDayView({
       ? composedSchedule
       : buildScheduleBlocks();
 
+  // DEBUG LOGGING: Client Guided composition
+  const DEBUG_ORDERING = process.env.NODE_ENV === 'development' && true; // TEMPORARILY ENABLED
+  if (DEBUG_ORDERING && studentName === 'Abigail') {
+    const source = composedSchedule ? 'CLIENT_GUIDED (composed)' : 'CLIENT_GUIDED (local)';
+    console.log(`\n🧭 ORDER TRACE / ${source.toUpperCase()}`);
+    scheduleBlocks.forEach((block, i) => {
+      const startMinute = block.startTime ? parseInt(block.startTime.split(':')[0]) * 60 + parseInt(block.startTime.split(':')[1]) : 999;
+      console.log(`  [${i}] ${block.id} | ${startMinute}min (${block.startTime}) | ${block.type} | ${block.title}`);
+    });
+    
+    // Verify strict ascending order
+    for (let i = 1; i < scheduleBlocks.length; i++) {
+      const prev = scheduleBlocks[i - 1];
+      const curr = scheduleBlocks[i];
+      const prevMinute = prev.startTime ? parseInt(prev.startTime.split(':')[0]) * 60 + parseInt(prev.startTime.split(':')[1]) : 999;
+      const currMinute = curr.startTime ? parseInt(curr.startTime.split(':')[0]) * 60 + parseInt(curr.startTime.split(':')[1]) : 999;
+      
+      if (prevMinute > currMinute) {
+        console.error(`❌ ORDER VIOLATION in ${source}: [${i-1}] ${prevMinute}min > [${i}] ${currMinute}min`);
+      }
+    }
+  }
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
   const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());

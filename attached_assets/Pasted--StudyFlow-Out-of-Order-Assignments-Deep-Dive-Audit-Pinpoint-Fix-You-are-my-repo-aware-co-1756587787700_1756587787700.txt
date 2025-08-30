@@ -1,0 +1,142 @@
+🧭 StudyFlow — Out-of-Order Assignments Deep-Dive (Audit → Pinpoint → Fix)
+
+You are my repo-aware coding assistant. Perform a three-phase operation: (1) AUDIT & TRACE the schedule pipeline, (2) REPORT the exact breakpoints, (3) FIX minimally. Use Drizzle + PostgreSQL only, no Supabase. Keep diffs surgical and preserve working UX.
+
+🎯 Goals
+
+The Overview and Guided views show the same, strictly time-ordered day:
+
+All blocks (fixed, Bible, assignment slots) are ordered by startMinute (numeric) for the selected student/date in America/New_York.
+
+Assignments appear only in their target open slots; no re-sorting by title/due date after slotting.
+
+No string-based time sorting (e.g., "9:5" vs "09:05") anywhere.
+
+🔎 Phase 1 — AUDIT & TRACE (no logic changes yet)
+
+Add a DEBUG_ORDERING toggle (env or constant). When enabled, log a single “ORDER TRACE” for a selected student/date from both server and client.
+
+1) Server (compose/allocation layer)
+
+Identify the function that builds the day / allocates assignments into open blocks (e.g., allocateAssignmentsToTemplate(...), initializeDailySchedule(...), or equivalent in server/storage.ts or server/lib/*).
+
+Before returning/saving the day:
+
+Log ORDER TRACE / SERVER with arrays of objects:
+
+templateOrder: {blockId, blockType, startMinute, endMinute, label}
+
+assignmentSlots: the open slots as they appear before fill
+
+filledAssignments: list of {slotBlockId, assignmentId, assignmentTitle, startMinute}
+
+Ensure DB queries for template use orderBy(asc(scheduleTemplate.startMinute)) (numeric), not string times.
+
+2) Client (composition/merge layer)
+
+In student-dashboard.tsx where you compose Overview:
+
+After composing allScheduleBlocks and before rendering, log ORDER TRACE / CLIENT_OVERVIEW: the final array of blocks with {id, type, startMinute OR startTime, title}.
+
+In GuidedDayView.tsx:
+
+If composedSchedule is supplied, log ORDER TRACE / CLIENT_GUIDED (composed) with the exact array.
+
+If falling back to local builder, log ORDER TRACE / CLIENT_GUIDED (local) with the built array.
+
+All logs should show the numeric minute index actually used for sorting.
+
+Print these traces once per page load for a test student/date (e.g., Abigail, today in ET). Do not spam logs in production unless DEBUG_ORDERING is true.
+
+🧪 Phase 2 — REPORT (automated)
+
+Implement an in-code assertion (only active when DEBUG_ORDERING) that:
+
+Verifies the array is strictly ascending by numeric minute key.
+
+If it fails, logs a compact diff showing:
+
+The first out-of-order pair (prev vs next)
+
+The source of the order key (e.g., block.startMinute vs parsed 'HH:MM')
+
+Whether the client re-sorted after server allocation
+
+🩹 Phase 3 — FIX (apply only what’s needed)
+
+Fix only the failing check(s) with minimal diffs. Prioritize these likely culprits:
+
+A) String time sorts
+
+Replace any sort like .sort() without a comparator or string comparison with a stable numeric comparator:
+
+const toMinutes = (hhmm?: string | null) => {
+  if (!hhmm) return Number.POSITIVE_INFINITY;
+  const [h, m] = hhmm.split(':').map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+};
+const byMinute = (a: any, b: any) => {
+  const am = a.startMinute ?? toMinutes(a.startTime);
+  const bm = b.startMinute ?? toMinutes(b.startTime);
+  return am - bm || String(a.id).localeCompare(String(b.id));
+};
+
+
+Ensure every schedule array is finalized via .sort(byMinute) exactly once at the point of composition (server or client—pick one source of truth and keep the other as a pure consumer).
+
+B) Unstable merges/re-mapping
+
+If Overview composes an ordered array and Guided re-maps from a Map/Object (where order can drift), change Guided to consume composedSchedule directly. Only fall back to a local builder when it’s missing.
+
+Avoid building arrays via Object.values(hash) unless you copy the order from the template array.
+
+C) Post-update re-order (Need More Time / Stuck)
+
+After any rescheduling action, recompose the day and re-sort with byMinute before updating state.
+
+Ensure React state updates don’t mutate arrays in place (e.g., avoid .sort() on the same reference held by state).
+
+D) Timezone & dateKey drift
+
+Replace any toISOString().split('T')[0] with a New-York helper for the selected date used to fetch the template:
+
+const toNYDateString = (d = new Date()) => {
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(d);
+  const y = p.find(x=>x.type==='year')!.value, m=p.find(x=>x.type==='month')!.value, da=p.find(x=>x.type==='day')!.value;
+  return `${y}-${m}-${da}`;
+};
+
+
+Verify the weekday used to fetch template matches ET (wrong weekday → wrong template → perceived “out of order”).
+
+E) DB query ordering
+
+For template blocks: orderBy(asc(scheduleTemplate.startMinute), asc(scheduleTemplate.id)).
+
+For any fetch that hydrates day instances: ensure a numeric minute order in the query or immediately after fetching.
+
+✅ Acceptance (must pass after patch)
+
+With DEBUG_ORDERING=1, the logs show:
+
+SERVER template and CLIENT arrays with monotonic minute order.
+
+No mixed string/number time keys.
+
+Overview vs Guided:
+
+If composedSchedule is used, both logs show identical sequences (IDs match in order).
+
+After Need More Time / Stuck, a recomposition occurs and the resulting array remains in numeric time order.
+
+Near midnight ET, the correct template (weekday) is used and order still holds.
+
+📦 Output format
+
+Print AUDIT results first (PASS/FAIL per check with file/line hints).
+
+For each FIX, output a unified diff and a one-sentence rationale.
+
+Keep changes minimal and isolated to the points flagged by the audit.
+
+Proceed with Phase 1 (Audit & Trace). Do not change logic until the report points to a specific failure. Then apply only the necessary fixes.
