@@ -62,6 +62,16 @@ export interface CanvasAssignment {
   module_data?: any;
   inferred_start_date?: string;
   inferred_end_date?: string;
+  
+  // TEXTBOOK linking for referencing pages/modules from TEXTBOOK course
+  textbook_links?: TextbookLink[];
+}
+
+export interface TextbookLink {
+  title: string;
+  url: string;
+  module_name?: string;
+  page_type: 'page' | 'module' | 'assignment';
 }
 
 export interface CanvasCourse {
@@ -199,7 +209,7 @@ export class CanvasClient {
           });
           
           // Enhance assignments with comprehensive metadata including module timing
-          const assignmentsWithMetadata = assignments.map(assignment => {
+          const assignmentsWithMetadata = await Promise.all(assignments.map(async assignment => {
             const enhanced = {
               ...assignment,
               courseName: course.name,
@@ -225,8 +235,13 @@ export class CanvasClient {
               }
             }
             
+            // Add TEXTBOOK links if this is a Forensic Science assignment
+            if (course.name.includes('Forensic Science') && !course.name.includes('TEXTBOOK')) {
+              enhanced.textbook_links = await this.findTextbookLinks(enhanced);
+            }
+            
             return enhanced;
-          });
+          }));
           
           allAssignments.push(...assignmentsWithMetadata);
         } catch (error) {
@@ -357,6 +372,72 @@ export class CanvasClient {
   private extractModuleNumber(moduleName: string): number | null {
     const match = moduleName.match(/module\s+(\d+)/i);
     return match ? parseInt(match[1], 10) : null;
+  }
+
+  /**
+   * Find and link to relevant TEXTBOOK resources based on assignment content
+   */
+  private async findTextbookLinks(assignment: CanvasAssignment): Promise<TextbookLink[]> {
+    try {
+      // For instance 2 (Forensic Science), look for TEXTBOOK course ID 570
+      if (this.token === canvasConfig.abigailToken2) {
+        const textbookCourseId = 570;
+        
+        // Get TEXTBOOK modules (pages API has access issues, focus on modules)
+        const modules = await this.makeRequest<any[]>(`/courses/${textbookCourseId}/modules?per_page=50`);
+        
+        const links: TextbookLink[] = [];
+        const assignmentText = `${assignment.name} ${assignment.description || ''}`.toLowerCase();
+        
+        // Detect module references (Module 1, Module 2, etc.)
+        const moduleMatch = assignmentText.match(/module\s*(\d+)/i);
+        if (moduleMatch) {
+          const moduleNum = parseInt(moduleMatch[1]);
+          const matchingModule = modules.find(m => m.name.toLowerCase().includes(`module ${moduleNum}`));
+          if (matchingModule) {
+            links.push({
+              title: matchingModule.name,
+              url: `https://apologia.instructure.com/courses/${textbookCourseId}/modules/${matchingModule.id}`,
+              module_name: matchingModule.name,
+              page_type: 'module'
+            });
+          }
+        }
+        
+        // Detect topic references in module names
+        const topicKeywords = [
+          'criminal law', 'civil law', 'evidence', 'witnesses', 'testimony', 
+          'fingerprints', 'legal system', 'trace evidence', 'toxicology'
+        ];
+        
+        for (const keyword of topicKeywords) {
+          if (assignmentText.includes(keyword)) {
+            const matchingModule = modules.find(m => 
+              m.name.toLowerCase().includes(keyword)
+            );
+            if (matchingModule && !links.find(l => l.title === matchingModule.name)) {
+              links.push({
+                title: matchingModule.name,
+                url: `https://apologia.instructure.com/courses/${textbookCourseId}/modules/${matchingModule.id}`,
+                module_name: matchingModule.name,
+                page_type: 'module'
+              });
+            }
+          }
+        }
+        
+        if (links.length > 0) {
+          console.log(`🔗 Found ${links.length} TEXTBOOK links for "${assignment.name}": ${links.map(l => l.title).join(', ')}`);
+        }
+        
+        return links;
+      }
+      
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch TEXTBOOK links:', error);
+      return [];
+    }
   }
 
   /**
