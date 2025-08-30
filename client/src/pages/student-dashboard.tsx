@@ -38,6 +38,13 @@ import { apiRequest } from '@/lib/queryClient';
 import type { Assignment, DailyScheduleStatus, ScheduleTemplate } from '@shared/schema';
 import { getTodayString, getToday, parseDateString, formatDateDisplay, getDayName, addDays, isToday } from '@shared/dateUtils';
 
+// Timezone-safe New York date string function
+const toNYDateString = (d = new Date()) => {
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const [{ value: y },,{ value: m },,{ value: da }] = (fmt.formatToParts(d));
+  return `${y}-${m}-${da}`; // YYYY-MM-DD
+};
+
 export default function StudentDashboard() {
   const params = useParams<{ student: string }>();
   // Capitalize student name for consistency, default to Abigail if no student provided
@@ -61,7 +68,7 @@ export default function StudentDashboard() {
 
   const handleHomeClick = () => {
     // Reset to today and overview mode
-    setSelectedDate(new Date().toISOString().split('T')[0]);
+    setSelectedDate(toNYDateString());
     setIsGuidedMode(false);
   };
 
@@ -80,7 +87,7 @@ export default function StudentDashboard() {
       targetDate.setDate(currentDate.getDate() + 2); // Show assignments due within 2 days
       
       const params = new URLSearchParams({
-        date: targetDate.toISOString().split('T')[0],
+        date: toNYDateString(targetDate),
         studentName: studentName
       });
       const response = await fetch(`/api/assignments?${params}`);
