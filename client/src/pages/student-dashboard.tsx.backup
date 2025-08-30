@@ -254,7 +254,7 @@ export default function StudentDashboard() {
   };
 
   // Use real schedule template data from database (fix field mapping)
-  const allScheduleBlocks = scheduleTemplate.map((block) => ({
+  const allScheduleBlocks = scheduleTemplate?.map((block) => ({
     id: block.id,
     title: block.subject,
     blockType: block.blockType?.toLowerCase() || 'unknown',
@@ -265,11 +265,11 @@ export default function StudentDashboard() {
   }));
 
   // Separate Bible blocks from other fixed blocks using real data
-  const bibleBlocks = allScheduleBlocks.filter((block) => block.blockType === 'bible');
-  const fixedBlocks = allScheduleBlocks.filter((block) => 
+  const bibleBlocks = allScheduleBlocks?.filter((block) => block.blockType === 'bible');
+  const fixedBlocks = allScheduleBlocks?.filter((block) => 
     ['travel', 'co-op', 'prep/load', 'movement', 'lunch'].includes(block.blockType)
   );
-  const assignmentBlocks = allScheduleBlocks.filter((block) => block.blockType === 'assignment');
+  const assignmentBlocks = allScheduleBlocks?.filter((block) => block.blockType === 'assignment');
 
   // INTELLIGENT ASSIGNMENT SCHEDULING with subject distribution and deduplication
   const populatedAssignmentBlocks = (() => {
@@ -296,7 +296,7 @@ export default function StudentDashboard() {
       return 0;
     });
     
-    return assignmentBlocks.map((block, index) => {
+    return assignmentBlocks?.map((block, index) => {
       let selectedAssignment = null;
       
       // First pass: try to find assignment from unused subject

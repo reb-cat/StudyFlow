@@ -570,7 +570,7 @@ export default function StudentDashboard() {
                 <span className="font-medium text-muted-foreground">Daily Progress</span>
                 <span className="font-medium text-muted-foreground">
                   {(dailyScheduleStatus && dailyScheduleStatus.length > 0)
-                    ? `${Math.round((dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100)}% (${dailyScheduleStatus.filter(s => s.status === 'complete').length}/${dailyScheduleStatus.length})`
+                    ? `${Math.round((dailyScheduleStatus?.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100)}% (${dailyScheduleStatus?.filter(s => s.status === 'complete').length}/${dailyScheduleStatus.length})`
                     : '0%'
                   }
                 </span>
@@ -580,7 +580,7 @@ export default function StudentDashboard() {
                   className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500" 
                   style={{ 
                     width: (dailyScheduleStatus && dailyScheduleStatus.length > 0)
-                      ? `${(dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100}%`
+                      ? `${(dailyScheduleStatus?.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100}%`
                       : '0%'
                   }}
                 ></div>
