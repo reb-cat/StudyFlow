@@ -116,9 +116,9 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
               Due: {new Date(assignment.dueDate).toLocaleDateString()}
             </span>
           )}
-          {assignment.difficulty !== 'medium' && (
+          {assignment.priority !== 'medium' && (
             <Badge variant="outline" className="capitalize">
-              {assignment.difficulty}
+              {assignment.priority}
             </Badge>
           )}
         </div>

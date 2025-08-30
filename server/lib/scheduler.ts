@@ -1,5 +1,3 @@
-import { logger } from "../lib/logger";
-import { logger } from "../lib/logger";
 import { getAllAssignmentsForStudent } from './canvas';
 import { storage } from '../storage';
 import { analyzeAssignmentWithCanvas, getSmartSchedulingDate, extractDueDateFromTitle } from './assignmentIntelligence';
@@ -29,18 +27,18 @@ class JobScheduler {
 
   private addJob(job: ScheduledJob) {
     this.jobs.push(job);
-    logger.log(`📅 Scheduled job: ${job.name} - ${job.cronPattern}`);
+    console.log(`📅 Scheduled job: ${job.name} - ${job.cronPattern}`);
   }
 
   private async syncCanvasAssignments(): Promise<void> {
-    logger.log('🔄 Starting daily Canvas sync at', new Date().toISOString());
+    console.log('🔄 Starting daily Canvas sync at', new Date().toISOString());
     
     const students = ['Abigail', 'Khalil'];
     let totalImported = 0;
     
     for (const studentName of students) {
       try {
-        logger.log(`📚 Syncing Canvas assignments for ${studentName}...`);
+        console.log(`📚 Syncing Canvas assignments for ${studentName}...`);
         
         // Get student's user ID
         const userId = `${studentName.toLowerCase()}-user`;
@@ -59,7 +57,7 @@ class JobScheduler {
               if (canvasAssignment.due_at) {
                 const dueDate = new Date(canvasAssignment.due_at);
                 if (dueDate < currentSchoolYearStart || dueDate > currentSchoolYearEnd) {
-                  logger.log(`⏭️ Skipping out-of-range assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - outside current school year`);
+                  console.log(`⏭️ Skipping out-of-range assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - outside current school year`);
                   continue;
                 }
               }
@@ -69,7 +67,7 @@ class JobScheduler {
                 const createdDate = new Date(canvasAssignment.created_at);
                 const previousYearCutoff = new Date('2025-01-01');
                 if (createdDate < previousYearCutoff && !canvasAssignment.due_at) {
-                  logger.log(`⏭️ Skipping old template assignment "${canvasAssignment.name}" (created: ${createdDate.toDateString()}) - from previous year`);
+                  console.log(`⏭️ Skipping old template assignment "${canvasAssignment.name}" (created: ${createdDate.toDateString()}) - from previous year`);
                   continue;
                 }
               }
@@ -85,7 +83,7 @@ class JobScheduler {
                 'course info', 'welcome', 'introduction', 'orientation'
               ];
               if (adminPatterns.some(pattern => assignmentTitle.includes(pattern))) {
-                logger.log(`⏭️ Skipping administrative assignment: "${canvasAssignment.name}"`);
+                console.log(`⏭️ Skipping administrative assignment: "${canvasAssignment.name}"`);
                 continue;
               }
               
@@ -95,7 +93,7 @@ class JobScheduler {
                 'class activity', 'classroom', 'in-class', 'class work'
               ];
               if (inClassPatterns.some(pattern => assignmentTitle.includes(pattern))) {
-                logger.log(`⏭️ Skipping in-class only assignment: "${canvasAssignment.name}"`);
+                console.log(`⏭️ Skipping in-class only assignment: "${canvasAssignment.name}"`);
                 continue;
               }
               
@@ -105,12 +103,12 @@ class JobScheduler {
                 assignmentTitle.includes('attendance') ||
                 assignmentTitle.includes('participation')
               )) {
-                logger.log(`⏭️ Skipping recurring template assignment: "${canvasAssignment.name}" - no due date`);
+                console.log(`⏭️ Skipping recurring template assignment: "${canvasAssignment.name}" - no due date`);
                 continue;
               }
               
               // Log the real Canvas assignment being processed
-              logger.log(`📝 Real Canvas Assignment Found: "${canvasAssignment.name}" for ${studentName}`);
+              console.log(`📝 Real Canvas Assignment Found: "${canvasAssignment.name}" for ${studentName}`);
               
               // Check if assignment already exists to avoid duplicates
               const existingAssignments = await storage.getAssignments(userId);
@@ -143,7 +141,7 @@ class JobScheduler {
                 let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
                 if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
                   completionStatus = 'completed';
-                  logger.log(`📋 Auto-marking "${canvasAssignment.name}" as completed (graded in Canvas)`);
+                  console.log(`📋 Auto-marking "${canvasAssignment.name}" as completed (graded in Canvas)`);
                 }
 
                 // ENHANCED DUE DATE EXTRACTION AND VALIDATION
@@ -152,10 +150,10 @@ class JobScheduler {
                 try {
                   extractedFromTitle = extractDueDateFromTitle(canvasAssignment.name);
                   if (extractedFromTitle) {
-                    logger.log(`🧠 Extracted due date from title "${canvasAssignment.name}": ${extractedFromTitle.toDateString()}`);
+                    console.log(`🧠 Extracted due date from title "${canvasAssignment.name}": ${extractedFromTitle.toDateString()}`);
                   }
                 } catch (error) {
-                  logger.warn(`Failed to extract due date from title: ${canvasAssignment.name}`);
+                  console.warn(`Failed to extract due date from title: ${canvasAssignment.name}`);
                 }
                 
                 // Use the best available due date source
@@ -166,7 +164,7 @@ class JobScheduler {
                 
                 // Validate extracted due date is within current school year
                 if (dueDate && (dueDate < currentSchoolYearStart || dueDate > currentSchoolYearEnd)) {
-                  logger.log(`⚠️ Extracted due date ${dueDate.toDateString()} outside school year for "${canvasAssignment.name}" - skipping`);
+                  console.log(`⚠️ Extracted due date ${dueDate.toDateString()} outside school year for "${canvasAssignment.name}" - skipping`);
                   continue;
                 }
                 
@@ -174,25 +172,25 @@ class JobScheduler {
                 const smartScheduledDate = getSmartSchedulingDate(intelligence, this.getNextAssignmentDate());
                 
                 // Log comprehensive intelligent processing results
-                logger.log(`🔍 Assignment Analysis: "${canvasAssignment.name}"`);
-                logger.log(`   📊 Category: ${intelligence.canvasCategory} | Confidence: ${Math.round(intelligence.confidence * 100)}%`);
+                console.log(`🔍 Assignment Analysis: "${canvasAssignment.name}"`);
+                console.log(`   📊 Category: ${intelligence.canvasCategory} | Confidence: ${Math.round(intelligence.confidence * 100)}%`);
                 if (intelligence.extractedDueDate) {
-                  logger.log(`   🧠 Smart due date extracted: ${intelligence.extractedDueDate.toDateString()}`);
+                  console.log(`   🧠 Smart due date extracted: ${intelligence.extractedDueDate.toDateString()}`);
                 }
                 if (intelligence.isInClassActivity) {
-                  logger.log(`   🏫 In-class activity: ${intelligence.isSchedulable ? 'schedulable makeup' : 'fixed co-op block'}`);
+                  console.log(`   🏫 In-class activity: ${intelligence.isSchedulable ? 'schedulable makeup' : 'fixed co-op block'}`);
                 }
                 if (intelligence.isRecurring) {
-                  logger.log(`   🔄 Recurring assignment detected`);
+                  console.log(`   🔄 Recurring assignment detected`);
                 }
                 if (intelligence.isFromPreviousYear) {
-                  logger.log(`   ⚠️ Previous year/template data detected`);
+                  console.log(`   ⚠️ Previous year/template data detected`);
                 }
                 if (intelligence.submissionContext.pointsValue) {
-                  logger.log(`   📝 Worth ${intelligence.submissionContext.pointsValue} points`);
+                  console.log(`   📝 Worth ${intelligence.submissionContext.pointsValue} points`);
                 }
                 if (intelligence.availabilityWindow.availableFrom || intelligence.availabilityWindow.availableUntil) {
-                  logger.log(`   ⏰ Availability: ${intelligence.availabilityWindow.availableFrom?.toDateString() || 'open'} → ${intelligence.availabilityWindow.availableUntil?.toDateString() || 'no limit'}`);
+                  console.log(`   ⏰ Availability: ${intelligence.availabilityWindow.availableFrom?.toDateString() || 'open'} → ${intelligence.availabilityWindow.availableUntil?.toDateString() || 'no limit'}`);
                 }
 
                 await storage.createAssignment({
@@ -231,11 +229,11 @@ class JobScheduler {
                 if (existingAssignment && existingAssignment.completionStatus === 'pending' && 
                     (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions)) {
                   await storage.updateAssignment(existingAssignment.id, { completionStatus: 'completed' });
-                  logger.log(`✅ Updated "${canvasAssignment.name}" to completed (now graded in Canvas)`);
+                  console.log(`✅ Updated "${canvasAssignment.name}" to completed (now graded in Canvas)`);
                 }
               }
             } catch (error) {
-              logger.error(`Error importing assignment for ${studentName}:`, error);
+              console.error(`Error importing assignment for ${studentName}:`, error);
             }
           }
         }
@@ -251,7 +249,7 @@ class JobScheduler {
               if (canvasAssignment.due_at) {
                 const dueDate = new Date(canvasAssignment.due_at);
                 if (dueDate < currentSchoolYearStart || dueDate > currentSchoolYearEnd) {
-                  logger.log(`⏭️ Skipping out-of-range assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - outside current school year`);
+                  console.log(`⏭️ Skipping out-of-range assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - outside current school year`);
                   continue;
                 }
               }
@@ -261,7 +259,7 @@ class JobScheduler {
                 const createdDate = new Date(canvasAssignment.created_at);
                 const previousYearCutoff = new Date('2025-01-01');
                 if (createdDate < previousYearCutoff && !canvasAssignment.due_at) {
-                  logger.log(`⏭️ Skipping old template assignment "${canvasAssignment.name} (Canvas 2)" (created: ${createdDate.toDateString()}) - from previous year`);
+                  console.log(`⏭️ Skipping old template assignment "${canvasAssignment.name} (Canvas 2)" (created: ${createdDate.toDateString()}) - from previous year`);
                   continue;
                 }
               }
@@ -276,7 +274,7 @@ class JobScheduler {
                 'course info', 'welcome', 'introduction', 'orientation'
               ];
               if (adminPatterns.some(pattern => assignmentTitle.includes(pattern))) {
-                logger.log(`⏭️ Skipping administrative assignment: "${canvasAssignment.name} (Canvas 2)"`);
+                console.log(`⏭️ Skipping administrative assignment: "${canvasAssignment.name} (Canvas 2)"`);
                 continue;
               }
               
@@ -286,7 +284,7 @@ class JobScheduler {
                 'class activity', 'classroom', 'in-class', 'class work'
               ];
               if (inClassPatterns.some(pattern => assignmentTitle.includes(pattern))) {
-                logger.log(`⏭️ Skipping in-class only assignment: "${canvasAssignment.name} (Canvas 2)"`);
+                console.log(`⏭️ Skipping in-class only assignment: "${canvasAssignment.name} (Canvas 2)"`);
                 continue;
               }
               
@@ -296,7 +294,7 @@ class JobScheduler {
                 assignmentTitle.includes('attendance') ||
                 assignmentTitle.includes('participation')
               )) {
-                logger.log(`⏭️ Skipping recurring template assignment: "${canvasAssignment.name} (Canvas 2)" - no due date`);
+                console.log(`⏭️ Skipping recurring template assignment: "${canvasAssignment.name} (Canvas 2)" - no due date`);
                 continue;
               }
               
@@ -328,7 +326,7 @@ class JobScheduler {
                 let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
                 if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
                   completionStatus = 'completed';
-                  logger.log(`📋 Auto-marking "${title}" as completed (graded in Canvas)`);
+                  console.log(`📋 Auto-marking "${title}" as completed (graded in Canvas)`);
                 }
 
                 // ENHANCED DUE DATE EXTRACTION AND VALIDATION for Canvas Instance 2
@@ -337,10 +335,10 @@ class JobScheduler {
                 try {
                   extractedFromTitle = extractDueDateFromTitle(canvasAssignment.name);
                   if (extractedFromTitle) {
-                    logger.log(`🧠 Extracted due date from title "${title}": ${extractedFromTitle.toDateString()}`);
+                    console.log(`🧠 Extracted due date from title "${title}": ${extractedFromTitle.toDateString()}`);
                   }
                 } catch (error) {
-                  logger.warn(`Failed to extract due date from title: ${title}`);
+                  console.warn(`Failed to extract due date from title: ${title}`);
                 }
                 
                 // Use the best available due date source
@@ -351,7 +349,7 @@ class JobScheduler {
                 
                 // Validate extracted due date is within current school year
                 if (dueDate && (dueDate < currentSchoolYearStart || dueDate > currentSchoolYearEnd)) {
-                  logger.log(`⚠️ Extracted due date ${dueDate.toDateString()} outside school year for "${title}" - skipping`);
+                  console.log(`⚠️ Extracted due date ${dueDate.toDateString()} outside school year for "${title}" - skipping`);
                   continue;
                 }
                 
@@ -359,19 +357,19 @@ class JobScheduler {
                 const smartScheduledDate = getSmartSchedulingDate(intelligence, this.getNextAssignmentDate());
                 
                 // Log comprehensive intelligent processing results for Canvas 2
-                logger.log(`🔍 Assignment Analysis (Canvas 2): "${title}"`);
-                logger.log(`   📊 Category: ${intelligence.canvasCategory} | Confidence: ${Math.round(intelligence.confidence * 100)}%`);
+                console.log(`🔍 Assignment Analysis (Canvas 2): "${title}"`);
+                console.log(`   📊 Category: ${intelligence.canvasCategory} | Confidence: ${Math.round(intelligence.confidence * 100)}%`);
                 if (intelligence.extractedDueDate) {
-                  logger.log(`   🧠 Smart due date extracted: ${intelligence.extractedDueDate.toDateString()}`);
+                  console.log(`   🧠 Smart due date extracted: ${intelligence.extractedDueDate.toDateString()}`);
                 }
                 if (intelligence.isInClassActivity) {
-                  logger.log(`   🏫 In-class activity: ${intelligence.isSchedulable ? 'schedulable makeup' : 'fixed co-op block'}`);
+                  console.log(`   🏫 In-class activity: ${intelligence.isSchedulable ? 'schedulable makeup' : 'fixed co-op block'}`);
                 }
                 if (intelligence.isRecurring) {
-                  logger.log(`   🔄 Recurring assignment detected`);
+                  console.log(`   🔄 Recurring assignment detected`);
                 }
                 if (intelligence.isFromPreviousYear) {
-                  logger.log(`   ⚠️ Previous year/template data detected`);
+                  console.log(`   ⚠️ Previous year/template data detected`);
                 }
 
                 await storage.createAssignment({
@@ -409,11 +407,11 @@ class JobScheduler {
                 if (existingAssignment && existingAssignment.completionStatus === 'pending' && 
                     (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions)) {
                   await storage.updateAssignment(existingAssignment.id, { completionStatus: 'completed' });
-                  logger.log(`✅ Updated "${canvasAssignment.name} (Canvas 2)" to completed (now graded in Canvas)`);
+                  console.log(`✅ Updated "${canvasAssignment.name} (Canvas 2)" to completed (now graded in Canvas)`);
                 }
               }
             } catch (error) {
-              logger.error(`Error importing assignment from instance 2 for ${studentName}:`, error);
+              console.error(`Error importing assignment from instance 2 for ${studentName}:`, error);
             }
           }
         }
@@ -421,14 +419,14 @@ class JobScheduler {
         // Step 3: Clean up stale assignments (exist in our DB but not in Canvas anymore)
         await this.cleanupStaleAssignments(userId, canvasData);
         
-        logger.log(`✅ Completed Canvas sync for ${studentName}`);
+        console.log(`✅ Completed Canvas sync for ${studentName}`);
         
       } catch (error) {
-        logger.error(`❌ Failed to sync Canvas assignments for ${studentName}:`, error);
+        console.error(`❌ Failed to sync Canvas assignments for ${studentName}:`, error);
       }
     }
     
-    logger.log(`🎉 Daily Canvas sync completed. Imported ${totalImported} new assignments.`);
+    console.log(`🎉 Daily Canvas sync completed. Imported ${totalImported} new assignments.`);
     
     // Clean up any problematic assignments that slipped through
     await this.cleanupProblematicAssignments();
@@ -463,15 +461,15 @@ class JobScheduler {
       );
       
       if (staleAssignments.length > 0) {
-        logger.log(`🧹 Found ${staleAssignments.length} stale assignments to remove for ${userId}`);
+        console.log(`🧹 Found ${staleAssignments.length} stale assignments to remove for ${userId}`);
         
         for (const staleAssignment of staleAssignments) {
           await storage.deleteAssignment(staleAssignment.id);
-          logger.log(`🗑️ Removed stale assignment: "${staleAssignment.title}"`);
+          console.log(`🗑️ Removed stale assignment: "${staleAssignment.title}"`);
         }
       }
     } catch (error) {
-      logger.error(`Error cleaning up stale assignments for ${userId}:`, error);
+      console.error(`Error cleaning up stale assignments for ${userId}:`, error);
     }
   }
 
@@ -482,9 +480,9 @@ class JobScheduler {
     try {
       // This method updates administrative assignments like fees and syllabi
       // Implementation would go here
-      logger.log('🔧 Updating administrative assignments...');
+      console.log('🔧 Updating administrative assignments...');
     } catch (error) {
-      logger.error('Error updating administrative assignments:', error);
+      console.error('Error updating administrative assignments:', error);
     }
   }
 
@@ -506,7 +504,7 @@ class JobScheduler {
    * Clean up problematic assignments that should have been filtered out
    */
   private async cleanupProblematicAssignments() {
-    logger.log('🧹 Cleaning up problematic assignments...');
+    console.log('🧹 Cleaning up problematic assignments...');
     
     const students = ['Abigail', 'Khalil'];
     let totalCleaned = 0;
@@ -563,11 +561,11 @@ class JobScheduler {
           }
           
           if (shouldDelete) {
-            logger.log(`🗑️ Removing problematic assignment: "${assignment.title}" - ${reason}`);
+            console.log(`🗑️ Removing problematic assignment: "${assignment.title}" - ${reason}`);
             await storage.deleteAssignment(assignment.id);
             totalCleaned++;
           } else if (shouldFix) {
-            logger.log(`🔧 Fixing "${assignment.title}" - ${reason}`);
+            console.log(`🔧 Fixing "${assignment.title}" - ${reason}`);
             
             // Extract due date and update assignment
             const { extractDueDateFromTitle } = await import('./assignmentIntelligence.js');
@@ -577,18 +575,18 @@ class JobScheduler {
               await storage.updateAssignment(assignment.id, {
                 dueDate: extractedDate
               });
-              logger.log(`   ✅ Updated due date to: ${extractedDate.toDateString()}`);
+              console.log(`   ✅ Updated due date to: ${extractedDate.toDateString()}`);
             }
             
             totalFixed++;
           }
         }
       } catch (error) {
-        logger.error(`Failed to cleanup assignments for ${studentName}:`, error);
+        console.error(`Failed to cleanup assignments for ${studentName}:`, error);
       }
     }
     
-    logger.log(`✅ Problematic assignment cleanup completed. Removed ${totalCleaned} assignments, fixed ${totalFixed} assignments.`);
+    console.log(`✅ Problematic assignment cleanup completed. Removed ${totalCleaned} assignments, fixed ${totalFixed} assignments.`);
   }
 
   private parseCronToMs(cronPattern: string): number {
@@ -614,7 +612,7 @@ class JobScheduler {
   }
 
   start() {
-    logger.log('🚀 Starting job scheduler...');
+    console.log('🚀 Starting job scheduler...');
     
     for (const job of this.jobs) {
       const initialDelay = this.parseCronToMs(job.cronPattern);
@@ -631,14 +629,14 @@ class JobScheduler {
   }
 
   stop() {
-    logger.log('🛑 Stopping job scheduler...');
+    console.log('🛑 Stopping job scheduler...');
     this.intervals.forEach(interval => clearInterval(interval));
     this.intervals = [];
   }
 
   // Manual trigger for testing
   async runSyncNow() {
-    logger.log('🔧 Manual trigger: Running Canvas sync now...');
+    console.log('🔧 Manual trigger: Running Canvas sync now...');
     await this.syncCanvasAssignments();
   }
 }

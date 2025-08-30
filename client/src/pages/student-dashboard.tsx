@@ -173,7 +173,7 @@ export default function StudentDashboard() {
 
   // Get status for a specific schedule block
   const getBlockStatus = (blockId: string): string => {
-    const statusEntry = dailyScheduleStatus?.find(s => s.templateBlockId === blockId);
+    const statusEntry = dailyScheduleStatus.find(s => s.templateBlockId === blockId);
     return statusEntry?.status || 'not-started';
   };
 
@@ -254,7 +254,7 @@ export default function StudentDashboard() {
   };
 
   // Use real schedule template data from database (fix field mapping)
-  const allScheduleBlocks = scheduleTemplate?.map((block) => ({
+  const allScheduleBlocks = scheduleTemplate.map((block) => ({
     id: block.id,
     title: block.subject,
     blockType: block.blockType?.toLowerCase() || 'unknown',
@@ -265,11 +265,11 @@ export default function StudentDashboard() {
   }));
 
   // Separate Bible blocks from other fixed blocks using real data
-  const bibleBlocks = allScheduleBlocks?.filter((block) => block.blockType === 'bible');
-  const fixedBlocks = allScheduleBlocks?.filter((block) => 
+  const bibleBlocks = allScheduleBlocks.filter((block) => block.blockType === 'bible');
+  const fixedBlocks = allScheduleBlocks.filter((block) => 
     ['travel', 'co-op', 'prep/load', 'movement', 'lunch'].includes(block.blockType)
   );
-  const assignmentBlocks = allScheduleBlocks?.filter((block) => block.blockType === 'assignment');
+  const assignmentBlocks = allScheduleBlocks.filter((block) => block.blockType === 'assignment');
 
   // INTELLIGENT ASSIGNMENT SCHEDULING with subject distribution and deduplication
   const populatedAssignmentBlocks = (() => {
@@ -296,7 +296,7 @@ export default function StudentDashboard() {
       return 0;
     });
     
-    return assignmentBlocks?.map((block, index) => {
+    return assignmentBlocks.map((block, index) => {
       let selectedAssignment = null;
       
       // First pass: try to find assignment from unused subject
@@ -329,9 +329,9 @@ export default function StudentDashboard() {
             }
             
             // Check for similar worksheet/homework patterns
-            const wordsA = titleA?.split(' ').filter((w: string) => w.length > 3);
-            const wordsB = titleB?.split(' ').filter((w: string) => w.length > 3);
-            const commonWords = wordsA.filter((w: string) => wordsB.includes(w));
+            const wordsA = titleA.split(' ').filter(w => w.length > 3);
+            const wordsB = titleB.split(' ').filter(w => w.length > 3);
+            const commonWords = wordsA.filter(w => wordsB.includes(w));
             
             return commonWords.length >= 2; // Similar if 2+ significant words match
           });
@@ -569,8 +569,8 @@ export default function StudentDashboard() {
               <div className="flex justify-between text-sm mb-2">
                 <span className="font-medium text-muted-foreground">Daily Progress</span>
                 <span className="font-medium text-muted-foreground">
-                  {(dailyScheduleStatus && dailyScheduleStatus.length > 0)
-                    ? `${Math.round((dailyScheduleStatus?.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100)}% (${dailyScheduleStatus?.filter(s => s.status === 'complete').length}/${dailyScheduleStatus.length})`
+                  {dailyScheduleStatus.length > 0 
+                    ? `${Math.round((dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100)}% (${dailyScheduleStatus.filter(s => s.status === 'complete').length}/${dailyScheduleStatus.length})`
                     : '0%'
                   }
                 </span>
@@ -579,15 +579,15 @@ export default function StudentDashboard() {
                 <div 
                   className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500" 
                   style={{ 
-                    width: (dailyScheduleStatus && dailyScheduleStatus.length > 0)
-                      ? `${(dailyScheduleStatus?.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100}%`
+                    width: dailyScheduleStatus.length > 0 
+                      ? `${(dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100}%`
                       : '0%'
                   }}
                 ></div>
               </div>
               <div className="flex justify-between text-xs text-muted-foreground mt-2">
                 <span>Click status badges to update progress</span>
-                <span>{dailyScheduleStatus?.filter(s => s.status === 'in-progress')?.length || 0} in progress • {dailyScheduleStatus?.filter(s => s.status === 'stuck')?.length || 0} stuck</span>
+                <span>{dailyScheduleStatus.filter(s => s.status === 'in-progress').length} in progress • {dailyScheduleStatus.filter(s => s.status === 'stuck').length} stuck</span>
               </div>
             </div>
 
@@ -600,7 +600,7 @@ export default function StudentDashboard() {
                   
                   <div className="space-y-3 print:space-y-0">
                     {/* Show ALL schedule blocks in chronological order with compact Apple-style layout */}
-                    {(allScheduleBlocks || [])
+                    {allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((block, index) => {
                         // Get appropriate icon component 
@@ -633,7 +633,7 @@ export default function StudentDashboard() {
                         
                         if (block.blockType === 'assignment') {
                           // Use round-robin assignment from our populated blocks
-                          const populatedBlock = populatedAssignmentBlocks?.find(pb => pb.id === block.id);
+                          const populatedBlock = populatedAssignmentBlocks.find(pb => pb.id === block.id);
                           if (populatedBlock && populatedBlock.assignment) {
                             blockTitle = populatedBlock.assignment.title; // Show assignment title as the main title
                             blockDetails = ''; // No subtitle needed

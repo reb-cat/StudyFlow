@@ -171,7 +171,7 @@ export default function LandingPage() {
             </button>
             
             <button
-              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => document.getElementById('features').scrollIntoView({ behavior: 'smooth' })}
               style={{
                 padding: '14px 32px',
                 backgroundColor: 'transparent',

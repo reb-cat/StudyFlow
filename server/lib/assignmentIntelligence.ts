@@ -3,8 +3,6 @@
  * Handles smart text parsing and categorization of assignments
  */
 
-import { logger } from "./logger";
-
 export interface AssignmentIntelligence {
   extractedDueDate: Date | null;
   isInClassActivity: boolean;
@@ -98,7 +96,7 @@ export function extractDueDateFromTitle(title: string): Date | null {
       
       const parsedDate = parseDateString(dateStr);
       if (parsedDate) {
-        logger.debug(`📅 COMPREHENSIVE: Extracted due date from "${title}" using pattern ${index + 1}: ${parsedDate.toDateString()}`);
+        console.log(`📅 COMPREHENSIVE: Extracted due date from "${title}" using pattern ${index + 1}: ${parsedDate.toDateString()}`);
         return parsedDate;
       }
     }
@@ -172,7 +170,7 @@ function parseDateString(dateStr: string, courseContext?: {
     
     return date;
   } catch (error) {
-    logger.warn(`Failed to parse date string: ${dateStr}`, error);
+    console.warn(`Failed to parse date string: ${dateStr}`, error);
     return null;
   }
 }
@@ -288,31 +286,31 @@ export function analyzeAssignmentWithCanvas(
   // Priority 1: Use module timing from inferred_start_date (existing successful pattern)
   if (!extractedDueDate && canvasData?.inferred_start_date) {
     extractedDueDate = new Date(canvasData.inferred_start_date);
-    logger.debug(`📅 Using module timing for "${title}": ${extractedDueDate.toDateString()}`);
+    console.log(`📅 Using module timing for "${title}": ${extractedDueDate.toDateString()}`);
   }
   
   // Priority 2: Extract timing from lock_at if available
   if (!extractedDueDate && canvasData?.lock_at) {
     extractedDueDate = new Date(canvasData.lock_at);
-    logger.debug(`📅 Using assignment lock timing for "${title}": ${extractedDueDate.toDateString()}`);
+    console.log(`📅 Using assignment lock timing for "${title}": ${extractedDueDate.toDateString()}`);
   }
   
   // Priority 3: For multi-week assignments, use module completion date if available
   if (!extractedDueDate && canvasData?.module_data?.completed_at) {
     extractedDueDate = new Date(canvasData.module_data.completed_at);
-    logger.debug(`📅 Using module completion timing for "${title}": ${extractedDueDate.toDateString()}`);
+    console.log(`📅 Using module completion timing for "${title}": ${extractedDueDate.toDateString()}`);
   }
   
   // Priority 4: Extract from Canvas assignment unlock_at if available
   if (!extractedDueDate && canvasData?.unlock_at) {
     extractedDueDate = new Date(canvasData.unlock_at);
-    logger.debug(`📅 Using Canvas assignment unlock timing for "${title}": ${extractedDueDate.toDateString()}`);
+    console.log(`📅 Using Canvas assignment unlock timing for "${title}": ${extractedDueDate.toDateString()}`);
   }
   
   // Priority 5: Extract from Canvas assignment lock_at as availability window end
   if (!extractedDueDate && canvasData?.lock_at) {
     extractedDueDate = new Date(canvasData.lock_at);
-    logger.debug(`📅 Using Canvas assignment lock timing for "${title}": ${extractedDueDate.toDateString()}`);
+    console.log(`📅 Using Canvas assignment lock timing for "${title}": ${extractedDueDate.toDateString()}`);
   }
   
   // FALLBACK: If no due date found but we have availability window, use availability start as due date
@@ -324,7 +322,7 @@ export function analyzeAssignmentWithCanvas(
     
     if (availableFromDate) {
       extractedDueDate = new Date(availableFromDate);
-      logger.debug(`📅 Using availability window as due date for "${title}": ${extractedDueDate.toDateString()}`);
+      console.log(`📅 Using availability window as due date for "${title}": ${extractedDueDate.toDateString()}`);
     }
   }
   
@@ -378,17 +376,17 @@ export function analyzeAssignmentWithCanvas(
   // Priority 2: Inferred module timing (existing successful pattern)
   if (!availableFrom && canvasData?.inferred_start_date) {
     availableFrom = new Date(canvasData.inferred_start_date);
-    logger.debug(`📅 Using inferred start for availability: ${availableFrom.toDateString()}`);
+    console.log(`📅 Using inferred start for availability: ${availableFrom.toDateString()}`);
   }
   if (!availableUntil && canvasData?.inferred_end_date) {
     availableUntil = new Date(canvasData.inferred_end_date);
-    logger.debug(`📅 Using inferred end for availability: ${availableUntil.toDateString()}`);
+    console.log(`📅 Using inferred end for availability: ${availableUntil.toDateString()}`);
   }
   
   // Priority 3: Module data timing (for assignments linked to modules)
   if (!availableFrom && canvasData?.module_data?.unlock_at) {
     availableFrom = new Date(canvasData.module_data.unlock_at);
-    logger.debug(`📅 Using module data unlock for availability: ${availableFrom.toDateString()}`);
+    console.log(`📅 Using module data unlock for availability: ${availableFrom.toDateString()}`);
   }
   
   
@@ -526,7 +524,7 @@ export async function extractDueDatesFromExistingAssignments(storage: any, optio
       return hasNoDueDate && matchesStudent;
     });
     
-    logger.info(`🔍 Found ${assignmentsNoDueDate.length} assignments without due dates for retroactive processing`);
+    console.log(`🔍 Found ${assignmentsNoDueDate.length} assignments without due dates for retroactive processing`);
     
     for (const assignment of assignmentsNoDueDate) {
       results.processed++;
@@ -545,13 +543,13 @@ export async function extractDueDatesFromExistingAssignments(storage: any, optio
               await storage.updateAssignment(assignment.id, {
                 dueDate: extractedDate
               });
-              logger.info(`✅ Updated "${assignment.title}" with due date: ${extractedDate.toDateString()}`);
+              console.log(`✅ Updated "${assignment.title}" with due date: ${extractedDate.toDateString()}`);
             } else {
-              logger.info(`🔍 DRY RUN: Would update "${assignment.title}" with due date: ${extractedDate.toDateString()}`);
+              console.log(`🔍 DRY RUN: Would update "${assignment.title}" with due date: ${extractedDate.toDateString()}`);
             }
             results.updated++;
           } else {
-            logger.warn(`⚠️ Skipped "${assignment.title}" - invalid date: ${validation.reason}`);
+            console.log(`⚠️ Skipped "${assignment.title}" - invalid date: ${validation.reason}`);
             results.skipped++;
           }
         } else {
@@ -570,15 +568,15 @@ export async function extractDueDatesFromExistingAssignments(storage: any, optio
           title: assignment.title,
           error: errorMsg
         });
-        logger.error(`❌ Error processing "${assignment.title}": ${errorMsg}`);
+        console.error(`❌ Error processing "${assignment.title}": ${errorMsg}`);
       }
     }
     
-    logger.info(`🎉 Retroactive cleanup complete: ${results.updated} updated, ${results.skipped} skipped, ${results.errors.length} errors`);
+    console.log(`🎉 Retroactive cleanup complete: ${results.updated} updated, ${results.skipped} skipped, ${results.errors.length} errors`);
     return results;
     
   } catch (error) {
-    logger.error('❌ Retroactive cleanup failed:', error);
+    console.error('❌ Retroactive cleanup failed:', error);
     throw error;
   }
 }

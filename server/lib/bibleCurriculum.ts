@@ -1,4 +1,3 @@
-import { logger } from "./logger";
 import { db } from '../db';
 import { bibleCurriculum } from '@shared/schema';
 import { eq, and, asc } from 'drizzle-orm';
@@ -38,7 +37,7 @@ async function getStudentPosition(studentName: string): Promise<{week: number, d
     
     return { week: 1, day: 1 };
   } catch (error) {
-    logger.error('Error getting student position:', error);
+    console.error('Error getting student position:', error);
     return { week: 1, day: 1 }; // Fallback
   }
 }
@@ -72,7 +71,7 @@ async function advanceStudentPosition(studentName: string): Promise<void> {
       WHERE student_name = ${studentName}
     `);
   } catch (error) {
-    logger.error('Error advancing student position:', error);
+    console.error('Error advancing student position:', error);
   }
 }
 
@@ -120,7 +119,7 @@ export async function getBibleCurriculumForDay(
       memoryVerse: memoryVerse || null
     };
   } catch (error) {
-    logger.error('Error fetching Bible curriculum:', error);
+    console.error('Error fetching Bible curriculum:', error);
     return {
       dailyReading: null,
       memoryVerse: null
@@ -139,7 +138,7 @@ export async function getNextBibleCurriculumForStudent(studentName: string) {
     const position = await getStudentPosition(studentName);
     return await getBibleCurriculumForDay(position.week, position.day);
   } catch (error) {
-    logger.error('Error getting next Bible curriculum for student:', error);
+    console.error('Error getting next Bible curriculum for student:', error);
     return { dailyReading: null, memoryVerse: null };
   }
 }
@@ -183,7 +182,7 @@ export async function completeBibleReadingAndAdvance(studentName: string): Promi
     
     return true;
   } catch (error) {
-    logger.error('Error completing Bible reading:', error);
+    console.error('Error completing Bible reading:', error);
     return false;
   }
 }
@@ -219,7 +218,7 @@ export async function markBibleCurriculumCompleted(
     
     return true;
   } catch (error) {
-    logger.error('Error marking Bible curriculum completed:', error);
+    console.error('Error marking Bible curriculum completed:', error);
     return false;
   }
 }
@@ -247,7 +246,7 @@ export async function getWeeklyBibleProgress(weekNumber: number) {
       items: weekCurriculum
     };
   } catch (error) {
-    logger.error('Error getting weekly Bible progress:', error);
+    console.error('Error getting weekly Bible progress:', error);
     return null;
   }
 }

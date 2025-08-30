@@ -67,7 +67,7 @@ export default function FamilyDashboard() {
 
   // Transform API data to match component expectations
   const dashboardData = {
-    students: (apiData as any)?.students?.map((student: any) => ({
+    students: apiData.students.map((student: any) => ({
       id: student.studentName,
       name: student.profile?.displayName || (student.studentName.charAt(0).toUpperCase() + student.studentName.slice(1)),
       initial: (student.profile?.displayName || student.studentName)[0].toUpperCase(),
@@ -93,7 +93,7 @@ export default function FamilyDashboard() {
     ],
     
     // Assignments that need parent attention from API
-    needsReview: (apiData as any)?.needsReview || []
+    needsReview: apiData.needsReview || []
   };
 
   const getTotalFlags = (student: any) => {
@@ -227,13 +227,13 @@ export default function FamilyDashboard() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <CheckCircle size={20} color={colors.complete} />
               <span style={{ color: colors.text }}>
-                <strong>{(apiData as any)?.stats?.totalCompleted || 0}</strong> tasks completed
+                <strong>{apiData.stats.totalCompleted}</strong> tasks completed
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Clock size={20} color={colors.progress} />
               <span style={{ color: colors.text }}>
-                <strong>{(apiData as any)?.stats?.totalRemaining || 0}</strong> tasks remaining
+                <strong>{apiData.stats.totalRemaining}</strong> tasks remaining
               </span>
             </div>
             {dashboardData.needsReview.length > 0 && (
@@ -254,7 +254,7 @@ export default function FamilyDashboard() {
           gap: '24px',
           marginBottom: '40px'
         }}>
-          {dashboardData.students.map((student: any) => {
+          {dashboardData.students.map(student => {
             const flagCount = getTotalFlags(student);
             const progressPercent = (student.todayStats.completed / student.todayStats.total) * 100;
             
@@ -460,7 +460,7 @@ export default function FamilyDashboard() {
             </h3>
             
             <div style={{ display: 'grid', gap: '12px' }}>
-              {dashboardData.needsReview.map((item: any, index: number) => (
+              {dashboardData.needsReview.map((item, index) => (
                 <div
                   key={index}
                   style={{
