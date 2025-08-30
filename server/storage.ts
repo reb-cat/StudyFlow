@@ -888,8 +888,56 @@ export class DatabaseStorage implements IStorage {
         return { assignment, score };
       });
       
-      // Sort by score (highest first)
-      scoredAssignments.sort((a, b) => b.score - a.score);
+      // Sort by score (highest first) with curriculum sequence awareness
+      scoredAssignments.sort((a, b) => {
+        // First sort by score
+        if (Math.abs(b.score - a.score) > 5) {
+          return b.score - a.score;
+        }
+        
+        // Within similar scores, handle curriculum sequences
+        const aTitle = a.assignment.title.toLowerCase();
+        const bTitle = b.assignment.title.toLowerCase();
+        
+        // Extract sequence numbers from titles (Week 1, Chapter 2, Part 3, etc.)
+        const extractSequenceNumber = (title: string) => {
+          const sequencePatterns = [
+            /week\s+(\d+)/i,
+            /chapter\s+(\d+)/i,
+            /part\s+(\d+)/i,
+            /lesson\s+(\d+)/i,
+            /unit\s+(\d+)/i,
+            /section\s+(\d+)/i,
+            /module\s+(\d+)/i
+          ];
+          
+          for (const pattern of sequencePatterns) {
+            const match = title.match(pattern);
+            if (match) {
+              return { type: pattern.source.split('\\')[0], number: parseInt(match[1], 10) };
+            }
+          }
+          return null;
+        };
+        
+        const aSeq = extractSequenceNumber(aTitle);
+        const bSeq = extractSequenceNumber(bTitle);
+        
+        // If both have sequences of the same type, sort by sequence number
+        if (aSeq && bSeq && aSeq.type === bSeq.type) {
+          // Check if they're from the same base assignment (remove sequence part)
+          const aBase = aTitle.replace(new RegExp(aSeq.type + '\\s+\\d+', 'i'), '').trim();
+          const bBase = bTitle.replace(new RegExp(bSeq.type + '\\s+\\d+', 'i'), '').trim();
+          
+          if (aBase === bBase || aBase.includes(bBase) || bBase.includes(aBase)) {
+            console.log(`📚 Curriculum sequence detected: "${a.assignment.title}" (${aSeq.number}) vs "${b.assignment.title}" (${bSeq.number})`);
+            return aSeq.number - bSeq.number; // Lower numbers first (Week 2 before Week 3)
+          }
+        }
+        
+        // No sequence relationship, maintain score order
+        return b.score - a.score;
+      });
       
       // Assign to blocks in time order, avoiding back-to-back heavy assignments
       let assignmentIndex = 0;
