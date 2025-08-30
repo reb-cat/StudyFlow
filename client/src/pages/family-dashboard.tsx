@@ -255,7 +255,7 @@ export default function FamilyDashboard() {
           marginBottom: '40px'
         }}>
           {dashboardData.students.map(student => {
-            const flagCount = getTotalFlags(student);
+            const flagCount = getTotalFlags(student: any);
             const progressPercent = (student.todayStats.completed / student.todayStats.total) * 100;
             
             return (
@@ -460,7 +460,7 @@ export default function FamilyDashboard() {
             </h3>
             
             <div style={{ display: 'grid', gap: '12px' }}>
-              {dashboardData.needsReview.map((item, index) => (
+              {dashboardData.needsReview.map((item: any, index: number) => (
                 <div
                   key={index}
                   style={{
