@@ -1,0 +1,42 @@
+@@
+-import { useState, useEffect, useMemo } from 'react';
++import { useState, useEffect, useMemo } from 'react';
++import { normalizeAssignment } from '@/shared/normalize';
+@@
+   const currentBlock = scheduleBlocks[currentIndex];
++  const normalized = useMemo(() => {
++    if (currentBlock?.type === 'assignment' && currentBlock.assignment) {
++      return normalizeAssignment(currentBlock.assignment);
++    }
++    return null;
++  }, [currentBlock]);
+@@
+-        <h2 className="mb-3 text-[20px] font-bold text-slate-800">
+-          {currentBlock.type === 'bible'
+-            ? (bibleData?.dailyReading?.readingTitle
+-                ? `Bible — ${bibleData.dailyReading.readingTitle}`
+-                : 'Bible')
+-            : currentBlock.title}
+-        </h2>
++        <div className="mb-2 flex items-start justify-between gap-3">
++          <h2 className="text-[20px] font-bold text-slate-800">
++            {currentBlock.type === 'bible'
++              ? (bibleData?.dailyReading?.readingTitle
++                  ? `Bible — ${bibleData.dailyReading.readingTitle}`
++                  : 'Bible')
++              : (normalized?.displayTitle || currentBlock.title)}
++          </h2>
++          {currentBlock.type === 'assignment' && (normalized?.courseLabel || currentBlock.assignment?.course) && (
++            <span className="shrink-0 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-medium text-slate-600">
++              {normalized?.courseLabel ?? currentBlock.assignment?.course}
++            </span>
++          )}
++        </div>
+@@
+-      {currentBlock.type === 'assignment' && currentBlock.assignment?.dueDate && (
++      {currentBlock.type === 'assignment' && (normalized?.effectiveDueAt || currentBlock.assignment?.dueDate) && (
+         <div style={{ fontSize: 14, color: colors.textMuted, marginBottom: 16 }}>
+-          Due: {new Date(currentBlock.assignment.dueDate).toLocaleDateString()}
++          Due: {new Date(normalized?.effectiveDueAt ?? currentBlock.assignment!.dueDate!).toLocaleDateString()}
+         </div>
+       )}

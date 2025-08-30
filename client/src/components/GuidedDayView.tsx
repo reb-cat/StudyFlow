@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { normalizeAssignment } from '@shared/assignmentNormalizer';
 import { Play, Pause, RotateCcw, CheckCircle, Clock, HelpCircle, Volume2, VolumeX, AlertCircle, ChevronRight, Undo } from 'lucide-react';
 import type { Assignment } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
@@ -318,6 +319,20 @@ export function GuidedDayView({
   const { toast } = useToast();
 
   const currentBlock = scheduleBlocks[currentIndex];
+  const normalized = useMemo(() => {
+    if (currentBlock?.type === 'assignment' && currentBlock.assignment) {
+      return normalizeAssignment({
+        id: currentBlock.assignment.id,
+        title: currentBlock.assignment.title,
+        course: currentBlock.assignment.courseName,
+        courseName: currentBlock.assignment.courseName,
+        subject: currentBlock.assignment.subject,
+        instructions: currentBlock.assignment.instructions,
+        dueDate: currentBlock.assignment.dueDate
+      });
+    }
+    return null;
+  }, [currentBlock]);
   const hasAssignmentInstructions = useMemo(() => {
     return currentBlock?.type === 'assignment' && !!currentBlock?.assignment?.instructions?.trim();
   }, [currentBlock]);
@@ -644,25 +659,31 @@ export function GuidedDayView({
 
         {/* Title card + Instructions pill */}
         <div className="mb-4 rounded-2xl bg-blue-50/60 px-5 py-4" style={{ marginBottom: '16px' }}>
-          <h2 className="mb-3 text-[20px] font-bold text-slate-800" style={{ 
-            fontSize: '20px', 
-            fontWeight: 'bold', 
-            color: colors.text,
-            marginBottom: '12px'
-          }}>
-            {currentBlock.type === 'bible'
-              ? (bibleData?.dailyReading?.readingTitle
-                  ? `Bible — ${bibleData.dailyReading.readingTitle}`
-                  : 'Bible')
-              : currentBlock.title}
-          </h2>
-          {currentBlock.assignment?.dueDate && (
+          <div className="mb-2 flex items-start justify-between gap-3">
+            <h2 className="text-[20px] font-bold text-slate-800" style={{ 
+              fontSize: '20px', 
+              fontWeight: 'bold', 
+              color: colors.text
+            }}>
+              {currentBlock.type === 'bible'
+                ? (bibleData?.dailyReading?.readingTitle
+                    ? `Bible — ${bibleData.dailyReading.readingTitle}`
+                    : 'Bible')
+                : (normalized?.displayTitle || currentBlock.title)}
+            </h2>
+            {currentBlock.type === 'assignment' && (normalized?.courseLabel || currentBlock.assignment?.courseName || currentBlock.assignment?.subject) && (
+              <span className="shrink-0 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-medium text-slate-600">
+                {normalized?.courseLabel ?? currentBlock.assignment?.courseName ?? currentBlock.assignment?.subject}
+              </span>
+            )}
+          </div>
+          {currentBlock.type === 'assignment' && (normalized?.effectiveDueAt || currentBlock.assignment?.dueDate) && (
             <div style={{ 
               fontSize: '14px', 
               color: colors.textMuted, 
               marginBottom: '12px'
             }}>
-              Due: {formatDateShort(currentBlock.assignment.dueDate)}
+              Due: {new Date(normalized?.effectiveDueAt ?? currentBlock.assignment!.dueDate!).toLocaleDateString()}
             </div>
           )}
           {(hasAssignmentInstructions || hasBibleDetails) && (
