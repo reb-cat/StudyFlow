@@ -440,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const dueDate = new Date(canvasAssignment.due_at);
             const cutoffDate = new Date('2024-01-01');
             if (dueDate < cutoffDate) {
-              console.log(`⏭️ Skipping very old assignment "${canvasAssignment.name} (Canvas 2)" (due: ${dueDate.toDateString()}) - before January 1, 2024`);
+              console.log(`⏭️ Skipping very old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before January 1, 2024`);
               continue;
             }
           }
@@ -463,17 +463,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const normalized = normalizeAssignment(assignmentLike);
           const finalDueDate = normalized.effectiveDueAt ? new Date(normalized.effectiveDueAt) : null;
           
-          // Log improved titles and due dates for Canvas 2
+          // Log improved titles and due dates for Canvas instance 2
           if (normalized.displayTitle !== canvasAssignment.name) {
-            console.log(`📝 Improved title (Canvas 2): "${canvasAssignment.name}" → "${normalized.displayTitle}"`);
+            console.log(`📝 Improved title: "${canvasAssignment.name}" → "${normalized.displayTitle}"`);
           }
           if (finalDueDate && !canvasAssignment.due_at) {
-            console.log(`📅 Extracted due date from content (Canvas 2): "${normalized.displayTitle}": ${finalDueDate.toDateString()}`);
+            console.log(`📅 Extracted due date from content: "${normalized.displayTitle}": ${finalDueDate.toDateString()}`);
           }
 
           const assignment = await storage.createAssignment({
             userId: userId,
-            title: `${normalized.displayTitle} (Canvas 2)`,
+            title: normalized.displayTitle,
             subject: normalized.courseLabel || 'Unknown Course 2',
             courseName: normalized.courseLabel || 'Unknown Course 2',
             instructions: canvasAssignment.description || 'Assignment from Canvas instance 2',

@@ -346,7 +346,7 @@ export class DatabaseStorage implements IStorage {
         dueDate: a.dueDate ? new Date(a.dueDate) : null,
         difficulty: a.difficulty as 'easy' | 'medium' | 'hard',
         actualEstimatedMinutes: a.actualEstimatedMinutes || 60,
-        completionStatus: a.completionStatus,
+        completionStatus: a.completionStatus || 'pending',
         scheduledDate: a.scheduledDate,
         scheduledBlock: a.scheduledBlock
       }));
@@ -374,7 +374,7 @@ export class DatabaseStorage implements IStorage {
       const updatedAssignments: Assignment[] = [];
       let scheduledCount = 0;
       
-      for (const [assignmentId, result] of schedulingResults.entries()) {
+      for (const [assignmentId, result] of Array.from(schedulingResults.entries())) {
         const updated = await this.updateAssignmentScheduling(assignmentId, {
           scheduledDate: result.scheduledDate,
           scheduledBlock: result.scheduledBlock,
