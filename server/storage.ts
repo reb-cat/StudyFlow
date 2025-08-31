@@ -10,7 +10,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, inArray } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -851,7 +851,7 @@ export class DatabaseStorage implements IStorage {
 
       const completedBlockIds = new Set(
         existingStatuses
-          .filter(status => status.status === 'completed')
+          .filter(status => status.status === 'complete')
           .map(status => status.templateBlockId)
       );
 
@@ -895,8 +895,11 @@ export class DatabaseStorage implements IStorage {
       assertStrictOrder('SERVER_TEMPLATE', templateBlocks);
       
       // Clear any existing scheduling ONLY for available (non-completed) assignment blocks
-      const availableBlockIds = availableAssignmentBlocks.map(block => block.id);
-      if (availableBlockIds.length > 0) {
+      const availableBlockNumbers = availableAssignmentBlocks
+        .map(block => block.blockNumber)
+        .filter(blockNumber => blockNumber !== null);
+      
+      if (availableBlockNumbers.length > 0) {
         await db.update(assignments)
           .set({
             scheduledDate: null,
@@ -906,9 +909,9 @@ export class DatabaseStorage implements IStorage {
           })
           .where(and(
             eq(assignments.scheduledDate, date),
-            inArray(assignments.scheduledBlock, availableBlockIds.filter(id => id !== null))
+            inArray(assignments.scheduledBlock, availableBlockNumbers)
           ));
-        console.log(`🔄 Cleared existing scheduling for ${availableBlockIds.length} available blocks`);
+        console.log(`🔄 Cleared existing scheduling for ${availableBlockNumbers.length} available blocks`);
       }
       
       // Get candidate assignments with ±7 day window and not completed

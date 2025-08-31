@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp, Plus, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { Assignment } from '@shared/schema';
@@ -23,6 +24,18 @@ export default function AdminPanel() {
   const [bulkOperation, setBulkOperation] = useState<string>('');
   const [selectedAssignments, setSelectedAssignments] = useState<Set<string>>(new Set());
   const [showAdvanced, setShowAdvanced] = useState(false);
+  
+  // Manual assignment creation state
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualAssignment, setManualAssignment] = useState({
+    title: '',
+    subject: '',
+    courseName: '',
+    instructions: '',
+    dueDate: '',
+    priority: 'B' as 'A' | 'B' | 'C',
+    actualEstimatedMinutes: 30
+  });
 
   // Get assignments for the selected student (limited to current week for better usability)
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
@@ -83,6 +96,42 @@ export default function AdminPanel() {
       toast({
         title: "Bulk Update Complete",
         description: `Updated ${selectedAssignments.size} assignments successfully.`
+      });
+    }
+  });
+
+  // Create manual assignment
+  const createAssignmentMutation = useMutation({
+    mutationFn: async (assignmentData: typeof manualAssignment & { studentName: string }) => {
+      const response = await apiRequest('POST', '/api/assignments', {
+        ...assignmentData,
+        isCanvasImport: false, // Mark as manual assignment
+        completionStatus: 'pending'
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+      setShowManualForm(false);
+      setManualAssignment({
+        title: '',
+        subject: '',
+        courseName: '',
+        instructions: '',
+        dueDate: '',
+        priority: 'B',
+        actualEstimatedMinutes: 30
+      });
+      toast({
+        title: "Assignment Created",
+        description: "Manual assignment has been created successfully."
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Creation Failed",
+        description: "Failed to create manual assignment.",
+        variant: "destructive"
       });
     }
   });
@@ -506,6 +555,227 @@ export default function AdminPanel() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Manual Assignment Creation */}
+          <div style={{
+            background: '#FFFFFF',
+            border: '1px solid #DEE2E6',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            marginBottom: '1rem',
+            boxShadow: '0 1px 2px rgba(33, 37, 41, 0.05)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem'
+            }}>
+              <h3 style={{
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: '#212529',
+                margin: 0
+              }}>Quick Add</h3>
+              <Button
+                onClick={() => setShowManualForm(!showManualForm)}
+                style={{
+                  background: '#844FC1',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Add Assignment
+              </Button>
+            </div>
+
+            {showManualForm && (
+              <div style={{ marginTop: '1rem' }}>
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      color: '#212529',
+                      marginBottom: '0.5rem'
+                    }}>Title *</label>
+                    <Input
+                      value={manualAssignment.title}
+                      onChange={(e) => setManualAssignment(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Assignment title..."
+                      style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #DEE2E6',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#212529',
+                        marginBottom: '0.5rem'
+                      }}>Subject</label>
+                      <Input
+                        value={manualAssignment.subject}
+                        onChange={(e) => setManualAssignment(prev => ({ ...prev, subject: e.target.value }))}
+                        placeholder="Subject..."
+                        style={{
+                          background: '#FFFFFF',
+                          border: '1px solid #DEE2E6',
+                          borderRadius: '8px'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#212529',
+                        marginBottom: '0.5rem'
+                      }}>Priority</label>
+                      <Select 
+                        value={manualAssignment.priority} 
+                        onValueChange={(value) => setManualAssignment(prev => ({ ...prev, priority: value as 'A' | 'B' | 'C' }))}
+                      >
+                        <SelectTrigger style={{
+                          background: '#FFFFFF',
+                          border: '1px solid #DEE2E6',
+                          borderRadius: '8px'
+                        }}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="A">A - High Priority</SelectItem>
+                          <SelectItem value="B">B - Medium Priority</SelectItem>
+                          <SelectItem value="C">C - Low Priority</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px', gap: '1rem' }}>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#212529',
+                        marginBottom: '0.5rem'
+                      }}>Due Date</label>
+                      <Input
+                        type="date"
+                        value={manualAssignment.dueDate}
+                        onChange={(e) => setManualAssignment(prev => ({ ...prev, dueDate: e.target.value }))}
+                        style={{
+                          background: '#FFFFFF',
+                          border: '1px solid #DEE2E6',
+                          borderRadius: '8px'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#212529',
+                        marginBottom: '0.5rem'
+                      }}>Minutes</label>
+                      <Input
+                        type="number"
+                        min="5"
+                        max="300"
+                        step="5"
+                        value={manualAssignment.actualEstimatedMinutes}
+                        onChange={(e) => setManualAssignment(prev => ({ ...prev, actualEstimatedMinutes: parseInt(e.target.value) || 30 }))}
+                        style={{
+                          background: '#FFFFFF',
+                          border: '1px solid #DEE2E6',
+                          borderRadius: '8px'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      color: '#212529',
+                      marginBottom: '0.5rem'
+                    }}>Instructions (Optional)</label>
+                    <Textarea
+                      value={manualAssignment.instructions}
+                      onChange={(e) => setManualAssignment(prev => ({ ...prev, instructions: e.target.value }))}
+                      placeholder="Assignment instructions or notes..."
+                      rows={3}
+                      style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #DEE2E6',
+                        borderRadius: '8px',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <Button
+                      onClick={() => createAssignmentMutation.mutate({ ...manualAssignment, studentName: selectedStudent })}
+                      disabled={!manualAssignment.title || createAssignmentMutation.isPending}
+                      style={{
+                        background: !manualAssignment.title ? '#F1F3F4' : '#21BF06',
+                        color: !manualAssignment.title ? '#6C757D' : 'white',
+                        border: 'none',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        cursor: !manualAssignment.title ? 'not-allowed' : 'pointer',
+                        flex: 1
+                      }}
+                    >
+                      {createAssignmentMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Create Assignment
+                    </Button>
+                    <Button
+                      onClick={() => setShowManualForm(false)}
+                      style={{
+                        background: '#F1F3F4',
+                        color: '#6C757D',
+                        border: 'none',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        fontSize: '0.875rem',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Summary Stats */}
