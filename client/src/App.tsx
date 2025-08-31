@@ -62,7 +62,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Check authentication status on app load
+    // Check authentication status ONLY on initial app load
     const checkAuth = async () => {
       try {
         const response = await fetch('/api/auth/status', {
@@ -81,26 +81,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
     
+    // Only check auth once on app load
     checkAuth();
-  }, []);
-
-  // Global error handler for 401 responses
-  useEffect(() => {
-    const handleGlobalError = (event: any) => {
-      if (event?.detail?.response?.status === 401) {
-        setIsAuthenticated(false);
-      }
-    };
-
-    window.addEventListener('unhandledrejection', (event) => {
-      if (event.reason?.message?.includes('401:')) {
-        setIsAuthenticated(false);
-      }
-    });
-
-    return () => {
-      window.removeEventListener('unhandledrejection', handleGlobalError);
-    };
   }, []);
 
   return (
