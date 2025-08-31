@@ -839,6 +839,34 @@ export class DatabaseStorage implements IStorage {
       const assignmentBlocks = templateBlocks.filter(block => 
         block.blockType === 'Assignment' || block.subject === 'Assignment'
       ).sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+      // CRITICAL: Get existing daily schedule status to preserve completed blocks
+      const existingStatuses = await db
+        .select()
+        .from(dailyScheduleStatus)
+        .where(and(
+          eq(dailyScheduleStatus.studentName, studentName),
+          eq(dailyScheduleStatus.date, date)
+        ));
+
+      const completedBlockIds = new Set(
+        existingStatuses
+          .filter(status => status.status === 'completed')
+          .map(status => status.templateBlockId)
+      );
+
+      // CRITICAL: Only allocate to blocks that are NOT completed
+      const availableAssignmentBlocks = assignmentBlocks.filter(block => 
+        !completedBlockIds.has(block.id)
+      );
+
+      console.log(`🔒 Found ${completedBlockIds.size} completed blocks that will be preserved`);
+      console.log(`📝 Found ${availableAssignmentBlocks.length} available assignment blocks for allocation`);
+
+      if (availableAssignmentBlocks.length === 0) {
+        console.log(`📝 No available assignment blocks found for ${studentName} on ${weekdayName} (all completed or none exist)`);
+        return;
+      }
       
       // DEBUG LOGGING: Import debug utilities
       const { logOrderTrace, assertStrictOrder } = await import('@shared/debug');
@@ -854,8 +882,8 @@ export class DatabaseStorage implements IStorage {
         label: block.subject || `Block ${block.blockNumber}`
       })));
       
-      // Log assignment slots
-      logOrderTrace('SERVER', 'assignmentSlots', assignmentBlocks.map(block => ({
+      // Log assignment slots (only available ones)
+      logOrderTrace('SERVER', 'assignmentSlots', availableAssignmentBlocks.map(block => ({
         blockId: block.id,
         blockType: 'assignment-slot',
         startTime: block.startTime,
@@ -866,9 +894,21 @@ export class DatabaseStorage implements IStorage {
       // Assert template order
       assertStrictOrder('SERVER_TEMPLATE', templateBlocks);
       
-      if (assignmentBlocks.length === 0) {
-        console.log(`📝 No assignment blocks found for ${studentName} on ${weekdayName}`);
-        return;
+      // Clear any existing scheduling ONLY for available (non-completed) assignment blocks
+      const availableBlockIds = availableAssignmentBlocks.map(block => block.id);
+      if (availableBlockIds.length > 0) {
+        await db.update(assignments)
+          .set({
+            scheduledDate: null,
+            scheduledBlock: null,
+            blockStart: null,
+            blockEnd: null
+          })
+          .where(and(
+            eq(assignments.scheduledDate, date),
+            inArray(assignments.scheduledBlock, availableBlockIds.filter(id => id !== null))
+          ));
+        console.log(`🔄 Cleared existing scheduling for ${availableBlockIds.length} available blocks`);
       }
       
       // Get candidate assignments with ±7 day window and not completed
@@ -980,7 +1020,7 @@ export class DatabaseStorage implements IStorage {
       });
       
       // INTELLIGENT SUBJECT DISTRIBUTION for optimal learning experience
-      console.log(`🎨 Optimizing subject distribution across ${assignmentBlocks.length} assignment blocks`);
+      console.log(`🎨 Optimizing subject distribution across ${availableAssignmentBlocks.length} assignment blocks`);
       
       // Group assignments by subject for better distribution
       const assignmentsBySubject = new Map<string, typeof scoredAssignments>();
@@ -998,7 +1038,7 @@ export class DatabaseStorage implements IStorage {
       let subjectIndex = 0;
       
       // Distribute assignments ensuring subject variety throughout the day
-      while (optimizedSequence.length < Math.min(scoredAssignments.length, assignmentBlocks.length)) {
+      while (optimizedSequence.length < Math.min(scoredAssignments.length, availableAssignmentBlocks.length)) {
         let assigned = false;
         
         // Try each subject starting from current index to distribute evenly
@@ -1023,11 +1063,11 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`✨ Subject distribution complete: ${optimizedSequence.length} assignments across ${subjectKeys.length} subjects`);
       
-      // Assign optimized sequence to blocks in time order
+      // Assign optimized sequence to available blocks only (preserving completed blocks)
       const assignedAssignments: string[] = [];
       
-      for (let blockIndex = 0; blockIndex < assignmentBlocks.length && blockIndex < optimizedSequence.length; blockIndex++) {
-        const block = assignmentBlocks[blockIndex];
+      for (let blockIndex = 0; blockIndex < availableAssignmentBlocks.length && blockIndex < optimizedSequence.length; blockIndex++) {
+        const block = availableAssignmentBlocks[blockIndex];
         const { assignment } = optimizedSequence[blockIndex];
         
         // Calculate block duration in minutes
