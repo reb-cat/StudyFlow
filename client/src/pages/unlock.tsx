@@ -20,16 +20,32 @@ export default function UnlockPage({ onUnlock }: UnlockPageProps) {
     setIsLoading(true);
 
     try {
-      await apiRequest('POST', '/api/unlock', { password });
-      toast({
-        title: "Access granted",
-        description: "Welcome to StudyFlow!",
+      const response = await fetch('/api/unlock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Ensure cookies are sent and received
+        body: JSON.stringify({ password }),
       });
-      onUnlock();
+
+      if (response.ok) {
+        toast({
+          title: "Access granted",
+          description: "Welcome to StudyFlow!",
+        });
+        onUnlock();
+      } else {
+        toast({
+          title: "Invalid password",
+          description: "Please check your family password and try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
-        title: "Invalid password",
-        description: "Please check your family password and try again.",
+        title: "Error",
+        description: "Failed to connect. Please try again.",
         variant: "destructive",
       });
     } finally {

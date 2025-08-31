@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,22 +15,19 @@ import PrintQueue from "@/pages/print-queue";
 import UnlockPage from "@/pages/unlock";
 import { apiRequest } from "@/lib/queryClient";
 
-function Router() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+// Auth context for global auth state management
+const AuthContext = createContext<{
+  isAuthenticated: boolean | null;
+  setIsAuthenticated: (auth: boolean) => void;
+}>({
+  isAuthenticated: null,
+  setIsAuthenticated: () => {},
+});
 
-  useEffect(() => {
-    // Check authentication status on app load
-    const checkAuth = async () => {
-      try {
-        const response = await apiRequest('GET', '/api/auth/status') as { authenticated: boolean };
-        setIsAuthenticated(response.authenticated);
-      } catch (error) {
-        setIsAuthenticated(false);
-      }
-    };
-    
-    checkAuth();
-  }, []);
+export const useAuth = () => useContext(AuthContext);
+
+function Router() {
+  const { isAuthenticated, setIsAuthenticated } = useAuth();
 
   // Show loading while checking auth
   if (isAuthenticated === null) {
@@ -61,13 +58,67 @@ function Router() {
   );
 }
 
+function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check authentication status on app load
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/status', {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setIsAuthenticated(data.authenticated);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        setIsAuthenticated(false);
+      }
+    };
+    
+    checkAuth();
+  }, []);
+
+  // Global error handler for 401 responses
+  useEffect(() => {
+    const handleGlobalError = (event: any) => {
+      if (event?.detail?.response?.status === 401) {
+        setIsAuthenticated(false);
+      }
+    };
+
+    window.addEventListener('unhandledrejection', (event) => {
+      if (event.reason?.message?.includes('401:')) {
+        setIsAuthenticated(false);
+      }
+    });
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleGlobalError);
+    };
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
