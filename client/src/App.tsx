@@ -49,7 +49,8 @@ function Router() {
   // Show app if authenticated
   return (
     <Switch>
-      <Route path="/" component={LandingPage} />
+      <Route path="/" component={StudentSelection} />
+      <Route path="/landing" component={LandingPage} />
       <Route path="/family" component={FamilyDashboard} />
       <Route path="/students" component={StudentSelection} />
       <Route path="/student/:student" component={StudentDashboard} />
