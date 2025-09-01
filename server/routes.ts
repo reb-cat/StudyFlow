@@ -842,7 +842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update assignment with new scheduling and status
       const updateData = {
-        completionStatus: 'needs_more_time' as const,
+        completionStatus: 'completed' as const, // Mark as completed since work was done
         scheduledDate: newScheduledDate,
         scheduledBlock: null, // Will be auto-scheduled later
         actualEstimatedMinutes: estimatedMinutesNeeded || assignment.actualEstimatedMinutes,
@@ -889,12 +889,81 @@ Partially completed - continued in: ${continuedTitle}`.trim(),
         updatedAt: new Date()
       });
       
+      // IMMEDIATE SCHEDULE REORDERING: Bump lower priority items and reschedule
+      const studentName = assignment.userId.replace('-user', '');
+      const today = new Date().toISOString().split('T')[0];
+      
+      try {
+        // Step 1: If continuing for today, bump lower priority assignments
+        if (newScheduledDate === today) {
+          console.log(`🔄 Bumping lower priority assignments to make room for: ${continuedTitle}`);
+          
+          // Get today's scheduled assignments
+          const todayAssignments = await storage.getAssignments(assignment.userId);
+          const todayScheduled = todayAssignments.filter(a => 
+            a.scheduledDate === today && 
+            a.scheduledBlock && 
+            a.completionStatus === 'pending' &&
+            a.id !== id // Exclude the original assignment
+          );
+          
+          // Find lower priority assignments to bump (C priority first, then B)
+          const toBump = todayScheduled
+            .filter(a => {
+              const currentPriority = continuedAssignment.priority;
+              if (currentPriority === 'A') return a.priority === 'B' || a.priority === 'C';
+              if (currentPriority === 'B') return a.priority === 'C';
+              return false; // Don't bump if continuation is C priority
+            })
+            .sort((a, b) => {
+              // Sort by priority (C first, then B) and then by due date (furthest first)
+              if (a.priority !== b.priority) {
+                if (a.priority === 'C') return -1;
+                if (b.priority === 'C') return 1;
+                return 0;
+              }
+              // Same priority, sort by due date (furthest first)
+              if (!a.dueDate && !b.dueDate) return 0;
+              if (!a.dueDate) return 1; // No due date goes last
+              if (!b.dueDate) return -1;
+              return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+            });
+          
+          // Bump one assignment to tomorrow if needed
+          if (toBump.length > 0) {
+            const assignmentToBump = toBump[0];
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            await storage.updateAssignment(assignmentToBump.id, {
+              scheduledDate: tomorrow.toISOString().split('T')[0],
+              scheduledBlock: null, // Will be auto-scheduled
+              notes: `${assignmentToBump.notes || ''}
+Bumped to make room for: ${continuedTitle}`.trim(),
+              updatedAt: new Date()
+            });
+            
+            console.log(`⏭️ Bumped ${assignmentToBump.title} to tomorrow for ${continuedTitle}`);
+          }
+        }
+        
+        // Step 2: Trigger immediate auto-scheduling for the target date
+        console.log(`🎯 Auto-scheduling ${continuedTitle} for ${newScheduledDate}`);
+        const schedulingResult = await storage.autoScheduleAssignmentsForDate(studentName, newScheduledDate);
+        console.log(`✅ Scheduled ${schedulingResult.scheduled}/${schedulingResult.total} assignments`);
+        
+      } catch (schedulingError) {
+        console.error('Warning: Failed to auto-schedule after Need More Time:', schedulingError);
+        // Continue anyway - the assignment is created, just might need manual scheduling
+      }
+      
       res.json({
         success: true,
-        message: 'Continued assignment created successfully',
+        message: 'Continued assignment created and schedule reordered successfully',
         originalAssignment: assignment,
         continuedAssignment,
-        reschedulingStrategy
+        reschedulingStrategy,
+        immediateReordering: true
       });
       
     } catch (error) {
