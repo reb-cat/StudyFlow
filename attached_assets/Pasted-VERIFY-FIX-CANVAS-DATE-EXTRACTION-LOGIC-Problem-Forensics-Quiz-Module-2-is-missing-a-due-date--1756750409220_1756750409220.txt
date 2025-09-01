@@ -1,0 +1,62 @@
+VERIFY & FIX CANVAS DATE EXTRACTION LOGIC
+Problem: "Forensics Quiz: Module 2" is missing a due date, indicating the Canvas import logic may not be extracting dates correctly.
+Part 1: Examine Current Date Extraction
+Check how Canvas dates are being extracted:
+bash# Find the Canvas import logic
+grep -n "dueDate\|due_at\|due_date" server/lib/canvas.ts
+grep -n "extractDueDate\|parseDueDate" server --include="*.ts"
+
+# Check what Canvas fields we're pulling
+grep -n "canvas\.assignment\|canvasAssignment" server/lib/canvas.ts
+Part 2: Check the Specific Assignment
+Query the database for this assignment:
+sqlSELECT title, due_date, canvas_id, available_from, available_until, created_at
+FROM assignments 
+WHERE title LIKE '%Forensics%Module 2%';
+Part 3: Test Canvas API Directly
+Check what Canvas actually returns for this assignment:
+bash# Get the Canvas ID for the assignment
+# Then test the Canvas API directly to see what date fields exist
+curl -H "Authorization: Bearer $CANVAS_API_TOKEN" \
+  "https://[canvas-instance]/api/v1/courses/[course-id]/assignments/[assignment-id]"
+Part 4: Review Date Extraction Logic
+Look for these patterns in the code:
+
+Is it checking assignment.due_at?
+Is it checking assignment.lock_at?
+Is it checking assignment.unlock_at?
+Does it handle null/undefined dates?
+Is there fallback logic for missing dates?
+
+Part 5: Identify Missing Date Scenarios
+Common Canvas scenarios that might cause missing dates:
+
+Assignment has no due date set in Canvas
+Assignment uses availability windows instead of due dates
+Assignment is part of a module with dates
+Date is in a different field than expected
+
+Part 6: Add Fallback Logic
+If dates are genuinely missing from Canvas:
+javascript// Suggested fallback priority:
+const dueDate = 
+  canvasAssignment.due_at ||
+  canvasAssignment.lock_at ||
+  canvasAssignment.todo_date ||
+  calculateFromModuleDates() ||
+  addDefaultDuration(canvasAssignment.unlock_at) ||
+  null; // Allow null but flag for manual edit
+Part 7: Add Edit Capability for Production
+For Assignment Management, add ability to:
+
+Edit due dates for imported assignments
+Flag assignments with missing dates
+Bulk update dates by pattern
+Set default durations for assignment types
+
+Expected Findings:
+
+Canvas date field mapping
+Why this specific assignment has no date
+Other assignments that might be affected
+Whether this is a Canvas data issue or import logic issue

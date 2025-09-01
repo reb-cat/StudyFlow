@@ -232,6 +232,33 @@ export class CanvasClient {
                 enhanced.module_data = moduleData;
                 enhanced.inferred_start_date = moduleData.unlock_at;
                 enhanced.inferred_end_date = moduleData.end_at;
+              } else {
+                // NEW: Smart fallback for assignments without dates
+                console.log(`⚠️ "${enhanced.name}" has no Canvas dates and no module timing - applying smart fallback`);
+                enhanced.needs_manual_due_date = true;
+                
+                // For quizzes, try to infer from related assignments
+                if (enhanced.name.toLowerCase().includes('quiz')) {
+                  const relatedAssignments = assignments.filter(a => 
+                    a.name.toLowerCase().includes('module') && 
+                    enhanced.name.toLowerCase().includes('module') &&
+                    a.due_at // Only consider assignments with actual dates
+                  );
+                  
+                  if (relatedAssignments.length > 0) {
+                    // Use the earliest related assignment's due date as reference
+                    const earliestDate = relatedAssignments
+                      .map(a => new Date(a.due_at))
+                      .sort((a, b) => a.getTime() - b.getTime())[0];
+                    
+                    // Set quiz to be due one day before the related assignment
+                    const suggestedDate = new Date(earliestDate);
+                    suggestedDate.setDate(suggestedDate.getDate() - 1);
+                    
+                    enhanced.suggested_due_date = suggestedDate.toISOString();
+                    console.log(`💡 "${enhanced.name}" suggested due date: ${suggestedDate.toISOString().split('T')[0]} (1 day before related assignment)`);
+                  }
+                }
               }
             }
             

@@ -156,10 +156,11 @@ class JobScheduler {
                   console.warn(`Failed to extract due date from title: ${canvasAssignment.name}`);
                 }
                 
-                // Use the best available due date source
+                // Use the best available due date source, including new suggested dates
                 const dueDate = extractedFromTitle || 
                                intelligence.extractedDueDate || 
                                (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null) ||
+                               (canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null) ||
                                (canvasAssignment.inferred_start_date ? new Date(canvasAssignment.inferred_start_date) : null);
                 
                 // Validate extracted due date is within current school year
@@ -220,7 +221,11 @@ class JobScheduler {
                   availableUntil: intelligence.availabilityWindow.availableUntil,
                   isRecurring: intelligence.isRecurring,
                   academicYear: canvasAssignment.academic_year,
-                  confidenceScore: intelligence.confidence.toString()
+                  confidenceScore: intelligence.confidence.toString(),
+                  
+                  // Smart fallback metadata for missing dates
+                  needsManualDueDate: canvasAssignment.needs_manual_due_date || false,
+                  suggestedDueDate: canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null
                 });
                 totalImported++;
               } else {
@@ -341,10 +346,11 @@ class JobScheduler {
                   console.warn(`Failed to extract due date from title: ${title}`);
                 }
                 
-                // Use the best available due date source
+                // Use the best available due date source, including new suggested dates
                 const dueDate = extractedFromTitle || 
                                intelligence.extractedDueDate || 
                                (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null) ||
+                               (canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null) ||
                                (canvasAssignment.inferred_start_date ? new Date(canvasAssignment.inferred_start_date) : null);
                 
                 // Validate extracted due date is within current school year
@@ -398,7 +404,11 @@ class JobScheduler {
                   availableUntil: intelligence.availabilityWindow.availableUntil,
                   isRecurring: intelligence.isRecurring,
                   academicYear: canvasAssignment.academic_year,
-                  confidenceScore: intelligence.confidence.toString()
+                  confidenceScore: intelligence.confidence.toString(),
+                  
+                  // Smart fallback metadata for missing dates
+                  needsManualDueDate: canvasAssignment.needs_manual_due_date || false,
+                  suggestedDueDate: canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null
                 });
                 totalImported++;
               } else {
