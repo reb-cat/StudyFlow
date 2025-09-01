@@ -208,8 +208,71 @@ export class CanvasClient {
             }
           });
           
+          // NEW: Also fetch module items to include educational content (Pages, Videos, etc.)
+          const moduleItems: any[] = [];
+          for (const module of modules) {
+            try {
+              const items = await this.makeRequest<any[]>(`/courses/${course.id}/modules/${module.id}/items?per_page=100`);
+              // Filter for educational content that should be treated as assignments
+              const educationalItems = items.filter(item => 
+                (item.type === 'Page' && (
+                  item.title?.toLowerCase().includes('video') ||
+                  item.title?.toLowerCase().includes('pre-class') ||
+                  item.title?.toLowerCase().includes('lesson') ||
+                  item.title?.toLowerCase().includes('lecture') ||
+                  item.title?.toLowerCase().includes('tutorial')
+                )) ||
+                (item.type === 'ExternalUrl' && (
+                  item.title?.toLowerCase().includes('video') ||
+                  item.title?.toLowerCase().includes('lesson')
+                ))
+              );
+              moduleItems.push(...educationalItems.map(item => ({
+                ...item,
+                course_id: course.id,
+                courseName: course.name,
+                module_id: module.id,
+                module_name: module.name
+              })));
+            } catch (error) {
+              console.warn(`Failed to fetch items for module ${module.id}:`, error);
+            }
+          }
+          
+          console.log(`  📺 Found ${moduleItems.length} educational module items in "${course.name}"`);
+          
+          // Convert module items to assignment-like objects
+          const moduleItemAssignments = moduleItems.map(item => ({
+            id: parseInt(`9999${item.id}`, 10), // Convert to number ID with prefix to avoid conflicts
+            name: item.title,
+            description: `Educational content from module: ${item.module_name}`,
+            due_at: null, // Module items typically don't have due dates
+            unlock_at: null,
+            lock_at: null,
+            course_id: item.course_id,
+            courseName: item.courseName,
+            submission_types: ['none'], // These are typically for viewing/studying
+            canvas_category: 'assignments' as const,
+            is_recurring: false,
+            academic_year: this.determineAcademicYear({ created_at: null, name: item.title } as any, course),
+            // Custom fields to identify these as module items
+            is_module_item: true,
+            module_id: item.module_id,
+            module_name: item.module_name,
+            module_item_type: item.type,
+            html_url: item.html_url,
+            external_url: item.external_url,
+            workflow_state: 'published',
+            created_at: null,
+            updated_at: null,
+            points_possible: null
+          }));
+
+          // Combine regular assignments with module item assignments
+          const allCourseAssignments = [...assignments, ...moduleItemAssignments];
+
           // Enhance assignments with comprehensive metadata including module timing
-          const assignmentsWithMetadata = await Promise.all(assignments.map(async assignment => {
+          const assignmentsWithMetadata = await Promise.all(allCourseAssignments.map(async assignment => {
             const enhanced = {
               ...assignment,
               courseName: course.name,
@@ -224,8 +287,8 @@ export class CanvasClient {
               academic_year: this.determineAcademicYear(assignment, course)
             };
             
-            // CRITICAL: Extract module timing when assignment timing is missing
-            if (!enhanced.due_at && !enhanced.unlock_at && !enhanced.lock_at) {
+            // CRITICAL: Extract module timing when assignment timing is missing (skip for module items)
+            if (!enhanced.is_module_item && !enhanced.due_at && !enhanced.unlock_at && !enhanced.lock_at) {
               const moduleData = this.findModuleForAssignment(enhanced, moduleMap);
               if (moduleData) {
                 console.log(`🔗 "${enhanced.name}" linked to module: "${moduleData.name}" (unlock: ${moduleData.unlock_at})`);
@@ -262,8 +325,8 @@ export class CanvasClient {
               }
             }
             
-            // Add TEXTBOOK links if this is a Forensic Science assignment
-            if (course.name.includes('Forensic Science') && !course.name.includes('TEXTBOOK')) {
+            // Add TEXTBOOK links if this is a Forensic Science assignment (skip for module items)
+            if (!enhanced.is_module_item && course.name.includes('Forensic Science') && !course.name.includes('TEXTBOOK')) {
               enhanced.textbook_links = await this.findTextbookLinks(enhanced);
             }
             
