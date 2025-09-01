@@ -1,0 +1,89 @@
+FIX ASSIGNMENT MANAGER: False Completions & Missing Bible Assignments
+Problem 1: Many assignments show as "Done" in Assignment Manager that were never completed by students or manually marked done.
+Problem 2: Bible curriculum assignments don't appear in Assignment Manager even though they show in Overview and Guided Day.
+Part 1: Diagnose False Completions
+sql-- Find assignments marked done and when
+SELECT user_id, COUNT(*), DATE(updated_at) as marked_date
+FROM assignments 
+WHERE completion_status = 'completed'
+GROUP BY user_id, DATE(updated_at)
+ORDER BY marked_date DESC;
+
+-- Look for bulk updates (many at same timestamp = automated)
+SELECT updated_at, COUNT(*) as count
+FROM assignments
+WHERE completion_status = 'completed'
+GROUP BY updated_at
+HAVING COUNT(*) > 5;
+Part 2: Find Where Assignments Get Auto-Marked
+Check for code that might auto-complete assignments:
+bash# Find completion logic
+grep -n "completionStatus = 'completed'" server --include="*.ts"
+grep -n "completion_status: 'completed'" server --include="*.ts"
+
+# Look for bulk update patterns
+grep -n "UPDATE.*completed\|bulkUpdate.*completion" server --include="*.ts"
+Part 3: Reset False Completions
+sql-- First, identify which ones are false
+SELECT id, title, completion_status, updated_at, notes
+FROM assignments
+WHERE completion_status = 'completed'
+  AND user_id = 'khalil-user'
+  AND title LIKE '%METEOROLOGY%';
+
+-- Reset only the false ones (after verification)
+UPDATE assignments
+SET completion_status = 'pending'
+WHERE completion_status = 'completed'
+  AND canvas_id IS NOT NULL
+  AND notes NOT LIKE '%manually completed%'
+  AND updated_at IN (
+    -- Timestamps of bulk false updates
+  );
+Part 4: Add Bible Assignments to Assignment Manager
+Find why Bible assignments are excluded:
+bash# Check Assignment Manager query
+grep -n "getAssignments\|fetchAssignments" client/src/pages/assignment-manager.tsx
+
+# Look for filters excluding Bible
+grep -n "Bible\|bible\|curriculum" client/src/pages/assignment-manager.tsx
+
+# Check if Bible uses different data source
+grep -n "getBibleAssignments\|bibleCurriculum" server/routes.ts
+Part 5: Fix Assignment Manager Query
+The Assignment Manager should fetch:
+javascript// Get ALL assignments for management
+const getAllAssignments = async () => {
+  // Regular Canvas assignments
+  const canvasAssignments = await getAssignments(userId);
+  
+  // Bible curriculum assignments
+  const bibleAssignments = await getBibleAssignments(userId);
+  
+  // Combine and sort by date
+  return [...canvasAssignments, ...bibleAssignments]
+    .sort((a, b) => a.dueDate - b.dueDate);
+};
+Part 6: Add Safeguards
+Prevent future false completions:
+
+Add completion_source field: 'manual', 'student', 'canvas_sync'
+Log who/what marked it complete
+Add "Reset Status" bulk action in Assignment Manager
+Show completion source in UI
+
+Part 7: Fix Bible Assignment Visibility
+Ensure Bible assignments:
+
+Have proper due dates for next 7 days
+Are included in Assignment Manager queries
+Can be manually marked complete/pending
+Show in same list as Canvas assignments
+
+Expected Findings:
+
+A pattern showing when/how assignments got falsely marked
+Missing Bible curriculum in Assignment Manager query
+Code that's auto-completing without user action
+
+Critical: Do NOT auto-mark anything as complete unless it's a manual action by student or admin.

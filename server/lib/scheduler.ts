@@ -137,12 +137,10 @@ class JobScheduler {
                   }
                 );
                 
-                // Determine completion status based on Canvas grading info
+                // FIXED: Do NOT auto-complete based on Canvas grading
+                // Students must manually mark assignments complete in StudyFlow
                 let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
-                if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
-                  completionStatus = 'completed';
-                  console.log(`📋 Auto-marking "${canvasAssignment.name}" as completed (graded in Canvas)`);
-                }
+                // REMOVED auto-completion logic to prevent false completions
 
                 // ENHANCED DUE DATE EXTRACTION AND VALIDATION
                 // Try extracting due date from title first (handles "Homework Due 9/15" cases)
@@ -332,12 +330,10 @@ class JobScheduler {
                   }
                 );
                 
-                // Determine completion status based on Canvas grading info
+                // FIXED: Do NOT auto-complete based on Canvas grading  
+                // Students must manually mark assignments complete in StudyFlow
                 let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
-                if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
-                  completionStatus = 'completed';
-                  console.log(`📋 Auto-marking "${title}" as completed (graded in Canvas)`);
-                }
+                // REMOVED auto-completion logic to prevent false completions
 
                 // ENHANCED DUE DATE EXTRACTION AND VALIDATION for Canvas Instance 2
                 // Try extracting due date from title first (handles "Homework Due 9/15" cases)
