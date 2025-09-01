@@ -90,9 +90,20 @@ export async function syncCompletionStatus(
       const dbAssignment = studentDbAssignments.find(a => a.canvasId === canvasAssignment.id);
       
       if (dbAssignment) {
-        // Check if Canvas shows this as truly completed (graded AND submitted)
-        const isCanvasCompleted = canvasAssignment.graded_submissions_exist && 
-                                  canvasAssignment.has_submitted_submissions;
+        // DEBUG: Check what Canvas is actually returning for this assignment
+        if (canvasAssignment.name.includes('Points, Lines and Planes')) {
+          console.log(`🔍 DEBUG Canvas data for "${canvasAssignment.name}":`, {
+            id: canvasAssignment.id,
+            graded_submissions_exist: canvasAssignment.graded_submissions_exist,
+            has_submitted_submissions: canvasAssignment.has_submitted_submissions,
+            workflow_state: canvasAssignment.workflow_state,
+            published: canvasAssignment.published
+          });
+        }
+        
+        // Check if Canvas shows this as completed (graded by teacher)
+        // If assignment is graded in Canvas, it should be marked complete in StudyFlow
+        const isCanvasCompleted = canvasAssignment.graded_submissions_exist;
         
         // Only sync to "completed" if Canvas shows it's truly done AND our status is still "pending"
         if (isCanvasCompleted && dbAssignment.completionStatus === 'pending') {
