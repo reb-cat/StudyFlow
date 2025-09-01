@@ -120,6 +120,7 @@ export class DatabaseStorage implements IStorage {
         
         // SECOND: Filter out non-completable assignments (participation, attendance, etc.)
         // These represent ongoing classroom behavior rather than discrete homework tasks
+        // NOTE: CAP assignments are completable and should NOT be filtered out
         const beforeTypeFilter = assignmentList.length;
         assignmentList = assignmentList.filter((assignment: any) => {
           const title = (assignment.title || '').toLowerCase();
@@ -129,8 +130,7 @@ export class DatabaseStorage implements IStorage {
             title.includes('attendance') ||
             title.includes('classroom participation') ||
             title.includes('class engagement') ||
-            title.includes('daily participation') ||
-            title.startsWith('cap:');
+            title.includes('daily participation');
           
           if (isParticipation) {
             console.log(`🚫 Excluding non-completable assignment: ${assignment.title}`);
