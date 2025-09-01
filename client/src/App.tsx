@@ -51,6 +51,7 @@ function Router() {
       <Route path="/landing" component={LandingPage} />
       <Route path="/family" component={FamilyDashboard} />
       <Route path="/students" component={StudentSelection} />
+      <Route path="/student" component={StudentSelection} />
       <Route path="/student/:student" component={StudentDashboard} />
       <Route path="/admin" component={AdminPanel} />
       <Route path="/assignments" component={AssignmentsPage} />
