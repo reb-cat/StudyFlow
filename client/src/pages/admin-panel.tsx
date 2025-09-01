@@ -353,10 +353,11 @@ export default function AdminPanel() {
   const getCanvasUrl = (assignment: Assignment) => {
     if (!assignment.canvasId || !assignment.canvasCourseId) return null;
     
-    // Use the appropriate Canvas base URL based on instance
+    // Use the correct Canvas base URL based on instance
+    // Instance 1: canvas.instructure.com, Instance 2: apologia.instructure.com
     const baseUrl = assignment.canvasInstance === 2 
-      ? 'https://fhchs.instructure.com' 
-      : 'https://fhchs.instructure.com'; // Both instances use same domain
+      ? 'https://apologia.instructure.com' 
+      : 'https://canvas.instructure.com';
     
     return `${baseUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
   };
@@ -371,7 +372,7 @@ export default function AdminPanel() {
   const saveEdit = () => {
     if (!editingAssignment) return;
     
-    const updateData: Partial<Assignment> = {
+    const updateData = {
       id: editingAssignment.id,
       title: editingAssignment.title,
       subject: editingAssignment.subject,
