@@ -262,14 +262,17 @@ export default function AssignmentsPage() {
   // Extract due dates mutation
   const extractDueDatesMutation = useMutation({
     mutationFn: async (studentName: string) => {
-      const response = await apiRequest('POST', `/api/admin/extract-due-dates/${studentName}`);
+      const response = await apiRequest('POST', `/api/assignments/extract-due-dates`, {
+        studentName,
+        dryRun: false
+      });
       return await response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
       toast({
         title: "Due Date Extraction Complete", 
-        description: `Updated ${data.updated} assignments with extracted due dates.`,
+        description: `Updated ${data.results.updated} assignments with extracted due dates.`,
       });
     },
     onError: (error) => {
