@@ -403,8 +403,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // POST /api/sync-canvas-completion/:studentName - Sync completion status from Canvas for existing assignments
+  app.post('/api/sync-canvas-completion/:studentName', requireAuth, async (req, res) => {
+    try {
+      const { studentName } = req.params;
+      console.log(`\n🔄 Starting Canvas completion sync for: ${studentName}`);
+      
+      // Get student assignments from database
+      const userId = `${studentName.toLowerCase()}-user`;
+      const existingAssignments = await storage.getAssignments(userId);
+      console.log(`📊 Found ${existingAssignments.length} existing assignments to check`);
+      
+      let updatedCount = 0;
+      const results = [];
+      
+      // Fetch Canvas assignments for comparison
+      const canvasData = await getAllAssignmentsForStudent(studentName);
+      const allCanvasAssignments = [
+        ...(canvasData.instance1 || []),
+        ...(canvasData.instance2 || [])
+      ];
+      console.log(`📚 Fetched ${allCanvasAssignments.length} assignments from Canvas`);
+      
+      // Match and update completion status
+      for (const dbAssignment of existingAssignments) {
+        if (dbAssignment.creationSource !== 'canvas_sync') continue; // Only sync Canvas assignments
+        if (dbAssignment.completionStatus === 'completed') continue; // Already completed
+        
+        // Find matching Canvas assignment by title and course
+        const canvasMatch = allCanvasAssignments.find(ca => 
+          ca.name === dbAssignment.title && ca.courseName === dbAssignment.courseName
+        );
+        
+        if (canvasMatch) {
+          // Check if it's graded and submitted in Canvas
+          if (canvasMatch.graded_submissions_exist && canvasMatch.has_submitted_submissions) {
+            console.log(`✅ Updating "${dbAssignment.title}" to completed (graded in Canvas)`);
+            
+            await storage.updateAssignment(dbAssignment.id, {
+              completionStatus: 'completed',
+              notes: `${dbAssignment.notes || ''}\nAuto-completed: Graded in Canvas`.trim(),
+              updatedAt: new Date()
+            });
+            
+            updatedCount++;
+            results.push({
+              id: dbAssignment.id,
+              title: dbAssignment.title,
+              action: 'completed',
+              reason: 'graded_in_canvas'
+            });
+          }
+        }
+      }
+      
+      console.log(`✅ Canvas completion sync finished: ${updatedCount} assignments updated`);
+      res.json({
+        message: `Canvas completion sync completed: ${updatedCount} assignments updated`,
+        updated: updatedCount,
+        total: existingAssignments.length,
+        results,
+        studentName
+      });
+      
+    } catch (error) {
+      console.error('Canvas completion sync failed:', error);
+      res.status(500).json({ 
+        message: 'Canvas completion sync failed', 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+  
   // Import Canvas assignments for a student
-  app.post('/api/import-canvas/:studentName', async (req, res) => {
+  app.post('/api/import-canvas/:studentName', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       const today = new Date().toISOString().split('T')[0];

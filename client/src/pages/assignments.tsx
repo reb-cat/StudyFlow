@@ -236,17 +236,17 @@ export default function AssignmentsPage() {
     },
   });
 
-  // Canvas sync mutation
+  // Canvas completion sync mutation
   const canvasSyncMutation = useMutation({
     mutationFn: async (studentName: string) => {
-      const response = await apiRequest('POST', `/api/canvas/sync/${studentName}`);
+      const response = await apiRequest('POST', `/api/sync-canvas-completion/${studentName}`);
       return await response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
       toast({
         title: "Canvas Sync Complete",
-        description: `Imported ${data.imported || 0} new assignments. Cleaned up ${data.cleaned || 0} duplicates.`,
+        description: `${data.updated} assignments updated from Canvas completion status`,
       });
     },
     onError: (error) => {
