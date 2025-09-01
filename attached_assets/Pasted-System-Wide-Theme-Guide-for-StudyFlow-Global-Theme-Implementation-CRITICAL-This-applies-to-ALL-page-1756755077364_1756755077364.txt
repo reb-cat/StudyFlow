@@ -1,0 +1,104 @@
+System-Wide Theme Guide for StudyFlow
+Global Theme Implementation
+CRITICAL: This applies to ALL pages - Student Dashboard, Family Dashboard, Student Selection, Admin, and Guided Mode. Do NOT change any functionality, only colors via CSS variables.
+Root CSS Variables Structure
+Create a global theme system with these variable names that ALL components reference:
+Core System Variables:
+
+--color-background: Main app background
+--color-surface: Cards and elevated elements
+--color-surface-secondary: Slightly different surface for variation
+--color-text: Primary text
+--color-text-muted: Secondary/supporting text
+--color-border: All borders and dividers
+
+Brand Variables (same in both modes):
+
+--color-primary: Rich purple (#844FC1 light, #A87DD1 dark)
+--color-primary-soft: Purple at 10-20% opacity for backgrounds
+
+Status Variables:
+
+--color-success: Green for completion
+--color-progress: Blue for active/in-progress
+--color-support: Gray for needs-help/stuck
+--color-warning: Yellow/amber for overtime (use sparingly)
+
+Light Mode Values
+
+Background: #F8F9FA
+Surface: #FFFFFF
+Surface Secondary: #FDFEFE
+Text: #212529
+Text Muted: #6C7293
+Border: #E9ECEF
+Success: #21BF06
+Progress: #3B86D1
+Support: #6C7293
+
+Dark Mode Values
+
+Background: #0C0D0E
+Surface: #1A1B1E
+Surface Secondary: #2C2D31
+Text: #F8F9FA
+Text Muted: #ADB5BD
+Border: #3C3D41
+Success: #3FD922 (brighter for visibility)
+Progress: #5BA3E5 (lighter for contrast)
+Support: #8B92A4 (lighter gray)
+
+Application Rules Across Pages
+Student Selection Page:
+
+Card backgrounds use Surface
+Student avatars keep their assigned colors (Abigail purple, Khalil blue)
+Hover states add 5% opacity backgrounds, never change text colors
+
+Family Dashboard:
+
+All cards use Surface color
+Alert badges use Support color
+Progress bars use Success when normal, Support when issues detected
+
+Student Dashboard Overview:
+
+Schedule blocks show status via icon colors only
+Background remains clean Background color
+Cards use Surface with subtle Border
+
+Admin Pages:
+
+Forms use Surface backgrounds
+Input fields have Border color
+Save buttons use Primary, Cancel uses Support
+
+Print Styles:
+
+Override all colors to black/white/grays for printing
+Maintain layout and hierarchy through borders and spacing
+
+Interaction States
+Hover: Add 5% opacity background tint, never change text colors
+Focus: Use Primary color at 20% opacity for focus rings
+Disabled: Reduce opacity to 50%, don't change colors
+Active/Pressed: Darken by 10% (light mode) or lighten by 10% (dark mode)
+What Must Stay Consistent
+
+Purple remains the primary brand color across both themes
+Status colors (green/blue/gray) maintain their semantic meaning
+All spacing, sizing, and layout remain unchanged
+Font weights and sizes never change between themes
+Animation timings stay identical
+Shadow depths remain proportional
+
+Testing Requirements
+Toggle between light/dark modes and verify:
+
+All text remains readable (WCAG AA contrast minimum)
+Interactive elements are clearly visible
+Status indicators maintain clear differentiation
+No functionality is affected by theme changes
+Print preview shows appropriate grayscale
+
+The theme system should detect system preference but allow manual override via the moon/sun toggle button that's already present on all pages.

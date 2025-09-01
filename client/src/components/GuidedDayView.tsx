@@ -102,16 +102,16 @@ type GuidedBlock = {
 };
 
 // StudyFlow color system
-// CSS variables for dark mode compatibility
+// Global theme colors that work in light and dark mode
 const colors = {
-  primary: 'hsl(var(--primary))',
-  complete: 'hsl(var(--status-complete))',
-  progress: 'hsl(var(--status-progress))',
-  support: 'hsl(var(--muted-foreground))',
-  background: 'hsl(var(--background))',
-  surface: 'hsl(var(--card))',
-  text: 'hsl(var(--foreground))',
-  textMuted: 'hsl(var(--muted-foreground))'
+  primary: 'var(--color-primary)',
+  complete: 'var(--color-success)',
+  progress: 'var(--color-progress)',
+  support: 'var(--color-support)',
+  background: 'var(--color-background)',
+  surface: 'var(--color-surface)',
+  text: 'var(--color-text)',
+  textMuted: 'var(--color-text-muted)'
 };
 
 // CircularTimer component with StudyFlow colors
@@ -800,7 +800,7 @@ export function GuidedDayView({
               {completedCount} completed
             </span>
           </div>
-          <div className="h-2 bg-muted rounded overflow-hidden">
+          <div className="h-2 rounded overflow-hidden" style={{ backgroundColor: 'var(--color-border)' }}>
             <div style={{
               width: `${progressPercentage}%`,
               height: '100%',
@@ -811,12 +811,17 @@ export function GuidedDayView({
         </div>
 
         {/* Title card + Instructions pill */}
-        <div className="mb-4 rounded-2xl bg-card border border-border px-5 py-4" style={{ marginBottom: '16px' }}>
+        <div className="mb-4 rounded-2xl border px-5 py-4" style={{ 
+          backgroundColor: colors.surface,
+          borderColor: 'var(--color-border)',
+          marginBottom: '16px' 
+        }}>
           <div className="mb-2 flex items-start justify-between gap-3">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-              <h2 className="text-[20px] font-bold text-foreground" style={{ 
+              <h2 className="text-[20px] font-bold" style={{ 
                 fontSize: '20px', 
-                fontWeight: 'bold', 
+                fontWeight: 'bold',
+                color: colors.text,
                 flex: 1
               }}>
                 {currentBlock.type === 'bible'

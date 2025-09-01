@@ -72,17 +72,17 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
 
   if (isLoading) {
     return (
-      <div className={`bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 ${className}`}>
+      <div className={`bg-card border border-border rounded-lg p-4 ${className}`}>
         <div className="flex items-center gap-3">
-          <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <BookOpen className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
           <div className="flex-1">
-            <div className="font-medium text-sm text-blue-900 dark:text-blue-100">
+            <div className="font-medium text-sm" style={{ color: 'var(--color-text)' }}>
               Bible Reading
             </div>
-            <div className="text-xs text-blue-700 dark:text-blue-300">
+            <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
               {blockStart} - {blockEnd}
             </div>
-            <div className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+            <div className="text-sm mt-1" style={{ color: 'var(--color-primary)' }}>
               Loading today's reading...
             </div>
           </div>
@@ -93,17 +93,17 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
 
   if (!todaysReading) {
     return (
-      <div className={`bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 ${className}`}>
+      <div className={`bg-card border border-border rounded-lg p-4 ${className}`}>
         <div className="flex items-center gap-3">
-          <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <BookOpen className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
           <div className="flex-1">
-            <div className="font-medium text-sm text-blue-900 dark:text-blue-100">
+            <div className="font-medium text-sm" style={{ color: 'var(--color-text)' }}>
               Bible Reading
             </div>
-            <div className="text-xs text-blue-700 dark:text-blue-300">
+            <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
               {blockStart} - {blockEnd}
             </div>
-            <div className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+            <div className="text-sm mt-1" style={{ color: 'var(--color-primary)' }}>
               No reading scheduled for today
             </div>
           </div>

@@ -4,35 +4,46 @@
 @tailwind utilities;
 
 :root {
-  /* New Purple-Based Palette */
-  --primary: hsl(265, 49%, 53%);           /* #844FC1 - Rich purple */
-  --primary-light: hsl(260, 53%, 63%);     /* #9D6DD1 - Lighter purple */
-  --primary-dark: hsl(268, 42%, 45%);      /* #6B3FA0 - Deeper purple */
-  --primary-subtle: hsl(270, 100%, 97%);   /* #F3F0FF - Very light purple */
+  /* StudyFlow Global Theme System - Light Mode */
   
-  --accent: hsl(104, 90%, 38%);            /* #21BF06 - Vibrant green */
-  --accent-light: hsl(142, 76%, 58%);      /* #4ADE80 - Lighter green */
-  --accent-subtle: hsl(120, 60%, 97%);     /* #F0FDF4 - Light green background */
+  /* Core System Variables */
+  --color-background: #F8F9FA;      /* Main app background */
+  --color-surface: #FFFFFF;         /* Cards and elevated elements */
+  --color-surface-secondary: #FDFEFE; /* Slightly different surface */
+  --color-text: #212529;            /* Primary text */
+  --color-text-muted: #6C7293;      /* Secondary/supporting text */
+  --color-border: #E9ECEF;          /* All borders and dividers */
   
-  /* Status System - Clean and Clear */
-  --status-complete: 33 191 6;   /* #21BF06 - Vibrant green */
-  --status-progress: 59 134 209;   /* #3B86D1 - Bright blue */
-  --status-blocked: 108 114 147;    /* #6C7293 - Slate gray */
+  /* Brand Variables (same purple family) */
+  --color-primary: #844FC1;         /* Rich purple */
+  --color-primary-soft: rgba(132, 79, 193, 0.1); /* Purple at 10% opacity */
   
-  /* Sophisticated Neutrals */
-  --background: hsl(210, 17%, 98%);        /* #F8F9FA - Clean light gray */
-  --surface-secondary: hsl(210, 14%, 95%); /* #F1F3F4 - Slightly deeper gray */
-  --surface-tertiary: hsl(210, 11%, 93%);  /* #E9ECEF - Even deeper for layering */
-  --card: hsl(0, 0%, 100%);                /* #FFFFFF - Pure white for cards */
+  /* Status Variables */
+  --color-success: #21BF06;         /* Green for completion */
+  --color-progress: #3B86D1;        /* Blue for active/in-progress */
+  --color-support: #6C7293;         /* Gray for needs-help/stuck */
+  --color-warning: #F59E0B;         /* Amber for warnings */
   
-  --foreground: hsl(210, 11%, 15%);        /* #212529 - Rich dark gray */
-  --muted-foreground: hsl(210, 8%, 46%);   /* #6C757D - Medium gray */
-  --text-tertiary: hsl(210, 11%, 71%);     /* #ADB5BD - Lighter gray */
-  --text-muted: hsl(210, 14%, 83%);        /* #CED4DA - Very light gray */
-  
-  --border: hsl(210, 14%, 89%);            /* #DEE2E6 - Soft gray border */
-  --border-medium: hsl(210, 14%, 83%);     /* #CED4DA - More defined border */
-  --border-strong: hsl(210, 11%, 71%);     /* #ADB5BD - Strong borders */
+  /* Legacy Tailwind Variables (using new color system) */
+  --background: 248 249 250;        /* #F8F9FA */
+  --foreground: 33 37 41;           /* #212529 */
+  --card: 255 255 255;              /* #FFFFFF */
+  --card-foreground: 33 37 41;      /* #212529 */
+  --popover: 255 255 255;           /* #FFFFFF */
+  --popover-foreground: 33 37 41;   /* #212529 */
+  --primary: 132 79 193;            /* #844FC1 */
+  --primary-foreground: 255 255 255; /* #FFFFFF */
+  --secondary: 253 254 254;         /* #FDFEFE */
+  --secondary-foreground: 33 37 41; /* #212529 */
+  --muted: 253 254 254;             /* #FDFEFE */
+  --muted-foreground: 108 114 147;  /* #6C7293 */
+  --accent: 253 254 254;            /* #FDFEFE */
+  --accent-foreground: 33 37 41;    /* #212529 */
+  --destructive: 239 68 68;         /* Red */
+  --destructive-foreground: 255 255 255;
+  --border: 233 236 239;            /* #E9ECEF */
+  --input: 233 236 239;             /* #E9ECEF */
+  --ring: 132 79 193;               /* #844FC1 */
   
   /* Updated to use new purple theme */
   --card-foreground: hsl(210, 11%, 15%);
@@ -75,44 +86,46 @@
 }
 
 .dark {
-  /* Dark Mode Colors per Guide */
-  --background: 26 27 30; /* #1A1B1E - near black */
-  --foreground: 248 249 250; /* #F8F9FA - off-white */
-  --card: 44 45 49; /* #2C2D31 - elevated dark surface */
-  --card-foreground: 248 249 250; /* #F8F9FA - off-white */
-  --popover: 44 45 49; /* #2C2D31 */
-  --popover-foreground: 248 249 250; /* #F8F9FA */
-  --primary: 168 125 209; /* #A87DD1 - lighter purple for visibility */
-  --primary-foreground: 26 27 30; /* #1A1B1E */
-  --secondary: 60 61 65; /* #3C3D41 */
-  --secondary-foreground: 248 249 250; /* #F8F9FA */
-  --muted: 60 61 65; /* #3C3D41 */
-  --muted-foreground: 173 181 189; /* #ADB5BD - light gray */
-  --accent: 60 61 65; /* #3C3D41 */
-  --accent-foreground: 248 249 250; /* #F8F9FA */
-  --destructive: 220 38 38;
-  --destructive-foreground: 248 249 250;
-  --border: 60 61 65; /* #3C3D41 - subtle dark border */
-  --input: 60 61 65; /* #3C3D41 */
-  --ring: 168 125 209; /* #A87DD1 */
-  --chart-1: 220 70 50;
-  --chart-2: 160 60 45;
-  --chart-3: 30 80 55;
-  --chart-4: 280 65 60;
-  --chart-5: 340 75 55;
-  --sidebar: 44 45 49;
-  --sidebar-foreground: 248 249 250;
-  --sidebar-primary: 168 125 209;
-  --sidebar-primary-foreground: 26 27 30;
-  --sidebar-accent: 60 61 65;
-  --sidebar-accent-foreground: 248 249 250;
-  --sidebar-border: 60 61 65;
-  --sidebar-ring: 168 125 209;
+  /* StudyFlow Global Theme System - Dark Mode */
   
-  /* Custom StudyFlow Colors for Dark Mode */
-  --status-complete: 63 217 34; /* #3FD922 - brighter green for dark */
-  --status-progress: 91 163 229; /* #5BA3E5 - lighter blue for dark */
-  --status-blocked: 139 146 164; /* #8B92A4 - lighter gray for visibility */
+  /* Core System Variables */
+  --color-background: #0C0D0E;      /* Main app background - truly dark */
+  --color-surface: #1A1B1E;         /* Cards and elevated elements */
+  --color-surface-secondary: #2C2D31; /* Slightly different surface */
+  --color-text: #F8F9FA;            /* Primary text - off-white */
+  --color-text-muted: #ADB5BD;      /* Secondary/supporting text */
+  --color-border: #3C3D41;          /* All borders and dividers */
+  
+  /* Brand Variables (adjusted for dark mode) */
+  --color-primary: #A87DD1;         /* Lighter purple for visibility */
+  --color-primary-soft: rgba(168, 125, 209, 0.1); /* Purple at 10% opacity */
+  
+  /* Status Variables (adjusted for dark mode) */
+  --color-success: #3FD922;         /* Brighter green for dark */
+  --color-progress: #5BA3E5;        /* Lighter blue for contrast */
+  --color-support: #8B92A4;         /* Lighter gray for visibility */
+  --color-warning: #FBBF24;         /* Lighter amber for dark mode */
+  
+  /* Legacy Tailwind Variables (using new dark color system) */
+  --background: 12 13 14;           /* #0C0D0E */
+  --foreground: 248 249 250;        /* #F8F9FA */
+  --card: 26 27 30;                 /* #1A1B1E */
+  --card-foreground: 248 249 250;   /* #F8F9FA */
+  --popover: 26 27 30;              /* #1A1B1E */
+  --popover-foreground: 248 249 250; /* #F8F9FA */
+  --primary: 168 125 209;           /* #A87DD1 */
+  --primary-foreground: 12 13 14;   /* #0C0D0E */
+  --secondary: 44 45 49;            /* #2C2D31 */
+  --secondary-foreground: 248 249 250; /* #F8F9FA */
+  --muted: 44 45 49;                /* #2C2D31 */
+  --muted-foreground: 173 181 189;  /* #ADB5BD */
+  --accent: 44 45 49;               /* #2C2D31 */
+  --accent-foreground: 248 249 250; /* #F8F9FA */
+  --destructive: 239 68 68;         /* Red */
+  --destructive-foreground: 248 249 250;
+  --border: 60 61 65;               /* #3C3D41 */
+  --input: 60 61 65;                /* #3C3D41 */
+  --ring: 168 125 209;              /* #A87DD1 */
 }
 
 @layer base {
