@@ -137,10 +137,15 @@ class JobScheduler {
                   }
                 );
                 
-                // FIXED: Do NOT auto-complete based on Canvas grading
-                // Students must manually mark assignments complete in StudyFlow
+                // Auto-complete ONLY if truly graded/submitted in Canvas
                 let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
-                // REMOVED auto-completion logic to prevent false completions
+                if (canvasAssignment.graded_submissions_exist && canvasAssignment.has_submitted_submissions) {
+                  // Both graded AND submitted = truly completed
+                  completionStatus = 'completed';
+                  console.log(`✅ Auto-marking "${canvasAssignment.name}" as completed (graded + submitted in Canvas)`);
+                } else if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
+                  console.log(`⚠️ Partial completion for "${canvasAssignment.name}" - graded: ${canvasAssignment.graded_submissions_exist}, submitted: ${canvasAssignment.has_submitted_submissions}`);
+                }
 
                 // ENHANCED DUE DATE EXTRACTION AND VALIDATION
                 // Try extracting due date from title first (handles "Homework Due 9/15" cases)
@@ -330,10 +335,15 @@ class JobScheduler {
                   }
                 );
                 
-                // FIXED: Do NOT auto-complete based on Canvas grading  
-                // Students must manually mark assignments complete in StudyFlow
+                // Auto-complete ONLY if truly graded/submitted in Canvas
                 let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
-                // REMOVED auto-completion logic to prevent false completions
+                if (canvasAssignment.graded_submissions_exist && canvasAssignment.has_submitted_submissions) {
+                  // Both graded AND submitted = truly completed
+                  completionStatus = 'completed';
+                  console.log(`✅ Auto-marking "${title}" as completed (graded + submitted in Canvas)`);
+                } else if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
+                  console.log(`⚠️ Partial completion for "${title}" - graded: ${canvasAssignment.graded_submissions_exist}, submitted: ${canvasAssignment.has_submitted_submissions}`);
+                }
 
                 // ENHANCED DUE DATE EXTRACTION AND VALIDATION for Canvas Instance 2
                 // Try extracting due date from title first (handles "Homework Due 9/15" cases)
