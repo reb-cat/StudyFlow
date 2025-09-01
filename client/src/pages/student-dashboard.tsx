@@ -62,12 +62,13 @@ const toNYDateString = (d = new Date()) => {
 };
 
 // Clean icon mapping system
-export type BlockKind = "bible" | "co-op" | "travel" | "lunch" | "break" | "prep" | "assignment" | "timer" | "done" | "needMoreTime" | "stuck" | "fixed" | "movement" | "prep/load";
+export type BlockKind = "bible" | "co-op" | "travel" | "lunch" | "break" | "prep" | "assignment" | "timer" | "done" | "needMoreTime" | "stuck" | "fixed" | "movement" | "prep/load" | "study hall";
 
 export const iconFor = (kind: BlockKind, label?: string) => {
   switch (kind) {
     case "bible":        return BookOpenText;
     case "co-op":        return School;           // or GraduationCap
+    case "study hall":   return ClipboardList;   // Assignment work during co-op study hall
     case "travel":       return Car;              // or BusFront if bus
     case "lunch":        return Utensils;
     case "break":        return Coffee;

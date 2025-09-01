@@ -485,7 +485,9 @@ export function GuidedDayView({
       bible: { borderColor: colors.primary, bgColor: '#F4F0FA', icon: CheckCircle },
       fixed: { borderColor: colors.support, bgColor: colors.background, icon: HelpCircle },
       lunch: { borderColor: colors.support, bgColor: colors.background, icon: HelpCircle },
-      movement: { borderColor: colors.complete, bgColor: '#E8F8E5', icon: CheckCircle }
+      movement: { borderColor: colors.complete, bgColor: '#E8F8E5', icon: CheckCircle },
+      'study hall': { borderColor: colors.progress, bgColor: '#E8F4FC', icon: Clock }, // Similar to assignment but lighter
+      'Study Hall': { borderColor: colors.progress, bgColor: '#E8F4FC', icon: Clock }  // Case variation support
     };
     return styles[blockType as keyof typeof styles] || styles.assignment;
   };

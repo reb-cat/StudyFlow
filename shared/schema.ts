@@ -117,6 +117,8 @@ export const assignments = pgTable("assignments", {
   }).default("pending"),
   blockType: text("block_type").default("assignment"), // assignment, co-op, travel, prep, etc.
   isAssignmentBlock: boolean("is_assignment_block").default(true),
+  isPortable: boolean("is_portable").default(true), // Can be done during study hall at co-op
+  portabilityReason: text("portability_reason"), // Why it's portable/non-portable
   priority: text("priority", { enum: ["A", "B", "C"] }).default("B"), // A=Critical, B=Important, C=Flexible
   difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }).default("medium"),
   timeSpent: integer("time_spent").default(0), // actual minutes spent
@@ -173,7 +175,7 @@ export const scheduleTemplate = pgTable("schedule_template", {
   endTime: text("end_time").notNull(), // "09:30:00" format
   subject: text("subject").notNull(), // "Bible", "Assignment", "Math", etc.
   blockType: text("block_type", {
-    enum: ["Bible", "Assignment", "Travel", "Co-op", "Prep/Load", "Movement", "Lunch"]
+    enum: ["Bible", "Assignment", "Travel", "Co-op", "Study Hall", "Prep/Load", "Movement", "Lunch"]
   }).notNull(),
 });
 

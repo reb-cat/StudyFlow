@@ -270,8 +270,21 @@ export class DatabaseStorage implements IStorage {
         printStatus: data.printStatus || 'not_needed',
         printReason: data.printReason || null,
         printedAt: data.printedAt || null,
-        canvasUrl: data.canvasUrl || null
+        canvasUrl: data.canvasUrl || null,
+        // CO-OP WORKFLOW: Analyze and set assignment portability
+        isPortable: data.isPortable,
+        portabilityReason: data.portabilityReason
       };
+
+      // Auto-analyze portability if not provided
+      if (data.isPortable === undefined) {
+        const { analyzeAssignmentPortability } = await import('./lib/assignmentIntelligence');
+        const portability = analyzeAssignmentPortability(data.title, data.instructions || '');
+        assignmentData.isPortable = portability.isPortable;
+        assignmentData.portabilityReason = portability.reason;
+        
+        console.log(`📱 Auto-analyzed portability for "${data.title}": ${portability.isPortable ? 'PORTABLE' : 'NON-PORTABLE'} - ${portability.reason}`);
+      }
       
       const result = await db.insert(assignments).values(assignmentData).returning();
       return result[0];

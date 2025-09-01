@@ -3,6 +3,13 @@
  * Handles smart text parsing and categorization of assignments
  */
 
+// Assignment portability detection for co-op study hall workflow
+export interface PortabilityAnalysis {
+  isPortable: boolean;
+  reason: string;
+  confidence: number; // 0-1 scale
+}
+
 export interface AssignmentIntelligence {
   extractedDueDate: Date | null;
   isInClassActivity: boolean;
@@ -556,21 +563,48 @@ export function autoScheduleAssignments(
     (!a.scheduledDate || !a.scheduledBlock)
   );
   
-  // 2. Get available assignment blocks for target date
+  // 2. Get available blocks for target date
   const targetDateObj = new Date(targetDate);
   const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const weekday = weekdays[targetDateObj.getDay()];
   
+  // CO-OP WORKFLOW: Separate blocks by type
   const assignmentBlocks = scheduleBlocks.filter(block => 
     block.studentName === studentName &&
     block.weekday === weekday &&
     block.blockType === 'Assignment' &&
     block.blockNumber !== null
   ).sort((a, b) => (a.blockNumber || 0) - (b.blockNumber || 0));
+
+  const studyHallBlocks = scheduleBlocks.filter(block => 
+    block.studentName === studentName &&
+    block.weekday === weekday &&
+    block.blockType === 'Study Hall' &&
+    block.blockNumber !== null
+  ).sort((a, b) => (a.blockNumber || 0) - (b.blockNumber || 0));
+
+  // Detect if this is a co-op day
+  const isCoopDay = studyHallBlocks.length > 0;
+  const totalAvailableBlocks = assignmentBlocks.length + studyHallBlocks.length;
   
-  console.log(`📅 Found ${assignmentBlocks.length} assignment blocks for ${weekday}`);
+  if (isCoopDay) {
+    console.log(`🏫 CO-OP DAY DETECTED: ${assignmentBlocks.length} home blocks + ${studyHallBlocks.length} study hall blocks`);
+  }
   
-  // 3. Sort assignments by priority and due date
+  console.log(`📅 Found ${totalAvailableBlocks} total blocks for ${weekday} (${assignmentBlocks.length} home + ${studyHallBlocks.length} study hall)`);
+  
+  // 3. CO-OP WORKFLOW: Analyze assignment portability if it's a co-op day
+  const assignmentPortability = new Map<string, PortabilityAnalysis>();
+  
+  if (isCoopDay) {
+    for (const assignment of unscheduledAssignments) {
+      const portability = analyzeAssignmentPortability(assignment.title, '');
+      assignmentPortability.set(assignment.id, portability);
+      console.log(`📱 "${assignment.title}": ${portability.isPortable ? 'PORTABLE' : 'NON-PORTABLE'} - ${portability.reason}`);
+    }
+  }
+  
+  // 4. Sort assignments by priority and due date
   const sortedAssignments = unscheduledAssignments.sort((a, b) => {
     // Priority: A > B > C
     const priorityOrder = { 'A': 3, 'B': 2, 'C': 1 };
@@ -588,53 +622,116 @@ export function autoScheduleAssignments(
     return 0;
   });
   
-  // 4. Track effort levels for alternation
+  // 5. Track effort levels for alternation
   const effortRotation = ['easy', 'medium', 'hard'];
   let currentEffortIndex = 0;
-  const usedBlocks = new Set<number>();
+  const usedHomeBlocks = new Set<number>();
+  const usedStudyHallBlocks = new Set<number>();
   
-  // 5. Schedule assignments to blocks
+  // 6. CO-OP WORKFLOW: Schedule assignments location-aware
   for (const assignment of sortedAssignments) {
-    if (usedBlocks.size >= assignmentBlocks.length) {
+    if (usedHomeBlocks.size >= assignmentBlocks.length && 
+        usedStudyHallBlocks.size >= studyHallBlocks.length) {
       // No more blocks available for this day
       console.log(`⚠️ No more assignment blocks available for ${assignment.title}`);
       continue;
     }
     
-    // Find best block for this assignment
+    // LOCATION-AWARE BLOCK SELECTION for Co-op vs Regular days
     let selectedBlock: ScheduleBlock | null = null;
+    let blockLocation = 'home';
     
-    // Priority A assignments get first available blocks
-    if (assignment.priority === 'A') {
-      selectedBlock = assignmentBlocks.find(block => 
-        !usedBlocks.has(block.blockNumber!)
-      ) || null;
-    }
-    // For B and C, try to alternate effort levels
-    else {
-      // Try to find a block that maintains effort alternation
-      const preferredEffort = effortRotation[currentEffortIndex];
+    if (isCoopDay) {
+      // CO-OP DAY: Route assignments based on portability
+      const portability = assignmentPortability.get(assignment.id);
+      const isPortable = portability?.isPortable ?? true;
       
-      // First try: match effort level if assignment difficulty matches preference
-      if (assignment.difficulty === preferredEffort) {
-        selectedBlock = assignmentBlocks.find(block => 
-          !usedBlocks.has(block.blockNumber!)
-        ) || null;
+      if (isPortable && studyHallBlocks.length > 0) {
+        // PORTABLE assignment: Prefer Study Hall blocks for focus time
+        
+        if (assignment.priority === 'A') {
+          // Priority A: Get any available study hall block
+          selectedBlock = studyHallBlocks.find(block => 
+            !usedStudyHallBlocks.has(block.blockNumber!)
+          ) || assignmentBlocks.find(block => 
+            !usedHomeBlocks.has(block.blockNumber!)
+          ) || null;
+        } else {
+          // B/C priority: Try study hall, fallback to home
+          selectedBlock = studyHallBlocks.find(block => 
+            !usedStudyHallBlocks.has(block.blockNumber!)
+          ) || assignmentBlocks.find(block => 
+            !usedHomeBlocks.has(block.blockNumber!)
+          ) || null;
+        }
+        
+        // Track which type was used
+        if (selectedBlock && studyHallBlocks.some(b => b.blockNumber === selectedBlock!.blockNumber)) {
+          usedStudyHallBlocks.add(selectedBlock.blockNumber!);
+          blockLocation = 'study-hall';
+        } else if (selectedBlock) {
+          usedHomeBlocks.add(selectedBlock.blockNumber!);
+          blockLocation = 'home';
+        }
+        
+      } else {
+        // NON-PORTABLE assignment: Home blocks only
+        
+        if (assignment.priority === 'A') {
+          selectedBlock = assignmentBlocks.find(block => 
+            !usedHomeBlocks.has(block.blockNumber!)
+          ) || null;
+        } else {
+          selectedBlock = assignmentBlocks.find(block => 
+            !usedHomeBlocks.has(block.blockNumber!)
+          ) || null;
+        }
+        
+        if (selectedBlock) {
+          usedHomeBlocks.add(selectedBlock.blockNumber!);
+          blockLocation = 'home';
+        }
       }
-      // Second try: any available block
-      else {
+      
+    } else {
+      // REGULAR DAY: Standard assignment block selection
+      
+      if (assignment.priority === 'A') {
         selectedBlock = assignmentBlocks.find(block => 
-          !usedBlocks.has(block.blockNumber!)
+          !usedHomeBlocks.has(block.blockNumber!)
         ) || null;
+      } else {
+        // For B and C, try to alternate effort levels
+        const preferredEffort = effortRotation[currentEffortIndex];
+        
+        if (assignment.difficulty === preferredEffort) {
+          selectedBlock = assignmentBlocks.find(block => 
+            !usedHomeBlocks.has(block.blockNumber!)
+          ) || null;
+        } else {
+          selectedBlock = assignmentBlocks.find(block => 
+            !usedHomeBlocks.has(block.blockNumber!)
+          ) || null;
+        }
+      }
+      
+      if (selectedBlock) {
+        usedHomeBlocks.add(selectedBlock.blockNumber!);
+        blockLocation = 'home';
       }
     }
     
     if (selectedBlock) {
-      usedBlocks.add(selectedBlock.blockNumber!);
       currentEffortIndex = (currentEffortIndex + 1) % effortRotation.length;
       
-      // Calculate scheduling reason
+      // Calculate scheduling reason with location context
       let reason = `Priority ${assignment.priority}`;
+      if (blockLocation === 'study-hall') {
+        reason += ' (Study Hall at Co-op)';
+      } else if (isCoopDay) {
+        reason += ' (Home block)';
+      }
+      
       if (assignment.dueDate) {
         const daysUntilDue = Math.ceil((assignment.dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
         if (daysUntilDue <= 0) reason += ' (OVERDUE)';
@@ -771,5 +868,164 @@ export async function extractDueDatesFromExistingAssignments(storage: any, optio
   } catch (error) {
     console.error('❌ Retroactive cleanup failed:', error);
     throw error;
+  }
+}
+
+/**
+ * CO-OP STUDY HALL PORTABILITY ANALYSIS
+ * Determines if an assignment can be done during study hall at co-op
+ */
+export function analyzeAssignmentPortability(title: string, instructions?: string): PortabilityAnalysis {
+  const content = `${title} ${instructions || ''}`.toLowerCase();
+  
+  // NON-PORTABLE PATTERNS (require parent supervision, special equipment, or home environment)
+  const nonPortablePatterns = [
+    // Parent supervision required
+    /parent.*help/i,
+    /with.*parent/i,
+    /adult.*supervision/i,
+    /ask.*parent/i,
+    /parent.*signature/i,
+    /guardian.*sign/i,
+    
+    // Video/multimedia that requires sound/headphones
+    /watch.*video/i,
+    /video.*assignment/i,
+    /youtube/i,
+    /streaming/i,
+    /audio.*assignment/i,
+    /listen.*to/i,
+    /recording/i,
+    
+    // Lab work or hands-on activities
+    /lab.*work/i,
+    /laboratory/i,
+    /experiment/i,
+    /hands.*on/i,
+    /materials.*needed/i,
+    /supplies.*required/i,
+    /kitchen/i,
+    /cooking/i,
+    /baking/i,
+    
+    // Projects requiring space/materials
+    /poster.*board/i,
+    /craft.*project/i,
+    /art.*project/i,
+    /build.*model/i,
+    /construction/i,
+    /large.*format/i,
+    
+    // Technology requirements not available at co-op
+    /specific.*software/i,
+    /install.*program/i,
+    /download.*software/i,
+    /cd.*rom/i,
+    /printer.*required/i,
+    /scan.*document/i,
+    
+    // Home environment specific
+    /interview.*family/i,
+    /home.*observation/i,
+    /household/i,
+    /family.*member/i,
+    /sibling/i,
+    /at.*home.*only/i,
+  ];
+  
+  // PORTABLE PATTERNS (ideal for study hall)
+  const portablePatterns = [
+    // Reading assignments
+    /read.*chapter/i,
+    /reading.*assignment/i,
+    /textbook.*reading/i,
+    /article.*reading/i,
+    /study.*guide/i,
+    
+    // Written work
+    /worksheet/i,
+    /workbook/i,
+    /written.*assignment/i,
+    /essay/i,
+    /writing.*prompt/i,
+    /journal.*entry/i,
+    /notes/i,
+    /note.*taking/i,
+    
+    // Math/problem solving
+    /math.*problems/i,
+    /practice.*problems/i,
+    /solve.*equations/i,
+    /calculations/i,
+    /word.*problems/i,
+    
+    // Online work (if internet available)
+    /online.*quiz/i,
+    /digital.*assignment/i,
+    /computer.*based/i,
+    /typing.*assignment/i,
+    /research.*online/i,
+    
+    // Independent study tasks
+    /self.*paced/i,
+    /independent.*work/i,
+    /individual.*assignment/i,
+    /quiet.*work/i,
+    /study.*time/i,
+  ];
+  
+  // Check for non-portable indicators
+  for (const pattern of nonPortablePatterns) {
+    if (pattern.test(content)) {
+      const reason = getPortabilityReason(pattern, content, false);
+      return {
+        isPortable: false,
+        reason: reason,
+        confidence: 0.8
+      };
+    }
+  }
+  
+  // Check for portable indicators
+  for (const pattern of portablePatterns) {
+    if (pattern.test(content)) {
+      const reason = getPortabilityReason(pattern, content, true);
+      return {
+        isPortable: true,
+        reason: reason,
+        confidence: 0.9
+      };
+    }
+  }
+  
+  // Default: assume portable unless proven otherwise (bias toward study hall productivity)
+  return {
+    isPortable: true,
+    reason: "No specific restrictions detected - suitable for independent study hall work",
+    confidence: 0.6
+  };
+}
+
+function getPortabilityReason(pattern: RegExp, content: string, isPortable: boolean): string {
+  const match = content.match(pattern);
+  if (!match) return isPortable ? "Portable assignment" : "Non-portable assignment";
+  
+  if (!isPortable) {
+    // Non-portable reasons
+    if (pattern.source.includes('parent')) return "Requires parent supervision";
+    if (pattern.source.includes('video|audio')) return "Requires video/audio playback";
+    if (pattern.source.includes('lab|experiment')) return "Lab work requiring special equipment";
+    if (pattern.source.includes('craft|art|build')) return "Project requiring materials/space";
+    if (pattern.source.includes('software|printer')) return "Requires specific technology";
+    if (pattern.source.includes('family|home')) return "Requires home environment";
+    return "Requires resources not available during study hall";
+  } else {
+    // Portable reasons
+    if (pattern.source.includes('read')) return "Reading assignment - ideal for quiet study time";
+    if (pattern.source.includes('worksheet|written')) return "Written work - perfect for study hall";
+    if (pattern.source.includes('math|problems')) return "Problem solving - good focus activity";
+    if (pattern.source.includes('online')) return "Online work - if internet available";
+    if (pattern.source.includes('independent')) return "Independent work - perfect for study hall";
+    return "Can be completed independently during study hall";
   }
 }
