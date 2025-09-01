@@ -15,6 +15,19 @@ export interface CanvasAssignment {
   has_submitted_submissions?: boolean;
   graded_submissions_exist?: boolean;
   
+  // Individual student submission data (when fetched)
+  submission?: {
+    id?: number;
+    user_id?: number;
+    assignment_id?: number;
+    score?: number;
+    grade?: string;
+    submission_type?: string;
+    workflow_state?: string; // submitted, graded, etc.
+    graded_at?: string;
+    submitted_at?: string;
+  };
+  
   // Extended Canvas metadata
   assignment_group_id?: number;
   assignment_group?: {
@@ -561,6 +574,53 @@ export class CanvasClient {
     }
     
     return null;
+  }
+  
+  /**
+   * Fetch individual student submissions with actual grades for all assignments
+   * This checks the actual gradebook data instead of just aggregate flags
+   */
+  async getAssignmentsWithSubmissions(): Promise<CanvasAssignment[]> {
+    try {
+      const courses = await this.getCourses();
+      const allAssignmentsWithGrades: CanvasAssignment[] = [];
+      
+      console.log(`🎯 Fetching individual grades for ${courses.length} courses`);
+      
+      for (const course of courses) {
+        // Skip TEXTBOOK courses
+        if (course.name.toUpperCase().includes('TEXTBOOK')) {
+          continue;
+        }
+        
+        try {
+          // Fetch assignments with submission data included
+          const assignments = await this.makeRequest<CanvasAssignment[]>(
+            `/courses/${course.id}/assignments?per_page=100&include[]=submission`
+          );
+          
+          // Add course name to each assignment
+          const assignmentsWithCourse = assignments.map(assignment => ({
+            ...assignment,
+            courseName: course.name,
+            course_id: course.id
+          }));
+          
+          allAssignmentsWithGrades.push(...assignmentsWithCourse);
+          console.log(`  📊 Course "${course.name}": ${assignments.length} assignments with submission data`);
+          
+        } catch (error) {
+          console.error(`Failed to fetch grades for course ${course.name}:`, error);
+        }
+      }
+      
+      console.log(`✅ Retrieved ${allAssignmentsWithGrades.length} assignments with grade data`);
+      return allAssignmentsWithGrades;
+      
+    } catch (error) {
+      console.error('Failed to fetch assignments with submissions:', error);
+      return [];
+    }
   }
 }
 

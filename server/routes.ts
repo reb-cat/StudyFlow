@@ -417,13 +417,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let updatedCount = 0;
       const results = [];
       
-      // Fetch Canvas assignments for comparison
-      const canvasData = await getAllAssignmentsForStudent(studentName);
-      const allCanvasAssignments = [
-        ...(canvasData.instance1 || []),
-        ...(canvasData.instance2 || [])
-      ];
-      console.log(`📚 Fetched ${allCanvasAssignments.length} assignments from Canvas`);
+      // Fetch Canvas assignments with actual submission/grade data
+      const client1 = new (await import('./lib/canvas')).CanvasClient(studentName, 1);
+      let allCanvasAssignments = await client1.getAssignmentsWithSubmissions();
+      
+      // Check if Abigail has a second Canvas instance
+      if (studentName.toLowerCase() === 'abigail') {
+        try {
+          const client2 = new (await import('./lib/canvas')).CanvasClient(studentName, 2);
+          const instance2Assignments = await client2.getAssignmentsWithSubmissions();
+          allCanvasAssignments = [...allCanvasAssignments, ...instance2Assignments];
+        } catch (error) {
+          console.error('Failed to get instance 2 grades:', error);
+        }
+      }
+      
+      console.log(`📚 Fetched ${allCanvasAssignments.length} assignments with grade data from Canvas`);
       
       // Match and update completion status
       for (const dbAssignment of existingAssignments) {
@@ -436,13 +445,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         
         if (canvasMatch) {
-          // Check if it's graded and submitted in Canvas
+          // Check multiple ways an assignment can be graded in Canvas:
+          // 1. Traditional flags (graded_submissions_exist && has_submitted_submissions)
+          // 2. Actual submission with a score/grade
+          // 3. Submission workflow state indicates grading
+          
+          let isGraded = false;
+          let gradeReason = '';
+          
+          // Method 1: Traditional Canvas flags
           if (canvasMatch.graded_submissions_exist && canvasMatch.has_submitted_submissions) {
-            console.log(`✅ Updating "${dbAssignment.title}" to completed (graded in Canvas)`);
+            isGraded = true;
+            gradeReason = 'graded + submitted flags';
+          }
+          
+          // Method 2: Check actual submission data for grades
+          if (canvasMatch.submission) {
+            const sub = canvasMatch.submission;
+            if (sub.score !== null && sub.score !== undefined && sub.score > 0) {
+              isGraded = true;
+              gradeReason = `scored ${sub.score} points`;
+            } else if (sub.grade && sub.grade !== '' && sub.grade !== null) {
+              isGraded = true;
+              gradeReason = `graded: ${sub.grade}`;
+            } else if (sub.workflow_state === 'graded' || sub.graded_at) {
+              isGraded = true;
+              gradeReason = 'marked as graded in Canvas';
+            }
+          }
+          
+          if (isGraded) {
+            console.log(`✅ Updating "${dbAssignment.title}" to completed (${gradeReason})`);
             
             await storage.updateAssignment(dbAssignment.id, {
               completionStatus: 'completed',
-              notes: `${dbAssignment.notes || ''}\nAuto-completed: Graded in Canvas`.trim(),
+              notes: `${dbAssignment.notes || ''}\nAuto-completed: ${gradeReason}`.trim(),
               updatedAt: new Date()
             });
             
@@ -451,7 +488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               id: dbAssignment.id,
               title: dbAssignment.title,
               action: 'completed',
-              reason: 'graded_in_canvas'
+              reason: gradeReason
             });
           }
         }
