@@ -11,6 +11,7 @@ import StudentSelection from "@/pages/student-selection";
 import FamilyDashboard from "@/pages/family-dashboard";
 import StudentDashboard from "@/pages/student-dashboard";
 import AdminPanel from "@/pages/admin-panel";
+import AssignmentsPage from "@/pages/assignments";
 import PrintQueue from "@/pages/print-queue";
 import UnlockPage from "@/pages/unlock";
 import { apiRequest } from "@/lib/queryClient";
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/students" component={StudentSelection} />
       <Route path="/student/:student" component={StudentDashboard} />
       <Route path="/admin" component={AdminPanel} />
+      <Route path="/assignments" component={AssignmentsPage} />
       <Route path="/print-queue" component={PrintQueue} />
       <Route component={NotFound} />
     </Switch>
