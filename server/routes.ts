@@ -2312,6 +2312,151 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
+  // POST /api/assignments/:id/resolve - Parent resolution of stuck assignments
+  app.post('/api/assignments/:id/resolve', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { action, notes, studentName } = req.body;
+      
+      console.log(`🔧 Parent resolving stuck assignment ${id} - action: ${action}`);
+      
+      // Get original assignment
+      const assignment = await storage.getAssignment(id);
+      if (!assignment) {
+        return res.status(404).json({ message: 'Assignment not found' });
+      }
+      
+      if (assignment.completionStatus !== 'stuck') {
+        return res.status(400).json({ message: 'Assignment is not marked as stuck' });
+      }
+      
+      // Handle different resolution actions
+      let updateData: any = {
+        updatedAt: new Date()
+      };
+      
+      // Extract original stuck reason from notes
+      const originalReason = assignment.notes?.split('\n').find(line => line.startsWith('STUCK:'))?.replace('STUCK: ', '') || 'Unknown issue';
+      
+      switch (action) {
+        case 'helped':
+          // Parent helped - ready to retry
+          updateData.completionStatus = 'pending';
+          updateData.notes = `${assignment.notes || ''}\nPARENT RESOLVED: ${notes || 'Parent helped with: ' + originalReason}`.trim();
+          
+          // Smart reschedule for today if possible, tomorrow if full
+          const todayDate = new Date().toISOString().split('T')[0];
+          const tomorrowDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          
+          // Try today first, then tomorrow
+          updateData.scheduledDate = todayDate;
+          updateData.scheduledBlock = null; // Let system find best slot
+          
+          console.log(`📅 Rescheduling resolved assignment for today: ${todayDate}`);
+          break;
+          
+        case 'modified':
+          // Assignment modified - reschedule with changes
+          updateData.completionStatus = 'pending';
+          updateData.notes = `${assignment.notes || ''}\nPARENT MODIFIED: ${notes || 'Parent modified assignment requirements'}`.trim();
+          updateData.scheduledDate = new Date().toISOString().split('T')[0];
+          updateData.scheduledBlock = null;
+          break;
+          
+        case 'excused':
+          // Assignment excused/skipped - mark complete
+          updateData.completionStatus = 'completed';
+          updateData.notes = `${assignment.notes || ''}\nPARENT EXCUSED: ${notes || 'Assignment excused by parent'}`.trim();
+          updateData.scheduledDate = null;
+          updateData.scheduledBlock = null;
+          break;
+          
+        case 'still_needs_work':
+          // Still needs work - reschedule for later with more time
+          updateData.completionStatus = 'needs_more_time';
+          updateData.notes = `${assignment.notes || ''}\nPARENT DEFERRED: ${notes || 'Still needs more work - rescheduled with additional time'}`.trim();
+          
+          // Schedule for tomorrow or later
+          const laterDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          updateData.scheduledDate = laterDate;
+          updateData.scheduledBlock = null;
+          
+          // Increase estimated time by 50% for extra support
+          if (assignment.actualEstimatedMinutes) {
+            updateData.actualEstimatedMinutes = Math.ceil(assignment.actualEstimatedMinutes * 1.5);
+          }
+          break;
+          
+        default:
+          return res.status(400).json({ message: 'Invalid resolution action' });
+      }
+      
+      // Update the assignment
+      const updatedAssignment = await storage.updateAssignment(id, updateData);
+      
+      // Clear student stuck flags if resolved
+      if (['helped', 'modified', 'excused'].includes(action)) {
+        const userId = assignment.userId.replace('-user', '');
+        await storage.updateStudentFlags(userId, { 
+          isStuck: false,
+          needsHelp: false 
+        });
+      }
+      
+      // Send notification to student about resolution
+      if (action !== 'excused') {
+        try {
+          // Get email configuration from environment
+          const { Resend } = await import('resend');
+          const resend = new Resend(process.env.RESEND_API_KEY);
+          
+          if (process.env.RESEND_API_KEY && process.env.RESEND_FROM) {
+            const studentEmail = process.env.PARENT_EMAIL; // For now, send to parent (could be extended)
+            
+            const actionMessages = {
+              helped: 'Your parent helped resolve the issue. The assignment is ready to retry!',
+              modified: 'Your parent made some changes. The assignment is ready to continue!',
+              still_needs_work: 'Your parent rescheduled this for later with more time.'
+            };
+            
+            await resend.emails.send({
+              from: process.env.RESEND_FROM,
+              to: studentEmail,
+              subject: `StudyFlow Update: ${assignment.title} - Ready to Continue`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                  <h2 style="color: #16a34a;">✅ Assignment Ready!</h2>
+                  <div style="background: #f0f9ff; border-left: 4px solid #16a34a; padding: 16px; margin: 20px 0;">
+                    <p><strong>Assignment:</strong> ${assignment.title}</p>
+                    <p><strong>Status:</strong> ${actionMessages[action as keyof typeof actionMessages]}</p>
+                    ${notes ? `<p><strong>Parent Note:</strong> ${notes}</p>` : ''}
+                  </div>
+                  <p>You can continue working on this assignment in your guided schedule.</p>
+                </div>
+              `
+            });
+          }
+        } catch (emailError) {
+          console.warn('Student notification email failed:', emailError);
+        }
+      }
+      
+      console.log(`✅ Assignment ${id} resolved with action: ${action}`);
+      
+      res.json({
+        message: `Assignment ${action} successfully`,
+        assignment: updatedAssignment,
+        action,
+        rescheduled: ['helped', 'modified', 'still_needs_work'].includes(action)
+      });
+      
+    } catch (error) {
+      console.error('Assignment resolution failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ message: 'Failed to resolve assignment', error: errorMessage });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

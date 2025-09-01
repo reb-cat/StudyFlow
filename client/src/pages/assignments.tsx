@@ -7,7 +7,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp, Plus, Calendar, ArrowLeft, User } from 'lucide-react';
+import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp, Plus, Calendar, ArrowLeft, User, HelpCircle, CheckCircle2, Calendar as CalendarIcon } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { Assignment } from '@shared/schema';
@@ -57,6 +60,12 @@ export default function AssignmentsPage() {
   // Edit assignment state
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [showEditForm, setShowEditForm] = useState(false);
+
+  // Parent resolution state
+  const [showResolutionDialog, setShowResolutionDialog] = useState(false);
+  const [resolvingAssignment, setResolvingAssignment] = useState<Assignment | null>(null);
+  const [resolutionAction, setResolutionAction] = useState<'helped' | 'modified' | 'excused' | 'still_needs_work'>('helped');
+  const [resolutionNotes, setResolutionNotes] = useState('');
 
   // Get assignments for the selected student (limited to current week for better usability)
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
@@ -159,6 +168,49 @@ export default function AssignmentsPage() {
       toast({
         title: "Error",
         description: `Bulk update failed: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Parent resolution mutation
+  const resolveAssignmentMutation = useMutation({
+    mutationFn: async (data: {
+      assignmentId: string;
+      action: 'helped' | 'modified' | 'excused' | 'still_needs_work';
+      notes: string;
+      studentName: string;
+    }) => {
+      const response = await apiRequest('POST', `/api/assignments/${data.assignmentId}/resolve`, {
+        action: data.action,
+        notes: data.notes,
+        studentName: data.studentName
+      });
+      return await response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+      
+      const actionMessages = {
+        helped: 'Assignment resolved and rescheduled for today!',
+        modified: 'Assignment modified and rescheduled!', 
+        excused: 'Assignment marked as complete.',
+        still_needs_work: 'Assignment rescheduled for later with additional time.'
+      };
+      
+      toast({
+        title: "Assignment Resolved",
+        description: actionMessages[variables.action],
+        className: "bg-green-50 border-green-200"
+      });
+      
+      setShowResolutionDialog(false);
+      setResolvingAssignment(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Resolution Failed",
+        description: `Failed to resolve assignment: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -290,6 +342,17 @@ export default function AssignmentsPage() {
     if (editingAssignment) {
       editAssignmentMutation.mutate(editingAssignment);
     }
+  };
+  
+  const handleResolveAssignment = () => {
+    if (!resolvingAssignment || !resolutionAction) return;
+    
+    resolveAssignmentMutation.mutate({
+      assignmentId: resolvingAssignment.id,
+      action: resolutionAction,
+      notes: resolutionNotes,
+      studentName: selectedStudent
+    });
   };
 
   return (
@@ -595,6 +658,19 @@ export default function AssignmentsPage() {
                           </p>
                         )}
 
+                        {/* Show stuck reason for stuck assignments */}
+                        {assignment.completionStatus === 'stuck' && assignment.notes && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-3 my-2">
+                            <div className="flex items-center gap-2 mb-2">
+                              <AlertCircle className="w-4 h-4 text-red-600" />
+                              <span className="text-sm font-medium text-red-800">Student got stuck:</span>
+                            </div>
+                            <p className="text-sm text-red-700">
+                              {assignment.notes.split('\n').find(line => line.startsWith('STUCK:'))?.replace('STUCK: ', '') || 'No reason provided'}
+                            </p>
+                          </div>
+                        )}
+
                         {assignment.instructions && (
                           <p className="text-sm text-gray-700 max-w-2xl">
                             {assignment.instructions.length > 200
@@ -613,6 +689,24 @@ export default function AssignmentsPage() {
                       </div>
 
                       <div className="flex gap-2">
+                        {/* Stuck Assignment - Parent Resolution Button */}
+                        {assignment.completionStatus === 'stuck' && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => {
+                              setResolvingAssignment(assignment);
+                              setResolutionNotes('');
+                              setResolutionAction('helped');
+                              setShowResolutionDialog(true);
+                            }}
+                            data-testid={`button-resolve-${assignment.id}`}
+                          >
+                            🔧 Resolve & Reschedule
+                          </Button>
+                        )}
+                        
                         <Button
                           variant="outline"
                           size="sm"
@@ -877,6 +971,103 @@ export default function AssignmentsPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+      
+      {/* Parent Resolution Dialog */}
+      {showResolutionDialog && resolvingAssignment && (
+        <Dialog open={showResolutionDialog} onOpenChange={setShowResolutionDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                🔧 Resolve Stuck Assignment
+              </DialogTitle>
+              <DialogDescription>
+                Help resolve this assignment and get it back on schedule
+              </DialogDescription>
+            </DialogHeader>
+            
+            {/* Assignment Context */}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <h4 className="font-semibold text-red-800 mb-2">Assignment: {resolvingAssignment.title}</h4>
+              <div className="space-y-1 text-sm">
+                <p><strong>Course:</strong> {resolvingAssignment.courseName}</p>
+                <p><strong>Due Date:</strong> {resolvingAssignment.dueDate ? 
+                  new Date(resolvingAssignment.dueDate).toLocaleDateString('en-US', {
+                    weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+                  }) : 'No due date'}</p>
+                <p><strong>Student's Issue:</strong> {resolvingAssignment.notes?.split('\n').find(line => line.startsWith('STUCK:'))?.replace('STUCK: ', '') || 'No reason provided'}</p>
+                <p><strong>Marked Stuck:</strong> {resolvingAssignment.updatedAt ? 
+                  new Date(resolvingAssignment.updatedAt).toLocaleDateString('en-US', {
+                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+                  }) : 'Unknown'}</p>
+              </div>
+            </div>
+            
+            {/* Resolution Options */}
+            <div className="space-y-4">
+              <div>
+                <Label className="text-base font-medium">How did you help resolve this?</Label>
+                <RadioGroup value={resolutionAction} onValueChange={setResolutionAction as any} className="mt-3">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="helped" id="helped" />
+                    <Label htmlFor="helped" className="cursor-pointer">
+                      ✅ <strong>Helped - Ready to retry</strong> - Explained the problem, student understands now
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="modified" id="modified" />
+                    <Label htmlFor="modified" className="cursor-pointer">
+                      ✏️ <strong>Modified assignment</strong> - Changed requirements or approach
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="excused" id="excused" />
+                    <Label htmlFor="excused" className="cursor-pointer">
+                      ✅ <strong>Excused/Skipped</strong> - Assignment no longer needed
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="still_needs_work" id="still_needs_work" />
+                    <Label htmlFor="still_needs_work" className="cursor-pointer">
+                      📅 <strong>Still needs work</strong> - Reschedule for later with more time
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              <div>
+                <Label htmlFor="resolution-notes">Resolution Notes (optional)</Label>
+                <Textarea
+                  id="resolution-notes"
+                  value={resolutionNotes}
+                  onChange={(e) => setResolutionNotes(e.target.value)}
+                  placeholder={resolutionAction === 'helped' ? 'What did you explain or help with?' :
+                             resolutionAction === 'modified' ? 'What changes did you make?' :
+                             resolutionAction === 'excused' ? 'Why is this assignment no longer needed?' :
+                             'What additional support is still needed?'}
+                  rows={3}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowResolutionDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => handleResolveAssignment()}
+                className="bg-green-600 hover:bg-green-700"
+                disabled={!resolutionAction}
+              >
+                {resolutionAction === 'helped' ? '✅ Resolve & Reschedule for Today' :
+                 resolutionAction === 'modified' ? '✏️ Save Changes & Reschedule' :
+                 resolutionAction === 'excused' ? '✅ Mark Complete' :
+                 '📅 Reschedule for Later'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
