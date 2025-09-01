@@ -1,0 +1,69 @@
+VERIFY & PRESERVE "Need More Time" Feature Without Mock Data
+Current State: Zero Part 2 assignments exist (correct - students haven't used app yet)
+Required State: Feature must be ready to work when students need it
+Part 1: Locate the Need More Time Feature Code
+Search for the actual feature implementation:
+- Search for: "need more time", "needMoreTime", "split", "part 2", "extend deadline"
+- Check student-dashboard.tsx for UI buttons/options
+- Look in server/routes.ts for endpoints handling assignment splitting
+- Find any database schema supporting parent/child assignment relationships
+Part 2: Document How It's Supposed to Work
+Based on code found, document:
+
+How does a student trigger "Need More Time"?
+What happens to the original assignment?
+How is the Part 2 assignment created?
+What fields link them together?
+How are both parts displayed in the UI?
+
+Part 3: Test the Feature Without Creating Mock Data
+Using a REAL assignment from the database:
+
+Log in as a student (or student view)
+Find the "Need More Time" option on an assignment
+Trigger it and observe what happens
+Verify a legitimate Part 2 is created with:
+
+Parent assignment reference
+Proper Canvas ID inheritance
+Correct due date extension
+Original marked as "needs review" or similar
+
+
+
+Part 4: Ensure Feature Survived Cleanup
+Verify these components still exist:
+
+UI button/trigger for Need More Time
+Backend endpoint to handle the split
+Database logic to create Part 2
+Display logic to show both parts
+Completion tracking for multi-part assignments
+
+Part 5: Add Safeguards Against Future Confusion
+If feature exists, add clear markers:
+javascript// When creating legitimate Part 2:
+{
+  title: originalTitle + " (Part 2)",
+  parentAssignmentId: originalId,  // Critical marker
+  createdVia: "student_need_more_time",  // Not "mock_data"
+  splitDate: new Date(),
+  originalDueDate: assignment.dueDate,
+  extendedDueDate: newDueDate
+}
+Part 6: If Feature Is Missing
+If the cleanup removed it, restore ONLY the legitimate splitting logic:
+
+Add endpoint: POST /api/assignments/:id/need-more-time
+Add UI button in student view only
+Ensure it requires authenticated student session
+Log the action for audit trail
+
+Expected Findings:
+
+Location of Need More Time feature (file:line)
+Whether it survived the cleanup
+How to trigger it properly
+Safeguards to prevent it being confused with mock data
+
+Critical: Do NOT create any test Part 2 assignments. Just verify the feature exists and will work when students actually need it.
