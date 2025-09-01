@@ -35,7 +35,7 @@ export default function AssignmentsPage() {
   const queryClient = useQueryClient();
   const [selectedStudent, setSelectedStudent] = useState<string>('Abigail');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('pending');
   const [dateFilter, setDateFilter] = useState<string>('upcoming');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [bulkOperation, setBulkOperation] = useState<string>('');

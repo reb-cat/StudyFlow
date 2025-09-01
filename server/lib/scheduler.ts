@@ -399,7 +399,7 @@ class JobScheduler {
                   title: title,
                   subject: canvasAssignment.courseName || 'Unknown Course 2',
                   courseName: canvasAssignment.courseName || 'Unknown Course 2',
-                  instructions: canvasAssignment.description || 'Assignment from Canvas instance 2',
+                  instructions: canvasAssignment.description || 'Assignment from Apologia',
                   dueDate: dueDate,
                   scheduledDate: smartScheduledDate,
                   actualEstimatedMinutes: 60,

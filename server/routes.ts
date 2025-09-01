@@ -564,7 +564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             subject: normalized.courseLabel || 'Unknown Course 2',
             creationSource: 'canvas_sync',
             courseName: normalized.courseLabel || 'Unknown Course 2',
-            instructions: canvasAssignment.description || 'Assignment from Canvas instance 2',
+            instructions: canvasAssignment.description || 'Assignment from Apologia',
             dueDate: finalDueDate,
             scheduledDate: today,
             actualEstimatedMinutes: 60,
