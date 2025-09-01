@@ -37,6 +37,10 @@ export default function AdminPanel() {
     actualEstimatedMinutes: 30
   });
 
+  // Edit assignment state
+  const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+
   // Get assignments for the selected student (limited to current week for better usability)
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
     queryKey: ['/api/assignments', selectedStudent, dateFilter],
@@ -57,6 +61,31 @@ export default function AdminPanel() {
       
       const response = await apiRequest('GET', `/api/assignments?${params.toString()}`);
       return await response.json();
+    }
+  });
+
+  // Edit assignment mutation
+  const editAssignmentMutation = useMutation({
+    mutationFn: async (updatedAssignment: Partial<Assignment> & { id: string }) => {
+      const response = await apiRequest('PATCH', `/api/assignments/${updatedAssignment.id}`, updatedAssignment);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+      toast({
+        title: "Assignment Updated",
+        description: "Assignment has been updated successfully."
+      });
+      setShowEditForm(false);
+      setEditingAssignment(null);
+    },
+    onError: (error) => {
+      console.error('Edit assignment error:', error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update assignment.",
+        variant: "destructive"
+      });
     }
   });
 
@@ -318,6 +347,40 @@ export default function AdminPanel() {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Generate Canvas URL for assignment
+  const getCanvasUrl = (assignment: Assignment) => {
+    if (!assignment.canvasId || !assignment.canvasCourseId) return null;
+    
+    // Use the appropriate Canvas base URL based on instance
+    const baseUrl = assignment.canvasInstance === 2 
+      ? 'https://fhchs.instructure.com' 
+      : 'https://fhchs.instructure.com'; // Both instances use same domain
+    
+    return `${baseUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
+  };
+
+  // Start editing an assignment
+  const startEdit = (assignment: Assignment) => {
+    setEditingAssignment({ ...assignment });
+    setShowEditForm(true);
+  };
+
+  // Save edited assignment
+  const saveEdit = () => {
+    if (!editingAssignment) return;
+    
+    const updateData: Partial<Assignment> = {
+      id: editingAssignment.id,
+      title: editingAssignment.title,
+      subject: editingAssignment.subject,
+      instructions: editingAssignment.instructions,
+      dueDate: editingAssignment.dueDate ? new Date(editingAssignment.dueDate) : null,
+      actualEstimatedMinutes: editingAssignment.actualEstimatedMinutes
+    };
+    
+    editAssignmentMutation.mutate(updateData);
   };
 
   return (
@@ -1013,7 +1076,57 @@ export default function AdminPanel() {
                   </div>
                 </div>
                 
-                <div style={{ marginLeft: 'auto' }}>
+                <div style={{ 
+                  marginLeft: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  {/* Canvas Link Button */}
+                  {assignment.canvasId && (
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const canvasUrl = getCanvasUrl(assignment);
+                        if (canvasUrl) window.open(canvasUrl, '_blank');
+                      }}
+                      size="sm"
+                      style={{
+                        background: '#FF6B35',
+                        color: 'white',
+                        border: 'none',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: '500'
+                      }}
+                      data-testid={`button-canvas-link-${assignment.id}`}
+                    >
+                      Canvas
+                    </Button>
+                  )}
+                  
+                  {/* Edit Button */}
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEdit(assignment);
+                    }}
+                    size="sm"
+                    style={{
+                      background: '#6C7293',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: '500'
+                    }}
+                    data-testid={`button-edit-${assignment.id}`}
+                  >
+                    Edit
+                  </Button>
+                  
                   {getStatusBadge(assignment.completionStatus || 'pending')}
                 </div>
               </div>
@@ -1036,6 +1149,190 @@ export default function AdminPanel() {
             )}
           </div>
         </main>
+
+        {/* Edit Assignment Modal */}
+        {showEditForm && editingAssignment && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: '#FFFFFF',
+              border: '1px solid #DEE2E6',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              width: '90%',
+              maxWidth: '500px',
+              boxShadow: '0 4px 8px rgba(33, 37, 41, 0.15)'
+            }}>
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: '#212529',
+                marginBottom: '1rem'
+              }}>Edit Assignment</h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: '#212529',
+                    marginBottom: '0.5rem'
+                  }}>Title</label>
+                  <Input
+                    value={editingAssignment.title}
+                    onChange={(e) => setEditingAssignment(prev => ({ ...prev!, title: e.target.value }))}
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #DEE2E6',
+                      borderRadius: '8px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: '#212529',
+                    marginBottom: '0.5rem'
+                  }}>Subject</label>
+                  <Input
+                    value={editingAssignment.subject || ''}
+                    onChange={(e) => setEditingAssignment(prev => ({ ...prev!, subject: e.target.value }))}
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #DEE2E6',
+                      borderRadius: '8px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: '#212529',
+                    marginBottom: '0.5rem'
+                  }}>Due Date</label>
+                  <Input
+                    type="date"
+                    value={editingAssignment.dueDate ? new Date(editingAssignment.dueDate).toISOString().split('T')[0] : ''}
+                    onChange={(e) => setEditingAssignment(prev => ({ 
+                      ...prev!, 
+                      dueDate: e.target.value ? new Date(e.target.value) : null 
+                    }))}
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #DEE2E6',
+                      borderRadius: '8px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: '#212529',
+                    marginBottom: '0.5rem'
+                  }}>Estimated Minutes</label>
+                  <Input
+                    type="number"
+                    min="5"
+                    max="300"
+                    step="5"
+                    value={editingAssignment.actualEstimatedMinutes || 30}
+                    onChange={(e) => setEditingAssignment(prev => ({ 
+                      ...prev!, 
+                      actualEstimatedMinutes: parseInt(e.target.value) || 30 
+                    }))}
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #DEE2E6',
+                      borderRadius: '8px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    color: '#212529',
+                    marginBottom: '0.5rem'
+                  }}>Instructions</label>
+                  <Textarea
+                    value={editingAssignment.instructions || ''}
+                    onChange={(e) => setEditingAssignment(prev => ({ ...prev!, instructions: e.target.value }))}
+                    placeholder="Assignment instructions or notes..."
+                    rows={3}
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #DEE2E6',
+                      borderRadius: '8px',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <Button
+                    onClick={saveEdit}
+                    disabled={!editingAssignment.title || editAssignmentMutation.isPending}
+                    style={{
+                      background: !editingAssignment.title ? '#F1F3F4' : '#21BF06',
+                      color: !editingAssignment.title ? '#6C757D' : 'white',
+                      border: 'none',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      cursor: !editingAssignment.title ? 'not-allowed' : 'pointer',
+                      flex: 1
+                    }}
+                  >
+                    {editAssignmentMutation.isPending ? (
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    Save Changes
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowEditForm(false);
+                      setEditingAssignment(null);
+                    }}
+                    style={{
+                      background: '#F1F3F4',
+                      color: '#6C757D',
+                      border: 'none',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      fontWeight: '500'
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
