@@ -1197,7 +1197,9 @@ Partially completed - continued in: ${continuedTitle}`.trim(),
         if (printDetection.needsPrinting) {
           printQueue.push({
             id: assignment.id,
-            studentName: assignment.userId,
+            studentName: assignment.userId === 'abigail-user' ? 'Abigail' : 
+                         assignment.userId === 'khalil-user' ? 'Khalil' : 
+                         assignment.userId.replace('-user', '').charAt(0).toUpperCase() + assignment.userId.replace('-user', '').slice(1),
             title: assignment.title,
             courseName: assignment.courseName,
             subject: assignment.subject,

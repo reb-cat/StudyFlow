@@ -30,18 +30,33 @@ export function detectPrintNeeds(assignment: {
     priority: 'low'
   };
 
-  // Generate Canvas URL ONLY if we have both Canvas ID AND Course ID
+  // Generate Canvas URL with fallbacks for better usability
   if (assignment.canvasId && assignment.canvasCourseId && assignment.canvasInstance) {
+    // Full Canvas assignment URL when all data available
     const baseUrl = assignment.canvasInstance === 1 
       ? process.env.CANVAS_BASE_URL 
       : process.env.CANVAS_BASE_URL_2;
     if (baseUrl) {
-      // Generate proper Canvas assignment URL: https://canvas.instructure.com/courses/6739821/assignments/40318135
       result.canvasUrl = `${baseUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
     }
-  } 
-  // NO FALLBACK: Don't generate search URLs that confuse users
-  // Manual assignments should not have Canvas URLs at all
+  } else if (assignment.canvasId && assignment.canvasInstance) {
+    // Fallback: Direct assignment link when course ID missing
+    const baseUrl = assignment.canvasInstance === 1 
+      ? process.env.CANVAS_BASE_URL 
+      : process.env.CANVAS_BASE_URL_2;
+    if (baseUrl) {
+      const cleanUrl = baseUrl.replace(/\/$/, '');
+      result.canvasUrl = `${cleanUrl}/assignments/${assignment.canvasId}`;
+    }
+  } else if (assignment.canvasInstance) {
+    // Final fallback: Canvas dashboard when assignment data incomplete
+    const baseUrl = assignment.canvasInstance === 1 
+      ? process.env.CANVAS_BASE_URL 
+      : process.env.CANVAS_BASE_URL_2;
+    if (baseUrl) {
+      result.canvasUrl = `${baseUrl}/dashboard`;
+    }
+  }
 
   const title = assignment.title.toLowerCase();
   const instructions = (assignment.instructions || '').toLowerCase();
