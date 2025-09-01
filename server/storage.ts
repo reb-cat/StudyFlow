@@ -348,8 +348,9 @@ export class DatabaseStorage implements IStorage {
           return false;
         }
         
-        // CRITICAL: Exclude parent/administrative assignments from student scheduling
+        // CRITICAL: Exclude parent/administrative assignments AND Bible assignments from student scheduling
         const title = a.title.toLowerCase();
+        const subject = (a.subject || '').toLowerCase();
         const isParentTask = title.includes('fee') || 
                             title.includes('supply') || 
                             title.includes('permission') || 
@@ -360,8 +361,19 @@ export class DatabaseStorage implements IStorage {
                             title.includes('honor code') ||
                             a.priority === 'parent';
         
+        const isBibleAssignment = title.includes('bible') || 
+                                 subject.includes('bible') ||
+                                 title.includes('scripture') ||
+                                 subject.includes('scripture') ||
+                                 a.creationSource === 'bible_curriculum';
+        
         if (isParentTask) {
           console.log(`🚫 Excluding parent task from student scheduling: ${a.title}`);
+          return false;
+        }
+        
+        if (isBibleAssignment) {
+          console.log(`📖 Excluding Bible assignment from regular scheduling (Bible blocks only): ${a.title}`);
           return false;
         }
         
