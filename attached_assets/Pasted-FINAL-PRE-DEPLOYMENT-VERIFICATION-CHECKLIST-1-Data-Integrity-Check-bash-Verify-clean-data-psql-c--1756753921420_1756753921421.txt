@@ -1,0 +1,58 @@
+FINAL PRE-DEPLOYMENT VERIFICATION CHECKLIST
+1. Data Integrity Check
+bash# Verify clean data
+psql -c "SELECT user_id, COUNT(*), COUNT(CASE WHEN completion_status = 'completed' THEN 1 END) as completed FROM assignments GROUP BY user_id;"
+
+# Check for any mock data remnants
+psql -c "SELECT COUNT(*) FROM assignments WHERE title LIKE '%Math Practice%' OR title LIKE '%Demo%' OR user_id = 'demo-user-1';"
+
+# Verify Bible curriculum exists
+psql -c "SELECT COUNT(*) FROM bible_curriculum;"
+2. Critical Features Test
+bash# Test authentication
+curl -X POST http://localhost:5000/api/login -d '{"password":"wrong"}' -H "Content-Type: application/json"
+
+# Test student data retrieval
+curl -s "http://localhost:5000/api/assignments?studentName=khalil" | jq '. | length'
+curl -s "http://localhost:5000/api/assignments?studentName=abigail" | jq '. | length'
+
+# Test Need More Time endpoint exists
+curl -I "http://localhost:5000/api/assignments/test/need-more-time"
+3. Production Build Test
+bash# Clean build
+rm -rf dist/
+NODE_ENV=production npm run build
+
+# Start production server
+NODE_ENV=production node dist/index.js &
+sleep 5
+
+# Test production endpoints
+curl -s http://localhost:5000 | grep -q "StudyFlow" && echo "✅ Frontend loads" || echo "❌ Frontend broken"
+curl -s http://localhost:5000/api/assignments?studentName=khalil | jq '. | length'
+
+# Kill test server
+pkill -f "node dist/index.js"
+4. Environment Variables Check
+bashecho "Required environment variables:"
+echo "DATABASE_URL: $([ -n "$DATABASE_URL" ] && echo "✅ SET" || echo "❌ MISSING")"
+echo "CANVAS_API_TOKEN: $([ -n "$CANVAS_API_TOKEN" ] && echo "✅ SET" || echo "❌ MISSING")"
+echo "CANVAS_API_TOKEN_2: $([ -n "$CANVAS_API_TOKEN_2" ] && echo "✅ SET" || echo "❌ MISSING")"
+echo "FAMILY_PASSWORD: $([ -n "$FAMILY_PASSWORD" ] && echo "✅ SET" || echo "❌ MISSING")"
+5. Known Issues Check
+bash# Check false completions haven't returned
+psql -c "SELECT title, completion_status FROM assignments WHERE user_id = 'khalil-user' AND title LIKE '%METEOROLOGY%';"
+
+# Verify no hardcoded localhost
+grep -r "localhost:" client/dist --include="*.js" | head -5
+6. Canvas Sync Verification
+bash# Check Canvas date extraction
+psql -c "SELECT COUNT(*) as missing_dates FROM assignments WHERE due_date IS NULL AND canvas_id IS NOT NULL;"
+Run these checks. If all pass, you're ready to deploy. If any fail, we fix that specific issue before deployment.
+The key items to verify:
+
+No mock data
+Authentication works
+Both students' data loads
+Production build succeeds
+No false completion status
