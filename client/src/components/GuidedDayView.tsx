@@ -71,8 +71,8 @@ const useTextToSpeech = () => {
       setIsPlaying(false);
       setCurrentAudio(null);
       toast({
-        title: "Voice Assistant Unavailable",
-        description: "Text-to-speech is temporarily unavailable",
+        title: "Voice Assistant Error",
+        description: `TTS error: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     }

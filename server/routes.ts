@@ -80,8 +80,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Text is required' });
       }
 
-      // Eleven Labs Victor voice ID
-      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/yoZ06aMxZJJ6yHdIhvWn', {
+      // Eleven Labs Victor voice ID (found from API)
+      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/Yp1ySsmODnAcIghdWxeK', {
         method: 'POST',
         headers: {
           'Accept': 'audio/mpeg',
