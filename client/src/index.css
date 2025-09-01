@@ -15,9 +15,9 @@
   --accent-subtle: hsl(120, 60%, 97%);     /* #F0FDF4 - Light green background */
   
   /* Status System - Clean and Clear */
-  --status-complete: hsl(104, 90%, 38%);   /* #21BF06 - Vibrant green */
-  --status-progress: hsl(210, 58%, 54%);   /* #3B86D1 - Bright blue */
-  --status-blocked: hsl(222, 20%, 62%);    /* #6C7293 - Slate gray */
+  --status-complete: 33 191 6;   /* #21BF06 - Vibrant green */
+  --status-progress: 59 134 209;   /* #3B86D1 - Bright blue */
+  --status-blocked: 108 114 147;    /* #6C7293 - Slate gray */
   
   /* Sophisticated Neutrals */
   --background: hsl(210, 17%, 98%);        /* #F8F9FA - Clean light gray */
@@ -75,38 +75,44 @@
 }
 
 .dark {
-  --background: hsl(222.2, 84%, 4.9%);
-  --foreground: hsl(210, 40%, 98%);
-  --card: hsl(222.2, 84%, 4.9%);
-  --card-foreground: hsl(210, 40%, 98%);
-  --popover: hsl(222.2, 84%, 4.9%);
-  --popover-foreground: hsl(210, 40%, 98%);
-  --primary: hsl(217.2, 91.2%, 59.8%);
-  --primary-foreground: hsl(222.2, 84%, 4.9%);
-  --secondary: hsl(217.2, 32.6%, 17.5%);
-  --secondary-foreground: hsl(210, 40%, 98%);
-  --muted: hsl(217.2, 32.6%, 17.5%);
-  --muted-foreground: hsl(215, 20.2%, 65.1%);
-  --accent: hsl(217.2, 32.6%, 17.5%);
-  --accent-foreground: hsl(210, 40%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(210, 40%, 98%);
-  --border: hsl(217.2, 32.6%, 17.5%);
-  --input: hsl(217.2, 32.6%, 17.5%);
-  --ring: hsl(224.3, 76.3%, 94.1%);
-  --chart-1: hsl(220, 70%, 50%);
-  --chart-2: hsl(160, 60%, 45%);
-  --chart-3: hsl(30, 80%, 55%);
-  --chart-4: hsl(280, 65%, 60%);
-  --chart-5: hsl(340, 75%, 55%);
-  --sidebar: hsl(222.2, 84%, 4.9%);
-  --sidebar-foreground: hsl(210, 40%, 98%);
-  --sidebar-primary: hsl(217.2, 91.2%, 59.8%);
-  --sidebar-primary-foreground: hsl(222.2, 84%, 4.9%);
-  --sidebar-accent: hsl(217.2, 32.6%, 17.5%);
-  --sidebar-accent-foreground: hsl(210, 40%, 98%);
-  --sidebar-border: hsl(217.2, 32.6%, 17.5%);
-  --sidebar-ring: hsl(224.3, 76.3%, 94.1%);
+  /* Dark Mode Colors per Guide */
+  --background: 26 27 30; /* #1A1B1E - near black */
+  --foreground: 248 249 250; /* #F8F9FA - off-white */
+  --card: 44 45 49; /* #2C2D31 - elevated dark surface */
+  --card-foreground: 248 249 250; /* #F8F9FA - off-white */
+  --popover: 44 45 49; /* #2C2D31 */
+  --popover-foreground: 248 249 250; /* #F8F9FA */
+  --primary: 168 125 209; /* #A87DD1 - lighter purple for visibility */
+  --primary-foreground: 26 27 30; /* #1A1B1E */
+  --secondary: 60 61 65; /* #3C3D41 */
+  --secondary-foreground: 248 249 250; /* #F8F9FA */
+  --muted: 60 61 65; /* #3C3D41 */
+  --muted-foreground: 173 181 189; /* #ADB5BD - light gray */
+  --accent: 60 61 65; /* #3C3D41 */
+  --accent-foreground: 248 249 250; /* #F8F9FA */
+  --destructive: 220 38 38;
+  --destructive-foreground: 248 249 250;
+  --border: 60 61 65; /* #3C3D41 - subtle dark border */
+  --input: 60 61 65; /* #3C3D41 */
+  --ring: 168 125 209; /* #A87DD1 */
+  --chart-1: 220 70 50;
+  --chart-2: 160 60 45;
+  --chart-3: 30 80 55;
+  --chart-4: 280 65 60;
+  --chart-5: 340 75 55;
+  --sidebar: 44 45 49;
+  --sidebar-foreground: 248 249 250;
+  --sidebar-primary: 168 125 209;
+  --sidebar-primary-foreground: 26 27 30;
+  --sidebar-accent: 60 61 65;
+  --sidebar-accent-foreground: 248 249 250;
+  --sidebar-border: 60 61 65;
+  --sidebar-ring: 168 125 209;
+  
+  /* Custom StudyFlow Colors for Dark Mode */
+  --status-complete: 63 217 34; /* #3FD922 - brighter green for dark */
+  --status-progress: 91 163 229; /* #5BA3E5 - lighter blue for dark */
+  --status-blocked: 139 146 164; /* #8B92A4 - lighter gray for visibility */
 }
 
 @layer base {
