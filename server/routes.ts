@@ -101,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { date, startDate, endDate, studentName, includeCompleted } = req.query;
       
       // Use student-specific user ID mapping  
-      let userId = "demo-user-1"; // fallback
+      let userId = "unknown-user"; // fallback (was demo-user-1 - removed to prevent mock data contamination)
       
       if (studentName && typeof studentName === 'string') {
         // Map student names to actual database user IDs
@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedAssignmentData = insertAssignmentSchema.parse(assignmentData);
       
       // Use student-specific user ID or fallback
-      let userId = "demo-user-1";
+      let userId = "unknown-user"; // fallback (was demo-user-1 - removed to prevent mock data contamination)
       if (studentName) {
         const studentUserMap: Record<string, string> = {
           'abigail': 'abigail-user',
@@ -249,99 +249,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Database test and setup endpoint
-  app.post('/api/setup-demo', async (req, res) => {
-    try {
-      // Create demo user
-      const demoUser = await storage.createUser({
-        username: 'demo-student',
-        email: 'demo@studyflow.com',
-        password: 'demo',
-        firstName: 'Demo',
-        lastName: 'Student'
-      });
+  // DISABLED: Demo endpoint removed to prevent mock data contamination
+  // app.post('/api/setup-demo', async (req, res) => {
+  //   // REMOVED - was creating mock assignments that contaminated real student data
+  // });
 
-      // Create sample assignments
-      const today = new Date().toISOString().split('T')[0];
-      const sampleAssignments = [
-        {
-          title: "Math Practice - Algebra Review",
-          subject: "Mathematics",
-          courseName: "Algebra II",
-          instructions: "Complete problems 1-15 on page 84. Focus on quadratic equations and show your work clearly.",
-          scheduledDate: today,
-          scheduledBlock: 1,
-          blockStart: "09:00",
-          blockEnd: "09:45",
-          actualEstimatedMinutes: 45,
-          priority: "A" as const,
-          difficulty: "medium" as const
-        },
-        {
-          title: "English Essay - Character Analysis",
-          subject: "English Literature",
-          courseName: "English 11",
-          instructions: "Write a 500-word character analysis of Elizabeth Bennet from Pride and Prejudice.",
-          scheduledDate: today,
-          scheduledBlock: 2,
-          blockStart: "10:00",
-          blockEnd: "11:30",
-          actualEstimatedMinutes: 90,
-          priority: "B" as const,
-          difficulty: "hard" as const
-        },
-        {
-          title: "Science Lab Report",
-          subject: "Chemistry",
-          courseName: "Chemistry I",
-          instructions: "Complete the lab report on chemical reactions. Include hypothesis, observations, and conclusion.",
-          scheduledDate: today,
-          scheduledBlock: 3,
-          blockStart: "13:00",
-          blockEnd: "13:30",
-          actualEstimatedMinutes: 30,
-          completionStatus: "pending" as const,
-          priority: "B" as const,
-          difficulty: "medium" as const
-        }
-      ];
-
-      const createdAssignments = [];
-      for (const assignmentData of sampleAssignments) {
-        const assignment = await storage.createAssignment({ ...assignmentData, userId: demoUser.id });
-        createdAssignments.push(assignment);
-      }
-
-      res.json({ 
-        message: 'Demo data created successfully', 
-        user: demoUser, 
-        assignments: createdAssignments 
-      });
-    } catch (error) {
-      console.error('Error setting up demo:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json({ message: 'Failed to setup demo data', error: errorMessage });
-    }
-  });
-
-  // Get demo user route
-  app.get('/api/user', async (req, res) => {
-    try {
-      let user = await storage.getUser("demo-user-1");
-      if (!user) {
-        // Try to get by username instead
-        user = await storage.getUserByUsername("demo-student");
-      }
-      if (!user) {
-        return res.status(404).json({ message: 'Demo user not found. Try POST /api/setup-demo first.' });
-      }
-      res.json(user);
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json({ message: 'Failed to fetch user', error: errorMessage });
-    }
-  });
+  // DISABLED: Demo user endpoint removed
+  // app.get('/api/user', async (req, res) => {
+  //   // REMOVED - was fetching demo user that contaminated real student data
+  // });
 
   // Canvas integration endpoints
   app.get('/api/canvas/:studentName', async (req, res) => {
@@ -653,21 +569,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Database connection test
-  app.get('/api/db-test', async (req, res) => {
-    try {
-      const assignments = await storage.getAssignments('demo-user-1');
-      res.json({ 
-        status: 'Connected to database successfully', 
-        assignmentCount: assignments.length,
-        assignments: assignments.slice(0, 2) // Return first 2 for testing
-      });
-    } catch (error) {
-      console.error('Database test failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json({ message: 'Database connection failed', error: errorMessage });
-    }
-  });
+  // DISABLED: Database connection test using demo data removed
+  // app.get('/api/db-test', async (req, res) => {
+  //   // REMOVED - was using demo-user-1 that contaminated real student data  
+  // });
 
   // Bible curriculum routes
   app.get('/api/bible/current-week', async (req, res) => {

@@ -1287,8 +1287,8 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.assignments = new Map();
     
-    // Add sample assignments for demo
-    this.initializeSampleData();
+    // REMOVED: Sample data initialization to prevent contamination of real student data
+    // this.initializeSampleData(); // DISABLED - was creating mock data automatically
   }
 
   async getUser(id: string): Promise<User | undefined> {
