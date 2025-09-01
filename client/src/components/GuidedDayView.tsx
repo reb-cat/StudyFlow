@@ -102,15 +102,16 @@ type GuidedBlock = {
 };
 
 // StudyFlow color system
+// CSS variables for dark mode compatibility
 const colors = {
-  primary: '#844FC1',
-  complete: '#21BF06',
-  progress: '#3B86D1',
-  support: '#6C7293',
-  background: '#F8F9FA',
-  surface: '#FFFFFF',
-  text: '#212529',
-  textMuted: '#6C7293'
+  primary: 'hsl(var(--primary))',
+  complete: 'hsl(var(--status-complete))',
+  progress: 'hsl(var(--status-progress))',
+  support: 'hsl(var(--muted-foreground))',
+  background: 'hsl(var(--background))',
+  surface: 'hsl(var(--card))',
+  text: 'hsl(var(--foreground))',
+  textMuted: 'hsl(var(--muted-foreground))'
 };
 
 // CircularTimer component with StudyFlow colors
@@ -792,37 +793,30 @@ export function GuidedDayView({
         {/* Progress indicator */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '14px', color: colors.textMuted }}>
+            <span className="text-sm text-muted-foreground">
               Task {currentIndex + 1} of {totalBlocks}
             </span>
-            <span style={{ fontSize: '14px', color: colors.complete, fontWeight: '600' }}>
+            <span className="text-sm font-semibold" style={{ color: colors.complete }}>
               {completedCount} completed
             </span>
           </div>
-          <div style={{
-            height: '8px',
-            backgroundColor: colors.background,
-            borderRadius: '4px',
-            overflow: 'hidden'
-          }}>
+          <div className="h-2 bg-muted rounded overflow-hidden">
             <div style={{
               width: `${progressPercentage}%`,
               height: '100%',
               backgroundColor: colors.complete,
-              transition: 'width 0.5s ease',
-              borderRadius: '4px'
-            }} />
+              transition: 'width 0.5s ease'
+            }} className="rounded" />
           </div>
         </div>
 
         {/* Title card + Instructions pill */}
-        <div className="mb-4 rounded-2xl bg-blue-50/60 px-5 py-4" style={{ marginBottom: '16px' }}>
+        <div className="mb-4 rounded-2xl bg-card border border-border px-5 py-4" style={{ marginBottom: '16px' }}>
           <div className="mb-2 flex items-start justify-between gap-3">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-              <h2 className="text-[20px] font-bold text-slate-800" style={{ 
+              <h2 className="text-[20px] font-bold text-foreground" style={{ 
                 fontSize: '20px', 
                 fontWeight: 'bold', 
-                color: colors.text,
                 flex: 1
               }}>
                 {currentBlock.type === 'bible'
