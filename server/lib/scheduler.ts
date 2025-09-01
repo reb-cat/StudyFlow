@@ -36,6 +36,7 @@ class JobScheduler {
     
     const students = ['Abigail', 'Khalil'];
     let totalImported = 0;
+    let totalCompleted = 0;
     
     for (const studentName of students) {
       try {
@@ -44,6 +45,23 @@ class JobScheduler {
         // Get student's user ID
         const userId = `${studentName.toLowerCase()}-user`;
         
+        // FIRST: Sync completion status for existing assignments
+        console.log(`✅ Checking for completed assignments for ${studentName}...`);
+        try {
+          const completionSyncResponse = await fetch(`http://localhost:5000/api/sync-canvas-completion/${studentName}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          if (completionSyncResponse.ok) {
+            const completionResult = await completionSyncResponse.json();
+            totalCompleted += completionResult.updated || 0;
+            console.log(`✅ Completion sync: ${completionResult.updated || 0} assignments updated for ${studentName}`);
+          }
+        } catch (error) {
+          console.error(`❌ Failed to sync completion status for ${studentName}:`, error);
+        }
+        
+        // SECOND: Import new assignments from Canvas
         // Fetch Canvas assignments
         const canvasData = await getAllAssignmentsForStudent(studentName);
         
@@ -461,7 +479,7 @@ class JobScheduler {
       }
     }
     
-    console.log(`🎉 Daily Canvas sync completed. Imported ${totalImported} new assignments.`);
+    console.log(`🎉 Daily Canvas sync completed. Imported ${totalImported} new assignments, marked ${totalCompleted} assignments as completed.`);
     
     // Clean up any problematic assignments that slipped through
     await this.cleanupProblematicAssignments();
