@@ -10,7 +10,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, sql, desc, inArray } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -22,14 +22,12 @@ export interface IStorage {
   
   // Assignment operations
   getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]>;
-  getAllAssignments(includeDeleted?: boolean): Promise<Assignment[]>; // For print queue - gets all assignments across all users
+  getAllAssignments(): Promise<Assignment[]>; // For print queue - gets all assignments across all users
   getAssignment(id: string): Promise<Assignment | undefined>;
   createAssignment(assignment: InsertAssignment & { userId: string }): Promise<Assignment>;
   updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined>;
   updateAssignmentStatus(id: string, completionStatus: string): Promise<Assignment | undefined>;
   deleteAssignment(id: string): Promise<boolean>;
-  markAssignmentDeleted(id: string): Promise<Assignment | undefined>; // Soft delete
-  getDeletedAssignments(): Promise<Assignment[]>; // Admin audit trail
   updateAdministrativeAssignments(): Promise<void>;
   
   // Schedule template operations
@@ -200,14 +198,10 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getAllAssignments(includeDeleted = false): Promise<Assignment[]> {
+  async getAllAssignments(): Promise<Assignment[]> {
     try {
-      // Get ALL assignments across all users for print queue - excludes soft deleted by default
-      const query = db.select().from(assignments);
-      if (!includeDeleted) {
-        query.where(isNull(assignments.deletedAt));
-      }
-      const result = await query;
+      // Get ALL assignments across all users for print queue
+      const result = await db.select().from(assignments);
       return result || [];
     } catch (error) {
       console.error('Error getting all assignments:', error);

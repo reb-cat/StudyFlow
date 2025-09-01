@@ -153,9 +153,6 @@ export const assignments = pgTable("assignments", {
   needsManualDueDate: boolean("needs_manual_due_date").default(false), // Flag for assignments missing Canvas dates
   suggestedDueDate: timestamp("suggested_due_date"), // AI-suggested due date from related assignments
   
-  // Soft delete support for Canvas sync
-  deletedAt: timestamp("deleted_at"), // When assignment was removed from Canvas
-  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
