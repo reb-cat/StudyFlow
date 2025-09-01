@@ -225,7 +225,12 @@ class JobScheduler {
                   
                   // Smart fallback metadata for missing dates
                   needsManualDueDate: canvasAssignment.needs_manual_due_date || false,
-                  suggestedDueDate: canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null
+                  suggestedDueDate: canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null,
+                  
+                  // Direct Canvas assignment URL for easy access
+                  canvasUrl: canvasAssignment.course_id && canvasAssignment.id 
+                    ? `${process.env.CANVAS_BASE_URL}courses/${canvasAssignment.course_id}/assignments/${canvasAssignment.id}`
+                    : null
                 });
                 totalImported++;
               } else {
@@ -408,7 +413,12 @@ class JobScheduler {
                   
                   // Smart fallback metadata for missing dates
                   needsManualDueDate: canvasAssignment.needs_manual_due_date || false,
-                  suggestedDueDate: canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null
+                  suggestedDueDate: canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null,
+                  
+                  // Direct Canvas assignment URL for easy access
+                  canvasUrl: canvasAssignment.course_id && canvasAssignment.id 
+                    ? `${process.env.CANVAS_BASE_URL}courses/${canvasAssignment.course_id}/assignments/${canvasAssignment.id}`
+                    : null
                 });
                 totalImported++;
               } else {
