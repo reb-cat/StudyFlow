@@ -336,8 +336,10 @@ export default function AssignmentsPage() {
   };
 
   const handleEditAssignment = (assignment: Assignment) => {
+    console.log('Edit button clicked for assignment:', assignment.id, assignment.title);
     setEditingAssignment(assignment);
     setShowEditForm(true);
+    console.log('Edit form should now be visible');
   };
 
   const handleSaveEdit = () => {
@@ -856,16 +858,16 @@ export default function AssignmentsPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">Title *</label>
                 <Input
-                  value={editingAssignment.title}
-                  onChange={(e) => setEditingAssignment({...editingAssignment, title: e.target.value})}
+                  value={editingAssignment?.title || ''}
+                  onChange={(e) => editingAssignment && setEditingAssignment({...editingAssignment, title: e.target.value})}
                   data-testid="input-edit-title"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Subject</label>
                 <Input
-                  value={editingAssignment.subject || ''}
-                  onChange={(e) => setEditingAssignment({...editingAssignment, subject: e.target.value})}
+                  value={editingAssignment?.subject || ''}
+                  onChange={(e) => editingAssignment && setEditingAssignment({...editingAssignment, subject: e.target.value})}
                   data-testid="input-edit-subject"
                 />
               </div>
@@ -874,8 +876,8 @@ export default function AssignmentsPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Course Name</label>
               <Input
-                value={editingAssignment.courseName || ''}
-                onChange={(e) => setEditingAssignment({...editingAssignment, courseName: e.target.value})}
+                value={editingAssignment?.courseName || ''}
+                onChange={(e) => editingAssignment && setEditingAssignment({...editingAssignment, courseName: e.target.value})}
                 data-testid="input-edit-course"
               />
             </div>
@@ -883,8 +885,8 @@ export default function AssignmentsPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Instructions</label>
               <Textarea
-                value={editingAssignment.instructions || ''}
-                onChange={(e) => setEditingAssignment({...editingAssignment, instructions: e.target.value})}
+                value={editingAssignment?.instructions || ''}
+                onChange={(e) => editingAssignment && setEditingAssignment({...editingAssignment, instructions: e.target.value})}
                 rows={3}
                 data-testid="input-edit-instructions"
               />
@@ -895,10 +897,10 @@ export default function AssignmentsPage() {
                 <label className="block text-sm font-medium mb-1">Due Date</label>
                 <Input
                   type="datetime-local"
-                  value={editingAssignment.dueDate ? 
+                  value={editingAssignment?.dueDate ? 
                     new Date(editingAssignment.dueDate).toISOString().slice(0, 16) : ''
                   }
-                  onChange={(e) => setEditingAssignment({
+                  onChange={(e) => editingAssignment && setEditingAssignment({
                     ...editingAssignment, 
                     dueDate: e.target.value ? new Date(e.target.value) : null
                   })}
@@ -907,8 +909,8 @@ export default function AssignmentsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Priority</label>
-                <Select value={editingAssignment.priority || 'B'} onValueChange={(value: 'A' | 'B' | 'C') => 
-                  setEditingAssignment({...editingAssignment, priority: value})
+                <Select value={editingAssignment?.priority || 'B'} onValueChange={(value: 'A' | 'B' | 'C') => 
+                  editingAssignment && setEditingAssignment({...editingAssignment, priority: value})
                 }>
                   <SelectTrigger data-testid="select-edit-priority">
                     <SelectValue />
@@ -922,8 +924,8 @@ export default function AssignmentsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
-                <Select value={editingAssignment.completionStatus || 'pending'} onValueChange={(value) => 
-                  setEditingAssignment({...editingAssignment, completionStatus: value as any})
+                <Select value={editingAssignment?.completionStatus || 'pending'} onValueChange={(value) => 
+                  editingAssignment && setEditingAssignment({...editingAssignment, completionStatus: value as any})
                 }>
                   <SelectTrigger data-testid="select-edit-status">
                     <SelectValue />
@@ -940,8 +942,8 @@ export default function AssignmentsPage() {
                 <label className="block text-sm font-medium mb-1">Estimated Minutes</label>
                 <Input
                   type="number"
-                  value={editingAssignment.actualEstimatedMinutes || 30}
-                  onChange={(e) => setEditingAssignment({
+                  value={editingAssignment?.actualEstimatedMinutes || 30}
+                  onChange={(e) => editingAssignment && setEditingAssignment({
                     ...editingAssignment, 
                     actualEstimatedMinutes: parseInt(e.target.value)
                   })}
