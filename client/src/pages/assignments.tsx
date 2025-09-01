@@ -471,6 +471,7 @@ export default function AssignmentsPage() {
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="stuck">Stuck</SelectItem>
+                  <SelectItem value="grading_delay">Grading Delay</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -535,6 +536,7 @@ export default function AssignmentsPage() {
                     <SelectItem value="pending">Mark Pending</SelectItem>
                     <SelectItem value="in_progress">Mark In Progress</SelectItem>
                     <SelectItem value="stuck">Mark Stuck</SelectItem>
+                    <SelectItem value="grading_delay">Mark Grading Delay</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button 
@@ -634,6 +636,7 @@ export default function AssignmentsPage() {
                             {assignment.completionStatus === 'completed' && <CheckCircle className="w-3 h-3 mr-1" />}
                             {assignment.completionStatus === 'stuck' && <AlertCircle className="w-3 h-3 mr-1" />}
                             {assignment.completionStatus === 'needs_more_time' && <Clock className="w-3 h-3 mr-1" />}
+                            {assignment.completionStatus === 'grading_delay' && <HelpCircle className="w-3 h-3 mr-1" />}
                             {assignment.completionStatus === 'pending' && <Circle className="w-3 h-3 mr-1" />}
                             {(assignment.completionStatus || 'pending').replace('_', ' ')}
                           </Badge>
@@ -951,6 +954,7 @@ export default function AssignmentsPage() {
                     <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="stuck">Stuck</SelectItem>
+                    <SelectItem value="grading_delay">Grading Delay</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

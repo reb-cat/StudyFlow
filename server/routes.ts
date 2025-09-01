@@ -128,7 +128,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Assignment ID and completion status are required' });
       }
 
-      const assignment = await storage.updateAssignmentStatus(id, completionStatus);
+      // Track when assignment is marked complete for grading delay detection
+      const updateData: any = { completionStatus };
+      if (completionStatus === 'completed') {
+        updateData.completedAt = new Date();
+      }
+      
+      const assignment = await storage.updateAssignment(id, updateData);
       if (!assignment) {
         return res.status(404).json({ message: 'Assignment not found' });
       }
@@ -490,6 +496,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
               action: 'completed',
               reason: gradeReason
             });
+          } else {
+            // Check for grading delay: student marked complete but still ungraded after 5+ days
+            if (dbAssignment.completionStatus === 'completed' && dbAssignment.completedAt) {
+              const completedDate = new Date(dbAssignment.completedAt);
+              const daysSinceCompleted = Math.floor((Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
+              
+              if (daysSinceCompleted >= 5 && dbAssignment.completionStatus !== 'grading_delay') {
+                console.log(`⚠️ Grading delay detected: "${dbAssignment.title}" completed ${daysSinceCompleted} days ago but still ungraded`);
+                
+                await storage.updateAssignment(dbAssignment.id, {
+                  completionStatus: 'grading_delay',
+                  gradingDelayDetectedAt: new Date(),
+                  notes: `${dbAssignment.notes || ''}\nGRADING DELAY: Completed ${daysSinceCompleted} days ago but still ungraded in Canvas`.trim(),
+                  updatedAt: new Date()
+                });
+                
+                updatedCount++;
+                results.push({
+                  id: dbAssignment.id,
+                  title: dbAssignment.title,
+                  action: 'grading_delay_detected',
+                  reason: `ungraded for ${daysSinceCompleted} days`
+                });
+              }
+            }
           }
         }
       }

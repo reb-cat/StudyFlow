@@ -113,7 +113,7 @@ export const assignments = pgTable("assignments", {
   blockEnd: text("block_end"), // HH:mm format
   actualEstimatedMinutes: integer("actual_estimated_minutes").default(30),
   completionStatus: text("completion_status", { 
-    enum: ["pending", "completed", "needs_more_time", "stuck"] 
+    enum: ["pending", "completed", "needs_more_time", "stuck", "grading_delay"] 
   }).default("pending"),
   blockType: text("block_type").default("assignment"), // assignment, co-op, travel, prep, etc.
   isAssignmentBlock: boolean("is_assignment_block").default(true),
@@ -121,6 +121,8 @@ export const assignments = pgTable("assignments", {
   difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }).default("medium"),
   timeSpent: integer("time_spent").default(0), // actual minutes spent
   notes: text("notes"),
+  completedAt: timestamp("completed_at"), // When student marked it complete
+  gradingDelayDetectedAt: timestamp("grading_delay_detected_at"), // When we detected grading delay
   creationSource: text("creation_source", { 
     enum: ["manual", "canvas_sync", "auto_split", "student_need_more_time"] 
   }).default("manual"), // Track assignment origin
