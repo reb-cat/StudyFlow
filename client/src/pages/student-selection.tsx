@@ -89,73 +89,21 @@ export default function FamilyDashboard() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: colors.background,
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header style={{
-        backgroundColor: colors.surface,
-        borderBottom: `1px solid ${colors.border}`,
-        padding: '20px 40px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-      }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            backgroundColor: colors.primary,
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '24px',
-            fontWeight: 'bold'
-          }}>
+      <header className="bg-card border-b border-border p-5 md:px-10 flex justify-between items-center shadow-sm">
+        <Link href="/" className="flex items-center gap-3 no-underline">
+          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white text-2xl font-bold">
             S
           </div>
-          <h1 style={{ 
-            fontSize: '28px', 
-            fontWeight: 'bold',
-            color: colors.primary,
-            margin: 0
-          }}>
+          <h1 className="text-3xl font-bold text-primary m-0">
             StudyFlow
           </h1>
         </Link>
         
         <Link
           href="/admin"
-          style={{
-            padding: '10px 20px',
-            backgroundColor: 'transparent',
-            border: `1px solid ${colors.border}`,
-            borderRadius: '8px',
-            color: colors.text,
-            fontSize: '16px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s',
-            textDecoration: 'none'
-          }}
-          onMouseEnter={(e) => {
-            const target = e.currentTarget as HTMLElement;
-            target.style.backgroundColor = colors.background;
-            target.style.borderColor = colors.primary;
-          }}
-          onMouseLeave={(e) => {
-            const target = e.currentTarget as HTMLElement;
-            target.style.backgroundColor = 'transparent';
-            target.style.borderColor = colors.border;
-          }}
+          className="px-5 py-2.5 bg-transparent border border-border rounded-lg text-foreground text-base cursor-pointer flex items-center gap-2 transition-all duration-200 no-underline hover:bg-secondary hover:border-primary"
         >
           <Settings size={18} />
           Admin
@@ -163,56 +111,20 @@ export default function FamilyDashboard() {
       </header>
 
       {/* Main Content */}
-      <main style={{
-        flex: 1,
-        padding: '60px 40px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '48px'
-      }}>
+      <main className="flex-1 px-10 py-15 flex flex-col items-center gap-12">
         {/* Date and Greeting Card */}
-        <div style={{
-          backgroundColor: colors.surface,
-          border: `1px solid ${colors.border}`,
-          borderRadius: '16px',
-          padding: '32px 48px',
-          textAlign: 'center',
-          maxWidth: '800px',
-          width: '100%',
-          boxShadow: '0 2px 8px rgba(132, 79, 193, 0.06)'
-        }}>
-          <div style={{ 
-            color: colors.textMuted, 
-            fontSize: '14px', 
-            fontWeight: '500',
-            marginBottom: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}>
+        <div className="bg-card border border-border rounded-2xl px-12 py-8 text-center max-w-4xl w-full shadow-lg">
+          <div className="text-muted-foreground text-sm font-medium mb-3 flex items-center justify-center gap-2">
             <Calendar size={16} />
             {dateDisplay.toUpperCase()}
           </div>
-          <h2 style={{ 
-            fontSize: '32px', 
-            color: colors.primary,
-            margin: 0,
-            fontWeight: '600'
-          }}>
+          <h2 className="text-3xl text-primary font-semibold m-0">
             {greeting}
           </h2>
         </div>
 
         {/* Student Cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '32px',
-          maxWidth: '800px',
-          width: '100%'
-        }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full">
           {students.map((student) => (
             <Link
               key={student.id}

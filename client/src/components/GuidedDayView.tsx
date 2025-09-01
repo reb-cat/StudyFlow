@@ -738,14 +738,7 @@ export function GuidedDayView({
   // Completion screen
   if (!currentBlock || currentIndex >= scheduleBlocks.length) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: `linear-gradient(135deg, ${colors.complete}20 0%, ${colors.background} 100%)`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-      }}>
+      <div className="min-h-screen bg-background flex items-center justify-center p-5">
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '72px', marginBottom: '24px' }}>🎉</div>
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '16px' }}>
@@ -777,22 +770,8 @@ export function GuidedDayView({
   const blockStyle = getBlockStyle(currentBlock.blockType || currentBlock.type);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: colors.background,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px'
-    }}>
-      <div style={{
-        maxWidth: '480px',
-        width: '100%',
-        backgroundColor: colors.surface,
-        borderRadius: '24px',
-        padding: '32px',
-        boxShadow: '0 20px 60px rgba(132, 79, 193, 0.1)'
-      }}>
+    <div className="min-h-screen bg-background flex items-center justify-center p-5">
+      <div className="max-w-lg w-full bg-card rounded-3xl p-8 shadow-xl">
         {/* Progress indicator */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>

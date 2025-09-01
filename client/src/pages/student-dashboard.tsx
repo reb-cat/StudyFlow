@@ -441,7 +441,7 @@ export default function StudentDashboard() {
 
   if (isWeekend) {
     return (
-      <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
+      <div className="min-h-screen p-6 bg-background">
         <div className="max-w-4xl mx-auto">
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🌟</div>
@@ -462,7 +462,7 @@ export default function StudentDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
+      <div className="min-h-screen p-6 bg-background">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -481,7 +481,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 print-page" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
+    <div className="min-h-screen p-4 sm:p-6 print-page bg-background">
       <div className="max-w-5xl mx-auto">
         
         {/* Print Header - Hidden on screen, visible in print */}
@@ -651,7 +651,7 @@ export default function StudentDashboard() {
               </div>
               <div className="w-full bg-gray-100 dark:bg-muted rounded-full h-3">
                 <div 
-                  className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500" 
+                  className="bg-primary h-3 rounded-full transition-all duration-500" 
                   style={{ 
                     width: dailyScheduleStatus.length > 0 
                       ? `${(dailyScheduleStatus.filter(s => s.status === 'complete').length / dailyScheduleStatus.length) * 100}%`

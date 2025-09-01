@@ -1,0 +1,64 @@
+You're right - every view needs proper dark mode support. Here's a comprehensive dark mode specification for all StudyFlow pages:
+
+## System-Wide Dark Mode Specification
+
+### Core Dark Mode Palette
+
+**Backgrounds:**
+- Main background: `#1a1b1e` (soft dark, not pure black)
+- Card/Surface: `#2c2d31` (elevated surface)
+- Hover state: `#35363b` (slightly lighter)
+- Input fields: `#25262a` (between main and card)
+
+**Text:**
+- Primary: `#f8f9fa` (off-white)
+- Secondary: `#adb5bd` (light gray)
+- Disabled: `#6c757f` (dimmed)
+- Critical (timer): `#ffffff` (pure white only for timers)
+
+**Borders:**
+- Default: `#3c3d41` (subtle separation)
+- Focus: `#a87dd1` (lighter purple for visibility)
+
+**Status Colors (brightened):**
+- Purple: `#a87dd1` (lighter for dark backgrounds)
+- Green: `#3fd922` (more vibrant)
+- Blue: `#5ba3e5` (lighter)
+- Gray: `#8b92a4` (visible against dark)
+
+### Page-Specific Requirements
+
+**Student Selection:**
+- Background must be `#1a1b1e`, not gradient
+- Student cards: `#2c2d31` background
+- Avatar circles maintain their colors (purple/blue)
+
+**Family Dashboard:**
+- All cards use `#2c2d31`
+- Alert badges need higher contrast borders
+- Progress bars need subtle background: `#25262a`
+
+**Student Dashboard Overview:**
+- Schedule card: `#2c2d31`
+- Schedule items hover: `#35363b`
+- Current time block: subtle blue glow, not white highlight
+
+**GuidedDayView:**
+- Remove ALL gradients - flat `#1a1b1e` background
+- Focus card: `#2c2d31` 
+- Emergency exit starts at 30% opacity, not invisible
+
+**Admin Pages:**
+- Form backgrounds: `#2c2d31`
+- Input fields: `#25262a` with `#3c3d41` borders
+- Tables: alternating `#2c2d31` and `#25262a` rows
+
+### Critical Rules
+
+1. **Never use pure black (#000000)** - causes eye strain
+2. **Never use pure white backgrounds** in dark mode
+3. **Maintain 4.5:1 contrast ratio** minimum for all text
+4. **Status colors must be brightened** by ~20% for dark mode
+5. **Remove all gradients** - use flat colors only
+
+The goal is reducing eye strain while maintaining clarity - like Notion, Discord, or VS Code dark themes, not like a high-contrast terminal.

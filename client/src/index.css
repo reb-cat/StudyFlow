@@ -75,38 +75,62 @@
 }
 
 .dark {
-  --background: hsl(222.2, 84%, 4.9%);
-  --foreground: hsl(210, 40%, 98%);
-  --card: hsl(222.2, 84%, 4.9%);
-  --card-foreground: hsl(210, 40%, 98%);
-  --popover: hsl(222.2, 84%, 4.9%);
-  --popover-foreground: hsl(210, 40%, 98%);
-  --primary: hsl(217.2, 91.2%, 59.8%);
-  --primary-foreground: hsl(222.2, 84%, 4.9%);
-  --secondary: hsl(217.2, 32.6%, 17.5%);
-  --secondary-foreground: hsl(210, 40%, 98%);
-  --muted: hsl(217.2, 32.6%, 17.5%);
-  --muted-foreground: hsl(215, 20.2%, 65.1%);
-  --accent: hsl(217.2, 32.6%, 17.5%);
-  --accent-foreground: hsl(210, 40%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
+  /* StudyFlow Dark Mode Palette - Eye strain reduction focused */
+  
+  /* Backgrounds - soft dark, never pure black */
+  --background: hsl(220, 13%, 11%);             /* #1a1b1e - Main background */
+  --card: hsl(220, 9%, 18%);                    /* #2c2d31 - Elevated surface */
+  --surface-secondary: hsl(220, 9%, 16%);       /* #25262a - Input fields */
+  --surface-hover: hsl(220, 8%, 21%);           /* #35363b - Hover state */
+  
+  /* Text - off-white hierarchy */
+  --foreground: hsl(210, 17%, 97%);             /* #f8f9fa - Primary text */
+  --card-foreground: hsl(210, 17%, 97%);        
+  --muted-foreground: hsl(210, 11%, 71%);       /* #adb5bd - Secondary text */
+  --text-disabled: hsl(211, 10%, 53%);          /* #6c757f - Disabled text */
+  --text-critical: hsl(0, 0%, 100%);            /* #ffffff - Timer/critical text */
+  
+  /* Interactive elements */
+  --popover: hsl(220, 9%, 18%);
+  --popover-foreground: hsl(210, 17%, 97%);
+  --secondary: hsl(220, 9%, 18%);
+  --secondary-foreground: hsl(210, 17%, 97%);
+  --muted: hsl(220, 9%, 16%);
+  
+  /* Borders - subtle separation */
+  --border: hsl(220, 7%, 25%);                  /* #3c3d41 - Default borders */
+  --input: hsl(220, 9%, 16%);                   /* #25262a - Input background */
+  --ring: hsl(260, 53%, 70%);                   /* #a87dd1 - Focus ring (lighter purple) */
+  
+  /* Status colors - brightened for dark mode */
+  --primary: hsl(260, 53%, 70%);                /* #a87dd1 - Lighter purple */
+  --primary-foreground: hsl(220, 13%, 11%);
+  --accent: hsl(104, 90%, 48%);                 /* #3fd922 - More vibrant green */
+  --accent-foreground: hsl(220, 13%, 11%);
+  --status-complete: hsl(104, 90%, 48%);        /* #3fd922 - Vibrant green */
+  --status-progress: hsl(210, 63%, 65%);        /* #5ba3e5 - Lighter blue */
+  --status-blocked: hsl(220, 15%, 60%);         /* #8b92a4 - Visible gray */
+  
+  /* Destructive states */
+  --destructive: hsl(0, 62.8%, 50%);
   --destructive-foreground: hsl(210, 40%, 98%);
-  --border: hsl(217.2, 32.6%, 17.5%);
-  --input: hsl(217.2, 32.6%, 17.5%);
-  --ring: hsl(224.3, 76.3%, 94.1%);
-  --chart-1: hsl(220, 70%, 50%);
-  --chart-2: hsl(160, 60%, 45%);
-  --chart-3: hsl(30, 80%, 55%);
-  --chart-4: hsl(280, 65%, 60%);
-  --chart-5: hsl(340, 75%, 55%);
-  --sidebar: hsl(222.2, 84%, 4.9%);
-  --sidebar-foreground: hsl(210, 40%, 98%);
-  --sidebar-primary: hsl(217.2, 91.2%, 59.8%);
-  --sidebar-primary-foreground: hsl(222.2, 84%, 4.9%);
-  --sidebar-accent: hsl(217.2, 32.6%, 17.5%);
-  --sidebar-accent-foreground: hsl(210, 40%, 98%);
-  --sidebar-border: hsl(217.2, 32.6%, 17.5%);
-  --sidebar-ring: hsl(224.3, 76.3%, 94.1%);
+  
+  /* Charts - updated for dark mode */
+  --chart-1: hsl(260, 53%, 70%);               /* Purple */
+  --chart-2: hsl(210, 63%, 65%);               /* Blue */
+  --chart-3: hsl(104, 90%, 48%);               /* Green */
+  --chart-4: hsl(220, 15%, 60%);               /* Gray */
+  --chart-5: hsl(37, 92%, 60%);                /* Orange */
+  
+  /* Sidebar */
+  --sidebar: hsl(220, 9%, 18%);
+  --sidebar-foreground: hsl(210, 17%, 97%);
+  --sidebar-primary: hsl(260, 53%, 70%);
+  --sidebar-primary-foreground: hsl(220, 13%, 11%);
+  --sidebar-accent: hsl(220, 9%, 16%);
+  --sidebar-accent-foreground: hsl(210, 17%, 97%);
+  --sidebar-border: hsl(220, 7%, 25%);
+  --sidebar-ring: hsl(260, 53%, 70%);
 }
 
 @layer base {
