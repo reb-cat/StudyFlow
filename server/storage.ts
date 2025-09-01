@@ -340,12 +340,33 @@ export class DatabaseStorage implements IStorage {
     try {
       const userId = `${studentName.toLowerCase()}-user`;
       
-      // Get unscheduled assignments
+      // Get unscheduled assignments - EXCLUDE PARENT TASKS
       const userAssignments = await this.getAssignments(userId);
-      const unscheduledAssignments = userAssignments.filter(a => 
-        a.completionStatus === 'pending' && 
-        (!a.scheduledDate || !a.scheduledBlock)
-      );
+      const unscheduledAssignments = userAssignments.filter(a => {
+        // First filter: must be pending and not scheduled
+        if (a.completionStatus !== 'pending' || (a.scheduledDate && a.scheduledBlock)) {
+          return false;
+        }
+        
+        // CRITICAL: Exclude parent/administrative assignments from student scheduling
+        const title = a.title.toLowerCase();
+        const isParentTask = title.includes('fee') || 
+                            title.includes('supply') || 
+                            title.includes('permission') || 
+                            title.includes('form') ||
+                            title.includes('waiver') ||
+                            title.includes('registration') ||
+                            title.includes('syllabus') ||
+                            title.includes('honor code') ||
+                            a.priority === 'parent';
+        
+        if (isParentTask) {
+          console.log(`🚫 Excluding parent task from student scheduling: ${a.title}`);
+          return false;
+        }
+        
+        return true;
+      });
       
       // Get schedule template blocks
       const targetDateObj = new Date(targetDate);
@@ -425,17 +446,25 @@ export class DatabaseStorage implements IStorage {
       const allAssignments = await db.select().from(assignments);
       
       for (const assignment of allAssignments) {
-        const isAdministrative = assignment.title.toLowerCase().includes('fee') ||
-                                assignment.title.toLowerCase().includes('supply') ||
-                                assignment.title.toLowerCase().includes('syllabus') ||
-                                assignment.title.toLowerCase().includes('honor code');
+        const title = assignment.title.toLowerCase();
+        const isAdministrative = title.includes('fee') ||
+                                title.includes('supply') ||
+                                title.includes('permission') ||
+                                title.includes('form') ||
+                                title.includes('waiver') ||
+                                title.includes('registration') ||
+                                title.includes('syllabus') ||
+                                title.includes('honor code');
         
         if (isAdministrative) {
           await db.update(assignments)
-            .set({ completionStatus: 'completed' })
+            .set({ 
+              completionStatus: 'completed',
+              priority: 'parent' // Mark as parent task
+            })
             .where(eq(assignments.id, assignment.id));
           
-          console.log(`Updated admin assignment: ${assignment.title}`);
+          console.log(`✅ Marked parent task as completed: ${assignment.title}`);
         }
       }
     } catch (error) {
