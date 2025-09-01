@@ -1104,19 +1104,34 @@ export class DatabaseStorage implements IStorage {
             blockEnd: block.endTime
           });
           
-          // Create part 2 assignment
-          const part2Assignment = await this.createAssignment({
-            userId: assignment.userId,
-            title: `${assignment.title} (Part 2)`,
-            subject: assignment.subject,
-            courseName: assignment.courseName,
-            instructions: assignment.instructions,
-            dueDate: assignment.dueDate,
-            priority: assignment.priority,
-            difficulty: assignment.difficulty,
-            actualEstimatedMinutes: part2Minutes,
-            completionStatus: 'pending'
-          });
+          // Check if Part 2 already exists to prevent duplicates
+          const part2Title = `${assignment.title} (Part 2)`;
+          const existingPart2 = await db.select()
+            .from(assignments)
+            .where(and(
+              eq(assignments.userId, assignment.userId),
+              eq(assignments.title, part2Title)
+            ))
+            .limit(1);
+          
+          // Only create Part 2 if it doesn't exist
+          if (existingPart2.length === 0) {
+            const part2Assignment = await this.createAssignment({
+              userId: assignment.userId,
+              title: part2Title,
+              subject: assignment.subject,
+              courseName: assignment.courseName,
+              instructions: assignment.instructions,
+              dueDate: assignment.dueDate,
+              priority: assignment.priority,
+              difficulty: assignment.difficulty,
+              actualEstimatedMinutes: part2Minutes,
+              completionStatus: 'pending'
+            });
+            console.log(`✅ Created Part 2: ${part2Title}`);
+          } else {
+            console.log(`⚠️ Part 2 already exists, skipping: ${part2Title}`);
+          }
           
           assignedAssignments.push(`${assignment.title} (split: ${part1Minutes}min + ${part2Minutes}min)`);
         }
@@ -1228,19 +1243,34 @@ export class DatabaseStorage implements IStorage {
         // Due later this week - create Part 2 and place in next available slot
         const remainingMinutes = Math.ceil((assignment.actualEstimatedMinutes || 60) * 0.5);
         
-        // Create Part 2 assignment
-        await this.createAssignment({
-          userId: assignment.userId,
-          title: `${assignment.title} (Part 2)`,
-          subject: assignment.subject,
-          courseName: assignment.courseName,
-          instructions: assignment.instructions,
-          dueDate: assignment.dueDate,
-          priority: assignment.priority,
-          difficulty: assignment.difficulty,
-          actualEstimatedMinutes: remainingMinutes,
-          completionStatus: 'pending'
-        });
+        // Check if Part 2 already exists to prevent duplicates
+        const part2Title = `${assignment.title} (Part 2)`;
+        const existingPart2 = await db.select()
+          .from(assignments)
+          .where(and(
+            eq(assignments.userId, assignment.userId),
+            eq(assignments.title, part2Title)
+          ))
+          .limit(1);
+        
+        // Only create Part 2 if it doesn't exist
+        if (existingPart2.length === 0) {
+          await this.createAssignment({
+            userId: assignment.userId,
+            title: part2Title,
+            subject: assignment.subject,
+            courseName: assignment.courseName,
+            instructions: assignment.instructions,
+            dueDate: assignment.dueDate,
+            priority: assignment.priority,
+            difficulty: assignment.difficulty,
+            actualEstimatedMinutes: remainingMinutes,
+            completionStatus: 'pending'
+          });
+          console.log(`✅ Created rescheduled Part 2: ${part2Title}`);
+        } else {
+          console.log(`⚠️ Rescheduled Part 2 already exists, skipping: ${part2Title}`);
+        }
       }
       
       console.log(`✅ Rescheduled assignment ${assignment.title}`);

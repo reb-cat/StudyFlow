@@ -1,0 +1,59 @@
+FIND THE RANDOM DUPLICATION BUG
+Part 1: Track When Duplicates Are Created
+sql-- Find recently created Part 2s
+SELECT title, created_at, updated_at, user_id
+FROM assignments 
+WHERE title LIKE '%(Part 2)%'
+ORDER BY created_at DESC
+LIMIT 20;
+
+-- Check if they're created during specific operations
+SELECT 
+  DATE_TRUNC('minute', created_at) as minute,
+  COUNT(*) as duplicates_created,
+  STRING_AGG(title, '; ') as titles
+FROM assignments
+WHERE title LIKE '%(Part 2)%'
+  AND created_at > NOW() - INTERVAL '24 hours'
+GROUP BY minute
+HAVING COUNT(*) > 1;
+Part 2: Find Canvas Sync Duplication
+The Canvas sync might be creating duplicates on each run:
+bash# Check Canvas sync for duplicate logic
+grep -B5 -A5 "INSERT INTO assignments" server/lib/canvas.ts
+grep -B5 -A5 "create.*assignment" server/lib/canvas.ts
+
+# Look for missing unique constraints
+grep -n "ON CONFLICT\|upsert\|findOrCreate" server --include="*.ts"
+Part 3: Check for Schedule-Based Duplication
+bash# The scheduler might be duplicating
+grep -n "scheduledJobs\|cron\|schedule" server --include="*.ts"
+
+# Check if daily sync creates duplicates
+grep -B10 -A10 "daily-canvas-sync" server --include="*.ts"
+Part 4: Database Constraint to Stop It
+sql-- See if assignments have unique identifiers
+SELECT canvas_id, title, COUNT(*)
+FROM assignments
+WHERE user_id = 'khalil-user'
+GROUP BY canvas_id, title
+HAVING COUNT(*) > 1;
+
+-- Add constraint to prevent duplicates
+ALTER TABLE assignments
+ADD CONSTRAINT prevent_duplicate_assignments
+UNIQUE(user_id, canvas_id);
+Part 5: Add Logging to Catch the Culprit
+javascript// Add to assignment creation
+console.error('ASSIGNMENT CREATED:', {
+  title: assignment.title,
+  source: 'canvas_sync|manual|need_more_time',
+  stackTrace: new Error().stack
+});
+The duplicates are likely being created by:
+
+Canvas sync running without proper duplicate checking
+A scheduled job that re-imports assignments
+Missing ON CONFLICT clause in database inserts
+
+This needs to be fixed immediately - random duplicates will make the app unusable.
