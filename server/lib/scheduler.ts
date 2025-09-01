@@ -1,6 +1,7 @@
 import { getAllAssignmentsForStudent } from './canvas';
 import { storage } from '../storage';
 import { analyzeAssignmentWithCanvas, getSmartSchedulingDate, extractDueDateFromTitle } from './assignmentIntelligence';
+import { performBidirectionalSync } from './canvasBidirectionalSync';
 
 interface ScheduledJob {
   name: string;
@@ -438,6 +439,10 @@ class JobScheduler {
         
         // Step 3: Clean up stale assignments (exist in our DB but not in Canvas anymore)
         await this.cleanupStaleAssignments(userId, canvasData);
+        
+        // Step 4: Bidirectional sync - detect phantom assignments and sync completion status
+        const allCanvasAssignments = [...(canvasData.instance1 || []), ...(canvasData.instance2 || [])];
+        await performBidirectionalSync(userId, allCanvasAssignments);
         
         console.log(`✅ Completed Canvas sync for ${studentName}`);
         
