@@ -14,6 +14,82 @@ const toNYDateString = (d = new Date()) => {
   return `${y}-${m}-${da}`;
 };
 
+// Text-to-Speech hook for Khalil's guided day
+const useTextToSpeech = () => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const { toast } = useToast();
+
+  const speak = async (text: string) => {
+    try {
+      // Stop any current audio
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
+
+      setIsPlaying(true);
+
+      const response = await fetch('/api/tts/speak', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text, voice: 'Victor' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('TTS service unavailable');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      
+      setCurrentAudio(audio);
+
+      audio.onended = () => {
+        setIsPlaying(false);
+        setCurrentAudio(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        setIsPlaying(false);
+        setCurrentAudio(null);
+        URL.revokeObjectURL(audioUrl);
+        toast({
+          title: "Audio Error",
+          description: "Failed to play audio",
+          variant: "destructive"
+        });
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('TTS error:', error);
+      setIsPlaying(false);
+      setCurrentAudio(null);
+      toast({
+        title: "Voice Assistant Unavailable",
+        description: "Text-to-speech is temporarily unavailable",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stop = () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setCurrentAudio(null);
+    }
+    setIsPlaying(false);
+  };
+
+  return { speak, stop, isPlaying };
+};
+
 // Minimal shape Guided can consume when parent pre-composes the day
 type GuidedBlock = {
   id: string;
@@ -243,6 +319,9 @@ export function GuidedDayView({
   onAssignmentUpdate,
   onModeToggle 
 }: GuidedDayViewProps) {
+  
+  // Text-to-Speech for Khalil's guided day
+  const { speak, stop, isPlaying } = useTextToSpeech();
   
   // Build actual schedule from schedule template (fallback) OR use parent-composed
   const buildScheduleBlocks = (): ScheduleBlock[] => {
@@ -739,17 +818,57 @@ export function GuidedDayView({
         {/* Title card + Instructions pill */}
         <div className="mb-4 rounded-2xl bg-blue-50/60 px-5 py-4" style={{ marginBottom: '16px' }}>
           <div className="mb-2 flex items-start justify-between gap-3">
-            <h2 className="text-[20px] font-bold text-slate-800" style={{ 
-              fontSize: '20px', 
-              fontWeight: 'bold', 
-              color: colors.text
-            }}>
-              {currentBlock.type === 'bible'
-                ? (bibleData?.dailyReading?.readingTitle
-                    ? `Bible — ${bibleData.dailyReading.readingTitle}`
-                    : 'Bible')
-                : (normalized?.displayTitle || currentBlock.title)}
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+              <h2 className="text-[20px] font-bold text-slate-800" style={{ 
+                fontSize: '20px', 
+                fontWeight: 'bold', 
+                color: colors.text,
+                flex: 1
+              }}>
+                {currentBlock.type === 'bible'
+                  ? (bibleData?.dailyReading?.readingTitle
+                      ? `Bible — ${bibleData.dailyReading.readingTitle}`
+                      : 'Bible')
+                  : (normalized?.displayTitle || currentBlock.title)}
+              </h2>
+              
+              {/* Speaker button for assignment title - only for Khalil */}
+              {studentName.toLowerCase() === 'khalil' && (
+                <button
+                  onClick={() => {
+                    if (isPlaying) {
+                      stop();
+                    } else {
+                      const titleText = currentBlock.type === 'bible'
+                        ? (bibleData?.dailyReading?.readingTitle
+                            ? `Bible reading: ${bibleData.dailyReading.readingTitle}`
+                            : 'Bible reading time')
+                        : `Assignment: ${normalized?.displayTitle || currentBlock.title}`;
+                      speak(titleText);
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: isPlaying ? '#EF4444' : colors.primary,
+                    color: 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    flexShrink: 0
+                  }}
+                  title={isPlaying ? "Stop reading" : "Read title aloud"}
+                  data-testid="button-speak-title"
+                >
+                  {isPlaying ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                </button>
+              )}
+            </div>
             {currentBlock.type === 'assignment' && (normalized?.courseLabel || currentBlock.assignment?.courseName || currentBlock.assignment?.subject) && (
               <span className="shrink-0 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-medium text-slate-600">
                 {normalized?.courseLabel ?? currentBlock.assignment?.courseName ?? currentBlock.assignment?.subject}
@@ -804,9 +923,54 @@ export function GuidedDayView({
               padding: '16px',
               fontSize: '14px',
               lineHeight: 1.35,
-              color: colors.text
+              color: colors.text,
+              position: 'relative'
             }}
           >
+            {/* Speaker button for instructions - only for Khalil */}
+            {studentName.toLowerCase() === 'khalil' && (
+              <button
+                onClick={() => {
+                  if (isPlaying) {
+                    stop();
+                  } else {
+                    let instructionsText = '';
+                    if (currentBlock.type === 'assignment' && currentBlock.assignment?.instructions) {
+                      instructionsText = `Instructions: ${currentBlock.assignment.instructions}`;
+                    } else if (currentBlock.type === 'assignment' && !currentBlock.assignment?.instructions) {
+                      instructionsText = `Work on: ${currentBlock.assignment?.title}`;
+                    } else if (currentBlock.type === 'bible') {
+                      instructionsText = `${bibleData?.dailyReading?.readingTitle || 'Daily Reading'}. Continue reading from where you left off yesterday. Take notes on key verses or insights.`;
+                    }
+                    if (instructionsText) {
+                      speak(instructionsText);
+                    }
+                  }
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  backgroundColor: isPlaying ? '#EF4444' : colors.primary,
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  zIndex: 10
+                }}
+                title={isPlaying ? "Stop reading" : "Read instructions aloud"}
+                data-testid="button-speak-instructions"
+              >
+                {isPlaying ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              </button>
+            )}
             {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
               <div data-testid={`guided-instructions-${currentBlock.assignment.id}`} style={{ whiteSpace: 'pre-wrap' }}>
                 {currentBlock.assignment.instructions}

@@ -71,6 +71,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup family authentication
   setupFamilyAuth(app);
 
+  // Text-to-Speech route for Khalil's guided day (Victor voice)
+  app.post('/api/tts/speak', async (req, res) => {
+    try {
+      const { text, voice = 'Victor' } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ error: 'Text is required' });
+      }
+
+      // Eleven Labs Victor voice ID
+      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/yoZ06aMxZJJ6yHdIhvWn', {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': process.env.ELEVEN_LABS_API_KEY!,
+        },
+        body: JSON.stringify({
+          text: text,
+          model_id: 'eleven_monolingual_v1',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.5
+          }
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Eleven Labs API error:', response.status, response.statusText);
+        return res.status(500).json({ error: 'TTS service unavailable' });
+      }
+
+      // Stream the audio response
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Cache-Control', 'no-cache');
+      
+      const audioBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(audioBuffer));
+
+    } catch (error) {
+      console.error('TTS error:', error);
+      res.status(500).json({ error: 'Failed to generate speech' });
+    }
+  });
+
   // Assignment API routes
   
   // PATCH /api/assignments/:id - Update assignment status
