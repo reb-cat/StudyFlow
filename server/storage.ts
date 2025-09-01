@@ -1104,7 +1104,7 @@ export class DatabaseStorage implements IStorage {
             blockEnd: block.endTime
           });
           
-          // Check if Split Auto already exists to prevent duplicates
+          // Check FIRST if Split Auto already exists to prevent duplicates
           const splitTitle = `${assignment.title} (Split Auto)`;
           const existingSplit = await db.select()
             .from(assignments)
@@ -1244,7 +1244,7 @@ export class DatabaseStorage implements IStorage {
         // Due later this week - create Part 2 and place in next available slot
         const remainingMinutes = Math.ceil((assignment.actualEstimatedMinutes || 60) * 0.5);
         
-        // Check if Split Auto already exists to prevent duplicates  
+        // Check FIRST if Split Auto already exists to prevent duplicates  
         const splitTitle = `${assignment.title} (Split Auto)`;
         const existingSplit = await db.select()
           .from(assignments)
