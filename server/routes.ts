@@ -611,25 +611,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { studentName, assignmentTitle, message } = req.body;
       
-      // For now, just log the notification (we can add Resend integration later)
-      console.log('📧 Parent Notification:', {
+      // Validate email configuration
+      if (!emailConfig.resendApiKey || !emailConfig.resendFrom || !emailConfig.parentEmail) {
+        console.error('⚠️ Email configuration incomplete:', {
+          hasApiKey: !!emailConfig.resendApiKey,
+          hasFromEmail: !!emailConfig.resendFrom,
+          hasParentEmail: !!emailConfig.parentEmail
+        });
+        return res.status(500).json({ 
+          message: 'Email configuration incomplete',
+          notificationSent: false
+        });
+      }
+
+      // Initialize Resend
+      const { Resend } = await import('resend');
+      const resend = new Resend(emailConfig.resendApiKey);
+      
+      // Send email notification
+      const emailResult = await resend.emails.send({
+        from: emailConfig.resendFrom,
+        to: emailConfig.parentEmail,
+        subject: `StudyFlow Alert: ${studentName} needs help`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 8px;">
+            <div style="background-color: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <h2 style="color: #dc2626; margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                🆘 StudyFlow Alert
+              </h2>
+              
+              <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0; font-weight: 600; color: #dc2626; font-size: 16px;">
+                  ${studentName} is stuck and needs help
+                </p>
+              </div>
+              
+              <div style="margin: 20px 0;">
+                <p style="margin: 8px 0; color: #374151;"><strong>Student:</strong> ${studentName}</p>
+                <p style="margin: 8px 0; color: #374151;"><strong>Assignment:</strong> ${assignmentTitle}</p>
+                <p style="margin: 8px 0; color: #374151;"><strong>Issue:</strong> ${message}</p>
+                <p style="margin: 8px 0; color: #6b7280;"><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+              </div>
+              
+              <div style="background-color: #f3f4f6; padding: 16px; border-radius: 6px; margin: 20px 0;">
+                <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.5;">
+                  📝 <strong>What this means:</strong> ${studentName} has marked this assignment as "stuck" and specifically requested parent help. 
+                  The assignment has been removed from today's schedule so they can continue with other work.
+                </p>
+              </div>
+              
+              <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0; color: #6b7280; font-size: 12px;">
+                  This notification was sent automatically by StudyFlow when ${studentName} clicked "Stuck" and requested help.
+                </p>
+              </div>
+            </div>
+          </div>
+        `
+      });
+      
+      console.log('✉️ Email sent successfully:', {
         student: studentName,
         assignment: assignmentTitle,
         message,
         timestamp: new Date().toISOString(),
+        emailId: emailResult.data?.id,
         parentEmail: emailConfig.parentEmail
       });
       
       res.json({ 
         message: 'Parent notification sent successfully',
         notificationSent: true,
-        parentEmail: emailConfig.parentEmail ? '***@***.***' : 'Not configured'
+        emailId: emailResult.data?.id,
+        parentEmail: emailConfig.parentEmail.replace(/(.{2}).*(@.*)/, '$1***$2') // Partially hide email
       });
       
     } catch (error) {
-      console.error('Parent notification failed:', error);
+      console.error('❌ Parent notification failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json({ message: 'Failed to send parent notification', error: errorMessage });
+      res.status(500).json({ 
+        message: 'Failed to send parent notification', 
+        error: errorMessage,
+        notificationSent: false
+      });
     }
   });
   
@@ -2082,30 +2146,52 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
-  // POST /api/guided/:studentName/:date/stuck - Mark assignment as stuck with 60-second undo window
+  // POST /api/guided/:studentName/:date/stuck - Mark assignment as stuck with 15-second undo window
   app.post('/api/guided/:studentName/:date/stuck', async (req, res) => {
     try {
       const { studentName, date } = req.params;
-      const { assignmentId } = req.body;
+      const { assignmentId, reason, needsHelp } = req.body;
       
       if (!assignmentId) {
         return res.status(400).json({ message: 'Assignment ID is required' });
       }
       
-      console.log(`🚩 Processing stuck request for assignment ${assignmentId} - starting 60-second countdown`);
+      console.log(`🚩 Processing stuck request for assignment ${assignmentId} - starting 15-second countdown`);
       
       // Create unique key for this pending action
       const pendingKey = `${studentName}-${assignmentId}-${Date.now()}`;
       
-      // Set up 60-second timeout to mark as stuck
+      // Set up 15-second timeout to mark as stuck
       const timeout = setTimeout(async () => {
         try {
           // Check if the action is still pending (not cancelled)
           if (stuckPendingActions.has(pendingKey)) {
-            console.log(`⏱️ 60 seconds elapsed - marking assignment ${assignmentId} as stuck`);
+            console.log(`⏱️ 15 seconds elapsed - marking assignment ${assignmentId} as stuck`);
             
             // Mark the assignment as stuck
             await storage.markStuckWithUndo(assignmentId);
+            
+            // Send parent notification if requested
+            if (needsHelp) {
+              try {
+                // Get assignment details for notification
+                const assignment = await storage.getAssignment(assignmentId);
+                if (assignment) {
+                  await fetch('http://localhost:5000/api/notify-parent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      studentName: studentName, // Use actual student name
+                      assignmentTitle: assignment.title,
+                      message: `Student is stuck on assignment: ${reason}`
+                    })
+                  });
+                  console.log('📧 Parent notification sent for stuck assignment');
+                }
+              } catch (notifyError) {
+                console.warn('Parent notification failed:', notifyError);
+              }
+            }
             
             // Clean up the pending action
             stuckPendingActions.delete(pendingKey);
@@ -2116,7 +2202,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
           console.error('Error marking assignment as stuck after timeout:', error);
           stuckPendingActions.delete(pendingKey);
         }
-      }, 60000); // 60 seconds
+      }, 15000); // 15 seconds
       
       // Store the pending action
       stuckPendingActions.set(pendingKey, {
@@ -2131,10 +2217,10 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       const currentAssignments = await storage.getAssignments(userId, date);
       
       res.json({
-        message: 'Assignment marked as stuck - 60 second undo window started',
+        message: 'Assignment marked as stuck - 15 second undo window started',
         assignmentId,
         pendingKey,
-        countdown: 60,
+        countdown: 15,
         currentQueue: currentAssignments,
         timestamp: Date.now()
       });

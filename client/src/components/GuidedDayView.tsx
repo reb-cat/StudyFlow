@@ -671,16 +671,18 @@ export function GuidedDayView({
     
     try {
       const response = await apiRequest('POST', `/api/guided/${studentName}/${selectedDate}/stuck`, {
-        assignmentId: currentBlock.assignment.id
+        assignmentId: currentBlock.assignment.id,
+        reason: reason,
+        needsHelp: needsHelp
       }) as any;
       
-      // Start 60-second countdown
-      setStuckCountdown(60);
+      // Start 15-second countdown
+      setStuckCountdown(15);
       setStuckPendingKey(response.pendingKey);
       
       toast({
         title: "Assignment Will Be Marked as Stuck",
-        description: "60-second undo window started. Assignment will be marked as stuck unless cancelled.",
+        description: "15-second undo window started. Assignment will be marked as stuck unless cancelled.",
         variant: "default"
       });
       
