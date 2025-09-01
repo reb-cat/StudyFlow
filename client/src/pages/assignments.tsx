@@ -610,7 +610,7 @@ export default function AssignmentsPage() {
                             variant={assignment.completionStatus === 'completed' ? 'default' : 'secondary'}
                             className={
                               assignment.completionStatus === 'completed' ? 'bg-green-100 text-green-800' :
-                              assignment.completionStatus === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                              assignment.completionStatus === 'pending' ? 'bg-blue-100 text-blue-800' :
                               assignment.completionStatus === 'stuck' ? 'bg-red-100 text-red-800' :
                               'bg-gray-100 text-gray-800'
                             }
