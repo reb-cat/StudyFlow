@@ -14,6 +14,7 @@ import AdminPanel from "@/pages/admin-panel";
 import AssignmentsPage from "@/pages/assignments";
 import PrintQueue from "@/pages/print-queue";
 import UnlockPage from "@/pages/unlock";
+import AdminAuth from "@/components/AdminAuth";
 import { apiRequest } from "@/lib/queryClient";
 
 // Auth context for global auth state management
@@ -53,7 +54,11 @@ function Router() {
       <Route path="/students" component={StudentSelection} />
       <Route path="/student" component={StudentSelection} />
       <Route path="/student/:student" component={StudentDashboard} />
-      <Route path="/admin" component={AdminPanel} />
+      <Route path="/admin">
+        <AdminAuth>
+          <AdminPanel />
+        </AdminAuth>
+      </Route>
       <Route path="/assignments" component={AssignmentsPage} />
       <Route path="/print-queue" component={PrintQueue} />
       <Route component={NotFound} />
