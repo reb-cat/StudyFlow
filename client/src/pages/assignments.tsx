@@ -319,6 +319,22 @@ export default function AssignmentsPage() {
     }
 
     return true;
+  }).sort((a, b) => {
+    // Sort by due date first (assignments with due dates come first, sorted by date)
+    const aDate = a.dueDate ? new Date(a.dueDate) : null;
+    const bDate = b.dueDate ? new Date(b.dueDate) : null;
+    
+    // If both have due dates, sort by date (earliest first)
+    if (aDate && bDate) {
+      return aDate.getTime() - bDate.getTime();
+    }
+    
+    // If only one has a due date, prioritize it
+    if (aDate && !bDate) return -1;
+    if (!aDate && bDate) return 1;
+    
+    // If neither has due date, sort by title alphabetically
+    return a.title.localeCompare(b.title);
   });
 
   const handleBulkOperation = () => {
