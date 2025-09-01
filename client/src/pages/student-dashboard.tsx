@@ -9,7 +9,6 @@ import {
   ChevronRight, 
   Calendar,
   Home,
-  Settings,
   Moon,
   BookOpen,
   FileText,
@@ -112,10 +111,6 @@ export default function StudentDashboard() {
     setIsGuidedMode(false);
   };
 
-  const handleSettingsClick = () => {
-    // For now, just show an alert - can be expanded later
-    alert('Settings panel coming soon!');
-  };
 
   // Fetch assignments for today (get assignments due on or before this date)
   const { data: assignments = [], isLoading, refetch } = useQuery({
@@ -537,14 +532,6 @@ export default function StudentDashboard() {
                   title="Today's Overview"
                 >
                   <Home className="h-6 w-6" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  data-testid="button-settings"
-                  onClick={handleSettingsClick}
-                  className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
-                >
-                  <Settings className="h-6 w-6" />
                 </Button>
                 <Button 
                   variant="ghost" 
