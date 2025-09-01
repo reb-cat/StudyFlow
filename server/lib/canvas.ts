@@ -593,9 +593,9 @@ export async function getAllAssignmentsForStudent(studentName: string): Promise<
       const client2 = getCanvasClient(studentName, 2);
       // Get ALL assignments from instance 2 as well
       result.instance2 = await client2.getAssignments();
-      console.log(`✅ Canvas Instance 2: Retrieved ${result.instance2?.length || 0} assignments for ${studentName}`);
+      console.log(`✅ Apologia: Retrieved ${result.instance2?.length || 0} assignments for ${studentName}`);
     } catch (error) {
-      console.error(`Failed to get assignments from Canvas instance 2 for ${studentName}:`, error);
+      console.error(`Failed to get assignments from Apologia for ${studentName}:`, error);
       result.instance2 = [];
     }
   }
