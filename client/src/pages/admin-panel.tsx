@@ -1093,7 +1093,7 @@ export default function AdminPanel() {
                       }}
                       size="sm"
                       style={{
-                        background: '#FF6B35',
+                        background: '#f59e0b',
                         color: 'white',
                         border: 'none',
                         padding: '0.25rem 0.75rem',

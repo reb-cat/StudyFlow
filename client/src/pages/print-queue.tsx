@@ -273,8 +273,8 @@ export default function PrintQueue() {
                             {item.canvasUrl && (
                               <Button
                                 size="sm"
-                                variant="outline"
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-2 text-white hover:opacity-90"
+                                style={{ background: '#f59e0b', border: 'none' }}
                                 onClick={() => window.open(item.canvasUrl!, '_blank')}
                               >
                                 <ExternalLink className="w-4 h-4" />

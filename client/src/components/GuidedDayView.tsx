@@ -72,7 +72,7 @@ const useTextToSpeech = () => {
       setCurrentAudio(null);
       toast({
         title: "Voice Assistant Error",
-        description: `TTS error: ${error.message || 'Unknown error'}`,
+        description: `TTS error: ${(error as Error)?.message || 'Unknown error'}`,
         variant: "destructive"
       });
     }

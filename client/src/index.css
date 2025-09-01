@@ -20,13 +20,13 @@
   --status-blocked: hsl(222, 20%, 62%);    /* #6C7293 - Slate gray */
   
   /* Sophisticated Neutrals */
-  --background: hsl(210, 17%, 98%);        /* #F8F9FA - Clean light gray */
+  --background: hsl(210, 16.67%, 97.65%);        /* #F8F9FA - Clean light gray */
   --surface-secondary: hsl(210, 14%, 95%); /* #F1F3F4 - Slightly deeper gray */
   --surface-tertiary: hsl(210, 11%, 93%);  /* #E9ECEF - Even deeper for layering */
   --card: hsl(0, 0%, 100%);                /* #FFFFFF - Pure white for cards */
   
-  --foreground: hsl(210, 11%, 15%);        /* #212529 - Rich dark gray */
-  --muted-foreground: hsl(210, 8%, 46%);   /* #6C757D - Medium gray */
+  --foreground: hsl(210, 10.81%, 14.51%);        /* #212529 - Rich dark gray */
+  --muted-foreground: hsl(211.58, 8.09%, 46.08%);   /* #6C757D - Medium gray */
   --text-tertiary: hsl(210, 11%, 71%);     /* #ADB5BD - Lighter gray */
   --text-muted: hsl(210, 14%, 83%);        /* #CED4DA - Very light gray */
   
@@ -35,23 +35,23 @@
   --border-strong: hsl(210, 11%, 71%);     /* #ADB5BD - Strong borders */
   
   /* Updated to use new purple theme */
-  --card-foreground: hsl(210, 11%, 15%);
+  --card-foreground: hsl(210, 10.81%, 14.51%);
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(210, 11%, 15%);
+  --popover-foreground: hsl(210, 10.81%, 14.51%);
   --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(210, 14%, 95%);
-  --secondary-foreground: hsl(210, 11%, 15%);
-  --muted: hsl(210, 14%, 95%);
-  --accent-foreground: hsl(210, 11%, 15%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(210, 40%, 98%);
-  --input: hsl(210, 14%, 89%);
+  --secondary: hsl(210, 15.38%, 94.9%);
+  --secondary-foreground: hsl(210, 10.81%, 14.51%);
+  --muted: hsl(210, 15.38%, 94.9%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(230.77, 15.29%, 50%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --input: hsl(210, 14.29%, 89.02%);
   --ring: hsl(265, 49%, 53%);
-  --chart-1: hsl(12, 76%, 61%);
-  --chart-2: hsl(173, 58%, 39%);
-  --chart-3: hsl(197, 37%, 24%);
-  --chart-4: hsl(43, 74%, 66%);
-  --chart-5: hsl(27, 87%, 67%);
+  --chart-1: hsl(264.92, 49.17%, 52.94%);
+  --chart-2: hsl(210, 61.98%, 52.55%);
+  --chart-3: hsl(104.14, 89.69%, 38.04%);
+  --chart-4: hsl(230.77, 15.29%, 50%);
+  --chart-5: hsl(37.69, 92.13%, 50.2%);
   --sidebar: hsl(0, 0%, 100%);
   --sidebar-foreground: hsl(222.2, 84%, 4.9%);
   --sidebar-primary: hsl(221.2, 83.2%, 53.3%);
