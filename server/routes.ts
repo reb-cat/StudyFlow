@@ -172,47 +172,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const assignments = await storage.getAssignments(userId, filterDate, includeCompletedBool);
       
-      // FIXED: Add Bible curriculum assignments to Assignment Manager
+      // FIXED: Proper data separation architecture
+      // Bible blocks get content from bible_curriculum table ONLY
+      // Assignment blocks get content from assignments table ONLY  
+      // NEVER mix the two data sources
       let allAssignments = [...assignments];
       
-      // Get current Bible curriculum for this student if we have a student name
-      if (studentName && typeof studentName === 'string') {
-        try {
-          const bibleData = await getNextBibleCurriculumForStudent(studentName);
-          if (bibleData.dailyReading) {
-            // Convert Bible curriculum to assignment format
-            const bibleAssignment = {
-              id: `bible-${bibleData.dailyReading.weekNumber}-${bibleData.dailyReading.dayOfWeek}`,
-              userId: userId,
-              title: bibleData.dailyReading.readingTitle || 'Bible Reading',
-              subject: 'Bible',
-              courseName: 'Bible',
-              instructions: `Week ${bibleData.dailyReading.weekNumber}, Day ${bibleData.dailyReading.dayOfWeek}`,
-              priority: 'A' as const,
-              difficulty: 'easy' as const,
-              actualEstimatedMinutes: 20,
-              dueDate: null, // Bible assignments don't have due dates
-              scheduledDate: null,
-              completionStatus: bibleData.dailyReading.completed ? 'completed' as const : 'pending' as const,
-              timeSpent: 0,
-              notes: '',
-              availableFrom: null,
-              availableUntil: null,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              canvasId: null,
-              canvasCourseId: null,
-              canvasInstance: null,
-              isCanvasImport: false,
-              needsManualDueDate: false,
-              suggestedDueDate: null
-            };
-            allAssignments.unshift(bibleAssignment); // Add Bible assignment at the top
-          }
-        } catch (error) {
-          console.log('Could not fetch Bible assignment for Assignment Manager:', error);
-        }
-      }
+      // NOTE: Bible content is handled separately in Bible-specific endpoints
+      // This endpoint should only return actual assignments from the assignments table
       
       // Apply normalization to assignment titles for meaningful display
       const normalizedAssignments = allAssignments.map(assignment => {
