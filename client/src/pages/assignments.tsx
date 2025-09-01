@@ -644,7 +644,8 @@ export default function AssignmentsPage() {
                           {/* Creation Source Badge */}
                           {assignment.creationSource && (
                             <Badge variant="outline" className="text-xs">
-                              {assignment.creationSource === 'canvas_sync' ? 'Canvas' :
+                              {assignment.creationSource === 'canvas_sync' ? 
+                                (assignment.canvasInstance === 2 ? 'Apologia' : 'Canvas') :
                                assignment.creationSource === 'auto_split' ? 'Auto Split' :
                                assignment.creationSource === 'student_need_more_time' ? 'Continued' :
                                assignment.creationSource === 'manual' ? 'Manual' :
@@ -664,6 +665,12 @@ export default function AssignmentsPage() {
                         {assignment.courseName && (
                           <p className="text-sm text-gray-600">
                             <strong>Course:</strong> {assignment.courseName}
+                          </p>
+                        )}
+
+                        {assignment.canvasInstance && (
+                          <p className="text-sm text-gray-500">
+                            Assignment from {assignment.canvasInstance === 2 ? 'Apologia' : 'Canvas'}{assignment.canvasInstance > 1 ? ` instance ${assignment.canvasInstance}` : ''}
                           </p>
                         )}
 

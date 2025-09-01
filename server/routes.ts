@@ -468,7 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Method 2: Check actual submission data for grades
           if (canvasMatch.submission) {
             const sub = canvasMatch.submission;
-            if (sub.score !== null && sub.score !== undefined && sub.score > 0) {
+            if (sub.score !== null && sub.score !== undefined) {
               isGraded = true;
               gradeReason = `scored ${sub.score} points`;
             } else if (sub.grade && sub.grade !== '' && sub.grade !== null) {
