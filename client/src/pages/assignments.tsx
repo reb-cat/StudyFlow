@@ -14,7 +14,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { Assignment } from '@shared/schema';
-import { BibleResetButton } from '@/components/admin/BibleResetButton';
 
 // Helper function to detect parent-only tasks
 function isParentTask(title: string, courseName?: string | null): boolean {
@@ -494,7 +493,6 @@ export default function AssignmentsPage() {
                   <Calendar className={`w-4 h-4 ${extractDueDatesMutation.isPending ? 'animate-spin' : ''}`} />
                   Extract Due Dates
                 </Button>
-                <BibleResetButton studentName={selectedStudent} />
               </div>
             </div>
           )}
