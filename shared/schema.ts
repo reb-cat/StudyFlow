@@ -121,6 +121,9 @@ export const assignments = pgTable("assignments", {
   difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }).default("medium"),
   timeSpent: integer("time_spent").default(0), // actual minutes spent
   notes: text("notes"),
+  creationSource: text("creation_source", { 
+    enum: ["manual", "canvas_sync", "auto_split", "student_need_more_time"] 
+  }).default("manual"), // Track assignment origin
   // Canvas integration fields
   canvasId: integer("canvas_id"), // Canvas assignment ID for sync tracking
   canvasCourseId: integer("canvas_course_id"), // Canvas course ID for building URLs

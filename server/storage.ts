@@ -1104,21 +1104,21 @@ export class DatabaseStorage implements IStorage {
             blockEnd: block.endTime
           });
           
-          // Check if Part 2 already exists to prevent duplicates
-          const part2Title = `${assignment.title} (Part 2)`;
-          const existingPart2 = await db.select()
+          // Check if Split Auto already exists to prevent duplicates
+          const splitTitle = `${assignment.title} (Split Auto)`;
+          const existingSplit = await db.select()
             .from(assignments)
             .where(and(
               eq(assignments.userId, assignment.userId),
-              eq(assignments.title, part2Title)
+              eq(assignments.title, splitTitle)
             ))
             .limit(1);
           
-          // Only create Part 2 if it doesn't exist
-          if (existingPart2.length === 0) {
-            const part2Assignment = await this.createAssignment({
+          // Only create Split Auto if it doesn't exist
+          if (existingSplit.length === 0) {
+            const splitAssignment = await this.createAssignment({
               userId: assignment.userId,
-              title: part2Title,
+              title: splitTitle,
               subject: assignment.subject,
               courseName: assignment.courseName,
               instructions: assignment.instructions,
@@ -1126,11 +1126,12 @@ export class DatabaseStorage implements IStorage {
               priority: assignment.priority,
               difficulty: assignment.difficulty,
               actualEstimatedMinutes: part2Minutes,
-              completionStatus: 'pending'
+              completionStatus: 'pending',
+              creationSource: 'auto_split'
             });
-            console.log(`✅ Created Part 2: ${part2Title}`);
+            console.log(`✅ Created Split Auto: ${splitTitle}`);
           } else {
-            console.log(`⚠️ Part 2 already exists, skipping: ${part2Title}`);
+            console.log(`⚠️ Split Auto already exists, skipping: ${splitTitle}`);
           }
           
           assignedAssignments.push(`${assignment.title} (split: ${part1Minutes}min + ${part2Minutes}min)`);
@@ -1243,21 +1244,21 @@ export class DatabaseStorage implements IStorage {
         // Due later this week - create Part 2 and place in next available slot
         const remainingMinutes = Math.ceil((assignment.actualEstimatedMinutes || 60) * 0.5);
         
-        // Check if Part 2 already exists to prevent duplicates
-        const part2Title = `${assignment.title} (Part 2)`;
-        const existingPart2 = await db.select()
+        // Check if Split Auto already exists to prevent duplicates  
+        const splitTitle = `${assignment.title} (Split Auto)`;
+        const existingSplit = await db.select()
           .from(assignments)
           .where(and(
             eq(assignments.userId, assignment.userId),
-            eq(assignments.title, part2Title)
+            eq(assignments.title, splitTitle)
           ))
           .limit(1);
         
-        // Only create Part 2 if it doesn't exist
-        if (existingPart2.length === 0) {
+        // Only create Split Auto if it doesn't exist
+        if (existingSplit.length === 0) {
           await this.createAssignment({
             userId: assignment.userId,
-            title: part2Title,
+            title: splitTitle,
             subject: assignment.subject,
             courseName: assignment.courseName,
             instructions: assignment.instructions,
@@ -1265,11 +1266,12 @@ export class DatabaseStorage implements IStorage {
             priority: assignment.priority,
             difficulty: assignment.difficulty,
             actualEstimatedMinutes: remainingMinutes,
-            completionStatus: 'pending'
+            completionStatus: 'pending',
+            creationSource: 'auto_split'
           });
-          console.log(`✅ Created rescheduled Part 2: ${part2Title}`);
+          console.log(`✅ Created rescheduled Split Auto: ${splitTitle}`);
         } else {
-          console.log(`⚠️ Rescheduled Part 2 already exists, skipping: ${part2Title}`);
+          console.log(`⚠️ Rescheduled Split Auto already exists, skipping: ${splitTitle}`);
         }
       }
       

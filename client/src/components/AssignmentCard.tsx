@@ -20,11 +20,12 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
     title: assignment.title,
     course: assignment.courseName,
     instructions: assignment.instructions,
-    dueAt: assignment.dueDate || null
+    dueAt: assignment.dueDate?.toISOString() || null
   });
 
   // Check if this is a split assignment (Part 2)
-  const isPartTwo = assignment.title.includes('(Part 2)');
+  const isSplitAuto = assignment.title.includes('(Split Auto)');
+  const isContinued = assignment.title.includes('(Continued)');
   
   // Enhanced priority badge configuration
   const getPriorityBadge = () => {
@@ -159,10 +160,16 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
                     {normalized.courseLabel}
                   </span>
                 )}
-                {isPartTwo && (
+                {isSplitAuto && (
                   <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800 text-xs px-2 py-0.5">
                     <Star className="h-3 w-3 mr-1" />
-                    Split Task
+                    Auto Split
+                  </Badge>
+                )}
+                {isContinued && (
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800 text-xs px-2 py-0.5">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Continued
                   </Badge>
                 )}
               </div>
@@ -201,7 +208,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
                   {normalized.courseLabel}
                 </span>
               )}
-              {isPartTwo && (
+              {(isSplitAuto || isContinued) && (
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
                   <Star className="h-3 w-3 mr-1" />
                   Split Task

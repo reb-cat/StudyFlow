@@ -496,6 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: userId,
             title: normalized.displayTitle,
             subject: normalized.courseLabel || 'Unknown Course',
+            creationSource: 'canvas_sync',
             courseName: normalized.courseLabel || 'Unknown Course',
             instructions: canvasAssignment.description || 'Assignment from Canvas',
             dueDate: finalDueDate,
@@ -561,6 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: userId,
             title: normalized.displayTitle,
             subject: normalized.courseLabel || 'Unknown Course 2',
+            creationSource: 'canvas_sync',
             courseName: normalized.courseLabel || 'Unknown Course 2',
             instructions: canvasAssignment.description || 'Assignment from Canvas instance 2',
             dueDate: finalDueDate,
@@ -790,7 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Need More Time Action: Smart rescheduling based on due date
+  // Need More Time Action: Create continued assignment instead of rescheduling
   app.post('/api/assignments/:id/need-more-time', async (req, res) => {
     try {
       const { id } = req.params;
@@ -848,12 +850,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: new Date()
       };
       
-      const updatedAssignment = await storage.updateAssignment(id, updateData);
+      // Check if a "Continued" version already exists to prevent duplicates
+      const continuedTitle = `${assignment.title} (Continued)`;
+      const existingContinued = await storage.getAssignments(assignment.userId);
+      const hasContinued = existingContinued.some(a => a.title === continuedTitle);
+      
+      if (hasContinued) {
+        return res.json({
+          success: false,
+          message: 'A continued version of this assignment already exists',
+          existingContinued: true
+        });
+      }
+      
+      // Create the continued assignment
+      const continuedAssignment = await storage.createAssignment({
+        userId: assignment.userId,
+        title: continuedTitle,
+        subject: assignment.subject,
+        courseName: assignment.courseName,
+        instructions: assignment.instructions,
+        dueDate: assignment.dueDate,
+        scheduledDate: newScheduledDate,
+        scheduledBlock: null, // Will be auto-scheduled later
+        priority: assignment.priority,
+        difficulty: assignment.difficulty,
+        actualEstimatedMinutes: estimatedMinutesNeeded || Math.ceil((assignment.actualEstimatedMinutes || 30) * 0.6),
+        completionStatus: 'pending',
+        creationSource: 'student_need_more_time',
+        notes: `Continued from: ${assignment.title}\nReason: ${reason}\n${reschedulingStrategy}`
+      });
+      
+      // Mark the original assignment as completed (partial work done)
+      await storage.updateAssignment(id, {
+        completionStatus: 'completed',
+        notes: `${assignment.notes || ''}
+Partially completed - continued in: ${continuedTitle}`.trim(),
+        updatedAt: new Date()
+      });
       
       res.json({
-        message: `Assignment rescheduled to ${newScheduledDate}. ${reschedulingStrategy}`,
-        assignment: updatedAssignment,
-        newScheduledDate,
+        success: true,
+        message: 'Continued assignment created successfully',
+        originalAssignment: assignment,
+        continuedAssignment,
         reschedulingStrategy
       });
       
