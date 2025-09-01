@@ -37,7 +37,8 @@ export function detectPrintNeeds(assignment: {
       ? process.env.CANVAS_BASE_URL 
       : process.env.CANVAS_BASE_URL_2;
     if (baseUrl) {
-      result.canvasUrl = `${baseUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
+      const cleanUrl = baseUrl.replace(/\/$/, '');
+      result.canvasUrl = `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
     }
   } else if (assignment.canvasId && assignment.canvasInstance) {
     // Fallback: Direct assignment link when course ID missing
