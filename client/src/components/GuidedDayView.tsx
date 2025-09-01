@@ -102,16 +102,15 @@ type GuidedBlock = {
 };
 
 // StudyFlow color system
-// Global theme colors that work in light and dark mode
 const colors = {
-  primary: 'var(--color-primary)',
-  complete: 'var(--color-success)',
-  progress: 'var(--color-progress)',
-  support: 'var(--color-support)',
-  background: 'var(--color-background)',
-  surface: 'var(--color-surface)',
-  text: 'var(--color-text)',
-  textMuted: 'var(--color-text-muted)'
+  primary: '#844FC1',
+  complete: '#21BF06',
+  progress: '#3B86D1',
+  support: '#6C7293',
+  background: '#F8F9FA',
+  surface: '#FFFFFF',
+  text: '#212529',
+  textMuted: '#6C7293'
 };
 
 // CircularTimer component with StudyFlow colors
@@ -793,34 +792,36 @@ export function GuidedDayView({
         {/* Progress indicator */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span className="text-sm text-muted-foreground">
+            <span style={{ fontSize: '14px', color: colors.textMuted }}>
               Task {currentIndex + 1} of {totalBlocks}
             </span>
-            <span className="text-sm font-semibold" style={{ color: colors.complete }}>
+            <span style={{ fontSize: '14px', color: colors.complete, fontWeight: '600' }}>
               {completedCount} completed
             </span>
           </div>
-          <div className="h-2 rounded overflow-hidden" style={{ backgroundColor: 'var(--color-border)' }}>
+          <div style={{
+            height: '8px',
+            backgroundColor: colors.background,
+            borderRadius: '4px',
+            overflow: 'hidden'
+          }}>
             <div style={{
               width: `${progressPercentage}%`,
               height: '100%',
               backgroundColor: colors.complete,
-              transition: 'width 0.5s ease'
-            }} className="rounded" />
+              transition: 'width 0.5s ease',
+              borderRadius: '4px'
+            }} />
           </div>
         </div>
 
         {/* Title card + Instructions pill */}
-        <div className="mb-4 rounded-2xl border px-5 py-4" style={{ 
-          backgroundColor: colors.surface,
-          borderColor: 'var(--color-border)',
-          marginBottom: '16px' 
-        }}>
+        <div className="mb-4 rounded-2xl bg-blue-50/60 px-5 py-4" style={{ marginBottom: '16px' }}>
           <div className="mb-2 flex items-start justify-between gap-3">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-              <h2 className="text-[20px] font-bold" style={{ 
+              <h2 className="text-[20px] font-bold text-slate-800" style={{ 
                 fontSize: '20px', 
-                fontWeight: 'bold',
+                fontWeight: 'bold', 
                 color: colors.text,
                 flex: 1
               }}>

@@ -485,7 +485,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 print-page bg-background">
+    <div className="min-h-screen p-4 sm:p-6 print-page" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--surface-secondary) 100%)' }}>
       <div className="max-w-5xl mx-auto">
         
         {/* Print Header - Hidden on screen, visible in print */}
@@ -651,7 +651,7 @@ export default function StudentDashboard() {
         ) : (
           <div className="space-y-4">
             {/* Progress Bar - Apple Fitness style with real-time progress */}
-            <div className="bg-card rounded-xl p-4 border border-border no-print">
+            <div className="bg-white dark:bg-card rounded-xl p-4 border border-gray-200 dark:border-border/50 no-print">
               <div className="flex justify-between text-sm mb-2">
                 <span className="font-medium text-muted-foreground">Daily Progress</span>
                 <span className="font-medium text-muted-foreground">
@@ -661,7 +661,7 @@ export default function StudentDashboard() {
                   }
                 </span>
               </div>
-              <div className="w-full bg-muted rounded-full h-3">
+              <div className="w-full bg-gray-100 dark:bg-muted rounded-full h-3">
                 <div 
                   className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500" 
                   style={{ 
@@ -678,7 +678,7 @@ export default function StudentDashboard() {
             </div>
 
             {/* Schedule Card - Compact Apple style (screen only) */}
-            <Card className="bg-card rounded-xl border border-border print:hidden">
+            <Card className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/50 print:hidden">
               <CardContent className="p-4">
                 <h3 className="text-lg font-semibold text-foreground mb-4">
                   {isTodaySelected ? "Today's" : `${dayName}'s`} Schedule

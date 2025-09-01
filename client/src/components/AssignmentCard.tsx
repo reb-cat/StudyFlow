@@ -20,7 +20,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
     title: assignment.title,
     course: assignment.courseName,
     instructions: assignment.instructions,
-    dueAt: assignment.dueDate ? new Date(assignment.dueDate).toISOString() : null
+    dueAt: assignment.dueDate || null
   });
 
   // Check if this is a split assignment (Part 2)
