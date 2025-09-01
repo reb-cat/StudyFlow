@@ -29,7 +29,8 @@ export async function syncAssignmentDeletions(
     // Get all existing assignments from database (including already soft deleted for comparison)
     const databaseAssignments = await storage.getAllAssignments(true); // Include deleted for comparison
     const studentDbAssignments = databaseAssignments.filter(
-      a => a.userId === studentUserId && a.canvasId && !a.deletedAt // Only check Canvas-synced, non-deleted assignments
+      a => a.userId === studentUserId && a.canvasId // Only check Canvas-synced assignments
+      // TODO: Add && !a.deletedAt after schema is pushed  
     );
     
     // Get current Canvas assignment IDs

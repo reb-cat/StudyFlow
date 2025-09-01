@@ -153,9 +153,9 @@ export const assignments = pgTable("assignments", {
   needsManualDueDate: boolean("needs_manual_due_date").default(false), // Flag for assignments missing Canvas dates
   suggestedDueDate: timestamp("suggested_due_date"), // AI-suggested due date from related assignments
   
-  // Bidirectional Canvas sync
-  deletedAt: timestamp("deleted_at"), // When assignment was removed from Canvas
-  canvasGradeStatus: text("canvas_grade_status"), // Canvas grading status for completion sync
+  // TODO: Add bidirectional Canvas sync fields after deployment
+  // deletedAt: timestamp("deleted_at"), // When assignment was removed from Canvas  
+  // canvasGradeStatus: text("canvas_grade_status"), // Canvas grading status for completion sync
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

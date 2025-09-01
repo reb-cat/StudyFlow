@@ -138,9 +138,19 @@ class JobScheduler {
                   }
                 );
                 
-                // NEVER auto-complete during sync - let students/parents mark completion manually
-                // This prevents false completion status that breaks trust
+                // Smart auto-completion: Only mark as completed if TRULY graded in Canvas
+                // This prevents false positives while respecting actual Canvas grades
                 let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
+                
+                // Check if Canvas shows this assignment as actually graded (not just submitted)
+                if (canvasAssignment.graded_submissions_exist) {
+                  // Canvas has graded this assignment - it should be marked as completed
+                  completionStatus = 'completed';
+                  console.log(`✅ Canvas graded: Auto-marking "${canvasAssignment.name}" as completed`);
+                } else if (canvasAssignment.has_submitted_submissions) {
+                  // Only submitted but not graded yet - keep as pending for now
+                  console.log(`📝 Canvas submitted (not graded): "${canvasAssignment.name}" remains pending`);
+                }
 
                 // ENHANCED DUE DATE EXTRACTION AND VALIDATION
                 // Try extracting due date from title first (handles "Homework Due 9/15" cases)

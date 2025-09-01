@@ -202,12 +202,9 @@ export class DatabaseStorage implements IStorage {
 
   async getAllAssignments(includeDeleted = false): Promise<Assignment[]> {
     try {
-      // Get ALL assignments across all users for print queue - exclude soft deleted by default
-      let query = db.select().from(assignments);
-      if (!includeDeleted) {
-        query = query.where(isNull(assignments.deletedAt));
-      }
-      const result = await query;
+      // Get ALL assignments across all users for print queue
+      // TODO: Add soft deletion back after schema is pushed
+      const result = await db.select().from(assignments);
       return result || [];
     } catch (error) {
       console.error('Error getting all assignments:', error);
