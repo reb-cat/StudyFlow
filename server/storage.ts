@@ -1124,49 +1124,9 @@ export class DatabaseStorage implements IStorage {
           
           assignedAssignments.push(assignment.title);
         } else {
-          // Assignment too long - split it
-          const part1Minutes = blockMinutes;
-          const part2Minutes = assignmentMinutes - blockMinutes;
-          
-          // Schedule part 1 in current block
-          await this.updateAssignmentScheduling(assignment.id, {
-            scheduledDate: date,
-            scheduledBlock: block.blockNumber,
-            blockStart: block.startTime,
-            blockEnd: block.endTime
-          });
-          
-          // Check FIRST if Split Auto already exists to prevent duplicates
-          const splitTitle = `${assignment.title} (Split Auto)`;
-          const existingSplit = await db.select()
-            .from(assignments)
-            .where(and(
-              eq(assignments.userId, assignment.userId),
-              eq(assignments.title, splitTitle)
-            ))
-            .limit(1);
-          
-          // Only create Split Auto if it doesn't exist
-          if (existingSplit.length === 0) {
-            const splitAssignment = await this.createAssignment({
-              userId: assignment.userId,
-              title: splitTitle,
-              subject: assignment.subject,
-              courseName: assignment.courseName,
-              instructions: assignment.instructions,
-              dueDate: assignment.dueDate,
-              priority: assignment.priority,
-              difficulty: assignment.difficulty,
-              actualEstimatedMinutes: part2Minutes,
-              completionStatus: 'pending',
-              creationSource: 'auto_split'
-            });
-            console.log(`✅ Created Split Auto: ${splitTitle}`);
-          } else {
-            console.log(`⚠️ Split Auto already exists, skipping: ${splitTitle}`);
-          }
-          
-          assignedAssignments.push(`${assignment.title} (split: ${part1Minutes}min + ${part2Minutes}min)`);
+          // Assignment too long for block - skip scheduling (don't create Split Auto)
+          console.log(`⏭️ Assignment too long (${assignmentMinutes}min) for block (${blockMinutes}min): ${assignment.title}`);
+          // Don't add to assignedAssignments - leave unscheduled
         }
       }
       
@@ -1273,38 +1233,8 @@ export class DatabaseStorage implements IStorage {
           }
         }
       } else {
-        // Due later this week - create Part 2 and place in next available slot
-        const remainingMinutes = Math.ceil((assignment.actualEstimatedMinutes || 60) * 0.5);
-        
-        // Check FIRST if Split Auto already exists to prevent duplicates  
-        const splitTitle = `${assignment.title} (Split Auto)`;
-        const existingSplit = await db.select()
-          .from(assignments)
-          .where(and(
-            eq(assignments.userId, assignment.userId),
-            eq(assignments.title, splitTitle)
-          ))
-          .limit(1);
-        
-        // Only create Split Auto if it doesn't exist
-        if (existingSplit.length === 0) {
-          await this.createAssignment({
-            userId: assignment.userId,
-            title: splitTitle,
-            subject: assignment.subject,
-            courseName: assignment.courseName,
-            instructions: assignment.instructions,
-            dueDate: assignment.dueDate,
-            priority: assignment.priority,
-            difficulty: assignment.difficulty,
-            actualEstimatedMinutes: remainingMinutes,
-            completionStatus: 'pending',
-            creationSource: 'auto_split'
-          });
-          console.log(`✅ Created rescheduled Split Auto: ${splitTitle}`);
-        } else {
-          console.log(`⚠️ Rescheduled Split Auto already exists, skipping: ${splitTitle}`);
-        }
+        // Due later this week - just reschedule without creating Split Auto
+        console.log(`ℹ️ Assignment due later this week, no Split Auto needed: ${assignment.title}`);
       }
       
       console.log(`✅ Rescheduled assignment ${assignment.title}`);
