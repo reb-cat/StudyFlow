@@ -451,10 +451,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         
         if (canvasMatch) {
+          // DEBUG: Log Canvas data for zero-point assignments
+          if (dbAssignment.title.includes('CAP: Week 1')) {
+            console.log(`🔍 DEBUG CAP: Week 1 Canvas data:`, {
+              title: canvasMatch.name,
+              points_possible: canvasMatch.points_possible,
+              graded_submissions_exist: canvasMatch.graded_submissions_exist,
+              has_submitted_submissions: canvasMatch.has_submitted_submissions,
+              submission: canvasMatch.submission ? {
+                score: canvasMatch.submission.score,
+                grade: canvasMatch.submission.grade,
+                workflow_state: canvasMatch.submission.workflow_state,
+                graded_at: canvasMatch.submission.graded_at,
+                missing: canvasMatch.submission.missing
+              } : 'NO SUBMISSION DATA'
+            });
+          }
+
           // Check multiple ways an assignment can be graded in Canvas:
           // 1. Traditional flags (graded_submissions_exist && has_submitted_submissions)
           // 2. Actual submission with a score/grade
           // 3. Submission workflow state indicates grading
+          // 4. Zero-point assignments marked as missing/graded
           
           let isGraded = false;
           let gradeReason = '';
@@ -477,6 +495,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } else if (sub.workflow_state === 'graded' || sub.graded_at) {
               isGraded = true;
               gradeReason = 'marked as graded in Canvas';
+            }
+          }
+
+          // Method 3: Handle zero-point assignments (0 points possible)
+          if (!isGraded && canvasMatch.points_possible === 0) {
+            // For zero-point assignments, check if it's marked as missing or has a grade
+            if (canvasMatch.submission && (canvasMatch.submission.missing || canvasMatch.submission.workflow_state)) {
+              isGraded = true;
+              gradeReason = `zero-point assignment graded (missing: ${canvasMatch.submission.missing})`;
             }
           }
           
