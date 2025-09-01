@@ -669,7 +669,7 @@ export default function AssignmentsPage() {
 
                         {assignment.canvasInstance && (
                           <p className="text-sm text-gray-500">
-                            Assignment from {assignment.canvasInstance === 2 ? 'Apologia' : 'Canvas'}
+                            Assignment from Canvas
                           </p>
                         )}
 

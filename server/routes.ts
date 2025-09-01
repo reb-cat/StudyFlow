@@ -451,23 +451,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         
         if (canvasMatch) {
-          // DEBUG: Log Canvas data for zero-point assignments
-          if (dbAssignment.title.includes('CAP: Week 1')) {
-            console.log(`🔍 DEBUG CAP: Week 1 Canvas data:`, {
-              title: canvasMatch.name,
-              points_possible: canvasMatch.points_possible,
-              graded_submissions_exist: canvasMatch.graded_submissions_exist,
-              has_submitted_submissions: canvasMatch.has_submitted_submissions,
-              submission: canvasMatch.submission ? {
-                score: canvasMatch.submission.score,
-                grade: canvasMatch.submission.grade,
-                workflow_state: canvasMatch.submission.workflow_state,
-                graded_at: canvasMatch.submission.graded_at,
-                missing: canvasMatch.submission.missing
-              } : 'NO SUBMISSION DATA'
-            });
-          }
-
           // Check multiple ways an assignment can be graded in Canvas:
           // 1. Traditional flags (graded_submissions_exist && has_submitted_submissions)
           // 2. Actual submission with a score/grade
