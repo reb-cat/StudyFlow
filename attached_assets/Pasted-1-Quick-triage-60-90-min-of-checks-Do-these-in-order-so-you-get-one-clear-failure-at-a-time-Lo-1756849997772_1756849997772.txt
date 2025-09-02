@@ -1,0 +1,66 @@
+1) Quick triage (60–90 min of checks)
+
+Do these in order so you get one clear failure at a time.
+
+Local run sanity
+	•	git clone the repo and run the app locally in production mode (not dev):
+	•	Install, then npm run build (client) and npm start (server) or whatever your scripts are.
+	•	If you’re using Vite on the client + Express on the server (your repo shows Vite, Tailwind, Drizzle, Express-y bits), verify the client calls the server via an env var (e.g., VITE_API_URL) rather than http://localhost:3000.  ￼
+
+Environment variables
+	•	Make a .env.example with all required vars (DB URL, JWT secret, API base URL, etc.).
+	•	In production, confirm they actually exist and have values (print them once at server start, masking secrets).
+
+Server binding / ports (common “works locally, dies when deployed” cause)
+	•	Ensure the server listens on process.env.PORT and 0.0.0.0 (not a hardcoded port or localhost).
+	•	If deployed on Replit/Render/Heroku, never run Vite dev server in production—serve the built client or deploy client separately.
+
+CORS + cookies
+	•	If auth uses cookies, set: sameSite: 'none', secure: true, and allow your production origin in CORS.
+	•	Test with DevTools → Network → request → check “Request URL” and “Origin”.
+
+Static files
+	•	If one server hosts both API + frontend:
+	1.	npm run build (client)
+	2.	In Express: app.use(express.static('client/dist'));
+	3.	SPA fallback: app.get('*', (req,res)=>res.sendFile(path.join(__dirname,'client/dist/index.html')));
+
+Database connectivity
+	•	Test prod DB with a small script (you already have a test-prod-connection.js—run it in the deployed env).
+	•	If using Drizzle: run migrations in prod (drizzle-kit) and confirm tables exist.
+
+Absolute vs relative URLs
+	•	Search client code for hard-coded http://localhost... and replace with import.meta.env.VITE_API_URL (or similar).
+	•	Make sure that env var is defined in the production build environment.
+
+Build scripts
+	•	Check package.json for:
+	•	client: build → outputs to client/dist
+	•	server: start should start only the API + static serving of dist (not Vite dev).
+	•	If you rely on a dev proxy (Vite → API), configure real URLs for prod.
+
+2) Decide: refactor-in-place vs. restart
+
+Keep & refactor if:
+	•	Your domain model, UI flow, and most components are fine.
+	•	Problems are mostly env/ports/CORS/build steps (very likely here).
+
+Restart (but reuse code) if:
+	•	The repo has grown chaotic: mixed concerns, copy-paste auth, inconsistent state handling.
+	•	Multiple deployment assumptions are tangled (e.g., sometimes monolith, sometimes 2-service).
+If you restart, keep: your Drizzle schema, API handlers, and React components. Recreate clean page structure & routes, then drop old glue code back in piece-by-piece, testing each addition.
+
+3) Minimal working deployment shape (golden path)
+	•	Two-process approach (simpler to reason about):
+	•	Deploy API alone (Express) → exposes /api/*.
+	•	Deploy frontend as static hosting (Netlify/Vercel) → set VITE_API_URL to API URL.
+	•	One-process approach (monolith):
+	•	Build client → serve from Express client/dist + API under /api.
+	•	Works great on services that give you one web dyno/container.
+
+4) A concrete “definition of done” checklist
+	•	App loads at production URL with no console errors.
+	•	Logging shows server bound to the platform’s port and 0.0.0.0.
+	•	Network tab: all API calls go to the correct host, CORS 200s, cookies set if needed.
+	•	DB migration ran; sample data appears; CRUD works.
+	•	Refreshing the page stays logged in (if applicable).
