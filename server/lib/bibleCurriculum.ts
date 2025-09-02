@@ -73,22 +73,27 @@ export async function getNextBibleCurriculumForStudent(studentName: string) {
   let week = pos.currentWeek;
   let day = pos.currentDay;
 
-  // Try current (week, day). If missing (e.g., not seeded), advance to next existing.
+  // Get the reading for the student's current position
   let reading = await getDailyReading(week, day);
+  
+  // If no reading exists at current position, find next available reading and update position
   if (!reading) {
     const rows = await db
       .select()
       .from(bibleCurriculum)
       .where(eq(bibleCurriculum.readingType, "daily_reading"))
       .orderBy(asc(bibleCurriculum.weekNumber), asc(bibleCurriculum.dayOfWeek));
+    
+    // Find next available reading (ignore global completion status)
     const next = rows.find(
-      (r) => !r.completed && r.dayOfWeek != null && r.weekNumber != null
+      (r) => r.dayOfWeek != null && r.weekNumber != null
     );
+    
     if (next) {
       week = next.weekNumber!;
       day = next.dayOfWeek!;
       reading = next;
-      // realign pointer to the next unfinished slot
+      // Update student's position to this available reading
       await db
         .update(bibleCurriculumPosition)
         .set({ currentWeek: week, currentDay: day })
@@ -105,15 +110,36 @@ export async function getNextBibleCurriculumForStudent(studentName: string) {
   };
 }
 
-/** Mark a curriculum item completed, and advance pointer if daily reading. */
+/** Mark a curriculum item completed for a student by advancing their position. */
 export async function markBibleCurriculumCompleted(
   weekNumber: number,
   dayOfWeek: number | null,
   readingType: "daily_reading" | "memory_verse",
   studentName?: string
 ) {
+  // For daily readings, only advance the student's position - DON'T mark globally complete
+  if (readingType === "daily_reading" && studentName && dayOfWeek != null) {
+    const pos = await getOrCreatePosition(studentName);
+    let nextWeek = pos.currentWeek;
+    let nextDay = pos.currentDay + 1;
+    
+    // If next day doesn't exist, roll to the first day of the next available week
+    const nextExists = await getDailyReading(nextWeek, nextDay);
+    if (!nextExists) {
+      nextWeek = pos.currentWeek + 1;
+      nextDay = 1;
+    }
+    
+    await db
+      .update(bibleCurriculumPosition)
+      .set({ currentWeek: nextWeek, currentDay: nextDay, lastUpdated: new Date() })
+      .where(eq(bibleCurriculumPosition.studentName, studentName));
+    
+    return true;
+  }
+
+  // Memory verses can still be marked globally complete if needed
   if (readingType === "memory_verse") {
-    // Mark MV for the week as completed (dayOfWeek is null)
     await db
       .update(bibleCurriculum)
       .set({ completed: true, completedAt: new Date() })
@@ -127,35 +153,7 @@ export async function markBibleCurriculumCompleted(
     return true;
   }
 
-  if (dayOfWeek == null) return false;
-  await db
-    .update(bibleCurriculum)
-    .set({ completed: true, completedAt: new Date() })
-    .where(
-      and(
-        eq(bibleCurriculum.weekNumber, weekNumber),
-        eq(bibleCurriculum.dayOfWeek, dayOfWeek),
-        eq(bibleCurriculum.readingType, "daily_reading")
-      )
-    );
-
-  // Advance pointer for the student if provided
-  if (studentName) {
-    const pos = await getOrCreatePosition(studentName);
-    let nextWeek = pos.currentWeek;
-    let nextDay = pos.currentDay + 1;
-    // If next day doesn't exist, roll to the first day of the next available week
-    const nextExists = await getDailyReading(nextWeek, nextDay);
-    if (!nextExists) {
-      nextWeek = pos.currentWeek + 1;
-      nextDay = 1;
-    }
-    await db
-      .update(bibleCurriculumPosition)
-      .set({ currentWeek: nextWeek, currentDay: nextDay, lastUpdated: new Date() })
-      .where(eq(bibleCurriculumPosition.studentName, studentName));
-  }
-  return true;
+  return false;
 }
 
 /** Weekly progress for UI (overview ribbons, etc.). */
