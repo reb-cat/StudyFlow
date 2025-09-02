@@ -74,7 +74,7 @@ export default function FamilyDashboard() {
 
   // Transform API data to match component expectations
   const dashboardData = {
-    students: apiData.students.map((student: any) => ({
+    students: (apiData?.students || []).map((student: any) => ({
       id: student.studentName,
       name: student.profile?.displayName || (student.studentName.charAt(0).toUpperCase() + student.studentName.slice(1)),
       initial: (student.profile?.displayName || student.studentName)[0].toUpperCase(),
@@ -100,7 +100,7 @@ export default function FamilyDashboard() {
     ],
     
     // Assignments that need parent attention from API
-    needsReview: apiData.needsReview || []
+    needsReview: apiData?.needsReview || []
   };
 
   const getTotalFlags = (student: any) => {
@@ -172,13 +172,13 @@ export default function FamilyDashboard() {
             <div className="flex items-center gap-2">
               <CheckCircle size={20} style={{ color: 'var(--success)' }} />
               <span className="text-foreground">
-                <strong>{apiData.stats.totalCompleted}</strong> tasks completed
+                <strong>{apiData?.stats?.totalCompleted || 0}</strong> tasks completed
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Clock size={20} className="text-accent" />
               <span className="text-foreground">
-                <strong>{apiData.stats.totalRemaining}</strong> tasks remaining
+                <strong>{apiData?.stats?.totalRemaining || 0}</strong> tasks remaining
               </span>
             </div>
             {dashboardData.needsReview.length > 0 && (
@@ -194,7 +194,7 @@ export default function FamilyDashboard() {
 
         {/* Student Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-          {dashboardData.students.map(student => {
+          {dashboardData.students.map((student: any) => {
             const flagCount = getTotalFlags(student);
             const progressPercent = (student.todayStats.completed / student.todayStats.total) * 100;
             
