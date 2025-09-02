@@ -227,6 +227,11 @@ export class DatabaseStorage implements IStorage {
   private getSmartTimeEstimate(title: string): number {
     const lowerTitle = title.toLowerCase();
     
+    // Forensics labs need substantial time - 60 minutes
+    if (lowerTitle.includes('forensics lab') || lowerTitle.includes('forensic lab')) {
+      return 60;
+    }
+    
     // Recipe reviews are quick - 10 minutes max
     if (lowerTitle.includes('review recipe') || lowerTitle.includes('recipe review')) {
       return 10;
