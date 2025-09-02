@@ -390,6 +390,96 @@ export function GuidedDayView({
       ? composedSchedule
       : buildScheduleBlocks();
 
+  // Generate prep checklist based on day's schedule and assignments
+  const generatePrepChecklist = () => {
+    const subjects = new Set<string>();
+    const dueAssignments: Assignment[] = [];
+    
+    // Collect subjects from schedule blocks
+    scheduleBlocks.forEach(block => {
+      if (block.type === 'assignment' && block.assignment) {
+        const subject = block.assignment.courseName || block.assignment.subject;
+        if (subject) subjects.add(subject);
+        dueAssignments.push(block.assignment);
+      } else if (block.subject) {
+        subjects.add(block.subject);
+      }
+    });
+
+    // Add assignments due today (even if not scheduled yet)
+    assignments.forEach(assignment => {
+      if (assignment.dueDate) {
+        const dueDate = new Date(assignment.dueDate);
+        const today = new Date(selectedDate);
+        if (dueDate.toDateString() === today.toDateString()) {
+          const subject = assignment.courseName || assignment.subject;
+          if (subject) subjects.add(subject);
+          if (!dueAssignments.find(a => a.id === assignment.id)) {
+            dueAssignments.push(assignment);
+          }
+        }
+      }
+    });
+
+    const checklist: { item: string; category: 'books' | 'materials' | 'homework' | 'general' }[] = [];
+
+    // Subject-specific books and materials
+    subjects.forEach(subject => {
+      const subjectLower = subject.toLowerCase();
+      
+      // Books
+      if (subjectLower.includes('math') || subjectLower.includes('geometry') || subjectLower.includes('algebra')) {
+        checklist.push({ item: 'Math textbook and calculator', category: 'books' });
+      } else if (subjectLower.includes('english') || subjectLower.includes('literature') || subjectLower.includes('writing')) {
+        checklist.push({ item: 'English textbook and notebook', category: 'books' });
+      } else if (subjectLower.includes('science') || subjectLower.includes('biology') || subjectLower.includes('chemistry') || subjectLower.includes('earth science')) {
+        checklist.push({ item: 'Science textbook and lab notebook', category: 'books' });
+      } else if (subjectLower.includes('history') || subjectLower.includes('social studies')) {
+        checklist.push({ item: 'History textbook and timeline materials', category: 'books' });
+      } else if (subjectLower.includes('art')) {
+        checklist.push({ item: 'Art supplies and sketchbook', category: 'materials' });
+      } else if (subjectLower.includes('health')) {
+        checklist.push({ item: 'Health textbook and worksheet folder', category: 'books' });
+      } else if (subjectLower.includes('forensic')) {
+        checklist.push({ item: 'Forensics materials and lab notebook', category: 'materials' });
+      } else if (subjectLower.includes('baking') || subjectLower.includes('cooking')) {
+        checklist.push({ item: 'Recipe cards and measuring tools', category: 'materials' });
+      } else if (subjectLower.includes('photography')) {
+        checklist.push({ item: 'Camera and photography assignments', category: 'materials' });
+      } else {
+        checklist.push({ item: `${subject} materials and textbook`, category: 'books' });
+      }
+
+      // Binder for each subject
+      checklist.push({ item: `${subject} binder/folder`, category: 'materials' });
+    });
+
+    // Homework items for assignments due today
+    dueAssignments.forEach(assignment => {
+      if (assignment.completionStatus === 'pending') {
+        checklist.push({ 
+          item: `Completed: ${assignment.title}`, 
+          category: 'homework' 
+        });
+      }
+    });
+
+    // General co-op items
+    if (scheduleBlocks.length > 0) {
+      checklist.push(
+        { item: 'Student ID and schedule printout', category: 'general' },
+        { item: 'Lunch and water bottle', category: 'general' },
+        { item: 'Writing utensils (pens, pencils, highlighters)', category: 'general' },
+        { item: 'Notebook paper and sticky notes', category: 'general' }
+      );
+    }
+
+    // Remove duplicates
+    return checklist.filter((item, index, arr) => 
+      arr.findIndex(i => i.item === item.item) === index
+    );
+  };
+
   // DEBUG LOGGING: Client Guided composition
   const DEBUG_ORDERING = process.env.NODE_ENV === 'development' && false; // Enable when needed
   if (DEBUG_ORDERING && studentName === 'Abigail') {
@@ -425,9 +515,19 @@ export function GuidedDayView({
   const [stuckPendingKey, setStuckPendingKey] = useState<string | null>(null);
   const [isProcessingStuck, setIsProcessingStuck] = useState(false);
   const [bibleData, setBibleData] = useState<any>(null);
+  const [checkedItems, setCheckedItems] = useState(new Set<string>());
   const { toast } = useToast();
 
   const currentBlock = scheduleBlocks[currentIndex];
+
+  // Check if current block is Prep/Load time
+  const isPrepLoadBlock = currentBlock && (
+    currentBlock.title?.toLowerCase().includes('prep') || 
+    currentBlock.title?.toLowerCase().includes('load') ||
+    currentBlock.blockType?.toLowerCase().includes('prep') ||
+    currentBlock.blockType?.toLowerCase().includes('load')
+  );
+  const prepChecklist = generatePrepChecklist();
   const normalized = useMemo(() => {
     if (currentBlock?.type === 'assignment' && currentBlock.assignment) {
       return normalizeAssignment({
@@ -913,6 +1013,149 @@ export function GuidedDayView({
               data-testid="assignment-instructions"
             >
               {currentBlock.assignment.instructions}
+            </div>
+          </div>
+        )}
+
+        {/* Co-op Prep Checklist - shows during Prep/Load blocks */}
+        {isPrepLoadBlock && prepChecklist.length > 0 && (
+          <div className="mb-6 rounded-2xl bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-5 py-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div 
+                className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center"
+                style={{ flexShrink: 0 }}
+              >
+                <span className="text-white text-xs font-bold">✓</span>
+              </div>
+              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                Co-op Prep Checklist
+              </h3>
+            </div>
+            
+            <div className="space-y-3">
+              {/* Books & Textbooks */}
+              {prepChecklist.some(item => item.category === 'books') && (
+                <div>
+                  <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide mb-2">
+                    📚 Books & Textbooks
+                  </h4>
+                  <div className="space-y-1">
+                    {prepChecklist.filter(item => item.category === 'books').map((item, index) => (
+                      <label key={`books-${index}`} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checkedItems.has(`books-${index}`)}
+                          onChange={(e) => {
+                            const newChecked = new Set(checkedItems);
+                            if (e.target.checked) {
+                              newChecked.add(`books-${index}`);
+                            } else {
+                              newChecked.delete(`books-${index}`);
+                            }
+                            setCheckedItems(newChecked);
+                          }}
+                          className="w-4 h-4 rounded border-2 border-foreground/30"
+                          data-testid={`checkbox-books-${index}`}
+                        />
+                        <span className="text-sm text-foreground">{item.item}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Materials & Supplies */}
+              {prepChecklist.some(item => item.category === 'materials') && (
+                <div>
+                  <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide mb-2">
+                    ✏️ Materials & Supplies
+                  </h4>
+                  <div className="space-y-1">
+                    {prepChecklist.filter(item => item.category === 'materials').map((item, index) => (
+                      <label key={`materials-${index}`} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checkedItems.has(`materials-${index}`)}
+                          onChange={(e) => {
+                            const newChecked = new Set(checkedItems);
+                            if (e.target.checked) {
+                              newChecked.add(`materials-${index}`);
+                            } else {
+                              newChecked.delete(`materials-${index}`);
+                            }
+                            setCheckedItems(newChecked);
+                          }}
+                          className="w-4 h-4 rounded border-2 border-foreground/30"
+                          data-testid={`checkbox-materials-${index}`}
+                        />
+                        <span className="text-sm text-foreground">{item.item}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Completed Homework */}
+              {prepChecklist.some(item => item.category === 'homework') && (
+                <div>
+                  <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide mb-2">
+                    📝 Assignments Due Today
+                  </h4>
+                  <div className="space-y-1">
+                    {prepChecklist.filter(item => item.category === 'homework').map((item, index) => (
+                      <label key={`homework-${index}`} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checkedItems.has(`homework-${index}`)}
+                          onChange={(e) => {
+                            const newChecked = new Set(checkedItems);
+                            if (e.target.checked) {
+                              newChecked.add(`homework-${index}`);
+                            } else {
+                              newChecked.delete(`homework-${index}`);
+                            }
+                            setCheckedItems(newChecked);
+                          }}
+                          className="w-4 h-4 rounded border-2 border-foreground/30"
+                          data-testid={`checkbox-homework-${index}`}
+                        />
+                        <span className="text-sm text-foreground">{item.item}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* General Items */}
+              {prepChecklist.some(item => item.category === 'general') && (
+                <div>
+                  <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide mb-2">
+                    🎒 General Items
+                  </h4>
+                  <div className="space-y-1">
+                    {prepChecklist.filter(item => item.category === 'general').map((item, index) => (
+                      <label key={`general-${index}`} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checkedItems.has(`general-${index}`)}
+                          onChange={(e) => {
+                            const newChecked = new Set(checkedItems);
+                            if (e.target.checked) {
+                              newChecked.add(`general-${index}`);
+                            } else {
+                              newChecked.delete(`general-${index}`);
+                            }
+                            setCheckedItems(newChecked);
+                          }}
+                          className="w-4 h-4 rounded border-2 border-foreground/30"
+                          data-testid={`checkbox-general-${index}`}
+                        />
+                        <span className="text-sm text-foreground">{item.item}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
