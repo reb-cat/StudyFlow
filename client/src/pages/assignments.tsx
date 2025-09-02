@@ -701,13 +701,6 @@ export default function AssignmentsPage() {
                           </div>
                         )}
 
-                        {assignment.instructions && (
-                          <p className="text-sm text-muted-foreground max-w-2xl">
-                            {assignment.instructions.length > 200
-                              ? `${assignment.instructions.substring(0, 200)}...`
-                              : assignment.instructions}
-                          </p>
-                        )}
 
                         <div className="flex gap-4 text-xs text-muted-foreground/60">
                           <span>Priority: {assignment.priority}</span>
@@ -874,10 +867,11 @@ export default function AssignmentsPage() {
         </Card>
       )}
 
-      {/* Edit Assignment Form */}
+      {/* Edit Assignment Form - POSITIONED AT TOP */}
       {console.log('Render check - showEditForm:', showEditForm, 'editingAssignment:', !!editingAssignment)}
       {showEditForm && editingAssignment && (
-        <Card className="border-blue-200" style={{ backgroundColor: 'yellow', padding: '20px', margin: '20px' }}>
+        <div style={{ position: 'fixed', top: '10px', left: '10px', right: '10px', zIndex: 9999, backgroundColor: 'yellow', border: '3px solid red' }}>
+          <Card className="border-blue-200">
           <CardHeader>
             <CardTitle>Edit Assignment</CardTitle>
           </CardHeader>
@@ -1002,7 +996,8 @@ export default function AssignmentsPage() {
               </Button>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
       )}
       
       {/* Parent Resolution Dialog */}
@@ -1013,9 +1008,6 @@ export default function AssignmentsPage() {
               <DialogTitle className="flex items-center gap-2">
                 🔧 Resolve Stuck Assignment
               </DialogTitle>
-              <DialogDescription>
-                Help resolve this assignment and get it back on schedule
-              </DialogDescription>
             </DialogHeader>
             
             {/* Assignment Context */}
