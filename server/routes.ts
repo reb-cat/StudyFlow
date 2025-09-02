@@ -146,6 +146,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/bible-curriculum - Get current Bible curriculum for student (assignments management only)
+  app.get('/api/bible-curriculum', requireAuth, async (req, res) => {
+    try {
+      const { studentName } = req.query;
+      
+      if (!studentName || typeof studentName !== 'string') {
+        return res.status(400).json({ message: 'Student name required' });
+      }
+      
+      const { getNextBibleCurriculumForStudent } = await import('./lib/bibleCurriculum');
+      const bibleResult = await getNextBibleCurriculumForStudent(studentName);
+      
+      const bibleItems = [];
+      
+      // Add daily reading if not completed
+      if (bibleResult.dailyReading && !bibleResult.dailyReading.completed) {
+        bibleItems.push({
+          id: `bible-reading-${bibleResult.dailyReading.id}`,
+          type: 'daily_reading',
+          title: bibleResult.dailyReading.readingTitle || 'Bible Reading',
+          weekNumber: bibleResult.dailyReading.weekNumber,
+          dayOfWeek: bibleResult.dailyReading.dayOfWeek,
+          completed: false,
+          estimatedMinutes: 20
+        });
+      }
+      
+      // Add memory verse if not completed  
+      if (bibleResult.memoryVerse && !bibleResult.memoryVerse.completed) {
+        bibleItems.push({
+          id: `bible-memory-${bibleResult.memoryVerse.id}`,
+          type: 'memory_verse',
+          title: `Memory Verse - Week ${bibleResult.memoryVerse.weekNumber}`,
+          weekNumber: bibleResult.memoryVerse.weekNumber,
+          dayOfWeek: null,
+          completed: false,
+          estimatedMinutes: 15
+        });
+      }
+      
+      res.json(bibleItems);
+    } catch (error) {
+      console.error('Error fetching Bible curriculum:', error);
+      res.status(500).json({ message: 'Failed to fetch Bible curriculum' });
+    }
+  });
+
+  // POST /api/bible-curriculum/complete - Mark Bible curriculum item complete
+  app.post('/api/bible-curriculum/complete', requireAuth, async (req, res) => {
+    try {
+      const { weekNumber, dayOfWeek, type, studentName } = req.body;
+      
+      if (!studentName || !weekNumber || !type) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+      
+      const { markBibleCurriculumCompleted } = await import('./lib/bibleCurriculum');
+      const success = await markBibleCurriculumCompleted(
+        weekNumber,
+        dayOfWeek,
+        type,
+        studentName
+      );
+      
+      if (success) {
+        res.json({ success: true, message: 'Bible curriculum item marked complete' });
+      } else {
+        res.status(400).json({ message: 'Failed to mark Bible curriculum complete' });
+      }
+    } catch (error) {
+      console.error('Error completing Bible curriculum:', error);
+      res.status(500).json({ message: 'Failed to complete Bible curriculum' });
+    }
+  });
+
   // GET /api/assignments - Get assignments for a user/date
   app.get('/api/assignments', requireAuth, async (req, res) => {
     try {
@@ -178,86 +253,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const assignments = await storage.getAssignments(userId, filterDate, includeCompletedBool);
       
-      // Include Bible curriculum items for assignment management
+      // FIXED: Proper data separation architecture
+      // Bible blocks get content from bible_curriculum table ONLY
+      // Assignment blocks get content from assignments table ONLY  
+      // NEVER mix the two data sources
       let allAssignments = [...assignments];
       
-      // Add current Bible curriculum items as "assignments" for completion tracking
-      if (studentName && typeof studentName === 'string') {
-        try {
-          const { getNextBibleCurriculumForStudent } = await import('./lib/bibleCurriculum');
-          const bibleResult = await getNextBibleCurriculumForStudent(studentName);
-          
-          // Add daily reading as an assignment
-          if (bibleResult.dailyReading && !bibleResult.dailyReading.completed) {
-            allAssignments.push({
-              id: `bible-reading-${bibleResult.dailyReading.id}`,
-              userId: userId,
-              title: bibleResult.dailyReading.readingTitle || 'Bible Reading',
-              subject: 'Bible',
-              courseName: 'Bible Curriculum',
-              instructions: `Week ${bibleResult.dailyReading.weekNumber}, Day ${bibleResult.dailyReading.dayOfWeek}`,
-              priority: 'A',
-              completionStatus: 'pending',
-              blockType: 'bible',
-              isAssignmentBlock: true,
-              isPortable: true,
-              difficulty: 'medium',
-              timeSpent: 0,
-              actualEstimatedMinutes: 20,
-              creationSource: 'bible_curriculum',
-              dueDate: null,
-              scheduledDate: null,
-              completedAt: null,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              isCanvasImport: false,
-              needsPrinting: false,
-              printStatus: 'not_needed',
-              needsManualDueDate: false,
-              // Bible-specific metadata for completion tracking
-              bibleWeek: bibleResult.dailyReading.weekNumber,
-              bibleDay: bibleResult.dailyReading.dayOfWeek,
-              bibleType: 'daily_reading'
-            } as any);
-          }
-          
-          // Add memory verse as an assignment
-          if (bibleResult.memoryVerse && !bibleResult.memoryVerse.completed) {
-            allAssignments.push({
-              id: `bible-memory-${bibleResult.memoryVerse.id}`,
-              userId: userId,
-              title: `Memory Verse - Week ${bibleResult.memoryVerse.weekNumber}`,
-              subject: 'Bible',
-              courseName: 'Bible Curriculum', 
-              instructions: bibleResult.memoryVerse.readingTitle || 'Weekly Memory Verse',
-              priority: 'A',
-              completionStatus: 'pending',
-              blockType: 'bible',
-              isAssignmentBlock: true,
-              isPortable: true,
-              difficulty: 'medium',
-              timeSpent: 0,
-              actualEstimatedMinutes: 15,
-              creationSource: 'bible_curriculum',
-              dueDate: null,
-              scheduledDate: null,
-              completedAt: null,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              isCanvasImport: false,
-              needsPrinting: false,
-              printStatus: 'not_needed',
-              needsManualDueDate: false,
-              // Bible-specific metadata for completion tracking
-              bibleWeek: bibleResult.memoryVerse.weekNumber,
-              bibleDay: null,
-              bibleType: 'memory_verse'
-            } as any);
-          }
-        } catch (error) {
-          console.error('Error fetching Bible curriculum:', error);
-        }
-      }
+      // NOTE: Bible content is handled separately in Bible-specific endpoints
+      // This endpoint should only return actual assignments from the assignments table
       
       // Apply normalization to assignment titles for meaningful display
       const normalizedAssignments = allAssignments.map(assignment => {

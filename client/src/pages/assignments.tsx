@@ -89,6 +89,12 @@ export default function AssignmentsPage() {
     }
   });
 
+  // Get Bible curriculum items separately (assignments management only)
+  const { data: bibleItems = [], isLoading: bibleLoading, refetch: refetchBible } = useQuery({
+    queryKey: ['/api/bible-curriculum', { studentName: selectedStudent }],
+    enabled: !!selectedStudent
+  });
+
   // Edit assignment mutation
   const editAssignmentMutation = useMutation({
     mutationFn: async (updatedAssignment: Partial<Assignment> & { id: string }) => {
@@ -140,6 +146,38 @@ export default function AssignmentsPage() {
       toast({
         title: "Error",
         description: `Failed to create assignment: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Bible completion mutation
+  const completeBibleMutation = useMutation({
+    mutationFn: async ({ weekNumber, dayOfWeek, type }: { 
+      weekNumber: number; 
+      dayOfWeek: number | null; 
+      type: 'daily_reading' | 'memory_verse' 
+    }) => {
+      const response = await apiRequest('POST', '/api/bible-curriculum/complete', {
+        weekNumber,
+        dayOfWeek,
+        type,
+        studentName: selectedStudent
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/bible-curriculum'] });
+      refetchBible();
+      toast({
+        title: "Bible Assignment Complete",
+        description: "Bible curriculum item has been marked complete.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to complete Bible assignment: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -283,8 +321,30 @@ export default function AssignmentsPage() {
     },
   });
 
+  // Convert Bible items to assignment-like objects for display
+  const bibleAsAssignments = bibleItems.map(item => ({
+    id: item.id,
+    title: item.title,
+    subject: 'Bible',
+    courseName: 'Bible Curriculum',
+    instructions: `Week ${item.weekNumber}${item.dayOfWeek ? `, Day ${item.dayOfWeek}` : ''}`,
+    completionStatus: 'pending',
+    priority: 'A',
+    actualEstimatedMinutes: item.estimatedMinutes,
+    dueDate: null,
+    creationSource: 'bible_curriculum',
+    // Bible-specific metadata for completion
+    bibleWeek: item.weekNumber,
+    bibleDay: item.dayOfWeek,
+    bibleType: item.type,
+    isBibleItem: true
+  }));
+
+  // Combine assignments and Bible items for display
+  const allDisplayItems = [...assignments, ...bibleAsAssignments];
+
   // Filter assignments based on current filters
-  const filteredAssignments = assignments.filter(assignment => {
+  const filteredAssignments = allDisplayItems.filter(assignment => {
     // Search filter
     if (searchTerm && !assignment.title.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
@@ -765,6 +825,28 @@ export default function AssignmentsPage() {
                             data-testid={`button-resolve-${assignment.id}`}
                           >
                             🔧 Resolve & Reschedule
+                          </Button>
+                        )}
+
+                        {/* Bible Completion Button */}
+                        {assignment.isBibleItem && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white"
+                            onClick={() => {
+                              if (confirm(`Mark "${assignment.title}" as complete?`)) {
+                                completeBibleMutation.mutate({
+                                  weekNumber: assignment.bibleWeek,
+                                  dayOfWeek: assignment.bibleDay,
+                                  type: assignment.bibleType
+                                });
+                              }
+                            }}
+                            disabled={completeBibleMutation.isPending}
+                            data-testid={`button-complete-bible-${assignment.id}`}
+                          >
+                            ✅ Mark Complete
                           </Button>
                         )}
                         
