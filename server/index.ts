@@ -23,32 +23,13 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Auto-secure in production
-    httpOnly: false, // TEMPORARY: Allow JS access for debugging
-    sameSite: 'none', // Required for cross-origin cookies
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax' | 'strict',
+    domain: process.env.NODE_ENV === 'production' ? '.replit.app' : undefined,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7
   }
 }));
-
-// CORS configuration for production session cookies
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = ['https://study-flow.replit.app', 'http://localhost:5000'];
-  
-  if (allowedOrigins.includes(origin) || !origin) {
-    res.header('Access-Control-Allow-Origin', origin || 'https://study-flow.replit.app');
-    res.header('Access-Control-Allow-Credentials', 'true');
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
-  
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
