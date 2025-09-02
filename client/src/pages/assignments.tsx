@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp, Plus, Calendar, ArrowLeft, User, HelpCircle, CheckCircle2, Calendar as CalendarIcon } from 'lucide-react';
+import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp, Plus, Calendar, ArrowLeft, User, HelpCircle, CheckCircle2, Calendar as CalendarIcon, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -352,10 +352,8 @@ export default function AssignmentsPage() {
   };
 
   const handleEditAssignment = (assignment: Assignment) => {
-    console.log('Edit clicked:', assignment.title);
     setEditingAssignment(assignment);
     setShowEditForm(true);
-    console.log('Form state set:', true);
   };
 
   // Helper function to strip HTML tags from text
@@ -363,6 +361,27 @@ export default function AssignmentsPage() {
     const div = document.createElement('div');
     div.innerHTML = html;
     return div.textContent || div.innerText || '';
+  };
+
+  // Helper function to get Canvas URL for assignment
+  const getCanvasUrl = (assignment: Assignment): string | null => {
+    // Use stored canvasUrl if available
+    if (assignment.canvasUrl) {
+      return assignment.canvasUrl;
+    }
+    
+    // Try to construct URL from Canvas data
+    if (assignment.canvasId && assignment.canvasCourseId && assignment.canvasInstance) {
+      const baseUrl = assignment.canvasInstance === 1 
+        ? process.env.CANVAS_BASE_URL 
+        : process.env.CANVAS_BASE_URL_2;
+      if (baseUrl) {
+        const cleanUrl = baseUrl.replace(/\/$/, '');
+        return `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
+      }
+    }
+    
+    return null;
   };
 
   const handleSaveEdit = () => {
@@ -717,6 +736,20 @@ export default function AssignmentsPage() {
                       </div>
 
                       <div className="flex gap-2">
+                        {/* Canvas Link Button */}
+                        {getCanvasUrl(assignment) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(getCanvasUrl(assignment)!, '_blank')}
+                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            data-testid={`button-canvas-${assignment.id}`}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-1" />
+                            Canvas
+                          </Button>
+                        )}
+
                         {/* Stuck Assignment - Parent Resolution Button */}
                         {assignment.completionStatus === 'stuck' && (
                           <Button
@@ -873,10 +906,8 @@ export default function AssignmentsPage() {
       )}
 
       {/* Edit Assignment Form */}
-      {console.log('RENDER CHECK - showEditForm:', showEditForm, 'editingAssignment:', !!editingAssignment)}
       {showEditForm && editingAssignment && (
-        <div style={{ position: 'fixed', top: '20px', left: '20px', right: '20px', zIndex: 9999, backgroundColor: 'yellow', padding: '10px', border: '2px solid red' }}>
-          <Card className="border-blue-200 dark:border-blue-800 mb-6 bg-blue-50 dark:bg-blue-950/30">
+        <Card className="border-blue-200 dark:border-blue-800 mb-6 bg-blue-50 dark:bg-blue-950/30">
           <CardHeader>
             <CardTitle>Edit Assignment</CardTitle>
           </CardHeader>
@@ -1001,8 +1032,7 @@ export default function AssignmentsPage() {
               </Button>
             </div>
           </CardContent>
-          </Card>
-        </div>
+        </Card>
       )}
       
       {/* Parent Resolution Dialog */}
