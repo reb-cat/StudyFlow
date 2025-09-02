@@ -102,7 +102,16 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]> {
     try {
-      let result = await db.select().from(assignments).where(eq(assignments.userId, userId));
+      // CRITICAL: Filter out soft-deleted assignments to prevent confusion for students with executive function needs
+      let result = await db.select().from(assignments).where(
+        and(
+          eq(assignments.userId, userId),
+          or(
+            eq(assignments.isDeleted, false),
+            isNull(assignments.isDeleted)
+          )
+        )
+      );
       let assignmentList = result || [];
       
       // For daily scheduling: exclude completed assignments and filter by date
@@ -203,8 +212,15 @@ export class DatabaseStorage implements IStorage {
   async getAllAssignments(includeDeleted = false): Promise<Assignment[]> {
     try {
       // Get ALL assignments across all users for print queue
-      // TODO: Add soft deletion back after schema is pushed
-      const result = await db.select().from(assignments);
+      // CRITICAL: Filter out soft-deleted assignments unless explicitly requested
+      const result = includeDeleted 
+        ? await db.select().from(assignments)
+        : await db.select().from(assignments).where(
+            or(
+              eq(assignments.isDeleted, false),
+              isNull(assignments.isDeleted)
+            )
+          );
       return result || [];
     } catch (error) {
       console.error('Error getting all assignments:', error);
@@ -531,6 +547,36 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting assignment:', error);
       return false;
+    }
+  }
+
+  // Soft delete for Canvas sync - prevents showing deleted assignments to students
+  async markAssignmentDeleted(id: string): Promise<Assignment | undefined> {
+    try {
+      const result = await db.update(assignments)
+        .set({ 
+          isDeleted: true,
+          deletedAt: new Date()
+        })
+        .where(eq(assignments.id, id))
+        .returning();
+      return result[0] || undefined;
+    } catch (error) {
+      console.error('Error soft deleting assignment:', error);
+      return undefined;
+    }
+  }
+
+  // Get deleted assignments for admin audit trail
+  async getDeletedAssignments(): Promise<Assignment[]> {
+    try {
+      return await db.select()
+        .from(assignments)
+        .where(eq(assignments.isDeleted, true))
+        .orderBy(desc(assignments.deletedAt));
+    } catch (error) {
+      console.error('Error getting deleted assignments:', error);
+      return [];
     }
   }
 

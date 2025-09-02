@@ -527,11 +527,13 @@ class JobScheduler {
       );
       
       if (staleAssignments.length > 0) {
-        console.log(`🧹 Found ${staleAssignments.length} stale assignments to remove for ${userId}`);
+        console.log(`🧹 Found ${staleAssignments.length} stale assignments to soft delete for ${userId}`);
         
         for (const staleAssignment of staleAssignments) {
-          await storage.deleteAssignment(staleAssignment.id);
-          console.log(`🗑️ Removed stale assignment: "${staleAssignment.title}"`);
+          // CRITICAL: Use soft deletion to prevent confusion for students with executive function needs
+          // They need to know assignments were removed, not just see them disappear
+          await storage.markAssignmentDeleted(staleAssignment.id);
+          console.log(`🗑️ Soft-deleted stale assignment: "${staleAssignment.title}" (marked as deleted, not removed)`);
         }
       }
     } catch (error) {
