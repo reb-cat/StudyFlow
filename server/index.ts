@@ -1,18 +1,31 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { jobScheduler } from "./lib/scheduler";
 
 const app = express();
 
+// Use PostgreSQL session storage for production reliability
+const PgSession = connectPgSimple(session);
+const sessionStore = new PgSession({
+  conString: process.env.DATABASE_URL,
+  tableName: 'sessions',
+  createTableIfMissing: true,
+  ttl: 24 * 60 * 60, // 24 hours in seconds
+});
+
 // Session middleware for family authentication
 app.use(session({
-  secret: process.env.FAMILY_PASSWORD || 'fallback-secret',
+  store: sessionStore,
+  secret: process.env.SESSION_SECRET || process.env.FAMILY_PASSWORD || 'fallback-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to true in production with HTTPS
+    secure: process.env.NODE_ENV === 'production', // Auto-secure in production
+    httpOnly: true, // Prevent XSS attacks
+    sameSite: 'lax', // CSRF protection
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
