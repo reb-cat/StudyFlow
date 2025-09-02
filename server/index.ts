@@ -7,6 +7,9 @@ import { jobScheduler } from "./lib/scheduler";
 
 const app = express();
 
+// Trust proxy for production deployment behind reverse proxy
+app.set('trust proxy', 1);
+
 // Use PostgreSQL session storage for production reliability
 const PgSession = connectPgSimple(session);
 const sessionStore = new PgSession({
@@ -24,8 +27,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax' | 'strict',
-    domain: process.env.NODE_ENV === 'production' ? '.replit.app' : undefined,
+    sameSite: 'lax' as 'none' | 'lax' | 'strict',
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7
   }

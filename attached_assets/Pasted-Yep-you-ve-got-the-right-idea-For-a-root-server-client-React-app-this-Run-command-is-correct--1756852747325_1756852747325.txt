@@ -1,0 +1,70 @@
+Yep—you’ve got the right idea. For a root server + client/ React app, this Run command is correct:
+
+run = "bash -lc 'npm ci && npm --prefix client run build && npm run start'"
+
+That said, make sure your server start path matches how you run TypeScript. Pick one model and stick to it:
+
+Option A — run TS directly (ts-node/tsx)
+
+package.json
+
+{
+  "scripts": {
+    "build": "npm --prefix client run build",
+    "start": "tsx server/index.ts"   // or: node --loader ts-node/esm server/index.ts
+  }
+}
+
+Notes
+	•	Ensure tsx (or ts-node) is in deps.
+	•	Paths like ../client/dist work exactly as coded in server/index.ts.
+
+Option B — compile server to JS, then run Node (production-y)
+
+package.json
+
+{
+  "scripts": {
+    "build:client": "npm --prefix client run build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build": "npm run build:client && npm run build:server",
+    "start": "node dist/server/index.js"
+  }
+}
+
+Notes
+	•	Update static serve path to dist equivalents if your server compiles to dist/server.
+	•	More reliable and faster at runtime.
+
+⸻
+
+Non-negotiable red-flag fixes (quick check)
+	•	Bind & proxy: app.listen(process.env.PORT, '0.0.0.0') and app.set('trust proxy', 1).
+	•	Order: define /api/* routes before SPA fallback, then:
+
+app.use(express.static(path.join(__dirname, '../client/dist')));
+app.get('*', (_req,res)=>res.sendFile(path.join(__dirname,'../client/dist/index.html')));
+
+
+	•	No dev in prod: your start must not use vite dev, nodemon, or ts-node unless you chose Option A intentionally.
+	•	No localhost in code: client calls go through VITE_API_URL (empty for same-origin monolith).
+	•	Secrets: set in Replit Secrets (don’t set PORT):
+	•	APP_ENV=production, DATABASE_URL, SESSION_SECRET, COOKIE_SECURE=true, COOKIE_SAMESITE=lax
+	•	Cookies/CORS: monolith → typically no CORS needed; if present, credentials:true, origin = same origin; cookies httpOnly:true, secure:true, sameSite:'lax'.
+	•	Migrations: have a command you can run in shell right after first boot.
+
+⸻
+
+Final Run (Replit)
+
+Keep your .replit:
+
+run = "bash -lc 'npm ci && npm --prefix client run build && npm run start'"
+
+Then:
+	1.	Set Secrets.
+	2.	Click Run → wait for “listening on …”.
+	3.	Run migrations in Shell.
+	4.	Smoke test (create user, add course/task, start/stop session, sign out/in).
+
+If you tell me whether you prefer Option A (tsx/ts-node) or Option B (compile to dist), I’ll give you the exact package.json and minimal code tweaks for that path.
