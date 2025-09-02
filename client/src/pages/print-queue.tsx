@@ -72,7 +72,7 @@ export default function PrintQueue() {
       if (!response.ok) throw new Error('Failed to fetch print queue');
       return response.json();
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Always consider data stale so it refetches
   });
 
   const updateStatusMutation = useMutation({
@@ -90,7 +90,8 @@ export default function PrintQueue() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ 
+      // Force complete cache refresh
+      queryClient.removeQueries({ 
         queryKey: ['/api/print-queue'],
         exact: false 
       });
