@@ -352,8 +352,10 @@ export default function AssignmentsPage() {
   };
 
   const handleEditAssignment = (assignment: Assignment) => {
+    console.log('Edit clicked:', assignment.title);
     setEditingAssignment(assignment);
     setShowEditForm(true);
+    console.log('Form state set:', true);
   };
 
   // Helper function to strip HTML tags from text
@@ -871,8 +873,10 @@ export default function AssignmentsPage() {
       )}
 
       {/* Edit Assignment Form */}
+      {console.log('RENDER CHECK - showEditForm:', showEditForm, 'editingAssignment:', !!editingAssignment)}
       {showEditForm && editingAssignment && (
-        <Card className="border-blue-200 dark:border-blue-800 mb-6 bg-blue-50 dark:bg-blue-950/30">
+        <div style={{ position: 'fixed', top: '20px', left: '20px', right: '20px', zIndex: 9999, backgroundColor: 'yellow', padding: '10px', border: '2px solid red' }}>
+          <Card className="border-blue-200 dark:border-blue-800 mb-6 bg-blue-50 dark:bg-blue-950/30">
           <CardHeader>
             <CardTitle>Edit Assignment</CardTitle>
           </CardHeader>
@@ -997,7 +1001,8 @@ export default function AssignmentsPage() {
               </Button>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
       )}
       
       {/* Parent Resolution Dialog */}
