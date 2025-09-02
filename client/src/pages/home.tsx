@@ -173,12 +173,12 @@ export default function Home() {
             {stats.map((stat, index) => {
               const IconComponent = stat.icon;
               const getIconBg = (color: string) => {
-                // All icon backgrounds are now light blue to match blue icons
-                return 'rgba(59, 130, 246, 0.1)'; // Light blue background for all icons
+                // All icon backgrounds are now solid blue circles
+                return '#3B82F6'; // Blue circle background for all icons
               };
               const getIconColor = (color: string) => {
-                // All icons are now blue
-                return '#3B82F6'; // Blue color for all icons
+                // All icons are now white on blue backgrounds
+                return '#FFFFFF'; // White color for all icons
               };
               const getValueColor = (color: string) => {
                 switch(color) {
