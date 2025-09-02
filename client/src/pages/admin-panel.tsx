@@ -95,15 +95,15 @@ const adminTiles: AdminTile[] = [
 
 const getColorClasses = (color: string) => {
   const colorMap: Record<string, { bg: string; text: string; border: string; hover: string }> = {
-    blue: { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20', hover: 'hover:bg-primary/15' },
-    purple: { bg: 'bg-accent/10', text: 'text-accent-foreground', border: 'border-accent/20', hover: 'hover:bg-accent/15' },
+    blue: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    purple: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
     green: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
     orange: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
     indigo: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
     pink: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
     teal: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
     violet: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
-    gray: { bg: 'bg-muted/50', text: 'text-muted-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' }
+    gray: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' }
   };
   return colorMap[color] || colorMap.gray;
 };
@@ -224,7 +224,7 @@ export default function AdminPanel() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <p className={`text-sm ${colors.text} opacity-80`}>
+                  <p className="text-sm text-muted-foreground">
                     {tile.description}
                   </p>
                 </CardContent>
