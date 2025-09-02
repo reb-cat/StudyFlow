@@ -120,11 +120,11 @@ export function CircularTimer({
         {/* Time display in center - larger for big timer */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-6xl font-bold text-gray-900 dark:text-white">
+            <div className="text-6xl font-bold" style={{ color: 'var(--foreground)' }}>
               {formatTime(timeRemaining)}
             </div>
             {extraTime > 0 && (
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                 +{extraTime}min
               </div>
             )}
