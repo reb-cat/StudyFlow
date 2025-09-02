@@ -98,6 +98,7 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    console.log('[ready]', { env: env.appEnv, port });
     
     // Start the job scheduler for daily Canvas sync
     jobScheduler.start();

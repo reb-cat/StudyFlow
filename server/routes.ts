@@ -68,6 +68,9 @@ import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Health check endpoint for uptime monitoring
+  app.get('/health', (_req, res) => res.json({ ok: true }));
+  
   // Setup family authentication
   setupFamilyAuth(app);
 
