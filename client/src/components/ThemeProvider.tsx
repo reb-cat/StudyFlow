@@ -22,7 +22,7 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
 export function ThemeProvider({
   children,
-  defaultTheme = "light", // Default to light mode, user can toggle to dark
+  defaultTheme = "system", // Default to system preference (device theme)
   storageKey = "studyflow-ui-theme",
   ...props
 }: ThemeProviderProps) {

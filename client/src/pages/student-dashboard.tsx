@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { 
   RefreshCw, 
   ChevronLeft, 
@@ -487,15 +488,7 @@ export default function StudentDashboard() {
         {isGuidedMode ? (
           // Minimal header for Guided mode - just theme toggle
           <div className="flex justify-end mb-4 no-print">
-            <Button 
-              variant="ghost" 
-              data-testid="button-theme"
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="rounded-full hover:bg-muted/60 transition-all h-10 w-10 p-0"
-              title="Toggle theme"
-            >
-              <Moon className="h-5 w-5" />
-            </Button>
+            <ThemeToggle />
           </div>
         ) : (
           // Full header for Overview mode
@@ -532,14 +525,7 @@ export default function StudentDashboard() {
                 >
                   <Printer className="h-6 w-6" />
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  data-testid="button-theme"
-                  onClick={() => setIsDarkMode(!isDarkMode)}
-                  className="rounded-full hover:bg-muted/60 transition-all duration-200 hover:scale-105 h-12 w-12 p-0 [&_svg]:!size-6"
-                >
-                  <Moon className="h-6 w-6" />
-                </Button>
+                <ThemeToggle />
               </div>
             </div>
 
