@@ -97,12 +97,12 @@ const getColorClasses = (color: string) => {
   const colorMap: Record<string, { bg: string; text: string; border: string; hover: string }> = {
     blue: { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20', hover: 'hover:bg-primary/15' },
     purple: { bg: 'bg-accent/10', text: 'text-accent-foreground', border: 'border-accent/20', hover: 'hover:bg-accent/15' },
-    green: { bg: 'bg-green-500/10 dark:bg-green-400/10', text: 'text-green-700 dark:text-green-400', border: 'border-green-200 dark:border-green-800', hover: 'hover:bg-green-500/15 dark:hover:bg-green-400/15' },
-    orange: { bg: 'bg-orange-500/10 dark:bg-orange-400/10', text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-800', hover: 'hover:bg-orange-500/15 dark:hover:bg-orange-400/15' },
-    indigo: { bg: 'bg-indigo-500/10 dark:bg-indigo-400/10', text: 'text-indigo-700 dark:text-indigo-400', border: 'border-indigo-200 dark:border-indigo-800', hover: 'hover:bg-indigo-500/15 dark:hover:bg-indigo-400/15' },
-    pink: { bg: 'bg-pink-500/10 dark:bg-pink-400/10', text: 'text-pink-700 dark:text-pink-400', border: 'border-pink-200 dark:border-pink-800', hover: 'hover:bg-pink-500/15 dark:hover:bg-pink-400/15' },
-    teal: { bg: 'bg-teal-500/10 dark:bg-teal-400/10', text: 'text-teal-700 dark:text-teal-400', border: 'border-teal-200 dark:border-teal-800', hover: 'hover:bg-teal-500/15 dark:hover:bg-teal-400/15' },
-    violet: { bg: 'bg-violet-500/10 dark:bg-violet-400/10', text: 'text-violet-700 dark:text-violet-400', border: 'border-violet-200 dark:border-violet-800', hover: 'hover:bg-violet-500/15 dark:hover:bg-violet-400/15' },
+    green: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    orange: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    indigo: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    pink: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    teal: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    violet: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
     gray: { bg: 'bg-muted/50', text: 'text-muted-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' }
   };
   return colorMap[color] || colorMap.gray;
@@ -148,14 +148,14 @@ export default function AdminPanel() {
           </CardContent>
         </Card>
         
-        <Card className="bg-green-500/10 dark:bg-green-400/10 border-green-200 dark:border-green-800">
+        <Card className="bg-muted/50 border-muted">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-700 dark:text-green-400">System Status</p>
-                <p className="text-lg font-bold text-green-700 dark:text-green-400">Operational</p>
+                <p className="text-sm font-medium text-foreground">System Status</p>
+                <p className="text-lg font-bold text-foreground">Operational</p>
               </div>
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
             </div>
           </CardContent>
         </Card>
@@ -172,14 +172,14 @@ export default function AdminPanel() {
           </CardContent>
         </Card>
         
-        <Card className="bg-indigo-500/10 dark:bg-indigo-400/10 border-indigo-200 dark:border-indigo-800">
+        <Card className="bg-muted/50 border-muted">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-indigo-700 dark:text-indigo-400">Bible Week</p>
-                <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-400">1</p>
+                <p className="text-sm font-medium text-foreground">Bible Week</p>
+                <p className="text-2xl font-bold text-foreground">1</p>
               </div>
-              <BookOpen className="w-8 h-8 text-indigo-700 dark:text-indigo-400" />
+              <BookOpen className="w-8 h-8 text-foreground" />
             </div>
           </CardContent>
         </Card>
