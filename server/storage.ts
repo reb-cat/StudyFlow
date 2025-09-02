@@ -109,7 +109,29 @@ export class DatabaseStorage implements IStorage {
       // This keeps the daily view focused while the database contains the full Canvas dataset
       // Admin mode can include completed assignments by setting includeCompleted = true
       
-      // FIRST: Exclude completed assignments from daily planning (unless admin mode)
+      // FIRST: ALWAYS filter out non-completable assignments (participation, attendance, etc.)
+      // These represent ongoing classroom behavior rather than discrete homework tasks and should NEVER appear
+      const beforeTypeFilter = assignmentList.length;
+      assignmentList = assignmentList.filter((assignment: any) => {
+        const title = (assignment.title || '').toLowerCase();
+        const isParticipation = 
+          title.includes('class participation') ||
+          title.includes('participation') ||
+          title.includes('attendance') ||
+          title.includes('classroom participation') ||
+          title.includes('class engagement') ||
+          title.includes('daily participation') ||
+          title.startsWith('cap:');
+        
+        if (isParticipation) {
+          console.log(`🚫 Excluding non-completable assignment: ${assignment.title}`);
+          return false;
+        }
+        return true;
+      });
+      console.log(`🎯 Type filtering: ${beforeTypeFilter} → ${assignmentList.length} assignments (excluded participation/attendance)`);
+
+      // SECOND: Exclude completed assignments from daily planning (unless admin mode)
       // Only show assignments that are actively workable (pending, needs_more_time, stuck)
       if (!includeCompleted) {
         const beforeCompletionFilter = assignmentList.length;
@@ -117,31 +139,8 @@ export class DatabaseStorage implements IStorage {
           assignment.completionStatus !== 'completed'
         );
         console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments)`);
-        
-        // SECOND: Filter out non-completable assignments (participation, attendance, etc.)
-        // These represent ongoing classroom behavior rather than discrete homework tasks
-        // CAP = "Class Attendance and Participation" - not discrete assignments
-        const beforeTypeFilter = assignmentList.length;
-        assignmentList = assignmentList.filter((assignment: any) => {
-          const title = (assignment.title || '').toLowerCase();
-          const isParticipation = 
-            title.includes('class participation') ||
-            title.includes('participation') ||
-            title.includes('attendance') ||
-            title.includes('classroom participation') ||
-            title.includes('class engagement') ||
-            title.includes('daily participation') ||
-            title.startsWith('cap:');
-          
-          if (isParticipation) {
-            console.log(`🚫 Excluding non-completable assignment: ${assignment.title}`);
-            return false;
-          }
-          return true;
-        });
-        console.log(`🎯 Type filtering: ${beforeTypeFilter} → ${assignmentList.length} assignments (excluded participation/attendance)`);
       } else {
-        console.log(`🔧 Admin mode: Including all assignments (${assignmentList.length} total)`);
+        console.log(`🔧 Admin mode: Including completed assignments (${assignmentList.length} total after type filtering)`);
       }
       
       // THIRD: Apply date filtering for daily scheduling
