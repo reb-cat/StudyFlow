@@ -485,7 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // POST /api/sync-canvas-completion/:studentName - Sync completion status from Canvas for existing assignments
-  app.post('/api/sync-canvas-completion/:studentName', requireAuth, async (req, res) => {
+  app.post('/api/sync-canvas-completion/:studentName', async (req, res) => {
     try {
       const { studentName } = req.params;
       console.log(`\n🔄 Starting Canvas completion sync for: ${studentName}`);
