@@ -159,9 +159,9 @@ export class DatabaseStorage implements IStorage {
           futureLimit = new Date(requestDate);
           futureLimit.setDate(requestDate.getDate() + 21); // 3 weeks ahead
           
-          // Allow overdue assignments up to 7 days back (matches assignments page filtering)
+          // Allow overdue assignments up to 30 days back (for catch-up work)
           pastLimit = new Date(requestDate);
-          pastLimit.setDate(requestDate.getDate() - 7);
+          pastLimit.setDate(requestDate.getDate() - 30);
         } 
         
         console.log(`🗓️ Date filtering: ${pastLimit.toISOString().split('T')[0]} to ${futureLimit.toISOString().split('T')[0]} (including overdue assignments)`);
