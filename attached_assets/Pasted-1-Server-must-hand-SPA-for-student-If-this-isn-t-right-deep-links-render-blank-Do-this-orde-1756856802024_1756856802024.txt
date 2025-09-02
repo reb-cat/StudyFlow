@@ -1,0 +1,89 @@
+1) Server must hand SPA for /student/*
+
+If this isn’t right, deep-links render blank.
+
+Do this (order matters):
+
+// API routes first:
+app.use('/api', api);
+
+// then static + SPA fallback:
+const clientDist = path.join(__dirname, '../client/dist');
+app.use(express.static(clientDist));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientDist, 'index.html'));
+});
+
+Preflight test:
+
+# Should return HTML (index.html), not a 404/JSON error
+curl -sI https://<your-repl>.repl.co/student/alex | grep -i 'content-type'
+# Expect: text/html
+
+2) Client route + data fetch must align
+
+Most “doesn’t populate” bugs are a param mismatch or bad fetch key.
+
+Route definition (React Router v6):
+
+<Route path="/student/:slug" element={<StudentPage/>} />
+
+Slug, not free-text name (avoids spaces/casing issues):
+	•	When creating a student, store student.slug = slugify(name) (lowercase, dashes).
+	•	Keep slug stable even if the display name changes.
+
+Fetch in page:
+
+import { useParams } from 'react-router-dom';
+import { apiFetch } from '../lib/api'; // wraps fetch with base URL + credentials
+
+export default function StudentPage() {
+  const { slug } = useParams();
+  const [data, setData] = useState<Student | null>(null);
+
+  useEffect(() => {
+    if (!slug) return;
+    apiFetch(`/api/students/${encodeURIComponent(slug)}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r))
+      .then(setData)
+      .catch(() => setData(null));
+  }, [slug]);
+
+  if (!data) return <div>Loading…</div>;
+  return <h1>{data.name}</h1>;
+}
+
+API contract (server):
+
+// GET /api/students/:slug  -> one student owned by user
+app.get('/api/students/:slug', requireAuth, async (req, res) => {
+  const { slug } = req.params;
+  const student = await db.query.students.findFirst({
+    where: (t, { and, eq }) => and(eq(t.ownerId, req.user.id), eq(t.slug, slug))
+  });
+  if (!student) return res.status(404).json({ error: 'Not found' });
+  res.json(student);
+});
+
+DB tip: add a unique index on (owner_id, slug).
+
+3) “Won’t break again” validation checklist (2 minutes)
+
+Run these before redeploying each time:
+	•	SPA fallback works
+	•	curl -I /student/alex → text/html (not 404).
+	•	Route param wired
+	•	In DevTools on /student/alex, Network shows GET /api/students/alex → 200 with JSON.
+	•	No hardcoded localhost
+	•	Your client uses apiFetch(${API}${path}) with API from env (or same-origin).
+	•	Auth scope
+	•	The query filters by ownerId = req.user.id; another account can’t see it.
+	•	Slug safety
+	•	Creating a student sets slug=slugify(name); URLs with spaces/case still work.
+	•	Deep-link reload
+	•	Paste /student/<slug> into a fresh tab → page renders, not a white screen.
+
+4) Common edge cases (fix once)
+	•	Names with spaces/accents → always route by slug, not raw name.
+	•	Renaming a student → keep slug stable or regenerate and 301 from old slug.
+	•	Conflicting server route (e.g., /student/:name under API) → ensure your API lives under /api/* only, so it doesn’t shadow the SPA route.
