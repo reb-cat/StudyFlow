@@ -514,7 +514,7 @@ export function GuidedDayView({
       await apiRequest('POST', '/api/bible-curriculum/complete', {
         weekNumber: bibleData.dailyReading.weekNumber,
         dayOfWeek: bibleData.dailyReading.dayOfWeek,
-        readingType: 'daily_reading',
+        type: 'daily_reading',
         studentName: studentName
       });
       
