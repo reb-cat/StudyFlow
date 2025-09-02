@@ -861,6 +861,62 @@ export function GuidedDayView({
           )}
         </div>
 
+        {/* Instructions Panel - CRITICAL FOR STUDENTS */}
+        {currentBlock.type === 'assignment' && normalized?.instructions && (
+          <div className="mb-6 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-5 py-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div 
+                className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center"
+                style={{ flexShrink: 0 }}
+              >
+                <span className="text-white text-xs font-bold">i</span>
+              </div>
+              <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-200 uppercase tracking-wide">
+                Instructions
+              </h3>
+              {/* Speaker button for instructions - only for Khalil */}
+              {studentName.toLowerCase() === 'khalil' && (
+                <button
+                  onClick={() => {
+                    if (isPlaying) {
+                      stop();
+                    } else {
+                      speak(`Assignment instructions: ${normalized.instructions}`);
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: isPlaying ? '#EF4444' : '#F59E0B',
+                    color: 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    marginLeft: 'auto'
+                  }}
+                  title={isPlaying ? "Stop reading" : "Read instructions aloud"}
+                  data-testid="button-speak-instructions"
+                >
+                  {isPlaying ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                </button>
+              )}
+            </div>
+            <div 
+              className="text-sm leading-relaxed text-amber-900 dark:text-amber-100"
+              style={{ 
+                whiteSpace: 'pre-wrap',
+                lineHeight: '1.5'
+              }}
+              data-testid="assignment-instructions"
+            >
+              {normalized.instructions}
+            </div>
+          </div>
+        )}
 
         {/* Timer */}
         <div style={{ marginBottom: '32px' }}>
