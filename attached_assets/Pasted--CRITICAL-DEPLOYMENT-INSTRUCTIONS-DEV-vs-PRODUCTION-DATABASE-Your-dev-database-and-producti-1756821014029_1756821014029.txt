@@ -1,0 +1,68 @@
+## **CRITICAL DEPLOYMENT INSTRUCTIONS - DEV vs PRODUCTION DATABASE**
+
+Your dev database and production database are SEPARATE. The production deployment will fail without these exact steps:
+
+### **PRE-DEPLOYMENT: Export Critical Data**
+
+```sql
+-- FROM DEV DATABASE - Save these values:
+-- 1. Get your assignment counts for verification
+SELECT user_id, COUNT(*) as count FROM assignments 
+WHERE deleted_at IS NULL GROUP BY user_id;
+-- Should show: abigail-user: ~31, khalil-user: ~84
+
+-- 2. Export your Canvas tokens and critical settings
+SELECT * FROM users;  -- If user data exists
+```
+
+### **PRODUCTION DATABASE SETUP**
+
+The production database will be EMPTY. You need to:
+
+1. **Run database migrations**:
+```bash
+npm run db:push --force
+```
+
+2. **NO assignments will exist** - You'll need to:
+   - Trigger Canvas sync immediately after deployment
+   - OR manually import assignments via Canvas API
+
+3. **Set these environment variables in Replit's Secrets**:
+```
+DATABASE_URL=postgresql://[PRODUCTION_URL]
+FAMILY_PASSWORD=[your password]
+CANVAS_API_TOKEN=[Abigail's token]
+CANVAS_API_TOKEN_2=[Khalil's token]
+SESSION_SECRET=[generate new one]
+```
+
+### **POST-DEPLOYMENT: Immediate Actions**
+
+```bash
+# 1. Verify production database connection
+curl https://[your-app].repl.co/api/health
+
+# 2. Trigger Canvas sync to populate assignments
+curl -X POST https://[your-app].repl.co/api/canvas/sync
+
+# 3. Verify assignments imported
+curl https://[your-app].repl.co/api/assignments?studentName=khalil
+```
+
+### **What Will Break**:
+
+- **All assignments gone** (empty production database)
+- **No schedule data** (must re-initialize)
+- **No Bible curriculum progress** (starts fresh)
+- **Admin PIN might reset** (re-set to 1234)
+
+### **Recovery Plan**:
+
+If production is broken after deployment:
+1. Check logs for "Using memory storage" (BAD) vs "Using database storage" (GOOD)
+2. Verify DATABASE_URL points to production PostgreSQL
+3. Run Canvas sync manually
+4. Check soft deletion isn't hiding all assignments
+
+The production database being empty is the #1 cause of deployment failures. Your 105 assignments in dev DO NOT transfer to production automatically.
