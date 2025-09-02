@@ -68,7 +68,7 @@ export default function AssignmentsPage() {
 
   // Get assignments for the selected student (limited to current week for better usability)
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
-    queryKey: ['/api/assignments', selectedStudent, dateFilter],
+    queryKey: ['/api/assignments', selectedStudent, dateFilter, filterStatus],
     queryFn: async () => {
       // Calculate date range for current week plus buffer
       const today = new Date();
@@ -77,9 +77,12 @@ export default function AssignmentsPage() {
       const weekEnd = new Date(today);
       weekEnd.setDate(today.getDate() + 14); // 2 weeks forward
       
+      // Only include completed assignments when specifically requested
+      const shouldIncludeCompleted = filterStatus === 'all' || filterStatus === 'completed';
+      
       const params = new URLSearchParams({
         studentName: selectedStudent,
-        includeCompleted: 'true', // Admin needs to see completed assignments
+        includeCompleted: shouldIncludeCompleted.toString(),
         startDate: weekStart.toISOString().split('T')[0],
         endDate: weekEnd.toISOString().split('T')[0]
       });
