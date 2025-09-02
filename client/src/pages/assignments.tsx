@@ -35,10 +35,14 @@ function isParentTask(title: string, courseName?: string | null): boolean {
 export default function AssignmentsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedStudent, setSelectedStudent] = useState<string>('Abigail');
+  // Get current student from URL or default to Khalil (most active user)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlStudent = urlParams.get('student');
+  const [selectedStudent, setSelectedStudent] = useState<string>(urlStudent || 'Khalil');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('pending');
-  const [dateFilter, setDateFilter] = useState<string>('upcoming');
+  // Default to today's assignments for better daily workflow
+  const [dateFilter, setDateFilter] = useState<string>('today');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [bulkOperation, setBulkOperation] = useState<string>('');
   const [selectedAssignments, setSelectedAssignments] = useState<Set<string>>(new Set());
@@ -438,18 +442,39 @@ export default function AssignmentsPage() {
       return assignment.canvasUrl;
     }
     
-    // Try to construct URL from Canvas data
-    if (assignment.canvasId && assignment.canvasCourseId && assignment.canvasInstance) {
-      const baseUrl = assignment.canvasInstance === 1 
-        ? import.meta.env.VITE_CANVAS_BASE_URL 
-        : import.meta.env.VITE_CANVAS_BASE_URL_2;
-      if (baseUrl) {
-        const cleanUrl = baseUrl.replace(/\/$/, '');
-        return `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
+    // Course name to course ID mapping for Khalil's courses
+    const courseIdMap: Record<string, string> = {
+      '25/26 T2 7th-12th Gr Health': '11890055',
+      '25/26 M5 HS American History': '11941567', 
+      '25/26 M4 Earth Science': '12010150',
+      '25/26 T6 9th Gr English Fundamentals': '12178247'
+    };
+    
+    const baseUrl = assignment.canvasInstance === 2 
+      ? import.meta.env.VITE_CANVAS_BASE_URL_2 
+      : import.meta.env.VITE_CANVAS_BASE_URL;
+      
+    if (!baseUrl) {
+      return null;
+    }
+    
+    const cleanUrl = baseUrl.replace(/\/$/, '');
+    
+    // First try: Use existing course ID + canvas ID
+    if (assignment.canvasId && assignment.canvasCourseId) {
+      return `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
+    }
+    
+    // Second try: Map course name to course ID if Canvas ID exists
+    if (assignment.canvasId && assignment.courseName) {
+      const courseId = courseIdMap[assignment.courseName];
+      if (courseId) {
+        return `${cleanUrl}/courses/${courseId}/assignments/${assignment.canvasId}`;
       }
     }
     
-    return null;
+    // Fallback: Canvas dashboard for the student
+    return `${cleanUrl}/`;
   };
 
   const handleSaveEdit = () => {
