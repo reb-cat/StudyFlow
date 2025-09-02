@@ -793,7 +793,7 @@ export function GuidedDayView({
         <div className="mb-4 rounded-2xl bg-blue-50/60 dark:bg-slate-800/80 border border-blue-200 dark:border-slate-600 px-5 py-4" style={{ marginBottom: '16px' }}>
           <div className="mb-2 flex items-start justify-between gap-3">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-              <h2 className="text-[20px] font-bold text-slate-800 dark:text-slate-100" style={{ 
+              <h2 className="text-[20px] font-bold text-foreground" style={{ 
                 fontSize: '20px', 
                 fontWeight: 'bold', 
                 color: 'inherit',
@@ -870,7 +870,7 @@ export function GuidedDayView({
               >
                 <span className="text-white text-xs font-bold">i</span>
               </div>
-              <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-200 uppercase tracking-wide">
+              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
                 Instructions
               </h3>
               {/* Speaker button for instructions - only for Khalil */}
@@ -905,7 +905,7 @@ export function GuidedDayView({
               )}
             </div>
             <div 
-              className="text-sm leading-relaxed text-amber-900 dark:text-amber-100"
+              className="text-sm leading-relaxed text-foreground"
               style={{ 
                 whiteSpace: 'pre-wrap',
                 lineHeight: '1.5'
@@ -944,7 +944,7 @@ export function GuidedDayView({
             justifyContent: 'space-between',
             alignItems: 'center'
           }}>
-            <span className="text-yellow-800 dark:text-yellow-200" style={{ fontSize: '14px' }}>
+            <span className="text-foreground" style={{ fontSize: '14px' }}>
               Assignment will be marked as stuck in {stuckCountdown}s
             </span>
             <button
