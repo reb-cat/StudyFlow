@@ -1545,9 +1545,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         });
         
         if (printDetection.needsPrinting) {
-          // Only exclude items that have been explicitly printed or skipped
           const actualPrintStatus = assignment.printStatus || 'needs_printing';
           
+          // Only exclude items that have been explicitly printed or skipped
           if (actualPrintStatus !== 'printed' && actualPrintStatus !== 'skipped') {
             printQueue.push({
               id: assignment.id,
