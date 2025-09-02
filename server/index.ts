@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { jobScheduler } from "./lib/scheduler";
@@ -37,6 +38,32 @@ app.use(session({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Rate limiting for auth and write routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per window
+  message: { error: 'Too many attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const writeLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute
+  message: { error: 'Too many requests, please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting to auth routes
+app.use('/api/unlock', authLimiter);
+app.use('/api/login', authLimiter);
+
+// Apply rate limiting to write operations
+app.use('/api/assignments', writeLimiter);
+app.use('/api/schedule', writeLimiter);
+app.use('/api/bible', writeLimiter);
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -70,12 +97,10 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Production-safe error handler (non-verbose)
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+    console.error('[error]', err); // Full stack server-side only
+    res.status(500).json({ error: 'Something went wrong.' });
   });
 
   // importantly only setup vite in development and after
