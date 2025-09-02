@@ -169,18 +169,17 @@ class JobScheduler {
                   }
                 );
                 
-                // Smart auto-completion: Only mark as completed if TRULY graded in Canvas
-                // This prevents false positives while respecting actual Canvas grades
+                // All imported assignments start as pending - students control their own progress
+                // This ensures students can track their work through the daily task system
                 let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
                 
-                // Check if Canvas shows this assignment as actually graded (not just submitted)
+                // Log Canvas status for reference but don't auto-complete
                 if (canvasAssignment.graded_submissions_exist) {
-                  // Canvas has graded this assignment - it should be marked as completed
-                  completionStatus = 'completed';
-                  console.log(`✅ Canvas graded: Auto-marking "${canvasAssignment.name}" as completed`);
+                  console.log(`📊 Canvas graded: "${canvasAssignment.name}" (importing as pending for student progress tracking)`);
                 } else if (canvasAssignment.has_submitted_submissions) {
-                  // Only submitted but not graded yet - keep as pending for now
-                  console.log(`📝 Canvas submitted (not graded): "${canvasAssignment.name}" remains pending`);
+                  console.log(`📝 Canvas submitted: "${canvasAssignment.name}" (importing as pending)`);
+                } else {
+                  console.log(`📋 Canvas assignment: "${canvasAssignment.name}" (importing as pending)`);
                 }
 
                 // ENHANCED DUE DATE EXTRACTION AND VALIDATION
