@@ -170,12 +170,12 @@ class JobScheduler {
                 );
                 
                 // Smart auto-completion: Only mark as completed if TRULY graded in Canvas
-                // This maintains bidirectional sync while preventing false positives
+                // This prevents false positives while respecting actual Canvas grades
                 let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
                 
                 // Check if Canvas shows this assignment as actually graded (not just submitted)
                 if (canvasAssignment.graded_submissions_exist) {
-                  // Canvas has graded this assignment - maintain bidirectional sync
+                  // Canvas has graded this assignment - it should be marked as completed
                   completionStatus = 'completed';
                   console.log(`✅ Canvas graded: Auto-marking "${canvasAssignment.name}" as completed`);
                 } else if (canvasAssignment.has_submitted_submissions) {
