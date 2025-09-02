@@ -24,10 +24,9 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production', // Auto-secure in production
-    httpOnly: true, // Prevent XSS attacks
-    sameSite: 'lax', // CSRF protection
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    domain: process.env.NODE_ENV === 'production' ? '.replit.app' : undefined // Production domain
+    httpOnly: false, // TEMPORARY: Allow JS access for debugging
+    sameSite: 'none', // Required for cross-origin cookies
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
 
