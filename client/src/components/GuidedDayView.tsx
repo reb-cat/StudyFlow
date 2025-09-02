@@ -427,11 +427,11 @@ export function GuidedDayView({
     subjects.forEach(subject => {
       const subjectLower = subject.toLowerCase();
       
-      // Books
+      // Books (only subjects that actually need books at co-op)
       if (subjectLower.includes('math') || subjectLower.includes('geometry') || subjectLower.includes('algebra')) {
-        checklist.push({ item: 'Math textbook and calculator', category: 'books' });
+        checklist.push({ item: 'Calculator and math notebook', category: 'materials' });
       } else if (subjectLower.includes('english') || subjectLower.includes('literature') || subjectLower.includes('writing')) {
-        checklist.push({ item: 'English textbook and notebook', category: 'books' });
+        checklist.push({ item: 'English novel and reading notebook', category: 'books' });
       } else if (subjectLower.includes('science') || subjectLower.includes('biology') || subjectLower.includes('chemistry') || subjectLower.includes('earth science')) {
         checklist.push({ item: 'Science textbook and lab notebook', category: 'books' });
       } else if (subjectLower.includes('history') || subjectLower.includes('social studies')) {
@@ -440,18 +440,17 @@ export function GuidedDayView({
         checklist.push({ item: 'Art supplies and sketchbook', category: 'materials' });
       } else if (subjectLower.includes('health')) {
         checklist.push({ item: 'Health textbook and worksheet folder', category: 'books' });
-      } else if (subjectLower.includes('forensic')) {
-        checklist.push({ item: 'Forensics materials and lab notebook', category: 'materials' });
       } else if (subjectLower.includes('baking') || subjectLower.includes('cooking')) {
         checklist.push({ item: 'Recipe cards and measuring tools', category: 'materials' });
       } else if (subjectLower.includes('photography')) {
         checklist.push({ item: 'Camera and photography assignments', category: 'materials' });
-      } else {
-        checklist.push({ item: `${subject} materials and textbook`, category: 'books' });
       }
+      // Note: Forensics is done at home, so no co-op materials needed
 
-      // Binder for each subject
-      checklist.push({ item: `${subject} binder/folder`, category: 'materials' });
+      // Binder for each subject (except forensics which stays home)
+      if (!subjectLower.includes('forensic')) {
+        checklist.push({ item: `${subject} binder/folder`, category: 'materials' });
+      }
     });
 
     // Homework items for assignments due today
