@@ -1615,6 +1615,15 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         return res.status(400).json({ error: 'Invalid status' });
       }
       
+      // Actually update the database
+      const updatedAssignment = await storage.updateAssignment(assignmentId, {
+        printStatus: status
+      });
+      
+      if (!updatedAssignment) {
+        return res.status(404).json({ error: 'Assignment not found' });
+      }
+      
       console.log(`📋 Updated print status for assignment ${assignmentId}: ${status}`);
       res.json({ success: true, status, assignmentId });
       
