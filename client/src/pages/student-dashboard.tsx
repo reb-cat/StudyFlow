@@ -655,7 +655,7 @@ export default function StudentDashboard() {
                       .map((block, index) => {
                         // Get appropriate icon component using cleaner mapping
                         const getBlockIcon = (blockType: string) => {
-                          const iconClass = "h-6 w-6 text-white";
+                          const iconClass = "h-6 w-6 text-blue-600";
                           const IconComponent = iconFor(blockType.toLowerCase() as BlockKind);
                           return <IconComponent className={iconClass} />;
                         };
@@ -725,10 +725,10 @@ export default function StudentDashboard() {
 
                             {/* Status-colored Pill with Consistent White Icons */}
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              effectiveStatus === 'complete' ? 'bg-green-500' :
-                              effectiveStatus === 'in-progress' ? 'bg-blue-500' :
-                              effectiveStatus === 'stuck' ? 'bg-orange-500' :
-                              'bg-gray-400'  // not-started
+                              effectiveStatus === 'complete' ? 'bg-green-100 border border-green-300' :
+                              effectiveStatus === 'in-progress' ? 'bg-blue-100 border border-blue-300' :
+                              effectiveStatus === 'stuck' ? 'bg-orange-100 border border-orange-300' :
+                              'bg-gray-100 border border-gray-300'  // not-started
                             }`}>
                               {getBlockIcon(block.blockType)}
                             </div>
