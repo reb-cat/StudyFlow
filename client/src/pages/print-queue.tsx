@@ -90,7 +90,10 @@ export default function PrintQueue() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/print-queue'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/print-queue'],
+        exact: false 
+      });
     },
   });
 
