@@ -173,12 +173,8 @@ export default function Home() {
             {stats.map((stat, index) => {
               const IconComponent = stat.icon;
               const getIconBg = (color: string) => {
-                switch(color) {
-                  case 'complete': return 'rgba(33, 191, 6, 0.1)';
-                  case 'progress': return 'rgba(59, 134, 209, 0.1)';
-                  case 'blocked': return 'rgba(108, 114, 147, 0.1)';
-                  default: return 'var(--primary-subtle)';
-                }
+                // All icon backgrounds are now light blue to match blue icons
+                return 'rgba(59, 130, 246, 0.1)'; // Light blue background for all icons
               };
               const getIconColor = (color: string) => {
                 // All icons are now blue
@@ -231,7 +227,7 @@ export default function Home() {
                         background: getIconBg(stat.color),
                         color: getIconColor(stat.color)
                       }}>
-                        <IconComponent className="w-6 h-6" />
+                        <IconComponent className="w-6 h-6" style={{ color: 'inherit' }} />
                       </div>
                       <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                         {stat.title}
