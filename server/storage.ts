@@ -1163,8 +1163,8 @@ export class DatabaseStorage implements IStorage {
         const endTime = new Date(`2000-01-01T${block.endTime}`);
         const blockMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
         
-        // Check if assignment fits in block
-        const assignmentMinutes = assignment.actualEstimatedMinutes || 60;
+        // Check if assignment fits in block - use actual time estimates, not defaults
+        const assignmentMinutes = assignment.actualEstimatedMinutes || 30; // Reduced default from 60 to 30 minutes
         
         if (assignmentMinutes <= blockMinutes) {
           // Assignment fits - schedule it
