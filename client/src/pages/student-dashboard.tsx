@@ -94,17 +94,7 @@ export default function StudentDashboard() {
     // Set to September 2nd, 2025 to show assignments with instructions
     return '2025-09-02';
   });
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const queryClient = useQueryClient();
-
-  // Theme toggle functionality
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
 
   const handleHomeClick = () => {
     // Reset to today and overview mode

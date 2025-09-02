@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, Settings, Clock, Calendar, Star, Camera } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Link } from 'wouter';
 import { ObjectUploader } from '@/components/ObjectUploader';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -101,13 +102,16 @@ export default function FamilyDashboard() {
           </h1>
         </Link>
         
-        <Link
-          href="/admin"
-          className="px-5 py-2.5 bg-transparent border border-border rounded-lg text-foreground text-base cursor-pointer flex items-center gap-2 transition-all duration-200 no-underline hover:bg-secondary hover:border-primary"
-        >
-          <Settings size={18} />
-          Admin
-        </Link>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <Link
+            href="/admin"
+            className="px-5 py-2.5 bg-transparent border border-border rounded-lg text-foreground text-base cursor-pointer flex items-center gap-2 transition-all duration-200 no-underline hover:bg-secondary hover:border-primary"
+          >
+            <Settings size={18} />
+            Admin
+          </Link>
+        </div>
       </header>
 
       {/* Main Content */}
