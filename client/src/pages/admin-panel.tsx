@@ -136,14 +136,14 @@ export default function AdminPanel() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-primary/10 border-primary/20">
+        <Card className="bg-muted/50 border-muted">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-primary">Active Students</p>
-                <p className="text-2xl font-bold text-primary">2</p>
+                <p className="text-sm font-medium text-foreground">Active Students</p>
+                <p className="text-2xl font-bold text-foreground">2</p>
               </div>
-              <Users className="w-8 h-8 text-primary" />
+              <Users className="w-8 h-8 text-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -160,14 +160,14 @@ export default function AdminPanel() {
           </CardContent>
         </Card>
         
-        <Card className="bg-accent/10 border-accent/20">
+        <Card className="bg-muted/50 border-muted">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-accent-foreground">Print Queue</p>
-                <p className="text-2xl font-bold text-accent-foreground">16</p>
+                <p className="text-sm font-medium text-foreground">Print Queue</p>
+                <p className="text-2xl font-bold text-foreground">16</p>
               </div>
-              <Printer className="w-8 h-8 text-accent-foreground" />
+              <Printer className="w-8 h-8 text-foreground" />
             </div>
           </CardContent>
         </Card>
