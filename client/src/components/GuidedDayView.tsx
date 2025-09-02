@@ -862,7 +862,7 @@ export function GuidedDayView({
         </div>
 
         {/* Instructions Panel - CRITICAL FOR STUDENTS */}
-        {currentBlock.type === 'assignment' && normalized?.instructions && (
+        {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
           <div className="mb-6 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-5 py-4">
             <div className="flex items-center gap-2 mb-3">
               <div 
@@ -881,7 +881,7 @@ export function GuidedDayView({
                     if (isPlaying) {
                       stop();
                     } else {
-                      speak(`Assignment instructions: ${normalized.instructions}`);
+                      speak(`Assignment instructions: ${currentBlock.assignment.instructions}`);
                     }
                   }}
                   style={{
@@ -913,7 +913,7 @@ export function GuidedDayView({
               }}
               data-testid="assignment-instructions"
             >
-              {normalized.instructions}
+              {currentBlock.assignment.instructions}
             </div>
           </div>
         )}
