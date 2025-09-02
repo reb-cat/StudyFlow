@@ -356,6 +356,8 @@ export default function AssignmentsPage() {
     setEditingAssignment(assignment);
     setShowEditForm(true);
     console.log('Edit form should now be visible');
+    console.log('showEditForm state:', true);
+    console.log('editingAssignment state:', assignment);
   };
 
   const handleSaveEdit = () => {
@@ -873,8 +875,9 @@ export default function AssignmentsPage() {
       )}
 
       {/* Edit Assignment Form */}
+      {console.log('Render check - showEditForm:', showEditForm, 'editingAssignment:', !!editingAssignment)}
       {showEditForm && editingAssignment && (
-        <Card className="border-blue-200">
+        <Card className="border-blue-200" style={{ backgroundColor: 'yellow', padding: '20px', margin: '20px' }}>
           <CardHeader>
             <CardTitle>Edit Assignment</CardTitle>
           </CardHeader>
