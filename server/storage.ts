@@ -10,7 +10,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, or, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
