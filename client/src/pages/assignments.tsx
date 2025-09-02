@@ -22,7 +22,7 @@ function isParentTask(title: string, courseName?: string | null): boolean {
   
   const parentKeywords = [
     'fee', 'supply fee', 'copy fee', 'class fee', '$',
-    'permission', ' form', 'consent', 'waiver',  // Added space before 'form' to avoid matching 'formulas'
+    'permission', 'permission form', 'consent form', 'waiver form', 'consent', 'waiver',
     'parent', 'guardian', 'signature required',
     'pay', 'payment', 'tuition', 'enrollment'
   ];
