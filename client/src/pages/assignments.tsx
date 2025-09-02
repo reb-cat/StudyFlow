@@ -41,8 +41,8 @@ export default function AssignmentsPage() {
   const [selectedStudent, setSelectedStudent] = useState<string>(urlStudent || 'Khalil');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('pending');
-  // Default to today's assignments for better daily workflow
-  const [dateFilter, setDateFilter] = useState<string>('today');
+  // Default to all schedulable assignments (today + upcoming + already scheduled)
+  const [dateFilter, setDateFilter] = useState<string>('upcoming');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [bulkOperation, setBulkOperation] = useState<string>('');
   const [selectedAssignments, setSelectedAssignments] = useState<Set<string>>(new Set());
@@ -355,7 +355,7 @@ export default function AssignmentsPage() {
   // Combine assignments and Bible items for display
   const allDisplayItems = [...assignments, ...bibleAsAssignments];
 
-  // Filter assignments based on current filters
+  // Filter assignments based on current filters  
   const filteredAssignments = allDisplayItems.filter(assignment => {
     // Search filter
     if (searchTerm && !assignment.title.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -372,15 +372,22 @@ export default function AssignmentsPage() {
       return false;
     }
 
-    // Date filter
+    // Date filter - optimized for scheduling workflow
     const today = new Date();
     const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
+    const isScheduled = assignment.scheduledDate && assignment.scheduledBlock;
     
     if (dateFilter === 'overdue' && (!dueDate || dueDate >= today)) {
       return false;
     }
-    if (dateFilter === 'today' && (!dueDate || dueDate.toDateString() !== today.toDateString())) {
-      return false;
+    if (dateFilter === 'today') {
+      // Show: due today OR scheduled for today
+      const todayStr = today.toDateString();
+      const isDueToday = dueDate && dueDate.toDateString() === todayStr;
+      const isScheduledToday = assignment.scheduledDate === today.toISOString().split('T')[0];
+      if (!isDueToday && !isScheduledToday) {
+        return false;
+      }
     }
     if (dateFilter === 'this_week') {
       const weekEnd = new Date(today);
@@ -388,6 +395,23 @@ export default function AssignmentsPage() {
       if (!dueDate || dueDate > weekEnd) {
         return false;
       }
+    }
+    if (dateFilter === 'upcoming') {
+      // Show: all workable assignments (schedulable + already scheduled)
+      // Exclude assignments that are far in the future (>2 weeks) unless already scheduled
+      const twoWeeksOut = new Date(today);
+      twoWeeksOut.setDate(today.getDate() + 14);
+      
+      if (isScheduled) {
+        return true; // Always show scheduled assignments
+      }
+      
+      if (!dueDate) {
+        return true; // Show assignments without due dates (could be schedulable)
+      }
+      
+      // Show if due within 2 weeks or overdue
+      return dueDate <= twoWeeksOut;
     }
 
     return true;
@@ -599,11 +623,11 @@ export default function AssignmentsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="upcoming">Schedulable (Default)</SelectItem>
                   <SelectItem value="all">All Dates</SelectItem>
                   <SelectItem value="overdue">Overdue</SelectItem>
-                  <SelectItem value="today">Due Today</SelectItem>
+                  <SelectItem value="today">Today Only</SelectItem>
                   <SelectItem value="this_week">This Week</SelectItem>
-                  <SelectItem value="upcoming">Upcoming</SelectItem>
                 </SelectContent>
               </Select>
 
