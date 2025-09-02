@@ -1545,21 +1545,26 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         });
         
         if (printDetection.needsPrinting) {
-          printQueue.push({
-            id: assignment.id,
-            studentName: assignment.userId === 'abigail-user' ? 'Abigail' : 
-                         assignment.userId === 'khalil-user' ? 'Khalil' : 
-                         assignment.userId.replace('-user', '').charAt(0).toUpperCase() + assignment.userId.replace('-user', '').slice(1),
-            title: assignment.title,
-            courseName: assignment.courseName,
-            subject: assignment.subject,
-            dueDate: assignment.dueDate,
-            printReason: printDetection.printReason,
-            priority: printDetection.priority,
-            canvasUrl: printDetection.canvasUrl,
-            printStatus: 'needs_printing',
-            estimatedPages: estimatePageCount(assignment.instructions)
-          });
+          // Only include items that actually need printing (not already printed/skipped)
+          const actualPrintStatus = assignment.printStatus || 'needs_printing';
+          
+          if (actualPrintStatus === 'needs_printing') {
+            printQueue.push({
+              id: assignment.id,
+              studentName: assignment.userId === 'abigail-user' ? 'Abigail' : 
+                           assignment.userId === 'khalil-user' ? 'Khalil' : 
+                           assignment.userId.replace('-user', '').charAt(0).toUpperCase() + assignment.userId.replace('-user', '').slice(1),
+              title: assignment.title,
+              courseName: assignment.courseName,
+              subject: assignment.subject,
+              dueDate: assignment.dueDate,
+              printReason: printDetection.printReason,
+              priority: printDetection.priority,
+              canvasUrl: printDetection.canvasUrl,
+              printStatus: actualPrintStatus,
+              estimatedPages: estimatePageCount(assignment.instructions)
+            });
+          }
         }
       }
       
