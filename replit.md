@@ -58,4 +58,4 @@ StudyFlow is a full-stack web application designed to help students manage acade
 *   **Forensics Lab Time**: Properly allocated 60 minutes for hands-on forensics lab assignments
 *   **Database Optimization**: Updated existing assignments with correct time estimates via direct database updates
 *   **Theme System Stability**: Verified comprehensive dark mode implementation with proper contrast ratios
-*   **Canvas Import Filter**: Added permanent filter to skip "(Continued)" assignments during daily Canvas sync, preventing duplicate imports from Canvas LMS
+*   **Smart Continuation Filter**: Added intelligent filter to prevent re-importing "(Continued)" assignments when original is already completed locally via "Need More Time" feature

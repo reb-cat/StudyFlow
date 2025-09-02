@@ -126,17 +126,24 @@ class JobScheduler {
                 continue;
               }
               
-              // Skip assignments with "(Continued)" - these are usually duplicates from Canvas
+              // Get existing assignments once for efficiency
+              const existingAssignments = await storage.getAssignments(userId);
+              
+              // Skip continued assignments if original is already completed (prevents re-import of local continuations)
               if (canvasAssignment.name.includes('(Continued)')) {
-                console.log(`⏭️ Skipping continued assignment: "${canvasAssignment.name}" - likely duplicate from Canvas`);
-                continue;
+                const originalTitle = canvasAssignment.name.replace(' (Continued)', '');
+                const originalAssignment = existingAssignments.find(a => a.title === originalTitle);
+                
+                if (originalAssignment && originalAssignment.completionStatus === 'completed' && originalAssignment.notes?.includes('continued in:')) {
+                  console.log(`⏭️ Skipping Canvas continued assignment "${canvasAssignment.name}" - original already completed with local continuation`);
+                  continue;
+                }
               }
               
               // Log the real Canvas assignment being processed
               console.log(`📝 Real Canvas Assignment Found: "${canvasAssignment.name}" for ${studentName}`);
               
               // Check if assignment already exists to avoid duplicates
-              const existingAssignments = await storage.getAssignments(userId);
               const alreadyExists = existingAssignments.some(
                 assignment => assignment.title === canvasAssignment.name
               );
