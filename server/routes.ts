@@ -122,14 +122,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/assignments/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const updateData = req.body;
+      const rawData = req.body;
       
       if (!id) {
         return res.status(400).json({ message: 'Assignment ID is required' });
       }
 
-      // Remove id from updateData to prevent conflicts
-      delete updateData.id;
+      // Only allow editable fields - filter out read-only database fields
+      const editableFields = [
+        'title', 'subject', 'courseName', 'instructions', 'dueDate', 
+        'priority', 'completionStatus', 'actualEstimatedMinutes', 'notes'
+      ];
+      
+      const updateData: any = {};
+      
+      // Copy only editable fields
+      for (const field of editableFields) {
+        if (rawData[field] !== undefined) {
+          updateData[field] = rawData[field];
+        }
+      }
       
       // Track when assignment is marked complete for grading delay detection
       if (updateData.completionStatus === 'completed') {
@@ -141,7 +153,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.dueDate = new Date(updateData.dueDate);
       }
       
-      console.log(`📝 Updating assignment ${id} with data:`, updateData);
+      // Always set updatedAt
+      updateData.updatedAt = new Date();
+      
+      console.log(`📝 Updating assignment ${id} with filtered data:`, updateData);
       
       const assignment = await storage.updateAssignment(id, updateData);
       if (!assignment) {
