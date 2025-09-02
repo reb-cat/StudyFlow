@@ -1292,7 +1292,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       // Send parent notification if requested
       if (needsHelp) {
         try {
-          await fetch('http://localhost:5000/api/notify-parent', {
+          await fetch(`${process.env.BASE_URL || 'http://localhost:5000'}/api/notify-parent`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -2451,7 +2451,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
                 // Get assignment details for notification
                 const assignment = await storage.getAssignment(assignmentId);
                 if (assignment) {
-                  await fetch('http://localhost:5000/api/notify-parent', {
+                  await fetch(`${process.env.BASE_URL || 'http://localhost:5000'}/api/notify-parent`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
