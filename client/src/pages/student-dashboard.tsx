@@ -165,7 +165,7 @@ export default function StudentDashboard() {
     const statusConfig = {
       'not-started': {
         variant: 'outline' as const,
-        color: 'text-gray-500 dark:text-muted-foreground bg-gray-50 dark:bg-muted/30 border-gray-200 dark:border-border/50',
+        color: 'text-muted-foreground bg-muted/30 border-border/50',
         icon: Circle,
         text: 'not started'
       },
@@ -718,9 +718,9 @@ export default function StudentDashboard() {
                             } print-schedule-item`}
                           >
                             {/* Start/End Time Vertical - Centered */}
-                            <div className="flex flex-col justify-center text-center text-gray-700 min-w-[80px]">
+                            <div className="flex flex-col justify-center text-center text-foreground min-w-[80px]">
                               <div className="text-base font-medium">{formatSingleTime(block.startTime)}</div>
-                              <div className="text-sm text-gray-500">{formatSingleTime(block.endTime)}</div>
+                              <div className="text-sm text-muted-foreground">{formatSingleTime(block.endTime)}</div>
                             </div>
 
                             {/* Status-colored Pill with Consistent White Icons */}
@@ -735,8 +735,8 @@ export default function StudentDashboard() {
 
                             {/* Subject + Description */}
                             <div className="flex-1">
-                              <div className="font-semibold text-gray-900">{blockTitle}</div>
-                              {blockDetails && <div className="text-gray-600 text-sm">{blockDetails}</div>}
+                              <div className="font-semibold text-foreground">{blockTitle}</div>
+                              {blockDetails && <div className="text-muted-foreground text-sm">{blockDetails}</div>}
                             </div>
 
                             {/* Status Badge */}
