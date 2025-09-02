@@ -1025,9 +1025,14 @@ export class DatabaseStorage implements IStorage {
         return;
       }
       
-      // Score assignments: A=100/B=50/C=10 + overdue + due-soon
+      // Score assignments: A=100/B=50/C=10 + overdue + due-soon, but extra credit gets lower priority
       const scoredAssignments = candidateAssignments.map(assignment => {
         let score = 0;
+        
+        // Check if this is an extra credit assignment
+        const isExtraCredit = assignment.title.toLowerCase().includes('extra credit') ||
+                              assignment.title.toLowerCase().includes('extra-credit') ||
+                              assignment.title.toLowerCase().includes('bonus');
         
         // Priority score
         switch (assignment.priority) {
@@ -1037,18 +1042,26 @@ export class DatabaseStorage implements IStorage {
           default: score += 50; break;
         }
         
-        // Overdue bonus
+        // Extra credit penalty - reduce priority but keep them schedulable
+        if (isExtraCredit) {
+          score = Math.max(score * 0.3, 5); // Reduce to 30% of original score, minimum 5 points
+          console.log(`📝 Extra credit detected: "${assignment.title}" - reduced priority (score: ${score})`);
+        }
+        
+        // Overdue bonus (still applies to extra credit to encourage timely completion)
         if (assignment.dueDate) {
           const dueDate = new Date(assignment.dueDate);
           const today = new Date(date);
           const daysDiff = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
           
           if (daysDiff < 0) {
-            // Overdue - high priority
-            score += Math.abs(daysDiff) * 20;
+            // Overdue - high priority (but extra credit gets smaller bonus)
+            const overdueBonus = Math.abs(daysDiff) * (isExtraCredit ? 5 : 20);
+            score += overdueBonus;
           } else if (daysDiff <= 2) {
-            // Due soon - medium priority
-            score += (3 - daysDiff) * 10;
+            // Due soon - medium priority (but extra credit gets smaller bonus)
+            const dueSoonBonus = (3 - daysDiff) * (isExtraCredit ? 3 : 10);
+            score += dueSoonBonus;
           }
         }
         
