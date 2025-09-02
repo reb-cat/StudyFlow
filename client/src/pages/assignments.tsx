@@ -91,7 +91,12 @@ export default function AssignmentsPage() {
 
   // Get Bible curriculum items separately (assignments management only)
   const { data: bibleItems = [], isLoading: bibleLoading, refetch: refetchBible } = useQuery({
-    queryKey: ['/api/bible-curriculum', { studentName: selectedStudent }],
+    queryKey: ['/api/bible-curriculum', selectedStudent],
+    queryFn: async () => {
+      const params = new URLSearchParams({ studentName: selectedStudent });
+      const response = await apiRequest('GET', `/api/bible-curriculum?${params.toString()}`);
+      return await response.json();
+    },
     enabled: !!selectedStudent
   });
 
@@ -322,7 +327,7 @@ export default function AssignmentsPage() {
   });
 
   // Convert Bible items to assignment-like objects for display
-  const bibleAsAssignments = bibleItems.map(item => ({
+  const bibleAsAssignments = bibleItems.map((item: any) => ({
     id: item.id,
     title: item.title,
     subject: 'Bible',
@@ -780,7 +785,7 @@ export default function AssignmentsPage() {
                               <span className="text-sm font-medium text-red-800">Student got stuck:</span>
                             </div>
                             <p className="text-sm text-red-700">
-                              {assignment.notes.split('\n').find(line => line.startsWith('STUCK:'))?.replace('STUCK: ', '') || 'No reason provided'}
+                              {assignment.notes.split('\n').find((line: any) => line.startsWith('STUCK:'))?.replace('STUCK: ', '') || 'No reason provided'}
                             </p>
                           </div>
                         )}
