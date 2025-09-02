@@ -94,16 +94,16 @@ const adminTiles: AdminTile[] = [
 ];
 
 const getColorClasses = (color: string) => {
-  const colorMap: Record<string, { bg: string; text: string; border: string; hover: string }> = {
-    blue: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
-    purple: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
-    green: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
-    orange: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
-    indigo: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
-    pink: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
-    teal: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
-    violet: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' },
-    gray: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' }
+  const colorMap: Record<string, { bg: string; text: string; icon: string; border: string; hover: string }> = {
+    blue: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-blue-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    purple: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-purple-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    green: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-green-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    orange: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-orange-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    indigo: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-indigo-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    pink: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-pink-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    teal: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-teal-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    violet: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-violet-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    gray: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-gray-600', border: 'border-muted', hover: 'hover:bg-muted/60' }
   };
   return colorMap[color] || colorMap.gray;
 };
@@ -143,7 +143,7 @@ export default function AdminPanel() {
                 <p className="text-sm font-medium text-foreground">Active Students</p>
                 <p className="text-2xl font-bold text-foreground">2</p>
               </div>
-              <Users className="w-8 h-8 text-foreground" />
+              <Users className="w-8 h-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -167,7 +167,7 @@ export default function AdminPanel() {
                 <p className="text-sm font-medium text-foreground">Print Queue</p>
                 <p className="text-2xl font-bold text-foreground">16</p>
               </div>
-              <Printer className="w-8 h-8 text-foreground" />
+              <Printer className="w-8 h-8 text-accent-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -179,7 +179,7 @@ export default function AdminPanel() {
                 <p className="text-sm font-medium text-foreground">Bible Week</p>
                 <p className="text-2xl font-bold text-foreground">1</p>
               </div>
-              <BookOpen className="w-8 h-8 text-foreground" />
+              <BookOpen className="w-8 h-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -208,7 +208,7 @@ export default function AdminPanel() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-background/70">
-                        <IconComponent className={`w-6 h-6 ${colors.text}`} />
+                        <IconComponent className={`w-6 h-6 ${colors.icon}`} />
                       </div>
                       <div>
                         <CardTitle className={`text-lg font-semibold ${colors.text}`}>
