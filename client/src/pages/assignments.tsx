@@ -433,8 +433,8 @@ export default function AssignmentsPage() {
     // Try to construct URL from Canvas data
     if (assignment.canvasId && assignment.canvasCourseId && assignment.canvasInstance) {
       const baseUrl = assignment.canvasInstance === 1 
-        ? process.env.CANVAS_BASE_URL 
-        : process.env.CANVAS_BASE_URL_2;
+        ? import.meta.env.VITE_CANVAS_BASE_URL 
+        : import.meta.env.VITE_CANVAS_BASE_URL_2;
       if (baseUrl) {
         const cleanUrl = baseUrl.replace(/\/$/, '');
         return `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
