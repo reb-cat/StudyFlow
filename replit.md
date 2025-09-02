@@ -59,3 +59,5 @@ StudyFlow is a full-stack web application designed to help students manage acade
 *   **Database Optimization**: Updated existing assignments with correct time estimates via direct database updates
 *   **Theme System Stability**: Verified comprehensive dark mode implementation with proper contrast ratios
 *   **Smart Continuation Filter**: Added intelligent filter to prevent re-importing "(Continued)" assignments when original is already completed locally via "Need More Time" feature
+*   **Assignments Page Usability**: Changed default view to show only pending assignments instead of completed ones, making the system manageable as the school year progresses
+*   **Co-op Prep Checklist**: Added intelligent preparation checklist in Guided mode during Prep/Load blocks that analyzes the day's schedule and assignments to generate personalized co-op preparation recommendations (books, materials, homework, general items) with executive function-friendly categorization and interactive checkboxes
