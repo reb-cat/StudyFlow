@@ -103,14 +103,14 @@ type GuidedBlock = {
 
 // StudyFlow color system
 const colors = {
-  primary: '#844FC1',
-  complete: '#21BF06',
-  progress: '#3B86D1',
-  support: '#6C7293',
-  background: '#F8F9FA',
-  surface: '#FFFFFF',
-  text: '#212529',
-  textMuted: '#6C7293'
+  primary: 'var(--primary)',
+  complete: 'var(--status-complete)',
+  progress: 'var(--status-progress)',
+  support: 'var(--status-blocked)',
+  background: 'var(--background)',
+  surface: 'var(--card)',
+  text: 'var(--foreground)',
+  textMuted: 'var(--muted-foreground)'
 };
 
 // CircularTimer component with StudyFlow colors

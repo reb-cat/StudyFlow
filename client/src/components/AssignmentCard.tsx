@@ -36,13 +36,13 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
         label: 'High Priority', 
         color: 'bg-red-100 text-red-800 border-red-200', 
         icon: Zap,
-        darkColor: 'dark:bg-red-950 dark:text-red-300 dark:border-red-800'
+        darkColor: 'dark:bg-red-950/20 dark:text-red-400 dark:border-red-800/30'
       },
       'C': { 
         label: 'Low Priority', 
         color: 'bg-gray-100 text-gray-600 border-gray-200', 
         icon: Timer,
-        darkColor: 'dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600'
+        darkColor: 'dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-600/30'
       }
     };
     

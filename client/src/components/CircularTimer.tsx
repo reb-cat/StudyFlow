@@ -89,7 +89,7 @@ export function CircularTimer({
           {/* Background circle */}
           <circle
             stroke="currentColor"
-            className="text-gray-200 dark:text-gray-700"
+            className="text-gray-200 dark:text-slate-600"
             fill="transparent"
             strokeWidth={strokeWidth}
             r={normalizedRadius}
@@ -101,10 +101,10 @@ export function CircularTimer({
             stroke="currentColor"
             className={`transition-all duration-1000 ease-linear ${
               timeRemaining > 300 
-                ? 'text-green-500' 
+                ? 'text-green-500 dark:text-green-400' 
                 : timeRemaining > 60 
-                ? 'text-gray-500' 
-                : 'text-red-500'
+                ? 'text-blue-500 dark:text-blue-400' 
+                : 'text-red-500 dark:text-red-400'
             }`}
             fill="transparent"
             strokeWidth={strokeWidth}
