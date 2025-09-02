@@ -126,6 +126,12 @@ class JobScheduler {
                 continue;
               }
               
+              // Skip assignments with "(Continued)" - these are usually duplicates from Canvas
+              if (canvasAssignment.name.includes('(Continued)')) {
+                console.log(`⏭️ Skipping continued assignment: "${canvasAssignment.name}" - likely duplicate from Canvas`);
+                continue;
+              }
+              
               // Log the real Canvas assignment being processed
               console.log(`📝 Real Canvas Assignment Found: "${canvasAssignment.name}" for ${studentName}`);
               
