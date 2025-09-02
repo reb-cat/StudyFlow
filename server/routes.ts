@@ -1545,10 +1545,10 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         });
         
         if (printDetection.needsPrinting) {
-          // Only include items that actually need printing (not already printed/skipped)
+          // Only exclude items that have been explicitly printed or skipped
           const actualPrintStatus = assignment.printStatus || 'needs_printing';
           
-          if (actualPrintStatus === 'needs_printing') {
+          if (actualPrintStatus !== 'printed' && actualPrintStatus !== 'skipped') {
             printQueue.push({
               id: assignment.id,
               studentName: assignment.userId === 'abigail-user' ? 'Abigail' : 
