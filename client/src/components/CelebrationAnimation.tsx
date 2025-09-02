@@ -19,23 +19,16 @@ export function CelebrationAnimation({
 
   useEffect(() => {
     if (trigger) {
-      console.log('🎉 Celebration animation triggered!', { type, size });
       setIsAnimating(true);
       const timer = setTimeout(() => {
-        console.log('🎉 Celebration animation complete');
         setIsAnimating(false);
         onComplete?.();
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [trigger, onComplete, type, size]);
+  }, [trigger, onComplete]);
 
-  if (!isAnimating) {
-    console.log('🎉 Not animating, returning null');
-    return null;
-  }
-  
-  console.log('🎉 Rendering animation:', { type, size, isAnimating });
+  if (!isAnimating) return null;
 
   const sizeClasses = {
     sm: 'w-8 h-8',
