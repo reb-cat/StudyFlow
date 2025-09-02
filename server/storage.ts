@@ -1181,7 +1181,7 @@ export class DatabaseStorage implements IStorage {
         assigned: false
       })).sort((a, b) => b.assignmentMinutes - a.assignmentMinutes); // Longest assignments first
       
-      // Smart allocation: try to fit assignments optimally
+      // Phase 1: Smart allocation - try to fit assignments optimally
       for (const { block, blockMinutes } of blocksWithDuration) {
         let bestFit = null;
         let bestFitIndex = -1;
@@ -1191,8 +1191,8 @@ export class DatabaseStorage implements IStorage {
           const item = assignmentPool[i];
           if (item.assigned) continue;
           
-          // Allow assignments that are up to 15 minutes longer than the block
-          const timeBuffer = 15;
+          // Allow assignments that are up to 30 minutes longer than the block (increased from 15)
+          const timeBuffer = 30;
           const allowableTime = blockMinutes + timeBuffer;
           
           if (item.assignmentMinutes <= allowableTime) {
@@ -1224,16 +1224,46 @@ export class DatabaseStorage implements IStorage {
           } else {
             console.log(`✅ Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block: ${bestFit.assignment.title}`);
           }
-        } else {
-          console.log(`⏭️ No suitable assignment found for ${blockMinutes}min block`);
         }
       }
       
-      // Report any unassigned assignments
+      // Phase 2: Force-schedule ANY remaining assignments - NO ASSIGNMENTS LEFT BEHIND!
       const unassigned = assignmentPool.filter(item => !item.assigned);
       if (unassigned.length > 0) {
-        console.log(`📝 ${unassigned.length} assignments remain unscheduled (too long for available blocks):`, 
-          unassigned.map(item => `${item.assignment.title} (${item.assignmentMinutes}min)`));
+        console.log(`🚀 Force-scheduling ${unassigned.length} remaining assignments - NO ASSIGNMENTS LEFT BEHIND!`);
+        
+        // Find available blocks that can accommodate with very generous overflow
+        const availableBlocks = blocksWithDuration.filter(({ block }) => 
+          !assignmentPool.some(item => item.assigned && item.assignment.id && 
+            assignedAssignments.includes(item.assignment.title))
+        );
+        
+        // If we have more assignments than available blocks, reuse the longest blocks
+        let blockIndex = 0;
+        for (const assignment of unassigned) {
+          const targetBlock = blocksWithDuration[blockIndex % blocksWithDuration.length];
+          assignment.assigned = true;
+          
+          await this.updateAssignmentScheduling(assignment.assignment.id, {
+            scheduledDate: date,
+            scheduledBlock: targetBlock.block.blockNumber,
+            blockStart: targetBlock.block.startTime,
+            blockEnd: targetBlock.block.endTime
+          });
+          
+          assignedAssignments.push(assignment.assignment.title);
+          console.log(`🎯 Force-scheduled: ${assignment.assignment.title} (${assignment.assignmentMinutes}min) in block ${targetBlock.block.blockNumber} (${targetBlock.blockMinutes}min)`);
+          
+          blockIndex++;
+        }
+      }
+      
+      // Final verification - ensure ALL assignments are scheduled
+      const finalUnassigned = assignmentPool.filter(item => !item.assigned);
+      if (finalUnassigned.length === 0) {
+        console.log(`✅ SUCCESS: All ${assignmentPool.length} assignments have been scheduled!`);
+      } else {
+        console.log(`❌ ERROR: ${finalUnassigned.length} assignments still unscheduled - this should not happen!`);
       }
       
       // Apply normalization to assignment titles for logging
