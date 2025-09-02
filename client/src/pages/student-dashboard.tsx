@@ -639,7 +639,7 @@ export default function StudentDashboard() {
         ) : (
           <div className="space-y-4">
             {/* Progress Bar - Apple Fitness style with real-time progress */}
-            <div className="bg-white dark:bg-card rounded-xl p-4 border border-gray-200 dark:border-border/50 no-print">
+            <div className="bg-card rounded-xl p-4 border border-border/50 no-print">
               <div className="flex justify-between text-sm mb-2">
                 <span className="font-medium text-muted-foreground">Daily Progress</span>
                 <span className="font-medium text-muted-foreground">
@@ -666,7 +666,7 @@ export default function StudentDashboard() {
             </div>
 
             {/* Schedule Card - Compact Apple style (screen only) */}
-            <Card className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border/50 print:hidden">
+            <Card className="bg-card rounded-xl border border-border/50 print:hidden">
               <CardContent className="p-4">
                 <h3 className="text-lg font-semibold text-foreground mb-4">
                   {isTodaySelected ? "Today's" : `${dayName}'s`} Schedule
@@ -738,7 +738,7 @@ export default function StudentDashboard() {
                             className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 ${
                               isCurrentBlock 
                                 ? 'border-2 border-blue-300 bg-blue-50' 
-                                : 'bg-white hover:bg-gray-50'
+                                : 'bg-card hover:bg-accent/10'
                             } print-schedule-item`}
                           >
                             {/* Start/End Time Vertical - Centered */}

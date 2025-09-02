@@ -156,7 +156,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
                   {normalized.displayTitle}
                 </h3>
                 {normalized.courseLabel && (
-                  <span className="shrink-0 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-medium text-slate-600">
+                  <span className="shrink-0 rounded-full border border-border bg-card/90 px-3 py-1 text-xs font-medium text-muted-foreground">
                     {normalized.courseLabel}
                   </span>
                 )}

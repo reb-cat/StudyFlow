@@ -853,7 +853,7 @@ export function GuidedDayView({
               )}
             </div>
             {currentBlock.type === 'assignment' && (normalized?.courseLabel || currentBlock.assignment?.courseName || currentBlock.assignment?.subject) && (
-              <span className="shrink-0 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-medium text-slate-600">
+              <span className="shrink-0 rounded-full border border-border bg-card/90 px-3 py-1 text-xs font-medium text-muted-foreground">
                 {normalized?.courseLabel ?? currentBlock.assignment?.courseName ?? currentBlock.assignment?.subject}
               </span>
             )}
@@ -873,7 +873,7 @@ export function GuidedDayView({
               onClick={() => setShowInstructions((v) => !v)}
               aria-expanded={showInstructions}
               aria-controls="guided-instructions-panel"
-              className="inline-flex items-center justify-between gap-2 rounded-xl border border-blue-200 bg-white/80 px-4 py-2 text-blue-700 transition hover:bg-white"
+              className="inline-flex items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-primary transition hover:bg-primary/20"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
