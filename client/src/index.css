@@ -26,9 +26,9 @@
   --card: hsl(0, 0%, 100%);                /* #FFFFFF - Pure white for cards */
   
   --foreground: hsl(210, 11%, 15%);        /* #212529 - Rich dark gray - high contrast */
-  --muted-foreground: hsl(210, 9%, 35%);   /* #525761 - Much darker for readability */
-  --text-tertiary: hsl(210, 8%, 45%);     /* #696e7a - Darker for better contrast */
-  --text-muted: hsl(210, 9%, 35%);        /* #525761 - Readable secondary text */
+  --muted-foreground: hsl(210, 9%, 25%);   /* #3a3f47 - Much darker for proper readability */
+  --text-tertiary: hsl(210, 8%, 30%);     /* #464c57 - Darker for better contrast */
+  --text-muted: hsl(210, 9%, 25%);        /* #3a3f47 - Readable secondary text */
   
   --border: hsl(210, 14%, 89%);            /* #DEE2E6 - Soft gray border */
   --border-medium: hsl(210, 14%, 83%);     /* #CED4DA - More defined border */
