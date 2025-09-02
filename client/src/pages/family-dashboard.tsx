@@ -15,17 +15,17 @@ import {
   Grid3X3
 } from 'lucide-react';
 
-// Your color system
+// Theme colors using CSS custom properties
 const colors = {
-  primary: '#844FC1',
-  complete: '#21BF06',
-  progress: '#3B86D1',
-  support: '#6C7293',
-  background: '#F8F9FA',
-  surface: '#FFFFFF',
-  text: '#212529',
-  textMuted: '#6C7293',
-  border: '#E9ECEF'
+  primary: 'var(--primary)',
+  complete: 'var(--success)',
+  progress: 'var(--accent)',
+  support: 'var(--muted-foreground)',
+  background: 'var(--background)',
+  surface: 'var(--card)',
+  text: 'var(--foreground)',
+  textMuted: 'var(--muted-foreground)',
+  border: 'var(--border)'
 };
 
 export default function FamilyDashboard() {
@@ -50,10 +50,10 @@ export default function FamilyDashboard() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50 p-4 flex items-center justify-center">
+      <div className="min-h-screen bg-background p-4 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading family dashboard...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading family dashboard...</p>
         </div>
       </div>
     );
@@ -62,11 +62,11 @@ export default function FamilyDashboard() {
   // Error state or no data
   if (error || !apiData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50 p-4 flex items-center justify-center">
+      <div className="min-h-screen bg-background p-4 flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600 mb-2">Unable to load dashboard data</p>
-          <p className="text-sm text-gray-500">Please check your connection and try again.</p>
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <p className="text-muted-foreground mb-2">Unable to load dashboard data</p>
+          <p className="text-sm text-muted-foreground/60">Please check your connection and try again.</p>
         </div>
       </div>
     );
@@ -121,34 +121,20 @@ export default function FamilyDashboard() {
             </h1>
           </div>
           
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div className="flex gap-3">
             {/* Print Queue */}
             <button 
               onClick={() => window.location.href = '/print-queue'}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: dashboardData.printQueue.length > 0 ? '#F4F0FA' : 'transparent',
-                border: `1px solid ${dashboardData.printQueue.length > 0 ? colors.primary : colors.border}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: colors.text,
-                position: 'relative'
-              }}
+              className={`px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2 text-foreground relative ${
+                dashboardData.printQueue.length > 0 
+                  ? 'bg-primary/10 border border-primary' 
+                  : 'bg-transparent border border-border'
+              }`}
             >
               <Printer size={18} />
               Print Queue
               {dashboardData.printQueue.length > 0 && (
-                <span style={{
-                  backgroundColor: colors.primary,
-                  color: 'white',
-                  borderRadius: '10px',
-                  padding: '2px 6px',
-                  fontSize: '12px',
-                  fontWeight: 'bold'
-                }}>
+                <span className="bg-primary text-primary-foreground rounded-md px-1.5 py-0.5 text-xs font-bold">
                   {dashboardData.printQueue.length}
                 </span>
               )}
@@ -157,17 +143,7 @@ export default function FamilyDashboard() {
             {/* Admin */}
             <button 
               onClick={() => window.location.href = '/admin'}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: 'transparent',
-                border: `1px solid ${colors.border}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: colors.text
-              }}
+              className="px-4 py-2 bg-transparent border border-border rounded-lg cursor-pointer flex items-center gap-2 text-foreground"
             >
               <Settings size={18} />
               Admin
@@ -176,21 +152,12 @@ export default function FamilyDashboard() {
         </div>
       </header>
 
-      <main style={{
-        maxWidth: '1400px',
-        margin: '0 auto',
-        padding: '40px'
-      }}>
+      <main className="max-w-7xl mx-auto p-10">
         {/* Date and Overview */}
-        <div style={{ marginBottom: '32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-            <Calendar size={24} color={colors.primary} />
-            <h2 style={{ 
-              fontSize: '28px', 
-              fontWeight: '600',
-              color: colors.text,
-              margin: 0
-            }}>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <Calendar size={24} className="text-primary" />
+            <h2 className="text-3xl font-semibold text-foreground m-0">
               {new Date(selectedDate + 'T12:00:00.000Z').toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 year: 'numeric', 
@@ -201,23 +168,23 @@ export default function FamilyDashboard() {
           </div>
           
           {/* Quick Stats */}
-          <div style={{ display: 'flex', gap: '24px', marginTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle size={20} color={colors.complete} />
-              <span style={{ color: colors.text }}>
+          <div className="flex gap-6 mt-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle size={20} style={{ color: 'var(--success)' }} />
+              <span className="text-foreground">
                 <strong>{apiData.stats.totalCompleted}</strong> tasks completed
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Clock size={20} color={colors.progress} />
-              <span style={{ color: colors.text }}>
+            <div className="flex items-center gap-2">
+              <Clock size={20} className="text-accent" />
+              <span className="text-foreground">
                 <strong>{apiData.stats.totalRemaining}</strong> tasks remaining
               </span>
             </div>
             {dashboardData.needsReview.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <AlertCircle size={20} color={colors.support} />
-                <span style={{ color: colors.support }}>
+              <div className="flex items-center gap-2">
+                <AlertCircle size={20} className="text-muted-foreground" />
+                <span className="text-muted-foreground">
                   <strong>{dashboardData.needsReview.length}</strong> need attention
                 </span>
               </div>
@@ -226,12 +193,7 @@ export default function FamilyDashboard() {
         </div>
 
         {/* Student Cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-          gap: '24px',
-          marginBottom: '40px'
-        }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
           {dashboardData.students.map(student => {
             const flagCount = getTotalFlags(student);
             const progressPercent = (student.todayStats.completed / student.todayStats.total) * 100;
@@ -239,64 +201,34 @@ export default function FamilyDashboard() {
             return (
               <div
                 key={student.id}
-                style={{
-                  backgroundColor: colors.surface,
-                  border: `2px solid ${flagCount > 0 ? colors.support : colors.border}`,
-                  borderRadius: '12px',
-                  padding: '24px',
-                  position: 'relative'
-                }}
+                className={`bg-card rounded-xl p-6 relative ${
+                  flagCount > 0 ? 'border-2 border-muted-foreground' : 'border-2 border-border'
+                }`}
               >
                 {/* Alert indicator */}
                 {flagCount > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '-8px',
-                    right: '20px',
-                    backgroundColor: colors.support,
-                    color: 'white',
-                    padding: '4px 12px',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    fontWeight: 'bold'
-                  }}>
+                  <div className="absolute -top-2 right-5 bg-muted-foreground text-white px-3 py-1 rounded-xl text-xs font-bold">
                     Needs Attention
                   </div>
                 )}
                 
                 {/* Student Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{
-                      width: '56px',
-                      height: '56px',
-                      backgroundColor: colors.primary,
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '24px',
-                      fontWeight: 'bold'
-                    }}>
+                <div className="flex justify-between items-start mb-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-2xl font-bold">
                       {student.initial}
                     </div>
                     <div>
-                      <h3 style={{ 
-                        fontSize: '22px', 
-                        fontWeight: '600',
-                        color: colors.text,
-                        margin: '0 0 4px 0'
-                      }}>
+                      <h3 className="text-2xl font-semibold text-foreground m-0 mb-1">
                         {student.name}
                       </h3>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="flex items-center gap-2">
                         {student.currentMode === 'guided' ? (
                           <Play size={16} color={colors.progress} />
                         ) : (
-                          <Grid3X3 size={16} color={colors.progress} />
+                          <Grid3X3 size={16} className="text-accent" />
                         )}
-                        <span style={{ color: colors.textMuted, fontSize: '14px' }}>
+                        <span className="text-muted-foreground text-sm">
                           {student.currentMode === 'guided' ? 'Guided Mode' : 'Overview Mode'}
                         </span>
                       </div>
@@ -306,19 +238,7 @@ export default function FamilyDashboard() {
                   {/* Go to Dashboard Button */}
                   <button
                     onClick={() => window.location.href = `/student/${student.id}`}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: colors.primary,
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: 'white',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}
+                    className="px-4 py-2 bg-primary border-none rounded-lg text-primary-foreground cursor-pointer flex items-center gap-1.5 text-sm font-medium"
                   >
                     Open Dashboard
                     <ChevronRight size={16} />
@@ -326,27 +246,15 @@ export default function FamilyDashboard() {
                 </div>
                 
                 {/* Current Activity */}
-                <div style={{
-                  backgroundColor: colors.background,
-                  borderRadius: '8px',
-                  padding: '12px',
-                  marginBottom: '16px'
-                }}>
-                  <div style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '4px' }}>
+                <div className="bg-background rounded-lg p-3 mb-4">
+                  <div className="text-xs text-muted-foreground mb-1">
                     Currently Working On:
                   </div>
-                  <div style={{ fontSize: '16px', color: colors.text, fontWeight: '500' }}>
+                  <div className="text-base text-foreground font-medium">
                     {student.todayStats.inProgress}
                   </div>
                   {student.flags.overtimeOnTask && (
-                    <div style={{ 
-                      fontSize: '12px', 
-                      color: colors.support, 
-                      marginTop: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}>
+                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                       <AlertCircle size={12} />
                       Over estimated time
                     </div>
@@ -354,58 +262,36 @@ export default function FamilyDashboard() {
                 </div>
                 
                 {/* Progress */}
-                <div style={{ marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '14px', color: colors.textMuted }}>
+                <div className="mb-4">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm text-muted-foreground">
                       Daily Progress
                     </span>
-                    <span style={{ fontSize: '14px', color: colors.text, fontWeight: '500' }}>
+                    <span className="text-sm text-foreground font-medium">
                       {student.todayStats.completed}/{student.todayStats.total} tasks
                     </span>
                   </div>
-                  <div style={{
-                    height: '8px',
-                    backgroundColor: colors.border,
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      width: `${progressPercent}%`,
-                      height: '100%',
-                      backgroundColor: flagCount > 0 ? colors.support : colors.complete,
-                      transition: 'width 0.3s'
-                    }} />
+                  <div className="h-2 bg-border rounded overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-300 ${
+                        flagCount > 0 ? 'bg-muted-foreground' : 'bg-green-500'
+                      }`}
+                      style={{ width: `${progressPercent}%` }}
+                    />
                   </div>
                 </div>
                 
                 {/* Flags */}
                 {flagCount > 0 && (
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <div className="flex gap-2 flex-wrap">
                     {student.flags.stuck && (
-                      <span style={{
-                        padding: '4px 8px',
-                        backgroundColor: '#F1F2F5',
-                        color: colors.support,
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}>
+                      <span className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs font-medium flex items-center gap-1">
                         <HelpCircle size={12} />
                         Stuck
                       </span>
                     )}
                     {student.flags.overtimeOnTask && (
-                      <span style={{
-                        padding: '4px 8px',
-                        backgroundColor: '#FFF9E6',
-                        color: '#F59E0B',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: '500'
-                      }}>
+                      <span className="px-2 py-1 bg-yellow-50 text-yellow-600 dark:bg-yellow-950 dark:text-yellow-400 rounded text-xs font-medium">
                         Overtime
                       </span>
                     )}
@@ -418,47 +304,27 @@ export default function FamilyDashboard() {
 
         {/* Needs Review Section */}
         {dashboardData.needsReview.length > 0 && (
-          <div style={{
-            backgroundColor: colors.surface,
-            border: `1px solid ${colors.border}`,
-            borderRadius: '12px',
-            padding: '24px'
-          }}>
-            <h3 style={{ 
-              fontSize: '20px', 
-              fontWeight: '600',
-              color: colors.text,
-              marginBottom: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <AlertCircle size={20} color={colors.support} />
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+              <AlertCircle size={20} className="text-muted-foreground" />
               Needs Your Attention
             </h3>
             
-            <div style={{ display: 'grid', gap: '12px' }}>
+            <div className="grid gap-3">
               {dashboardData.needsReview.map((item: any, index: number) => (
                 <div
                   key={index}
-                  style={{
-                    padding: '12px 16px',
-                    backgroundColor: colors.background,
-                    borderRadius: '8px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
+                  className="p-3 bg-background rounded-lg flex justify-between items-center"
                 >
                   <div>
-                    <div style={{ fontWeight: '500', color: colors.text, marginBottom: '4px' }}>
+                    <div className="font-medium text-foreground mb-1">
                       {item.student}: {item.assignment}
                     </div>
-                    <div style={{ color: colors.support, fontSize: '14px' }}>
+                    <div className="text-muted-foreground text-sm">
                       {item.issue}
                     </div>
                   </div>
-                  <ChevronRight size={20} color={colors.textMuted} />
+                  <ChevronRight size={20} className="text-muted-foreground" />
                 </div>
               ))}
             </div>

@@ -69,21 +69,21 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
     
     if (daysDiff < 0) {
       return (
-        <Badge className="bg-red-600 text-white border-red-700">
+        <Badge className="bg-red-600 dark:bg-red-500 text-white border-red-700 dark:border-red-400">
           <AlertTriangle className="h-3 w-3 mr-1" />
           Overdue
         </Badge>
       );
     } else if (daysDiff === 0) {
       return (
-        <Badge className="bg-orange-500 text-white border-orange-600">
+        <Badge className="bg-orange-500 dark:bg-orange-400 text-white border-orange-600 dark:border-orange-300">
           <Clock className="h-3 w-3 mr-1" />
           Due Today
         </Badge>
       );
     } else if (daysDiff === 1) {
       return (
-        <Badge className="bg-yellow-500 text-white border-yellow-600">
+        <Badge className="bg-yellow-500 dark:bg-yellow-400 text-white border-yellow-600 dark:border-yellow-300">
           <Timer className="h-3 w-3 mr-1" />
           Due Tomorrow
         </Badge>
@@ -94,11 +94,11 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
   };
 
   const statusConfig = {
-    pending: { label: 'Not Started', color: 'bg-gray-100 text-gray-800', icon: PlayCircle },
-    in_progress: { label: 'In Progress', color: 'bg-blue-100 text-blue-800', icon: Clock },
-    completed: { label: 'Completed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
-    stuck: { label: 'Stuck - Need Help', color: 'bg-red-100 text-red-800', icon: AlertTriangle },
-    needs_more_time: { label: 'Need More Time', color: 'bg-yellow-100 text-yellow-800', icon: Clock }
+    pending: { label: 'Not Started', color: 'bg-muted text-muted-foreground', icon: PlayCircle },
+    in_progress: { label: 'In Progress', color: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200', icon: Clock },
+    completed: { label: 'Completed', color: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200', icon: CheckCircle },
+    stuck: { label: 'Stuck - Need Help', color: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200', icon: AlertTriangle },
+    needs_more_time: { label: 'Need More Time', color: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200', icon: Clock }
   };
 
   const status = statusConfig[assignment.completionStatus || 'pending'];
@@ -250,7 +250,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
             <Button
               size="sm"
               onClick={() => handleStatusUpdate('completed')}
-              className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+              className="flex items-center gap-1 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white"
               data-testid={`button-complete-${assignment.id}`}
             >
               <CheckCircle className="h-3 w-3" />
@@ -270,7 +270,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
               variant="outline"
               size="sm"
               onClick={() => handleStatusUpdate('stuck')}
-              className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50"
+              className="flex items-center gap-1 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950/30"
               data-testid={`button-stuck-${assignment.id}`}
             >
               <AlertTriangle className="h-3 w-3" />
@@ -280,7 +280,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
         )}
 
         {assignment.completionStatus === 'completed' && (
-          <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+          <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm font-medium">
             <CheckCircle className="h-4 w-4" />
             Completed! Great work! 🎉
           </div>

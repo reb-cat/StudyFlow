@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { ArrowRight, CheckCircle, Clock, Heart, Brain, Shield, Star, ChevronRight } from 'lucide-react';
 
-// Your color system
+// Theme colors using CSS custom properties
 const colors = {
-  primary: '#844FC1',
-  complete: '#21BF06',
-  progress: '#3B86D1',
-  support: '#6C7293',
-  background: '#F8F9FA',
-  surface: '#FFFFFF',
-  text: '#212529',
-  textMuted: '#6C7293',
-  border: '#E9ECEF'
+  primary: 'var(--primary)',
+  complete: 'var(--success)',
+  progress: 'var(--accent)',
+  support: 'var(--muted-foreground)',
+  background: 'var(--background)',
+  surface: 'var(--card)',
+  text: 'var(--foreground)',
+  textMuted: 'var(--muted-foreground)',
+  border: 'var(--border)'
 };
 
 export default function LandingPage() {
@@ -75,70 +75,28 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section style={{
-        padding: '80px 40px',
-        backgroundColor: colors.surface,
-        borderBottom: `1px solid ${colors.border}`
-      }}>
-        <div style={{
-          maxWidth: '800px',
-          margin: '0 auto',
-          textAlign: 'center'
-        }}>
-          <h1 style={{
-            fontSize: '48px',
-            fontWeight: 'bold',
-            color: colors.text,
-            marginBottom: '24px',
-            lineHeight: '1.2'
-          }}>
-            Learning Made <span style={{ color: colors.primary }}>Calm</span> and <span style={{ color: colors.complete }}>Clear</span>
+      <section className="py-20 px-10 bg-card border-b border-border">
+        <div className="max-w-3xl mx-auto text-center">
+          <h1 className="text-5xl font-bold text-foreground mb-6 leading-tight">
+            Learning Made <span className="text-primary">Calm</span> and <span style={{ color: 'var(--success)' }}>Clear</span>
           </h1>
           
-          <p style={{
-            fontSize: '20px',
-            color: colors.textMuted,
-            marginBottom: '40px',
-            lineHeight: '1.6'
-          }}>
+          <p className="text-xl text-muted-foreground mb-10 leading-relaxed">
             A neurodivergent-friendly learning platform that adapts to how your brain works best.
             Built for students who need structure without rigidity.
           </p>
           
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+          <div className="flex gap-4 justify-center">
             <button
               onClick={() => window.location.href = '/family'}
-              style={{
-                padding: '14px 32px',
-                backgroundColor: colors.primary,
-                border: 'none',
-                borderRadius: '10px',
-                color: 'white',
-                fontSize: '18px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: `0 4px 12px ${colors.primary}30`,
-                transition: 'transform 0.2s'
-              }}
-              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              className="px-8 py-3.5 bg-primary border-none rounded-xl text-primary-foreground text-lg font-semibold cursor-pointer shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[0.98]"
             >
               Get Started
             </button>
             
             <button
               onClick={() => document.getElementById('features').scrollIntoView({ behavior: 'smooth' })}
-              style={{
-                padding: '14px 32px',
-                backgroundColor: 'transparent',
-                border: `2px solid ${colors.primary}`,
-                borderRadius: '10px',
-                color: colors.primary,
-                fontSize: '18px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
+              className="px-8 py-3.5 bg-transparent border-2 border-primary rounded-xl text-primary text-lg font-semibold cursor-pointer transition-all duration-200 hover:bg-primary/5"
             >
               Learn More
             </button>
@@ -147,25 +105,13 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section id="features" style={{
-        padding: '80px 40px'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{
-            fontSize: '36px',
-            fontWeight: 'bold',
-            color: colors.text,
-            textAlign: 'center',
-            marginBottom: '48px'
-          }}>
+      <section id="features" className="py-20 px-10">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-bold text-foreground text-center mb-12">
             Designed for Different Minds
           </h2>
           
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '24px'
-          }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature) => {
               const Icon = feature.icon as any;
               return (
@@ -173,45 +119,19 @@ export default function LandingPage() {
                   key={feature.id}
                   onMouseEnter={() => setHoveredFeature(feature.id)}
                   onMouseLeave={() => setHoveredFeature(null)}
-                  style={{
-                    backgroundColor: colors.surface,
-                    border: `1px solid ${hoveredFeature === feature.id ? feature.color : colors.border}`,
-                    borderRadius: '12px',
-                    padding: '28px',
-                    transition: 'all 0.3s ease',
-                    transform: hoveredFeature === feature.id ? 'translateY(-4px)' : 'translateY(0)',
-                    boxShadow: hoveredFeature === feature.id 
-                      ? `0 8px 24px ${feature.color}20` 
-                      : '0 2px 8px rgba(0,0,0,0.04)'
-                  }}
+                  className={`bg-card border rounded-xl p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
+                    hoveredFeature === feature.id ? 'border-primary shadow-lg' : 'border-border shadow-sm'
+                  }`}
                 >
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    backgroundColor: `${feature.color}15`,
-                    borderRadius: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '16px'
-                  }}>
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                     <Icon size={24} color={feature.color} />
                   </div>
                   
-                  <h3 style={{
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    color: colors.text,
-                    marginBottom: '12px'
-                  }}>
+                  <h3 className="text-xl font-semibold text-foreground mb-3">
                     {feature.title}
                   </h3>
                   
-                  <p style={{
-                    color: colors.textMuted,
-                    fontSize: '15px',
-                    lineHeight: '1.5'
-                  }}>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
@@ -222,49 +142,27 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works */}
-      <section style={{
-        padding: '80px 40px',
-        backgroundColor: colors.surface,
-        borderTop: `1px solid ${colors.border}`,
-        borderBottom: `1px solid ${colors.border}`
-      }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{
-            fontSize: '36px',
-            fontWeight: 'bold',
-            color: colors.text,
-            textAlign: 'center',
-            marginBottom: '48px'
-          }}>
+      <section className="py-20 px-10 bg-card border-t border-b border-border">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-4xl font-bold text-foreground text-center mb-12">
             Simple to Start, Easy to Use
           </h2>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div className="flex flex-col gap-8">
             {[
               { number: '1', title: 'Set up your schedule', desc: 'Add assignments and customize time blocks' },
               { number: '2', title: 'Choose your mode', desc: 'Overview for independence or Guided for support' },
               { number: '3', title: 'Work at your pace', desc: 'Timers and breaks adapt to your needs' }
             ].map((step, index) => (
-              <div key={index} style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  backgroundColor: colors.primary,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  flexShrink: 0
-                }}>
+              <div key={index} className="flex gap-5 items-start">
+                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold flex-shrink-0">
                   {step.number}
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>
+                  <h3 className="text-xl font-semibold text-foreground mb-1">
                     {step.title}
                   </h3>
-                  <p style={{ color: colors.textMuted, fontSize: '16px' }}>
+                  <p className="text-muted-foreground text-base">
                     {step.desc}
                   </p>
                 </div>
@@ -275,47 +173,19 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section style={{
-        padding: '80px 40px',
-        textAlign: 'center'
-      }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{
-            fontSize: '36px',
-            fontWeight: 'bold',
-            color: colors.text,
-            marginBottom: '24px'
-          }}>
+      <section className="py-20 px-10 text-center">
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-4xl font-bold text-foreground mb-6">
             Ready to Transform Your Learning?
           </h2>
           
-          <p style={{
-            fontSize: '18px',
-            color: colors.textMuted,
-            marginBottom: '32px'
-          }}>
+          <p className="text-lg text-muted-foreground mb-8">
             Join families who've discovered a calmer way to manage homeschool assignments.
           </p>
           
           <button
             onClick={() => window.location.href = '/family'}
-            style={{
-              padding: '16px 40px',
-              backgroundColor: colors.primary,
-              border: 'none',
-              borderRadius: '12px',
-              color: 'white',
-              fontSize: '20px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              boxShadow: `0 6px 20px ${colors.primary}30`,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'transform 0.2s'
-            }}
-            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            className="px-10 py-4 bg-primary border-none rounded-xl text-primary-foreground text-xl font-semibold cursor-pointer shadow-lg hover:shadow-xl inline-flex items-center gap-2 transition-all duration-200 hover:scale-[0.98]"
           >
             Start Free Trial
             <Star size={20} />
@@ -324,18 +194,11 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer style={{
-        padding: '40px',
-        backgroundColor: colors.surface,
-        borderTop: `1px solid ${colors.border}`,
-        textAlign: 'center',
-        color: colors.textMuted,
-        fontSize: '14px'
-      }}>
-        <div style={{ marginBottom: '16px' }}>
+      <footer className="p-10 bg-card border-t border-border text-center text-muted-foreground text-sm">
+        <div className="mb-4">
           StudyFlow • Built for focused learning
         </div>
-        <div style={{ fontSize: '13px' }}>
+        <div className="text-xs">
           © 2024 StudyFlow. Designed with neurodivergent learners in mind.
         </div>
       </footer>

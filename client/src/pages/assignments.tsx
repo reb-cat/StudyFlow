@@ -390,8 +390,8 @@ export default function AssignmentsPage() {
             Back to Admin
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900" data-testid="page-title">Assignment Manager</h1>
-            <p className="text-gray-600">Manage assignments across all students</p>
+            <h1 className="text-3xl font-bold text-foreground" data-testid="page-title">Assignment Manager</h1>
+            <p className="text-muted-foreground">Manage assignments across all students</p>
           </div>
         </div>
         
@@ -433,7 +433,7 @@ export default function AssignmentsPage() {
 
               <div className="flex gap-2">
                 <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search assignments..."
                     value={searchTerm}
@@ -520,7 +520,7 @@ export default function AssignmentsPage() {
 
       {/* Bulk Operations */}
       {selectedAssignments.size > 0 && (
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-primary/20 bg-primary/5">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">
@@ -575,7 +575,7 @@ export default function AssignmentsPage() {
         {!isLoading && filteredAssignments.length === 0 && (
           <Card>
             <CardContent className="pt-6">
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-muted-foreground">
                 No assignments found matching your filters.
               </div>
             </CardContent>
@@ -590,7 +590,7 @@ export default function AssignmentsPage() {
           return (
             <Card
               key={assignment.id}
-              className={`transition-all duration-200 ${isSelected ? 'ring-2 ring-blue-500' : ''} ${parentTask ? 'border-purple-200 bg-purple-50/50' : ''}`}
+              className={`transition-all duration-200 ${isSelected ? 'ring-2 ring-primary' : ''} ${parentTask ? 'border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/30' : ''}`}
               data-testid={`assignment-${assignment.id}`}
             >
               <CardContent className="pt-4">
@@ -613,11 +613,11 @@ export default function AssignmentsPage() {
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-semibold text-gray-900">{assignment.title}</h3>
+                          <h3 className="font-semibold text-foreground">{assignment.title}</h3>
                           
                           {/* Parent Task Pill */}
                           {parentTask && (
-                            <Badge className="bg-purple-100 text-purple-800 border-purple-300 flex items-center gap-1">
+                            <Badge className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-700 flex items-center gap-1">
                               <User className="w-3 h-3" />
                               Parent
                             </Badge>
@@ -627,10 +627,10 @@ export default function AssignmentsPage() {
                           <Badge
                             variant={assignment.completionStatus === 'completed' ? 'default' : 'secondary'}
                             className={
-                              assignment.completionStatus === 'completed' ? 'bg-green-100 text-green-800' :
-                              assignment.completionStatus === 'pending' ? 'bg-blue-100 text-blue-800' :
-                              assignment.completionStatus === 'stuck' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
+                              assignment.completionStatus === 'completed' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
+                              assignment.completionStatus === 'pending' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
+                              assignment.completionStatus === 'stuck' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
+                              'bg-muted text-muted-foreground'
                             }
                           >
                             {assignment.completionStatus === 'completed' && <CheckCircle className="w-3 h-3 mr-1" />}
@@ -654,7 +654,7 @@ export default function AssignmentsPage() {
 
                           {/* Overdue Indicator */}
                           {isOverdue && assignment.completionStatus !== 'completed' && (
-                            <Badge className="bg-red-100 text-red-800">
+                            <Badge className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
                               <AlertCircle className="w-3 h-3 mr-1" />
                               Overdue
                             </Badge>
@@ -662,19 +662,19 @@ export default function AssignmentsPage() {
                         </div>
 
                         {assignment.courseName && (
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-muted-foreground">
                             <strong>Course:</strong> {assignment.courseName}
                           </p>
                         )}
 
                         {assignment.canvasInstance && (
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground/60">
                             Assignment from Canvas
                           </p>
                         )}
 
                         {assignment.dueDate && (
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-muted-foreground">
                             <strong>Due:</strong> {new Date(assignment.dueDate).toLocaleDateString('en-US', {
                               weekday: 'short',
                               year: 'numeric',
@@ -700,14 +700,14 @@ export default function AssignmentsPage() {
                         )}
 
                         {assignment.instructions && (
-                          <p className="text-sm text-gray-700 max-w-2xl">
+                          <p className="text-sm text-muted-foreground max-w-2xl">
                             {assignment.instructions.length > 200
                               ? `${assignment.instructions.substring(0, 200)}...`
                               : assignment.instructions}
                           </p>
                         )}
 
-                        <div className="flex gap-4 text-xs text-gray-500">
+                        <div className="flex gap-4 text-xs text-muted-foreground/60">
                           <span>Priority: {assignment.priority}</span>
                           <span>Est. Time: {assignment.actualEstimatedMinutes || 30}min</span>
                           {assignment.scheduledDate && (
@@ -722,7 +722,7 @@ export default function AssignmentsPage() {
                           <Button
                             variant="default"
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white"
+                            className="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white"
                             onClick={() => {
                               setResolvingAssignment(assignment);
                               setResolutionNotes('');
@@ -1016,8 +1016,8 @@ export default function AssignmentsPage() {
             </DialogHeader>
             
             {/* Assignment Context */}
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-              <h4 className="font-semibold text-red-800 mb-2">Assignment: {resolvingAssignment.title}</h4>
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+              <h4 className="font-semibold text-red-800 dark:text-red-200 mb-2">Assignment: {resolvingAssignment.title}</h4>
               <div className="space-y-1 text-sm">
                 <p><strong>Course:</strong> {resolvingAssignment.courseName}</p>
                 <p><strong>Due Date:</strong> {resolvingAssignment.dueDate ? 
@@ -1086,7 +1086,7 @@ export default function AssignmentsPage() {
               </Button>
               <Button 
                 onClick={() => handleResolveAssignment()}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
                 disabled={!resolutionAction}
               >
                 {resolutionAction === 'helped' ? '✅ Resolve & Reschedule for Today' :

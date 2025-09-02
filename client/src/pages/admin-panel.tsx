@@ -95,15 +95,15 @@ const adminTiles: AdminTile[] = [
 
 const getColorClasses = (color: string) => {
   const colorMap: Record<string, { bg: string; text: string; border: string; hover: string }> = {
-    blue: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', hover: 'hover:bg-blue-100' },
-    purple: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', hover: 'hover:bg-purple-100' },
-    green: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', hover: 'hover:bg-green-100' },
-    orange: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', hover: 'hover:bg-orange-100' },
-    indigo: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', hover: 'hover:bg-indigo-100' },
-    pink: { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200', hover: 'hover:bg-pink-100' },
-    teal: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', hover: 'hover:bg-teal-100' },
-    violet: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', hover: 'hover:bg-violet-100' },
-    gray: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', hover: 'hover:bg-gray-100' }
+    blue: { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20', hover: 'hover:bg-primary/15' },
+    purple: { bg: 'bg-accent/10', text: 'text-accent-foreground', border: 'border-accent/20', hover: 'hover:bg-accent/15' },
+    green: { bg: 'bg-green-500/10 dark:bg-green-400/10', text: 'text-green-700 dark:text-green-400', border: 'border-green-200 dark:border-green-800', hover: 'hover:bg-green-500/15 dark:hover:bg-green-400/15' },
+    orange: { bg: 'bg-orange-500/10 dark:bg-orange-400/10', text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-800', hover: 'hover:bg-orange-500/15 dark:hover:bg-orange-400/15' },
+    indigo: { bg: 'bg-indigo-500/10 dark:bg-indigo-400/10', text: 'text-indigo-700 dark:text-indigo-400', border: 'border-indigo-200 dark:border-indigo-800', hover: 'hover:bg-indigo-500/15 dark:hover:bg-indigo-400/15' },
+    pink: { bg: 'bg-pink-500/10 dark:bg-pink-400/10', text: 'text-pink-700 dark:text-pink-400', border: 'border-pink-200 dark:border-pink-800', hover: 'hover:bg-pink-500/15 dark:hover:bg-pink-400/15' },
+    teal: { bg: 'bg-teal-500/10 dark:bg-teal-400/10', text: 'text-teal-700 dark:text-teal-400', border: 'border-teal-200 dark:border-teal-800', hover: 'hover:bg-teal-500/15 dark:hover:bg-teal-400/15' },
+    violet: { bg: 'bg-violet-500/10 dark:bg-violet-400/10', text: 'text-violet-700 dark:text-violet-400', border: 'border-violet-200 dark:border-violet-800', hover: 'hover:bg-violet-500/15 dark:hover:bg-violet-400/15' },
+    gray: { bg: 'bg-muted/50', text: 'text-muted-foreground', border: 'border-muted', hover: 'hover:bg-muted/60' }
   };
   return colorMap[color] || colorMap.gray;
 };
@@ -123,12 +123,12 @@ export default function AdminPanel() {
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-3">
-          <Target className="w-10 h-10 text-blue-600" />
-          <h1 className="text-4xl font-bold text-gray-900" data-testid="admin-title">
+          <Target className="w-10 h-10 text-primary" />
+          <h1 className="text-4xl font-bold text-foreground" data-testid="admin-title">
             StudyFlow Admin
           </h1>
         </div>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+        <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
           Central hub for managing students, assignments, schedules, and system configuration. 
           Navigate to specialized tools and dashboards from here.
         </p>
@@ -136,50 +136,50 @@ export default function AdminPanel() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="bg-primary/10 border-primary/20">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-600">Active Students</p>
-                <p className="text-2xl font-bold text-blue-900">2</p>
+                <p className="text-sm font-medium text-primary">Active Students</p>
+                <p className="text-2xl font-bold text-primary">2</p>
               </div>
-              <Users className="w-8 h-8 text-blue-600" />
+              <Users className="w-8 h-8 text-primary" />
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-green-500/10 dark:bg-green-400/10 border-green-200 dark:border-green-800">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-600">System Status</p>
-                <p className="text-lg font-bold text-green-900">Operational</p>
+                <p className="text-sm font-medium text-green-700 dark:text-green-400">System Status</p>
+                <p className="text-lg font-bold text-green-700 dark:text-green-400">Operational</p>
               </div>
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-purple-50 border-purple-200">
+        <Card className="bg-accent/10 border-accent/20">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-600">Print Queue</p>
-                <p className="text-2xl font-bold text-purple-900">16</p>
+                <p className="text-sm font-medium text-accent-foreground">Print Queue</p>
+                <p className="text-2xl font-bold text-accent-foreground">16</p>
               </div>
-              <Printer className="w-8 h-8 text-purple-600" />
+              <Printer className="w-8 h-8 text-accent-foreground" />
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-indigo-50 border-indigo-200">
+        <Card className="bg-indigo-500/10 dark:bg-indigo-400/10 border-indigo-200 dark:border-indigo-800">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-indigo-600">Bible Week</p>
-                <p className="text-2xl font-bold text-indigo-900">1</p>
+                <p className="text-sm font-medium text-indigo-700 dark:text-indigo-400">Bible Week</p>
+                <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-400">1</p>
               </div>
-              <BookOpen className="w-8 h-8 text-indigo-600" />
+              <BookOpen className="w-8 h-8 text-indigo-700 dark:text-indigo-400" />
             </div>
           </CardContent>
         </Card>
@@ -188,8 +188,8 @@ export default function AdminPanel() {
       {/* Navigation Grid */}
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Admin Tools</h2>
-          <p className="text-gray-600">Click any card to navigate to that feature</p>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Admin Tools</h2>
+          <p className="text-muted-foreground">Click any card to navigate to that feature</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -207,7 +207,7 @@ export default function AdminPanel() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg bg-white/70`}>
+                      <div className="p-2 rounded-lg bg-background/70">
                         <IconComponent className={`w-6 h-6 ${colors.text}`} />
                       </div>
                       <div>
@@ -215,7 +215,7 @@ export default function AdminPanel() {
                           {tile.title}
                         </CardTitle>
                         {tile.badge && (
-                          <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full bg-white/70 ${colors.text} mt-1`}>
+                          <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full bg-background/70 ${colors.text} mt-1`}>
                             {tile.badge}
                           </span>
                         )}
@@ -224,7 +224,7 @@ export default function AdminPanel() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <p className={`text-sm ${colors.text.replace('700', '600')}`}>
+                  <p className={`text-sm ${colors.text} opacity-80`}>
                     {tile.description}
                   </p>
                 </CardContent>
@@ -236,11 +236,11 @@ export default function AdminPanel() {
 
       {/* Quick Actions */}
       <div className="space-y-4">
-        <h3 className="text-xl font-semibold text-gray-900">Quick Actions</h3>
+        <h3 className="text-xl font-semibold text-foreground">Quick Actions</h3>
         <div className="flex flex-wrap gap-3">
           <Button
             onClick={() => window.location.href = '/assignments'}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90"
             data-testid="quick-assignments"
           >
             <FileText className="w-4 h-4" />
@@ -280,11 +280,11 @@ export default function AdminPanel() {
       </div>
 
       {/* Footer */}
-      <div className="text-center pt-8 border-t border-gray-200">
-        <p className="text-sm text-gray-500">
+      <div className="text-center pt-8 border-t border-border">
+        <p className="text-sm text-muted-foreground">
           StudyFlow Admin Panel - Executive Function-Friendly Student Management
         </p>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-muted-foreground/60 mt-1">
           Navigate between tools using the cards above or quick action buttons
         </p>
       </div>
