@@ -1150,45 +1150,77 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`✨ Subject distribution complete: ${optimizedSequence.length} assignments across ${subjectKeys.length} subjects`);
       
-      // Assign optimized sequence to available blocks only (preserving completed blocks)
+      // Smart assignment allocation: match assignment duration to block capacity
       const assignedAssignments: string[] = [];
       
-      for (let blockIndex = 0; blockIndex < availableAssignmentBlocks.length && blockIndex < optimizedSequence.length; blockIndex++) {
-        const block = availableAssignmentBlocks[blockIndex];
-        const { assignment } = optimizedSequence[blockIndex];
-        
-        // Calculate block duration in minutes
+      // Calculate block durations and sort by duration (longest first for smart allocation)
+      const blocksWithDuration = availableAssignmentBlocks.map(block => {
         const startTime = new Date(`2000-01-01T${block.startTime}`);
         const endTime = new Date(`2000-01-01T${block.endTime}`);
         const blockMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+        return { block, blockMinutes };
+      }).sort((a, b) => b.blockMinutes - a.blockMinutes); // Longest blocks first
+      
+      // Prepare assignment pool with time estimates
+      const assignmentPool = optimizedSequence.map(({ assignment }) => ({
+        assignment,
+        assignmentMinutes: assignment.actualEstimatedMinutes || 30,
+        assigned: false
+      })).sort((a, b) => b.assignmentMinutes - a.assignmentMinutes); // Longest assignments first
+      
+      // Smart allocation: try to fit assignments optimally
+      for (const { block, blockMinutes } of blocksWithDuration) {
+        let bestFit = null;
+        let bestFitIndex = -1;
         
-        // Check if assignment fits in block - use actual time estimates, not defaults
-        const assignmentMinutes = assignment.actualEstimatedMinutes || 30; // Reduced default from 60 to 30 minutes
+        // Find the best fitting unassigned assignment
+        for (let i = 0; i < assignmentPool.length; i++) {
+          const item = assignmentPool[i];
+          if (item.assigned) continue;
+          
+          // Allow assignments that are up to 15 minutes longer than the block
+          const timeBuffer = 15;
+          const allowableTime = blockMinutes + timeBuffer;
+          
+          if (item.assignmentMinutes <= allowableTime) {
+            // Prefer assignments that fit exactly, then longer ones that utilize the block well
+            if (!bestFit || 
+                (item.assignmentMinutes <= blockMinutes && bestFit.assignmentMinutes > blockMinutes) ||
+                (item.assignmentMinutes > bestFit.assignmentMinutes && bestFit.assignmentMinutes <= blockMinutes)) {
+              bestFit = item;
+              bestFitIndex = i;
+            }
+          }
+        }
         
-        // Allow assignments that are up to 15 minutes longer than the block
-        // This prevents empty blocks and allows for flexible work completion
-        const timeBuffer = 15;
-        const allowableTime = blockMinutes + timeBuffer;
-        
-        if (assignmentMinutes <= allowableTime) {
-          // Assignment fits (with buffer) - schedule it
-          await this.updateAssignmentScheduling(assignment.id, {
+        if (bestFit) {
+          // Schedule the best fitting assignment
+          bestFit.assigned = true;
+          
+          await this.updateAssignmentScheduling(bestFit.assignment.id, {
             scheduledDate: date,
             scheduledBlock: block.blockNumber,
             blockStart: block.startTime,
             blockEnd: block.endTime
           });
           
-          assignedAssignments.push(assignment.title);
+          assignedAssignments.push(bestFit.assignment.title);
           
-          if (assignmentMinutes > blockMinutes) {
-            console.log(`📋 Scheduled ${assignmentMinutes}min assignment in ${blockMinutes}min block (${assignmentMinutes - blockMinutes}min overflow): ${assignment.title}`);
+          if (bestFit.assignmentMinutes > blockMinutes) {
+            console.log(`📋 Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block (${bestFit.assignmentMinutes - blockMinutes}min overflow): ${bestFit.assignment.title}`);
+          } else {
+            console.log(`✅ Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block: ${bestFit.assignment.title}`);
           }
         } else {
-          // Assignment significantly too long for block - skip scheduling
-          console.log(`⏭️ Assignment too long (${assignmentMinutes}min) for block (${blockMinutes}min + ${timeBuffer}min buffer): ${assignment.title}`);
-          // Don't add to assignedAssignments - leave unscheduled
+          console.log(`⏭️ No suitable assignment found for ${blockMinutes}min block`);
         }
+      }
+      
+      // Report any unassigned assignments
+      const unassigned = assignmentPool.filter(item => !item.assigned);
+      if (unassigned.length > 0) {
+        console.log(`📝 ${unassigned.length} assignments remain unscheduled (too long for available blocks):`, 
+          unassigned.map(item => `${item.assignment.title} (${item.assignmentMinutes}min)`));
       }
       
       // Apply normalization to assignment titles for logging
