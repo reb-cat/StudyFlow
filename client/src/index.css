@@ -77,60 +77,60 @@
 .dark {
   /* StudyFlow Dark Mode Palette - Eye strain reduction focused */
   
-  /* Backgrounds - soft dark, never pure black */
-  --background: hsl(220, 13%, 11%);             /* #1a1b1e - Main background */
-  --card: hsl(220, 9%, 18%);                    /* #2c2d31 - Elevated surface */
-  --surface-secondary: hsl(220, 9%, 16%);       /* #25262a - Input fields */
-  --surface-hover: hsl(220, 8%, 21%);           /* #35363b - Hover state */
+  /* Backgrounds - warmer, softer dark tones */
+  --background: hsl(220, 10%, 14%);             /* #202125 - Main background - slightly lighter */
+  --card: hsl(220, 8%, 20%);                    /* #313237 - Elevated surface - better separation */
+  --surface-secondary: hsl(220, 8%, 18%);       /* #2a2b30 - Input fields */
+  --surface-hover: hsl(220, 7%, 23%);           /* #383a40 - Hover state */
   
-  /* Text - off-white hierarchy */
-  --foreground: hsl(210, 17%, 97%);             /* #f8f9fa - Primary text */
-  --card-foreground: hsl(210, 17%, 97%);        
-  --muted-foreground: hsl(210, 11%, 71%);       /* #adb5bd - Secondary text */
+  /* Text - softer contrast hierarchy */
+  --foreground: hsl(210, 15%, 85%);             /* #d1d5db - Primary text - softer than pure white */
+  --card-foreground: hsl(210, 15%, 85%);        
+  --muted-foreground: hsl(210, 12%, 65%);       /* #9ca3af - Secondary text - better contrast */
   --text-disabled: hsl(211, 10%, 53%);          /* #6c757f - Disabled text */
-  --text-critical: hsl(0, 0%, 100%);            /* #ffffff - Timer/critical text */
+  --text-critical: hsl(210, 15%, 85%);          /* #d1d5db - Timer/critical text - no pure white */
   
   /* Interactive elements */
-  --popover: hsl(220, 9%, 18%);
-  --popover-foreground: hsl(210, 17%, 97%);
-  --secondary: hsl(220, 9%, 18%);
-  --secondary-foreground: hsl(210, 17%, 97%);
-  --muted: hsl(220, 9%, 16%);
+  --popover: hsl(220, 8%, 20%);
+  --popover-foreground: hsl(210, 15%, 85%);
+  --secondary: hsl(220, 8%, 20%);
+  --secondary-foreground: hsl(210, 15%, 85%);
+  --muted: hsl(220, 8%, 18%);
   
-  /* Borders - subtle separation */
-  --border: hsl(220, 7%, 25%);                  /* #3c3d41 - Default borders */
-  --input: hsl(220, 9%, 16%);                   /* #25262a - Input background */
-  --ring: hsl(260, 53%, 70%);                   /* #a87dd1 - Focus ring (lighter purple) */
+  /* Borders - better visibility */
+  --border: hsl(220, 7%, 28%);                  /* #434550 - Default borders - more visible */
+  --input: hsl(220, 8%, 18%);                   /* #2a2b30 - Input background */
+  --ring: hsl(260, 53%, 75%);                   /* #b691d8 - Focus ring (20% brighter purple) */
   
-  /* Status colors - brightened for dark mode */
-  --primary: hsl(260, 53%, 70%);                /* #a87dd1 - Lighter purple */
-  --primary-foreground: hsl(220, 13%, 11%);
-  --accent: hsl(104, 90%, 48%);                 /* #3fd922 - More vibrant green */
-  --accent-foreground: hsl(220, 13%, 11%);
-  --status-complete: hsl(104, 90%, 48%);        /* #3fd922 - Vibrant green */
-  --status-progress: hsl(210, 63%, 65%);        /* #5ba3e5 - Lighter blue */
-  --status-blocked: hsl(220, 15%, 60%);         /* #8b92a4 - Visible gray */
+  /* Status colors - brightened by ~20% for dark mode */
+  --primary: hsl(260, 53%, 75%);                /* #b691d8 - 20% brighter purple */
+  --primary-foreground: hsl(220, 10%, 14%);
+  --accent: hsl(104, 90%, 55%);                 /* #4de82d - 20% brighter green */
+  --accent-foreground: hsl(220, 10%, 14%);
+  --status-complete: hsl(104, 90%, 55%);        /* #4de82d - 20% brighter green */
+  --status-progress: hsl(210, 63%, 70%);        /* #6bb1ea - 20% brighter blue */
+  --status-blocked: hsl(220, 15%, 65%);         /* #96a0b0 - 20% brighter gray */
   
-  /* Destructive states */
-  --destructive: hsl(0, 62.8%, 50%);
-  --destructive-foreground: hsl(210, 40%, 98%);
+  /* Destructive states - brightened for dark mode */
+  --destructive: hsl(0, 70%, 60%);               /* #e85555 - 20% brighter red */
+  --destructive-foreground: hsl(220, 10%, 14%);
   
-  /* Charts - updated for dark mode */
-  --chart-1: hsl(260, 53%, 70%);               /* Purple */
-  --chart-2: hsl(210, 63%, 65%);               /* Blue */
-  --chart-3: hsl(104, 90%, 48%);               /* Green */
-  --chart-4: hsl(220, 15%, 60%);               /* Gray */
-  --chart-5: hsl(37, 92%, 60%);                /* Orange */
+  /* Charts - 20% brighter for dark mode */
+  --chart-1: hsl(260, 53%, 75%);               /* Purple - 20% brighter */
+  --chart-2: hsl(210, 63%, 70%);               /* Blue - 20% brighter */
+  --chart-3: hsl(104, 90%, 55%);               /* Green - 20% brighter */
+  --chart-4: hsl(220, 15%, 65%);               /* Gray - 20% brighter */
+  --chart-5: hsl(37, 92%, 65%);                /* Orange - 20% brighter */
   
-  /* Sidebar */
-  --sidebar: hsl(220, 9%, 18%);
-  --sidebar-foreground: hsl(210, 17%, 97%);
-  --sidebar-primary: hsl(260, 53%, 70%);
-  --sidebar-primary-foreground: hsl(220, 13%, 11%);
-  --sidebar-accent: hsl(220, 9%, 16%);
-  --sidebar-accent-foreground: hsl(210, 17%, 97%);
-  --sidebar-border: hsl(220, 7%, 25%);
-  --sidebar-ring: hsl(260, 53%, 70%);
+  /* Sidebar - consistent with new palette */
+  --sidebar: hsl(220, 8%, 20%);
+  --sidebar-foreground: hsl(210, 15%, 85%);
+  --sidebar-primary: hsl(260, 53%, 75%);
+  --sidebar-primary-foreground: hsl(220, 10%, 14%);
+  --sidebar-accent: hsl(220, 8%, 18%);
+  --sidebar-accent-foreground: hsl(210, 15%, 85%);
+  --sidebar-border: hsl(220, 7%, 28%);
+  --sidebar-ring: hsl(260, 53%, 75%);
 }
 
 @layer base {
