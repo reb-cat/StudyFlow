@@ -48,14 +48,14 @@ export default function AdminAuth({ children }: AdminAuthProps) {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <Shield className="h-8 w-8 text-blue-600" />
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Shield className="h-8 w-8 text-primary" />
             </div>
             <CardTitle className="text-2xl font-bold">Admin Access</CardTitle>
-            <p className="text-gray-600">Enter the 4-digit admin code to continue</p>
+            <p className="text-muted-foreground">Enter the 4-digit admin code to continue</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -95,7 +95,7 @@ export default function AdminAuth({ children }: AdminAuthProps) {
           variant="outline"
           size="sm"
           onClick={handleLogout}
-          className="bg-white shadow-md"
+          className="bg-card border border-border shadow-md"
           data-testid="button-admin-logout"
         >
           <Lock className="h-4 w-4 mr-2" />
