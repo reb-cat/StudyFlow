@@ -473,13 +473,13 @@ export function GuidedDayView({
   // Block type styling with StudyFlow colors
   const getBlockStyle = (blockType?: string) => {
     const styles = {
-      assignment: { borderColor: colors.progress, bgColor: '#EBF4FC', icon: Clock },
-      bible: { borderColor: colors.primary, bgColor: '#F4F0FA', icon: CheckCircle },
-      fixed: { borderColor: colors.support, bgColor: colors.background, icon: HelpCircle },
-      lunch: { borderColor: colors.support, bgColor: colors.background, icon: HelpCircle },
-      movement: { borderColor: colors.complete, bgColor: '#E8F8E5', icon: CheckCircle },
-      'study hall': { borderColor: colors.progress, bgColor: '#E8F4FC', icon: Clock }, // Similar to assignment but lighter
-      'Study Hall': { borderColor: colors.progress, bgColor: '#E8F4FC', icon: Clock }  // Case variation support
+      assignment: { borderColor: colors.progress, bgColor: 'var(--card)', icon: Clock },
+      bible: { borderColor: colors.primary, bgColor: 'var(--card)', icon: CheckCircle },
+      fixed: { borderColor: colors.support, bgColor: 'var(--card)', icon: HelpCircle },
+      lunch: { borderColor: colors.support, bgColor: 'var(--card)', icon: HelpCircle },
+      movement: { borderColor: colors.complete, bgColor: 'var(--card)', icon: CheckCircle },
+      'study hall': { borderColor: colors.progress, bgColor: 'var(--card)', icon: Clock }, // Similar to assignment but lighter
+      'Study Hall': { borderColor: colors.progress, bgColor: 'var(--card)', icon: Clock }  // Case variation support
     };
     return styles[blockType as keyof typeof styles] || styles.assignment;
   };
@@ -774,9 +774,8 @@ export function GuidedDayView({
               {completedCount} completed
             </span>
           </div>
-          <div style={{
+          <div className="bg-gray-200 dark:bg-slate-700" style={{
             height: '8px',
-            backgroundColor: colors.background,
             borderRadius: '4px',
             overflow: 'hidden'
           }}>
@@ -791,13 +790,13 @@ export function GuidedDayView({
         </div>
 
         {/* Title card + Instructions pill */}
-        <div className="mb-4 rounded-2xl bg-blue-50/60 px-5 py-4" style={{ marginBottom: '16px' }}>
+        <div className="mb-4 rounded-2xl bg-blue-50/60 dark:bg-slate-800/80 border border-blue-200 dark:border-slate-600 px-5 py-4" style={{ marginBottom: '16px' }}>
           <div className="mb-2 flex items-start justify-between gap-3">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-              <h2 className="text-[20px] font-bold text-slate-800" style={{ 
+              <h2 className="text-[20px] font-bold text-slate-800 dark:text-slate-100" style={{ 
                 fontSize: '20px', 
                 fontWeight: 'bold', 
-                color: colors.text,
+                color: 'inherit',
                 flex: 1
               }}>
                 {currentBlock.type === 'bible'
@@ -937,9 +936,7 @@ export function GuidedDayView({
 
         {/* Stuck Countdown Banner (if active) */}
         {stuckCountdown > 0 && stuckPendingKey && (
-          <div style={{
-            backgroundColor: '#FEF3C7',
-            border: '1px solid #F59E0B',
+          <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-400 dark:border-yellow-600" style={{
             borderRadius: '8px',
             padding: '12px',
             marginBottom: '16px',
@@ -947,7 +944,7 @@ export function GuidedDayView({
             justifyContent: 'space-between',
             alignItems: 'center'
           }}>
-            <span style={{ fontSize: '14px', color: '#92400E' }}>
+            <span className="text-yellow-800 dark:text-yellow-200" style={{ fontSize: '14px' }}>
               Assignment will be marked as stuck in {stuckCountdown}s
             </span>
             <button
@@ -1051,7 +1048,7 @@ export function GuidedDayView({
               padding: '8px 16px',
               backgroundColor: 'transparent',
               border: 'none',
-              color: exitClickCount > 0 ? colors.support : '#D1D5DB',
+              color: exitClickCount > 0 ? colors.support : 'var(--muted-foreground)',
               fontSize: '12px',
               cursor: 'pointer',
               transition: 'color 0.2s'
