@@ -1165,8 +1165,13 @@ export class DatabaseStorage implements IStorage {
         // Check if assignment fits in block - use actual time estimates, not defaults
         const assignmentMinutes = assignment.actualEstimatedMinutes || 30; // Reduced default from 60 to 30 minutes
         
-        if (assignmentMinutes <= blockMinutes) {
-          // Assignment fits - schedule it
+        // Allow assignments that are up to 15 minutes longer than the block
+        // This prevents empty blocks and allows for flexible work completion
+        const timeBuffer = 15;
+        const allowableTime = blockMinutes + timeBuffer;
+        
+        if (assignmentMinutes <= allowableTime) {
+          // Assignment fits (with buffer) - schedule it
           await this.updateAssignmentScheduling(assignment.id, {
             scheduledDate: date,
             scheduledBlock: block.blockNumber,
@@ -1175,9 +1180,13 @@ export class DatabaseStorage implements IStorage {
           });
           
           assignedAssignments.push(assignment.title);
+          
+          if (assignmentMinutes > blockMinutes) {
+            console.log(`📋 Scheduled ${assignmentMinutes}min assignment in ${blockMinutes}min block (${assignmentMinutes - blockMinutes}min overflow): ${assignment.title}`);
+          }
         } else {
-          // Assignment too long for block - skip scheduling (don't create Split Auto)
-          console.log(`⏭️ Assignment too long (${assignmentMinutes}min) for block (${blockMinutes}min): ${assignment.title}`);
+          // Assignment significantly too long for block - skip scheduling
+          console.log(`⏭️ Assignment too long (${assignmentMinutes}min) for block (${blockMinutes}min + ${timeBuffer}min buffer): ${assignment.title}`);
           // Don't add to assignedAssignments - leave unscheduled
         }
       }
