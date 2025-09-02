@@ -223,6 +223,28 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Helper method to determine smart time estimates based on assignment type
+  private getSmartTimeEstimate(title: string): number {
+    const lowerTitle = title.toLowerCase();
+    
+    // Recipe reviews are quick - 10 minutes max
+    if (lowerTitle.includes('review recipe') || lowerTitle.includes('recipe review')) {
+      return 10;
+    }
+    
+    // Other quick tasks
+    if (lowerTitle.includes('quiz') && !lowerTitle.includes('practice')) {
+      return 15;
+    }
+    
+    if (lowerTitle.includes('discussion post') || lowerTitle.includes('forum post')) {
+      return 20;
+    }
+    
+    // Default for everything else
+    return 30;
+  }
+
   async createAssignment(data: InsertAssignment & { userId: string }): Promise<Assignment> {
     try {
       // Check if this is an administrative assignment that shouldn't be scheduled
@@ -248,7 +270,7 @@ export class DatabaseStorage implements IStorage {
         scheduledBlock: data.scheduledBlock || null,
         blockStart: data.blockStart || null,
         blockEnd: data.blockEnd || null,
-        actualEstimatedMinutes: data.actualEstimatedMinutes || 30,
+        actualEstimatedMinutes: data.actualEstimatedMinutes || this.getSmartTimeEstimate(data.title),
         completionStatus: data.completionStatus || 'pending',
         blockType: data.blockType || 'assignment',
         isAssignmentBlock: data.isAssignmentBlock !== undefined ? data.isAssignmentBlock : true,
