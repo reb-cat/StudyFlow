@@ -976,19 +976,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/bible/completion', async (req, res) => {
     try {
-      const { weekNumber, dayOfWeek, completed } = req.body;
+      const { weekNumber, dayOfWeek, completed, studentName } = req.body;
       
       if (typeof weekNumber !== 'number' || typeof dayOfWeek !== 'number' || typeof completed !== 'boolean') {
         return res.status(400).json({ message: 'Invalid data provided' });
       }
       
-      const updated = await storage.updateBibleCompletion(weekNumber, dayOfWeek, completed);
+      if (!studentName || typeof studentName !== 'string') {
+        return res.status(400).json({ message: 'Student name is required' });
+      }
       
-      if (!updated) {
+      // Use the proper Bible curriculum completion function that advances student position
+      const success = await markBibleCurriculumCompleted(
+        weekNumber,
+        dayOfWeek,
+        "daily_reading",
+        studentName
+      );
+      
+      if (!success) {
         return res.status(404).json({ message: 'Bible curriculum entry not found' });
       }
       
-      res.json(updated);
+      res.json({ success: true, weekNumber, dayOfWeek, completed, studentName });
     } catch (error) {
       console.error('Error updating Bible completion:', error);
       res.status(500).json({ message: 'Failed to update Bible completion' });
