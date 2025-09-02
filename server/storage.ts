@@ -1007,8 +1007,13 @@ export class DatabaseStorage implements IStorage {
       
       const allAssignments = await this.getAssignments(userId);
       const candidateAssignments = allAssignments.filter(assignment => {
-        // Not completed
-        if (assignment.completionStatus === 'completed') return false;
+        // Include assignments that are workable: pending, needs_more_time, stuck
+        // EXCLUDE only truly completed assignments
+        const workableStatuses = ['pending', 'needs_more_time', 'stuck', 'in_progress'];
+        if (!workableStatuses.includes(assignment.completionStatus)) {
+          console.log(`🚫 Excluding non-workable assignment: ${assignment.title} (status: ${assignment.completionStatus})`);
+          return false;
+        }
         
         // Allow re-scheduling: Remove the scheduledDate check that was blocking allocation
         // This allows flexible assignment distribution and rescheduling as needed
