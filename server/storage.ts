@@ -230,7 +230,16 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignment(id: string): Promise<Assignment | undefined> {
     try {
-      const result = await db.select().from(assignments).where(eq(assignments.id, id)).limit(1);
+      // CRITICAL: Filter out soft-deleted assignments to prevent access to deleted items
+      const result = await db.select().from(assignments).where(
+        and(
+          eq(assignments.id, id),
+          or(
+            eq(assignments.isDeleted, false),
+            isNull(assignments.isDeleted)
+          )
+        )
+      ).limit(1);
       return result[0] || undefined;
     } catch (error) {
       console.error('Error getting assignment:', error);
@@ -510,8 +519,13 @@ export class DatabaseStorage implements IStorage {
 
   async updateAdministrativeAssignments(): Promise<void> {
     try {
-      // Get all assignments and update administrative ones
-      const allAssignments = await db.select().from(assignments);
+      // Get all active assignments and update administrative ones (exclude soft-deleted)
+      const allAssignments = await db.select().from(assignments).where(
+        or(
+          eq(assignments.isDeleted, false),
+          isNull(assignments.isDeleted)
+        )
+      );
       
       for (const assignment of allAssignments) {
         const title = assignment.title.toLowerCase();
