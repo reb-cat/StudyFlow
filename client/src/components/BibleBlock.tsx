@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
+import { CelebrationAnimation } from './CelebrationAnimation';
 
 interface BibleCurriculum {
   id: string;
@@ -24,6 +25,7 @@ interface BibleBlockProps {
 
 export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", className, studentName }: BibleBlockProps) {
   const queryClient = useQueryClient();
+  const [showCelebration, setShowCelebration] = useState(false);
 
   // Get current student's Bible curriculum
   const { data: bibleResponse, isLoading } = useQuery({
@@ -54,7 +56,11 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
       if (!response.ok) throw new Error('Failed to update Bible completion');
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Trigger celebration animation when marking as complete
+      if (variables.completed) {
+        setShowCelebration(true);
+      }
       // Refresh the Bible curriculum data
       queryClient.invalidateQueries({ queryKey: ['/api/bible-curriculum/current', studentName] });
     }
@@ -114,7 +120,7 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
 
   return (
     <div 
-      className={`bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 ${className}`}
+      className={`bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 relative ${className}`}
       data-testid="bible-block"
     >
       <div className="flex items-center gap-3">
@@ -156,6 +162,13 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
           ✓ Completed at {new Date(todaysReading.completedAt).toLocaleTimeString()}
         </div>
       )}
+      
+      <CelebrationAnimation 
+        trigger={showCelebration} 
+        onComplete={() => setShowCelebration(false)}
+        type="burst"
+        size="md"
+      />
     </div>
   );
 }

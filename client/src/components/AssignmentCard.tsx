@@ -5,6 +5,8 @@ import { CheckCircle, Clock, AlertTriangle, PlayCircle, Zap, Star, Timer } from 
 import { useToast } from '@/hooks/use-toast';
 import { normalizeAssignment } from '@shared/normalize';
 import type { Assignment } from '@shared/schema';
+import { CelebrationAnimation } from './CelebrationAnimation';
+import { useState } from 'react';
 
 interface AssignmentCardProps {
   assignment: Assignment;
@@ -14,6 +16,7 @@ interface AssignmentCardProps {
 
 export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: AssignmentCardProps) {
   const { toast } = useToast();
+  const [showCelebration, setShowCelebration] = useState(false);
   
   const normalized = normalizeAssignment({
     id: assignment.id,
@@ -98,7 +101,8 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
     in_progress: { label: 'In Progress', color: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200', icon: Clock },
     completed: { label: 'Completed', color: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200', icon: CheckCircle },
     stuck: { label: 'Stuck - Need Help', color: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200', icon: AlertTriangle },
-    needs_more_time: { label: 'Need More Time', color: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200', icon: Clock }
+    needs_more_time: { label: 'Need More Time', color: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200', icon: Clock },
+    grading_delay: { label: 'Grading Delay', color: 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200', icon: Clock }
   };
 
   const status = statusConfig[assignment.completionStatus || 'pending'];
@@ -118,6 +122,11 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
       });
 
       if (!response.ok) throw new Error('Failed to update assignment');
+
+      // Trigger celebration animation for completion
+      if (newStatus === 'completed') {
+        setShowCelebration(true);
+      }
 
       const messages = {
         completed: { title: "Great work! 🎉", description: "Assignment completed successfully." },
@@ -147,7 +156,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
 
   if (variant === 'compact') {
     return (
-      <Card className="bg-card border border-border hover:shadow-md transition-shadow">
+      <Card className="bg-card border border-border hover:shadow-md transition-shadow relative">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
@@ -187,12 +196,18 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
             </Badge>
           </div>
         </CardContent>
+        <CelebrationAnimation 
+          trigger={showCelebration} 
+          onComplete={() => setShowCelebration(false)}
+          type="burst"
+          size="sm"
+        />
       </Card>
     );
   }
 
   return (
-    <Card className="bg-card border border-border hover:shadow-md transition-shadow">
+    <Card className="bg-card border border-border hover:shadow-md transition-shadow relative">
       <CardContent className="p-6 space-y-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -279,6 +294,12 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
           </div>
         )}
       </CardContent>
+      <CelebrationAnimation 
+        trigger={showCelebration} 
+        onComplete={() => setShowCelebration(false)}
+        type="burst"
+        size="md"
+      />
     </Card>
   );
 }
