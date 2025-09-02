@@ -19,7 +19,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
     id: assignment.id,
     title: assignment.title,
     course: assignment.courseName,
-    instructions: assignment.instructions,
+    instructions: null,
     dueAt: assignment.dueDate?.toISOString() || null
   });
 
@@ -237,13 +237,6 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
           )}
         </div>
 
-        {assignment.instructions && (
-          <div className="bg-muted/50 p-3 rounded-md">
-            <p className="text-base text-muted-foreground" data-testid={`assignment-instructions-${assignment.id}`}>
-              {assignment.instructions}
-            </p>
-          </div>
-        )}
 
         {assignment.completionStatus !== 'completed' && (
           <div className="flex items-center gap-2 pt-2">
