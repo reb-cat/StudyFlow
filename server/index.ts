@@ -26,14 +26,21 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production', // Auto-secure in production
     httpOnly: true, // Prevent XSS attacks
     sameSite: 'lax', // CSRF protection
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    domain: process.env.NODE_ENV === 'production' ? '.replit.app' : undefined // Production domain
   }
 }));
 
 // CORS configuration for production session cookies
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  const origin = req.headers.origin;
+  const allowedOrigins = ['https://study-flow.replit.app', 'http://localhost:5000'];
+  
+  if (allowedOrigins.includes(origin) || !origin) {
+    res.header('Access-Control-Allow-Origin', origin || 'https://study-flow.replit.app');
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
   
