@@ -122,27 +122,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/assignments/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const { completionStatus } = req.body;
+      const updateData = req.body;
       
-      if (!id || !completionStatus) {
-        return res.status(400).json({ message: 'Assignment ID and completion status are required' });
+      if (!id) {
+        return res.status(400).json({ message: 'Assignment ID is required' });
       }
 
+      // Remove id from updateData to prevent conflicts
+      delete updateData.id;
+      
       // Track when assignment is marked complete for grading delay detection
-      const updateData: any = { completionStatus };
-      if (completionStatus === 'completed') {
+      if (updateData.completionStatus === 'completed') {
         updateData.completedAt = new Date();
       }
+      
+      // Convert dueDate string to Date object if provided
+      if (updateData.dueDate && typeof updateData.dueDate === 'string') {
+        updateData.dueDate = new Date(updateData.dueDate);
+      }
+      
+      console.log(`📝 Updating assignment ${id} with data:`, updateData);
       
       const assignment = await storage.updateAssignment(id, updateData);
       if (!assignment) {
         return res.status(404).json({ message: 'Assignment not found' });
       }
       
-      res.json({ message: 'Assignment status updated successfully', assignment });
+      console.log(`✅ Assignment ${id} updated successfully:`, assignment.title);
+      res.json({ message: 'Assignment updated successfully', assignment });
     } catch (error) {
-      console.error('Error updating assignment status:', error);
-      res.status(500).json({ message: 'Failed to update assignment status' });
+      console.error('Error updating assignment:', error);
+      res.status(500).json({ message: 'Failed to update assignment' });
     }
   });
 
