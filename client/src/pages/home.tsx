@@ -181,12 +181,8 @@ export default function Home() {
                 }
               };
               const getIconColor = (color: string) => {
-                switch(color) {
-                  case 'complete': return 'var(--status-complete)';
-                  case 'progress': return 'var(--status-progress)';
-                  case 'blocked': return 'var(--status-blocked)';
-                  default: return 'var(--primary)';
-                }
+                // All icons are now blue
+                return '#3B82F6'; // Blue color for all icons
               };
               const getValueColor = (color: string) => {
                 switch(color) {
