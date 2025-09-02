@@ -108,44 +108,15 @@ export default function FamilyDashboard() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: colors.background
-    }}>
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header style={{
-        backgroundColor: colors.surface,
-        borderBottom: `1px solid ${colors.border}`,
-        padding: '20px 40px'
-      }}>
-        <div style={{
-          maxWidth: '1400px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              backgroundColor: colors.primary,
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '20px',
-              fontWeight: 'bold'
-            }}>
+      <header className="bg-card border-b border-border py-5 px-10">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white text-xl font-bold">
               S
             </div>
-            <h1 style={{ 
-              fontSize: '24px', 
-              fontWeight: 'bold',
-              color: colors.primary,
-              margin: 0
-            }}>
+            <h1 className="text-2xl font-bold text-primary m-0">
               StudyFlow Family
             </h1>
           </div>

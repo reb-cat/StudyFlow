@@ -138,37 +138,25 @@ export default function FamilyDashboard() {
               <div
                 onMouseEnter={() => setHoveredStudent(student.id)}
                 onMouseLeave={() => setHoveredStudent(null)}
+                className={`bg-card rounded-3xl p-8 text-center cursor-pointer transition-all duration-300 border-2 ${
+                  hoveredStudent === student.id 
+                    ? '-translate-y-1 shadow-xl' 
+                    : 'shadow-sm'
+                }`}
                 style={{
-                  backgroundColor: colors.surface,
-                  border: `2px solid ${hoveredStudent === student.id ? student.color : colors.border}`,
-                  borderRadius: '20px',
-                  padding: '32px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  transform: hoveredStudent === student.id ? 'translateY(-4px)' : 'translateY(0)',
+                  borderColor: hoveredStudent === student.id ? student.color : 'var(--border)',
                   boxShadow: hoveredStudent === student.id 
                     ? `0 12px 32px ${student.color}20` 
-                    : '0 2px 8px rgba(0,0,0,0.04)'
+                    : undefined
                 }}
               >
                 {/* Student Avatar */}
-                <div style={{
-                  width: '80px',
-                  height: '80px',
-                  backgroundColor: student.color,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 20px',
-                  color: 'white',
-                  fontSize: '36px',
-                  fontWeight: 'bold',
-                  boxShadow: `0 4px 12px ${student.color}30`,
-                  overflow: 'hidden',
-                  position: 'relative'
-                }}>
+                <div 
+                  className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 text-white text-4xl font-bold overflow-hidden relative"
+                  style={{
+                    backgroundColor: student.color,
+                    boxShadow: `0 4px 12px ${student.color}30`
+                  }}>
                   {student.profileImage ? (
                     <img 
                       src={student.profileImage} 
@@ -211,43 +199,23 @@ export default function FamilyDashboard() {
                 </div>
 
                 {/* Student Name */}
-                <h3 style={{
-                  fontSize: '28px',
-                  fontWeight: '600',
-                  color: colors.text,
-                  margin: '0 0 12px 0'
-                }}>
+                <h3 className="text-3xl font-semibold text-foreground mb-3">
                   {student.name}
                 </h3>
 
                 {/* Motivational Message */}
-                <p style={{
-                  color: colors.textMuted,
-                  fontSize: '16px',
-                  margin: '0 0 24px 0',
-                  minHeight: '24px'
-                }}>
+                <p className="text-muted-foreground text-base mb-6 min-h-6">
                   {student.message}
                 </p>
 
                 {/* Let's Go Button */}
                 <button
                   data-testid={`button-select-${student.id}`}
+                  className="w-full py-3.5 px-6 rounded-xl text-lg font-semibold cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 border-2"
                   style={{
-                    width: '100%',
-                    padding: '14px 24px',
-                    backgroundColor: hoveredStudent === student.id ? student.color : colors.background,
-                    border: `2px solid ${student.color}`,
-                    borderRadius: '12px',
-                    color: hoveredStudent === student.id ? 'white' : student.color,
-                    fontSize: '18px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
+                    backgroundColor: hoveredStudent === student.id ? student.color : 'var(--background)',
+                    borderColor: student.color,
+                    color: hoveredStudent === student.id ? 'white' : student.color
                   }}
                 >
                   Let's Go!
@@ -260,17 +228,10 @@ export default function FamilyDashboard() {
       </main>
 
       {/* Footer */}
-      <footer style={{
-        padding: '32px',
-        textAlign: 'center',
-        color: colors.textMuted,
-        fontSize: '14px',
-        borderTop: `1px solid ${colors.border}`,
-        backgroundColor: colors.surface
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+      <footer className="p-8 text-center text-muted-foreground text-sm border-t border-border bg-card">
+        <div className="flex items-center justify-center gap-2">
           StudyFlow
-          <span style={{ color: colors.primary }}>•</span>
+          <span className="text-primary">•</span>
           Built for focused learning
         </div>
       </footer>

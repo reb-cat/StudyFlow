@@ -49,66 +49,22 @@ export default function LandingPage() {
   ];
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: colors.background
-    }}>
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header style={{
-        backgroundColor: colors.surface,
-        borderBottom: `1px solid ${colors.border}`,
-        padding: '20px 40px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              backgroundColor: colors.primary,
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '20px',
-              fontWeight: 'bold'
-            }}>
+      <header className="bg-card border-b border-border py-5 px-10 sticky top-0 z-[100]">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white text-xl font-bold">
               S
             </div>
-            <span style={{ 
-              fontSize: '24px', 
-              fontWeight: 'bold',
-              color: colors.primary
-            }}>
+            <span className="text-2xl font-bold text-primary">
               StudyFlow
             </span>
           </div>
           
           <button
             onClick={() => window.location.href = '/family'}
-            style={{
-              padding: '10px 24px',
-              backgroundColor: colors.primary,
-              border: 'none',
-              borderRadius: '8px',
-              color: 'white',
-              fontSize: '16px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'transform 0.2s'
-            }}
+            className="py-2.5 px-6 bg-primary border-none rounded-lg text-white text-base font-medium cursor-pointer flex items-center gap-2 transition-transform duration-200"
             onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
             onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
