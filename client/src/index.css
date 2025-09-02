@@ -25,23 +25,23 @@
   --surface-tertiary: hsl(210, 11%, 93%);  /* #E9ECEF - Even deeper for layering */
   --card: hsl(0, 0%, 100%);                /* #FFFFFF - Pure white for cards */
   
-  --foreground: hsl(210, 10.81%, 14.51%);        /* #212529 - Rich dark gray */
-  --muted-foreground: hsl(211.58, 8.09%, 46.08%);   /* #6C757D - Medium gray */
-  --text-tertiary: hsl(210, 11%, 71%);     /* #ADB5BD - Lighter gray */
-  --text-muted: hsl(210, 14%, 83%);        /* #CED4DA - Very light gray */
+  --foreground: hsl(210, 11%, 15%);        /* #212529 - Rich dark gray - high contrast */
+  --muted-foreground: hsl(210, 9%, 35%);   /* #525761 - Much darker for readability */
+  --text-tertiary: hsl(210, 8%, 45%);     /* #696e7a - Darker for better contrast */
+  --text-muted: hsl(210, 9%, 35%);        /* #525761 - Readable secondary text */
   
   --border: hsl(210, 14%, 89%);            /* #DEE2E6 - Soft gray border */
   --border-medium: hsl(210, 14%, 83%);     /* #CED4DA - More defined border */
   --border-strong: hsl(210, 11%, 71%);     /* #ADB5BD - Strong borders */
   
   /* Updated to use new purple theme */
-  --card-foreground: hsl(210, 10.81%, 14.51%);
+  --card-foreground: hsl(210, 11%, 15%);
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(210, 10.81%, 14.51%);
+  --popover-foreground: hsl(210, 11%, 15%);
   --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(210, 15.38%, 94.9%);
-  --secondary-foreground: hsl(210, 10.81%, 14.51%);
-  --muted: hsl(210, 15.38%, 94.9%);
+  --secondary: hsl(210, 16%, 93%);
+  --secondary-foreground: hsl(210, 11%, 15%);
+  --muted: hsl(210, 16%, 93%);
   --accent-foreground: hsl(0, 0%, 100%);
   --destructive: hsl(230.77, 15.29%, 50%);
   --destructive-foreground: hsl(0, 0%, 100%);
