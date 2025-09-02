@@ -352,12 +352,15 @@ export default function AssignmentsPage() {
   };
 
   const handleEditAssignment = (assignment: Assignment) => {
-    console.log('Edit button clicked for assignment:', assignment.id, assignment.title);
     setEditingAssignment(assignment);
     setShowEditForm(true);
-    console.log('Edit form should now be visible');
-    console.log('showEditForm state:', true);
-    console.log('editingAssignment state:', assignment);
+  };
+
+  // Helper function to strip HTML tags from text
+  const stripHtml = (html: string): string => {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || '';
   };
 
   const handleSaveEdit = () => {
@@ -867,11 +870,9 @@ export default function AssignmentsPage() {
         </Card>
       )}
 
-      {/* Edit Assignment Form - POSITIONED AT TOP */}
-      {console.log('Render check - showEditForm:', showEditForm, 'editingAssignment:', !!editingAssignment)}
+      {/* Edit Assignment Form */}
       {showEditForm && editingAssignment && (
-        <div style={{ position: 'fixed', top: '10px', left: '10px', right: '10px', zIndex: 9999, backgroundColor: 'yellow', border: '3px solid red' }}>
-          <Card className="border-blue-200">
+        <Card className="border-blue-200 dark:border-blue-800 mb-6 bg-blue-50 dark:bg-blue-950/30">
           <CardHeader>
             <CardTitle>Edit Assignment</CardTitle>
           </CardHeader>
@@ -907,7 +908,7 @@ export default function AssignmentsPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Instructions</label>
               <Textarea
-                value={editingAssignment?.instructions || ''}
+                value={editingAssignment?.instructions ? stripHtml(editingAssignment.instructions) : ''}
                 onChange={(e) => editingAssignment && setEditingAssignment({...editingAssignment, instructions: e.target.value})}
                 rows={3}
                 data-testid="input-edit-instructions"
@@ -996,8 +997,7 @@ export default function AssignmentsPage() {
               </Button>
             </div>
           </CardContent>
-          </Card>
-        </div>
+        </Card>
       )}
       
       {/* Parent Resolution Dialog */}
