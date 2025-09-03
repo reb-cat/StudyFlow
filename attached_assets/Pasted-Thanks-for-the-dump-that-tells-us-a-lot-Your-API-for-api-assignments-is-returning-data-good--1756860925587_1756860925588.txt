@@ -1,0 +1,131 @@
+Thanks for the dump—that tells us a lot.
+	•	Your API for /api/assignments is returning data (good).
+	•	The Overview is still blank even though at least one item has scheduledDate: "2025-09-02".
+	•	Your date debug shows local date math is correct now (selectedDate = "2025-09-02").
+	•	So the blank UI isn’t a date bug—it’s a student-param mismatch across endpoints (slug vs name vs id) or a second endpoint returning [].
+
+Most UIs like yours hit two endpoints on the Overview:
+	1.	/api/assignments?... (we saw this returning data)
+	2.	/api/schedule?... (or similar) → this is almost certainly returning [], which makes the “Today’s Schedule” card blank and often zeroes the progress bar.
+
+Fix it by normalizing the student param (server-side)
+
+Create one resolver and use it in every student-scoped endpoint (/api/schedule, /api/assignments, /api/progress, etc.).
+
+// server/lib/resolveStudent.ts
+import { db } from '../db';
+// adjust to your query helpers
+
+export async function resolveStudent(req, res) {
+  const ownerId = req.user.id;
+  const { studentSlug, studentId, studentName, name } = req.query as any;
+  const q = (studentSlug || studentId || studentName || name || '').toString();
+
+  if (!q) return res.status(400).json({ error: 'Missing student parameter' });
+
+  // try by id/uuid
+  if (studentId) {
+    const s = await db.query.student_profiles.findFirst({
+      where: (t, { and, eq }) => and(eq(t.ownerId, ownerId), eq(t.id, studentId)),
+    });
+    if (s) return s;
+  }
+
+  // try slug
+  if (studentSlug) {
+    const s = await db.query.student_profiles.findFirst({
+      where: (t, { and, eq }) => and(eq(t.ownerId, ownerId), eq(t.slug, studentSlug)),
+    });
+    if (s) return s;
+  }
+
+  // fallback: case-insensitive name (handles /student/Abigail vs slug "abigail")
+  const s = await db.query.student_profiles.findFirst({
+    where: (t, { and, ilike }) => and(eq(t.ownerId, ownerId), ilike(t.name, q)),
+  });
+  if (s) return s;
+
+  return res.status(404).json({ error: 'Student not found' });
+}
+
+Use it like this:
+
+// server/routes/schedule.ts
+app.get('/api/schedule', requireAuth, async (req, res) => {
+  const student = await resolveStudent(req, res);
+  if (!student || res.headersSent) return;
+
+  const date = (req.query.date as string) || new Date().toISOString().slice(0,10);
+  // your query here must filter by student.id OR a consistent key
+  const items = await getScheduleForDay({ ownerId: req.user.id, studentId: student.id, date });
+
+  // TEMP: log to prove it works in prod
+  console.log('[schedule]', { slug: student.slug, name: student.name, date, count: items.length });
+
+  res.json(items);
+});
+
+// server/routes/assignments.ts — do the same resolver
+app.get('/api/assignments', requireAuth, async (req, res) => {
+  const student = await resolveStudent(req, res);
+  if (!student || res.headersSent) return;
+
+  const date = (req.query.date as string) || new Date().toISOString().slice(0,10);
+  const rows = await getAssignments({ ownerId: req.user.id, studentId: student.id, date });
+  console.log('[assignments]', { slug: student.slug, date, count: rows.length });
+
+  res.json(rows);
+});
+
+// optional legacy alias so old clients keep working
+app.get('/api/student/:idOrSlug', (req, res, next) => {
+  req.url = `/students/${encodeURIComponent(req.params.idOrSlug)}`;
+  next();
+});
+
+Make the client use ONE param everywhere
+
+On the client, derive slug once from the route and use it for all API calls:
+
+// client/src/lib/useStudent.ts
+import { useParams } from 'react-router-dom';
+export function useStudentContext() {
+  const { slug } = useParams();     // /student/:slug
+  return { studentSlug: slug! };
+}
+
+// usage in Overview
+const { studentSlug } = useStudentContext();
+const [selectedDate, setSelectedDate] = useState(toLocalISODate());
+
+useEffect(() => {
+  apiFetch(`/api/assignments?date=${selectedDate}&studentSlug=${studentSlug}`)
+    .then(r => r.json())
+    .then(setAssignments)
+    .catch(() => setAssignments([]));
+}, [selectedDate, studentSlug]);
+
+useEffect(() => {
+  apiFetch(`/api/schedule?date=${selectedDate}&studentSlug=${studentSlug}`)
+    .then(r => r.json())
+    .then(setSchedule)
+    .catch(() => setSchedule([]));
+}, [selectedDate, studentSlug]);
+
+Keep the UI from going blank
+
+if (loading) return <div>Loading…</div>;
+if (error)   return <div style={{padding:16}}>Couldn’t load data.</div>;
+if (!schedule.length) return <div style={{padding:16}}>No schedule items for {selectedDate}.</div>;
+
+Verify in 60 seconds
+	1.	Open the blank Overview and watch the Network tab. You should now see:
+	•	GET /api/assignments?date=2025-09-02&studentSlug=abigail → 200
+	•	GET /api/schedule?date=2025-09-02&studentSlug=abigail → 200 with an array
+	2.	Replit console logs show:
+	•	[assignments] { slug: 'abigail', date: '2025-09-02', count: N }
+	•	[schedule] { slug: 'abigail', date: '2025-09-02', count: M }
+
+If /api/assignments is 200 but /api/schedule is 404/[]/500, the resolver will print enough context to pinpoint it immediately (wrong key, missing student row, etc.). Then we adjust that one query to use student.id.
+
+Want me to draft the exact resolveStudent import + two small diffs for your schedule and assignments route files? If you paste their filenames, I’ll give you copy-ready edits.

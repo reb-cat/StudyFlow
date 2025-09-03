@@ -1472,7 +1472,20 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       const { studentName } = req.params;
       const weekday = req.query.weekday as string;
       
+      console.log('[schedule-template]', { studentName, weekday });
+      
       const templateData = await storage.getScheduleTemplate(studentName, weekday);
+      
+      console.log('[schedule-template] RESULT:', { 
+        studentName, 
+        count: templateData.length,
+        firstBlock: templateData[0] ? {
+          id: templateData[0].id,
+          blockType: templateData[0].blockType,
+          startTime: templateData[0].startTime
+        } : null
+      });
+      
       res.json(templateData);
     } catch (error) {
       console.error('Error fetching schedule template:', error);
