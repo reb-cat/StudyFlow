@@ -1,0 +1,159 @@
+Thanks for the screenshot—that error tells us exactly what to fix:
+	1.	you have a reference to serveStatic in server/vite.ts but the function isn’t exported/implemented, and
+	2.	your app still relies on NODE_ENV in a couple places.
+
+Here’s a tight patch you can drop in.
+
+⸻
+
+1) Implement server/vite.ts (dev middleware + prod static)
+
+Create/replace server/vite.ts with this:
+
+// server/vite.ts
+import path from 'path';
+import express from 'express';
+
+const r = (...p: string[]) => path.resolve(__dirname, ...p);
+
+/**
+ * Dev: attach Vite in middleware mode.
+ * Prod: do nothing (we serve built assets via serveStatic()).
+ */
+export async function applyVite(app: express.Express) {
+  const isProd = (process.env.APP_ENV || process.env.NODE_ENV) === 'production';
+  if (isProd) return;
+
+  const { createServer } = await import('vite');
+  const vite = await createServer({
+    root: r('../client'),
+    server: { middlewareMode: true },
+    appType: 'custom',
+  });
+  app.use(vite.middlewares);
+}
+
+/**
+ * Prod: serve the built SPA + SPA fallback.
+ * Call this ONLY in production after your API routes.
+ */
+export function serveStatic(app: express.Express) {
+  const dist = r('../client/dist');
+  app.use(express.static(dist));
+  app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+}
+
+Then in your server bootstrap (e.g., server/index.ts):
+
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import { applyVite, serveStatic } from './vite';
+
+const app = express();
+const isProd = (process.env.APP_ENV || process.env.NODE_ENV) === 'production';
+
+app.set('trust proxy', 1);
+app.use(express.json());
+app.use(cookieParser());
+// If you’re monolith, you can keep CORS minimal:
+app.use(cors({ origin: true, credentials: true }));
+
+await applyVite(app);
+
+// --- API routes here ---
+app.use('/api', authRouter);
+app.use('/api', requireAuth, apiRouter); // protect everything else
+
+// --- Static SPA only in prod ---
+if (isProd) serveStatic(app);
+
+const PORT = parseInt(process.env.PORT || '3000', 10);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('[ready]', { env: isProd ? 'production' : 'development', port: PORT });
+});
+
+Why this fixes the deploy:
+	•	The missing serveStatic export is now defined.
+	•	Dev uses Vite middleware; prod serves the built client/dist with a proper SPA fallback.
+
+⸻
+
+2) Stop depending on inline NODE_ENV in start
+
+package.json (root):
+
+{
+  "scripts": {
+    "build:client": "npm --prefix client run build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build": "npm run build:client && npm run build:server",
+    "start": "node dist/server/index.js"
+  }
+}
+
+	•	Don’t inline NODE_ENV=production in the script.
+	•	Let Replit Secrets set APP_ENV=production (keep NODE_ENV=production there too if you like, but your code should key off APP_ENV || NODE_ENV as above).
+
+.replit:
+
+run = "bash -lc 'npm ci && npm run build && npm run start'"
+
+
+⸻
+
+3) Replit secrets (prod)
+
+Set these in Tools → Secrets:
+
+APP_ENV=production
+NODE_ENV=production           # okay to keep
+DATABASE_URL=...
+SESSION_SECRET=...
+COOKIE_SECURE=true
+COOKIE_SAMESITE=lax
+# (leave PORT unset; Replit injects it)
+
+
+⸻
+
+4) Sanity checks before pressing Deploy
+
+From the Replit shell:
+
+# build
+npm run build
+
+# start locally (prod mode)
+APP_ENV=production COOKIE_SECURE=false node dist/server/index.js
+# open the preview; deep-link to /student/abigail; it should load
+
+(Using COOKIE_SECURE=false locally so cookies work over http in the preview.)
+
+Quick curls:
+
+# SPA fallback returns HTML:
+curl -sI http://localhost:$PORT/student/abigail | grep -i content-type
+
+# Logged out, API is protected:
+curl -sI http://localhost:$PORT/api/assignments | head -n1
+
+Expect text/html for the first, and 401 (or your “Authentication required” JSON) for the second.
+
+⸻
+
+5) If you still see “expects NODE_ENV=production”
+
+Search for any hard requirement:
+
+rg -n "NODE_ENV\\s*===\\s*'production'|process\\.env\\.NODE_ENV" -g "!node_modules"
+
+If any code throws when NODE_ENV!=='production', switch it to:
+
+const isProd = (process.env.APP_ENV || process.env.NODE_ENV) === 'production';
+
+and branch behavior without throwing.
+
+⸻
+
+Do the file changes above, rebuild, and start. That removes the specific deployment blockers in your screenshot and keeps dev/prod behavior clean. If you paste your current server/index.ts (or whatever boots Express), I’ll tailor the exact import/placement lines so you can drop them in verbatim.
