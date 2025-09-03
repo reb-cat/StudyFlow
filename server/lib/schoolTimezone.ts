@@ -8,53 +8,56 @@ export const SCHOOL_TIMEZONE = 'America/New_York';
 
 /**
  * Get timezone-aware weekday name for school scheduling
- * Uses School Timezone policy to ensure consistent weekday determination
+ * FIXED: Interprets YYYY-MM-DD as midnight in SCHOOL TIMEZONE (not UTC)
  * 
  * @param date - Date string (YYYY-MM-DD) or Date object
  * @returns Weekday name ('Sunday', 'Monday', etc.) in School Timezone
  */
 export function getSchoolWeekdayName(date: string | Date): string {
-  let dateObj: Date;
-  
   if (typeof date === 'string') {
-    // UTC hardening: Parse date-only as UTC to avoid local timezone shifts
-    dateObj = new Date(date + 'T00:00:00.000Z');
+    // FIXED: Interpret YYYY-MM-DD as midnight in School Timezone, not UTC
+    // This prevents the day-before bug when UTC offset differs from school timezone
+    const [year, month, day] = date.split('-').map(Number);
+    
+    // Create date at noon in school timezone to avoid DST edge cases
+    const tempDate = new Date();
+    tempDate.setFullYear(year, month - 1, day); // month is 0-indexed
+    tempDate.setHours(12, 0, 0, 0); // Use noon to avoid DST edge cases
+    
+    // Get the weekday name directly using school timezone
+    const weekdayName = tempDate.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      timeZone: SCHOOL_TIMEZONE
+    });
+    
+    console.log(`🗓️ WEEKDAY(SCHOOL_TZ)=${weekdayName} (${getWeekdayNumber(weekdayName)}) for ${date}`);
+    return weekdayName;
   } else {
-    dateObj = date;
+    const weekdayName = date.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      timeZone: SCHOOL_TIMEZONE
+    });
+    console.log(`🗓️ WEEKDAY(SCHOOL_TZ)=${weekdayName} (${getWeekdayNumber(weekdayName)}) for ${date.toISOString().split('T')[0]}`);
+    return weekdayName;
   }
-  
-  // Get weekday name in school timezone (not server local time or raw UTC)
-  return dateObj.toLocaleDateString('en-US', { 
-    weekday: 'long',
-    timeZone: SCHOOL_TIMEZONE
-  });
+}
+
+function getWeekdayNumber(weekdayName: string): number {
+  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return weekdays.indexOf(weekdayName);
 }
 
 /**
  * Get timezone-aware weekday number for school scheduling
- * Uses School Timezone policy to ensure consistent weekday determination
+ * FIXED: Interprets YYYY-MM-DD as midnight in SCHOOL TIMEZONE (not UTC)
  * 
  * @param date - Date string (YYYY-MM-DD) or Date object  
  * @returns Weekday number (0=Sunday, 1=Monday, etc.) in School Timezone
  */
 export function getSchoolWeekdayNumber(date: string | Date): number {
-  let dateObj: Date;
-  
-  if (typeof date === 'string') {
-    // UTC hardening: Parse date-only as UTC to avoid local timezone shifts
-    dateObj = new Date(date + 'T00:00:00.000Z');
-  } else {
-    dateObj = date;
-  }
-  
-  // Get weekday in school timezone, then extract day number
-  const weekdayName = dateObj.toLocaleDateString('en-US', { 
-    weekday: 'long',
-    timeZone: SCHOOL_TIMEZONE
-  });
-  
-  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  return weekdays.indexOf(weekdayName);
+  // Use the fixed getSchoolWeekdayName function and convert to number
+  const weekdayName = getSchoolWeekdayName(date);
+  return getWeekdayNumber(weekdayName);
 }
 
 /**

@@ -83,8 +83,8 @@ export default function AssignmentsPage() {
       const params = new URLSearchParams({
         studentName: selectedStudent,
         includeCompleted: shouldIncludeCompleted.toString(),
-        startDate: weekStart.toISOString().split('T')[0],
-        endDate: weekEnd.toISOString().split('T')[0]
+        startDate: weekStart.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }),
+        endDate: weekEnd.toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
       });
       
       const response = await apiRequest('GET', `/api/assignments?${params.toString()}`);

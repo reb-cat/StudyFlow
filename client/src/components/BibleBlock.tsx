@@ -35,12 +35,22 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
   
   const bibleData = bibleResponse?.curriculum;
 
-  // Get today's reading from student's sequential curriculum progression
-  const today = new Date(date);
-  const jsDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  // Get today's reading from student's sequential curriculum progression  
+  // FIXED: Use school timezone for consistent weekday determination
+  const [year, month, day] = date.split('-').map(Number);
+  const schoolDate = new Date();
+  schoolDate.setFullYear(year, month - 1, day);
+  schoolDate.setHours(12, 0, 0, 0); // Use noon to avoid DST edge cases
   
-  // Skip weekends - only show Bible on school days (Monday-Friday)
-  const isWeekend = jsDay === 0 || jsDay === 6;
+  const jsDay = schoolDate.toLocaleDateString('en-US', { 
+    weekday: 'numeric',
+    timeZone: 'America/New_York' 
+  });
+  const weekdayNumber = parseInt(jsDay);
+  
+  // Skip weekends - only show Bible on school days (Monday-Friday) 
+  // In numeric format: 1=Sunday, 2=Monday, ..., 7=Saturday
+  const isWeekend = weekdayNumber === 1 || weekdayNumber === 7;
   
   // Use the current daily reading from the student's progression
   const todaysReading = !isWeekend && bibleData?.dailyReading ? bibleData.dailyReading : null;
