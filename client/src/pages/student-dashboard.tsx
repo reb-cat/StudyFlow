@@ -110,14 +110,18 @@ export default function StudentDashboard() {
     queryFn: async () => {
       const params = new URLSearchParams({
         date: selectedDate,
-        studentName: studentName
+        studentName: studentName,
+        _t: Date.now().toString() // Cache buster
       });
       const url = `/api/assignments-v2?${params}`;
       console.log(`🔥 Frontend making assignments API call: ${url}`);
       const response = await fetch(url, {
         credentials: 'include',  // Ensure cookies are sent for auth
+        cache: 'no-cache',       // Force fresh request
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
         }
       });
       console.log(`🔥 Response status: ${response.status} ${response.statusText}`);
