@@ -72,7 +72,7 @@ export default function PrintQueue() {
       if (!response.ok) throw new Error('Failed to fetch print queue');
       return response.json();
     },
-    staleTime: 0, // Always consider data stale so it refetches
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   const updateStatusMutation = useMutation({
@@ -90,18 +90,14 @@ export default function PrintQueue() {
       return response.json();
     },
     onSuccess: () => {
-      // Force complete cache refresh
-      queryClient.removeQueries({ 
-        queryKey: ['/api/print-queue'],
-        exact: false 
-      });
+      queryClient.invalidateQueries({ queryKey: ['/api/print-queue'] });
     },
   });
 
   // Extract all items from grouped data
   const allItems = printQueueData?.groupsByDate.flatMap(group => group.items) ?? [];
-  const pendingItems = allItems.filter(item => item.printStatus !== 'printed' && item.printStatus !== 'skipped');
-  const completedItems = allItems.filter(item => item.printStatus === 'printed' || item.printStatus === 'skipped');
+  const pendingItems = allItems.filter(item => item.printStatus === 'needs_printing');
+  const completedItems = allItems.filter(item => item.printStatus !== 'needs_printing');
 
   const totalPages = pendingItems.reduce((sum, item) => sum + item.estimatedPages, 0);
   const highPriorityCount = pendingItems.filter(item => item.priority === 'high').length;

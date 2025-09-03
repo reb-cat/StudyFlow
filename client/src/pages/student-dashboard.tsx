@@ -92,8 +92,8 @@ export default function StudentDashboard() {
   const studentName = params.student ? params.student.charAt(0).toUpperCase() + params.student.slice(1) : "Abigail";
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
-    // Use today's date in school timezone
-    return getTodayString();
+    // Set to September 2nd, 2025 to show assignments with instructions
+    return '2025-09-02';
   });
   const queryClient = useQueryClient();
 
@@ -104,44 +104,24 @@ export default function StudentDashboard() {
   };
 
 
-  // Fetch assignments for the selected date (including scheduled ones)
+  // Fetch assignments for today (get assignments due on or before this date)
   const { data: assignments = [], isLoading, refetch } = useQuery({
-    queryKey: ['/api/debug-fetch', selectedDate, studentName],
+    queryKey: ['/api/assignments', selectedDate, studentName],
     queryFn: async () => {
+      // For scheduling purposes, show assignments due in the next few days
+      const currentDate = new Date(selectedDate);
+      const targetDate = new Date(currentDate);
+      targetDate.setDate(currentDate.getDate() + 2); // Show assignments due within 2 days
+      
       const params = new URLSearchParams({
-        date: selectedDate,
-        studentName: studentName,
-        _t: Date.now().toString() // Cache buster
+        date: toNYDateString(targetDate),
+        studentName: studentName
       });
-      const url = `/api/debug-fetch?${params}`;
-      console.log(`🔥 Frontend making debug API call: ${url}`);
-      const response = await fetch(url, {
-        credentials: 'include',  // Ensure cookies are sent for auth
-        cache: 'no-cache',       // Force fresh request
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      });
-      console.log(`🔥 Response status: ${response.status} ${response.statusText}`);
-      
-      // ✨ CRITICAL FIX: Check for 401 and surface the error instead of silently failing
-      if (response.status === 401) {
-        console.error(`🚨 AUTHENTICATION FAILED: ${response.status} ${response.statusText}`);
-        throw new Error('Authentication failed - please refresh the page');
-      }
-      
-      if (!response.ok) {
-        console.error(`🔥 API call failed: ${response.status} ${response.statusText}`);
-        throw new Error('Failed to fetch assignments');
-      }
-      const data = await response.json();
-      console.log(`🔥 API response:`, data);
-      return data;
+      const response = await fetch(`/api/assignments?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch assignments');
+      return response.json();
     },
-    staleTime: 0, // Disable caching to force fresh requests
-    gcTime: 0,    // Disable garbage collection caching
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Fetch schedule template for the student and date
@@ -177,7 +157,7 @@ export default function StudentDashboard() {
 
   const handleAssignmentUpdate = () => {
     refetch();
-    queryClient.invalidateQueries({ queryKey: ['/api/debug-fetch', selectedDate, studentName] });
+    queryClient.invalidateQueries({ queryKey: ['/api/assignments', selectedDate, studentName] });
   };
 
   // Status badge helpers for Overview Mode
@@ -316,18 +296,85 @@ export default function StudentDashboard() {
   );
   const assignmentBlocks = allScheduleBlocks.filter((block) => block.blockType === 'assignment');
 
-  // USE BACKEND-ALLOCATED ASSIGNMENTS: Match assignments to blocks using scheduledBlock field
+  // INTELLIGENT ASSIGNMENT SCHEDULING with subject distribution and deduplication
   const populatedAssignmentBlocks = (() => {
-    // Filter assignments that are scheduled for the selected date
-    const scheduledAssignments = assignments.filter(assignment => 
-      assignment.scheduledDate === selectedDate && assignment.scheduledBlock
-    );
+    // Create a copy of assignments for scheduling
+    const availableAssignments = [...assignments];
+    const usedSubjects = new Set<string>();
+    const scheduledAssignments: any[] = [];
     
-    return assignmentBlocks.map((block) => {
-      // Find assignment allocated to this specific block by the backend
-      const selectedAssignment = scheduledAssignments.find(assignment => 
-        assignment.scheduledBlock === block.id
-      ) || null;
+    // Sort assignments by priority: overdue first, then by due date
+    availableAssignments.sort((a, b) => {
+      const aOverdue = a.dueDate && new Date(a.dueDate) < new Date();
+      const bOverdue = b.dueDate && new Date(b.dueDate) < new Date();
+      
+      // Overdue assignments come first
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      
+      // Then sort by due date
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      if (a.dueDate && !b.dueDate) return -1;
+      if (!a.dueDate && b.dueDate) return 1;
+      return 0;
+    });
+    
+    return assignmentBlocks.map((block, index) => {
+      let selectedAssignment = null;
+      
+      // First pass: try to find assignment from unused subject
+      for (let i = 0; i < availableAssignments.length; i++) {
+        const assignment = availableAssignments[i];
+        const subject = assignment.subject || 'General';
+        
+        if (!usedSubjects.has(subject)) {
+          selectedAssignment = assignment;
+          availableAssignments.splice(i, 1);
+          usedSubjects.add(subject);
+          break;
+        }
+      }
+      
+      // Second pass: if no unused subject, take next available (but avoid similar titles)
+      if (!selectedAssignment && availableAssignments.length > 0) {
+        for (let i = 0; i < availableAssignments.length; i++) {
+          const assignment = availableAssignments[i];
+          
+          // Check for similar titles in already scheduled assignments
+          const similarExists = scheduledAssignments.some(scheduled => {
+            if (!scheduled) return false;
+            const titleA = assignment.title.toLowerCase().replace(/[^a-z\s]/g, '');
+            const titleB = scheduled.title.toLowerCase().replace(/[^a-z\s]/g, '');
+            
+            // Check for similar recipe assignments or identical prefixes
+            if (titleA.includes('review recipe') && titleB.includes('review recipe')) {
+              return true;
+            }
+            
+            // Check for similar worksheet/homework patterns
+            const wordsA = titleA.split(' ').filter((w: string) => w.length > 3);
+            const wordsB = titleB.split(' ').filter((w: string) => w.length > 3);
+            const commonWords = wordsA.filter((w: string) => wordsB.includes(w));
+            
+            return commonWords.length >= 2; // Similar if 2+ significant words match
+          });
+          
+          if (!similarExists) {
+            selectedAssignment = assignment;
+            availableAssignments.splice(i, 1);
+            break;
+          }
+        }
+        
+        // If still no assignment and we have extras, take next available anyway
+        if (!selectedAssignment && availableAssignments.length > 0) {
+          selectedAssignment = availableAssignments.shift();
+        }
+      }
+      
+      scheduledAssignments.push(selectedAssignment);
       
       return {
         ...block,

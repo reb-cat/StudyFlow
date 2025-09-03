@@ -70,10 +70,10 @@ export default function AssignmentsPage() {
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
     queryKey: ['/api/assignments', selectedStudent, dateFilter, filterStatus],
     queryFn: async () => {
-      // Calculate date range for assignments - include overdue work for catch-up
+      // Calculate date range for current week plus buffer
       const today = new Date();
       const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - 30); // 30 days back (matches scheduler)
+      weekStart.setDate(today.getDate() - 7); // 1 week back
       const weekEnd = new Date(today);
       weekEnd.setDate(today.getDate() + 14); // 2 weeks forward
       
@@ -83,8 +83,8 @@ export default function AssignmentsPage() {
       const params = new URLSearchParams({
         studentName: selectedStudent,
         includeCompleted: shouldIncludeCompleted.toString(),
-        startDate: weekStart.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }),
-        endDate: weekEnd.toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+        startDate: weekStart.toISOString().split('T')[0],
+        endDate: weekEnd.toISOString().split('T')[0]
       });
       
       const response = await apiRequest('GET', `/api/assignments?${params.toString()}`);

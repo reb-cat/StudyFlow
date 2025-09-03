@@ -1,25 +1,15 @@
 /**
  * Date utilities for StudyFlow - all dates use America/New_York timezone
- * UNIFIED TODAY CALCULATION - Always use School Timezone, never UTC for "today"
  */
 
 export const TIMEZONE = 'America/New_York';
 
 /**
- * Get current date in School Timezone (America/New_York) as YYYY-MM-DD string
- * This is the CANONICAL "today" function - use this everywhere instead of UTC-based calculations
+ * Get current date in America/New_York timezone as YYYY-MM-DD string
  */
 export function getTodayString(): string {
   const now = new Date();
   return now.toLocaleDateString('en-CA', { timeZone: TIMEZONE }); // en-CA gives YYYY-MM-DD format
-}
-
-/**
- * Convert any Date object to YYYY-MM-DD string in School Timezone
- * This replaces toISOString().split('T')[0] which uses UTC
- */
-export function toSchoolDateString(date: Date): string {
-  return date.toLocaleDateString('en-CA', { timeZone: TIMEZONE });
 }
 
 /**
@@ -74,12 +64,12 @@ export function getDayName(date: Date | string): string {
 }
 
 /**
- * Add days to a date string and return new date string in School Timezone
+ * Add days to a date string and return new date string
  */
 export function addDays(dateString: string, days: number): string {
   const date = parseDateString(dateString);
   date.setUTCDate(date.getUTCDate() + days);
-  return toSchoolDateString(date);
+  return date.toISOString().split('T')[0];
 }
 
 /**

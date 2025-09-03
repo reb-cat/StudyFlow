@@ -10,7 +10,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, or, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -102,20 +102,8 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]> {
     try {
-      console.log(`📚 DEBUG getAssignments: userId=${userId}, date=${date}, includeCompleted=${includeCompleted}`);
-      
-      // CRITICAL: Filter out soft-deleted assignments to prevent confusion for students with executive function needs
-      let result = await db.select().from(assignments).where(
-        and(
-          eq(assignments.userId, userId),
-          or(
-            eq(assignments.isDeleted, false),
-            isNull(assignments.isDeleted)
-          )
-        )
-      );
+      let result = await db.select().from(assignments).where(eq(assignments.userId, userId));
       let assignmentList = result || [];
-      console.log(`📚 DEBUG: Initial query returned ${assignmentList.length} assignments for ${userId}`);
       
       // For daily scheduling: exclude completed assignments and filter by date
       // This keeps the daily view focused while the database contains the full Canvas dataset
@@ -144,24 +132,13 @@ export class DatabaseStorage implements IStorage {
       console.log(`🎯 Type filtering: ${beforeTypeFilter} → ${assignmentList.length} assignments (excluded participation/attendance)`);
 
       // SECOND: Exclude completed assignments from daily planning (unless admin mode)
-      // CRITICAL FIX: Include scheduled assignments for the specified date for frontend display
+      // Only show assignments that are actively workable (pending, needs_more_time, stuck)
       if (!includeCompleted) {
         const beforeCompletionFilter = assignmentList.length;
-        assignmentList = assignmentList.filter((assignment: any) => {
-          // Always include completed assignments if they're not truly completed
-          if (assignment.completionStatus !== 'completed') {
-            return true;
-          }
-          
-          // FRONTEND DISPLAY: Include scheduled assignments for the requested date
-          if (date && assignment.scheduledDate === date && assignment.scheduledBlock) {
-            console.log(`📅 Including scheduled assignment for ${date}: ${assignment.title} (scheduledBlock: ${assignment.scheduledBlock})`);
-            return true;
-          }
-          
-          return false;
-        });
-        console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments, included scheduled for ${date})`);
+        assignmentList = assignmentList.filter((assignment: any) => 
+          assignment.completionStatus !== 'completed'
+        );
+        console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments)`);
       } else {
         console.log(`🔧 Admin mode: Including completed assignments (${assignmentList.length} total after type filtering)`);
       }
@@ -172,23 +149,22 @@ export class DatabaseStorage implements IStorage {
         
         // Check if this is a date range (comma-separated) or single date
         if (date.includes(',')) {
-          // Parse date range: "startDate,endDate" 
+          // Parse date range: "startDate,endDate"
           const [startDate, endDate] = date.split(',');
           pastLimit = new Date(startDate);
           futureLimit = new Date(endDate);
         } else {
-          // Single date - apply 3-day focus window for daily scheduling
+          // Single date - use existing logic for daily scheduling
           const requestDate = new Date(date);
           futureLimit = new Date(requestDate);
-          futureLimit.setDate(requestDate.getDate() + 3); // Only 3 days ahead for daily focus
+          futureLimit.setDate(requestDate.getDate() + 21); // 3 weeks ahead
           
           // Allow overdue assignments up to 30 days back (for catch-up work)
           pastLimit = new Date(requestDate);
           pastLimit.setDate(requestDate.getDate() - 30);
         } 
         
-        const { toSchoolDateString } = await import('../shared/dateUtils');
-        console.log(`🗓️ Date filtering: ${toSchoolDateString(pastLimit)} to ${toSchoolDateString(futureLimit)} (including overdue assignments)`);
+        console.log(`🗓️ Date filtering: ${pastLimit.toISOString().split('T')[0]} to ${futureLimit.toISOString().split('T')[0]} (including overdue assignments)`);
         
         const beforeDateFilter = assignmentList.length;
         assignmentList = assignmentList.filter((assignment: any) => {
@@ -206,11 +182,9 @@ export class DatabaseStorage implements IStorage {
             // For date ranges, check if overdue against current date
             const now = new Date();
             const isOverdue = dueDate < now;
-            const { toSchoolDateString } = require('../shared/dateUtils');
-            console.log(`✅ Including assignment due ${toSchoolDateString(dueDate)}${isOverdue ? ' (overdue)' : ''}: ${assignment.title}`);
+            console.log(`✅ Including assignment due ${dueDate.toISOString().split('T')[0]}${isOverdue ? ' (overdue)' : ''}: ${assignment.title}`);
           } else {
-            const { toSchoolDateString } = require('../shared/dateUtils');
-            console.log(`❌ Excluding assignment due ${toSchoolDateString(dueDate)} (outside range): ${assignment.title}`);
+            console.log(`❌ Excluding assignment due ${dueDate.toISOString().split('T')[0]} (outside range): ${assignment.title}`);
           }
           
           return isInRange;
@@ -229,15 +203,8 @@ export class DatabaseStorage implements IStorage {
   async getAllAssignments(includeDeleted = false): Promise<Assignment[]> {
     try {
       // Get ALL assignments across all users for print queue
-      // CRITICAL: Filter out soft-deleted assignments unless explicitly requested
-      const result = includeDeleted 
-        ? await db.select().from(assignments)
-        : await db.select().from(assignments).where(
-            or(
-              eq(assignments.isDeleted, false),
-              isNull(assignments.isDeleted)
-            )
-          );
+      // TODO: Add soft deletion back after schema is pushed
+      const result = await db.select().from(assignments);
       return result || [];
     } catch (error) {
       console.error('Error getting all assignments:', error);
@@ -247,16 +214,7 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignment(id: string): Promise<Assignment | undefined> {
     try {
-      // CRITICAL: Filter out soft-deleted assignments to prevent access to deleted items
-      const result = await db.select().from(assignments).where(
-        and(
-          eq(assignments.id, id),
-          or(
-            eq(assignments.isDeleted, false),
-            isNull(assignments.isDeleted)
-          )
-        )
-      ).limit(1);
+      const result = await db.select().from(assignments).where(eq(assignments.id, id)).limit(1);
       return result[0] || undefined;
     } catch (error) {
       console.error('Error getting assignment:', error);
@@ -423,9 +381,9 @@ export class DatabaseStorage implements IStorage {
       const userId = `${studentName.toLowerCase()}-user`;
       
       // Get unscheduled assignments - EXCLUDE PARENT TASKS
-      const userAssignments = await this.getAssignments(userId, undefined, false);
+      const userAssignments = await this.getAssignments(userId);
       const unscheduledAssignments = userAssignments.filter(a => {
-        // First filter: must be pending and not already scheduled
+        // First filter: must be pending and not scheduled
         if (a.completionStatus !== 'pending' || (a.scheduledDate && a.scheduledBlock)) {
           return false;
         }
@@ -441,13 +399,13 @@ export class DatabaseStorage implements IStorage {
                             title.includes('registration') ||
                             title.includes('syllabus') ||
                             title.includes('honor code') ||
-                            (a.priority as string) === 'parent';
+                            a.priority === 'parent';
         
         const isBibleAssignment = title.includes('bible') || 
                                  subject.includes('bible') ||
                                  title.includes('scripture') ||
                                  subject.includes('scripture') ||
-                                 false; // Skip source check for now
+                                 a.creationSource === 'bible_curriculum';
         
         if (isParentTask) {
           console.log(`🚫 Excluding parent task from student scheduling: ${a.title}`);
@@ -462,9 +420,10 @@ export class DatabaseStorage implements IStorage {
         return true;
       });
       
-      // SCHOOL TIMEZONE: Use timezone-aware weekday for consistent schedule selection
-      const { getSchoolWeekdayName } = await import('./lib/schoolTimezone');
-      const weekday = getSchoolWeekdayName(targetDate);
+      // Get schedule template blocks
+      const targetDateObj = new Date(targetDate);
+      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const weekday = weekdays[targetDateObj.getDay()];
       const scheduleBlocks = await this.getScheduleTemplate(studentName, weekday);
       
       // Use auto-scheduler
@@ -493,7 +452,7 @@ export class DatabaseStorage implements IStorage {
         blockType: b.blockType
       }));
       
-      const schedulingResults = await autoScheduleAssignments(
+      const schedulingResults = autoScheduleAssignments(
         assignmentsToSchedule,
         scheduleBlocksFormatted,
         studentName,
@@ -535,13 +494,8 @@ export class DatabaseStorage implements IStorage {
 
   async updateAdministrativeAssignments(): Promise<void> {
     try {
-      // Get all active assignments and update administrative ones (exclude soft-deleted)
-      const allAssignments = await db.select().from(assignments).where(
-        or(
-          eq(assignments.isDeleted, false),
-          isNull(assignments.isDeleted)
-        )
-      );
+      // Get all assignments and update administrative ones
+      const allAssignments = await db.select().from(assignments);
       
       for (const assignment of allAssignments) {
         const title = assignment.title.toLowerCase();
@@ -558,7 +512,7 @@ export class DatabaseStorage implements IStorage {
           await db.update(assignments)
             .set({ 
               completionStatus: 'completed',
-              priority: sql`'parent'` // Mark as parent task
+              priority: 'parent' // Mark as parent task
             })
             .where(eq(assignments.id, assignment.id));
           
@@ -577,36 +531,6 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting assignment:', error);
       return false;
-    }
-  }
-
-  // Soft delete for Canvas sync - prevents showing deleted assignments to students
-  async markAssignmentDeleted(id: string): Promise<Assignment | undefined> {
-    try {
-      const result = await db.update(assignments)
-        .set({ 
-          isDeleted: true,
-          deletedAt: new Date()
-        })
-        .where(eq(assignments.id, id))
-        .returning();
-      return result[0] || undefined;
-    } catch (error) {
-      console.error('Error soft deleting assignment:', error);
-      return undefined;
-    }
-  }
-
-  // Get deleted assignments for admin audit trail
-  async getDeletedAssignments(): Promise<Assignment[]> {
-    try {
-      return await db.select()
-        .from(assignments)
-        .where(eq(assignments.isDeleted, true))
-        .orderBy(desc(assignments.deletedAt));
-    } catch (error) {
-      console.error('Error getting deleted assignments:', error);
-      return [];
     }
   }
 
@@ -837,8 +761,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Get assignments that need parent attention
-      const { getTodayString } = await import('../shared/dateUtils');
-      const today = getTodayString();
+      const today = new Date().toISOString().split('T')[0];
       const needsReviewAssignments = await db
         .select()
         .from(assignments)
@@ -943,9 +866,11 @@ export class DatabaseStorage implements IStorage {
 
   async initializeDailySchedule(studentName: string, date: string): Promise<void> {
     try {
-      // SCHOOL TIMEZONE: Use timezone-aware weekday for consistent schedule selection
-      const { getSchoolWeekdayName } = await import('./lib/schoolTimezone');
-      const weekdayName = getSchoolWeekdayName(date);
+      // Get current weekday (0 = Sunday, 1 = Monday, etc.)
+      const targetDate = new Date(date);
+      const weekday = targetDate.getDay();
+      const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const weekdayName = weekdayNames[weekday];
       
       // Get all schedule template blocks for this student and weekday
       const templateBlocks = await this.getScheduleTemplate(studentName, weekdayName);
@@ -987,9 +912,11 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`🎯 Allocating assignments for ${studentName} on ${date}`);
       
-      // SCHOOL TIMEZONE: Use timezone-aware weekday for consistent schedule selection
-      const { getSchoolWeekdayName } = await import('./lib/schoolTimezone');
-      const weekdayName = getSchoolWeekdayName(date);
+      // Get current weekday
+      const targetDate = new Date(date);
+      const weekday = targetDate.getDay();
+      const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const weekdayName = weekdayNames[weekday];
       
       // Get assignment blocks (blockType = 'Assignment')
       const templateBlocks = await this.getScheduleTemplate(studentName, weekdayName);
@@ -1073,9 +1000,9 @@ export class DatabaseStorage implements IStorage {
       
       // Get candidate assignments with ±7 day window and not completed
       const userId = `${studentName.toLowerCase()}-user`;
-      const windowStart = new Date(date + 'T00:00:00.000Z');
+      const windowStart = new Date(targetDate);
       windowStart.setDate(windowStart.getDate() - 7);
-      const windowEnd = new Date(date + 'T00:00:00.000Z');
+      const windowEnd = new Date(targetDate);
       windowEnd.setDate(windowEnd.getDate() + 7);
       
       const allAssignments = await this.getAssignments(userId);
@@ -1083,7 +1010,7 @@ export class DatabaseStorage implements IStorage {
         // Include assignments that are workable: pending, needs_more_time, stuck
         // EXCLUDE only truly completed assignments
         const workableStatuses = ['pending', 'needs_more_time', 'stuck', 'in_progress'];
-        if (!workableStatuses.includes(assignment.completionStatus || 'pending')) {
+        if (!workableStatuses.includes(assignment.completionStatus)) {
           console.log(`🚫 Excluding non-workable assignment: ${assignment.title} (status: ${assignment.completionStatus})`);
           return false;
         }
@@ -1245,19 +1172,12 @@ export class DatabaseStorage implements IStorage {
       const assignedAssignments: string[] = [];
       
       // Calculate block durations and sort by duration (longest first for smart allocation)
-      const blocksWithDuration = await Promise.all(availableAssignmentBlocks.map(async block => {
+      const blocksWithDuration = availableAssignmentBlocks.map(block => {
         const startTime = new Date(`2000-01-01T${block.startTime}`);
         const endTime = new Date(`2000-01-01T${block.endTime}`);
         const blockMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
-        
-        // SCHED: Debug final block time calculations - FIXED for school timezone
-        const { composeSchoolInstant } = await import('./lib/schoolTimezone');
-        const blockStartISO = composeSchoolInstant(date, block.startTime);
-        const blockEndISO = composeSchoolInstant(date, block.endTime);
-        console.log(`SCHED: Block ${block.blockNumber} - start: ${blockStartISO}, end: ${blockEndISO}, durationMin: ${blockMinutes}`);
-        
         return { block, blockMinutes };
-      })).then(blocks => blocks.sort((a, b) => b.blockMinutes - a.blockMinutes)); // Longest blocks first
+      }).sort((a, b) => b.blockMinutes - a.blockMinutes); // Longest blocks first
       
       // Prepare assignment pool with time estimates
       const assignmentPool = optimizedSequence.map(({ assignment }) => ({
@@ -1304,28 +1224,8 @@ export class DatabaseStorage implements IStorage {
           
           assignedAssignments.push(bestFit.assignment.title);
           
-          // MINI-FIX: Enhanced scheduling with block splitting for DurationNotFit
           if (bestFit.assignmentMinutes > blockMinutes) {
-            const overflow = bestFit.assignmentMinutes - blockMinutes;
-            
-            // Check if we can split across next consecutive block
-            const currentBlockIndex = blocksWithDuration.findIndex(b => b.block.blockNumber === block.blockNumber);
-            const hasNextBlock = currentBlockIndex >= 0 && currentBlockIndex < blocksWithDuration.length - 1;
-            
-            if (hasNextBlock && overflow <= 30) { // Only split for reasonable overflows
-              const nextBlock = blocksWithDuration[currentBlockIndex + 1];
-              const currentBlockEnd = new Date(block.endTime);
-              const nextBlockStart = new Date(nextBlock.block.startTime);
-              const timeBetween = (nextBlockStart.getTime() - currentBlockEnd.getTime()) / (1000 * 60);
-              
-              if (timeBetween <= 60) { // Consecutive blocks (within 1 hour)
-                console.log(`📋 SPLIT: ${bestFit.assignmentMinutes}min assignment across consecutive blocks (${blockMinutes}min + ${overflow}min): ${bestFit.assignment.title}`);
-              } else {
-                console.log(`📋 Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block (${overflow}min overflow): ${bestFit.assignment.title}`);
-              }
-            } else {
-              console.log(`📋 Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block (${overflow}min overflow): ${bestFit.assignment.title}`);
-            }
+            console.log(`📋 Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block (${bestFit.assignmentMinutes - blockMinutes}min overflow): ${bestFit.assignment.title}`);
           } else {
             console.log(`✅ Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block: ${bestFit.assignment.title}`);
           }
@@ -1415,21 +1315,19 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`Assignment ${assignmentId} not found`);
       }
       
-      // UTC HARDENING: Parse date-only string as UTC midnight, not local time
-      const targetDate = new Date(date + 'T00:00:00.000Z');
+      const targetDate = new Date(date);
       const today = new Date();
-      today.setUTCHours(0, 0, 0, 0);
-      targetDate.setUTCHours(0, 0, 0, 0);
-      
-      console.log(`SCHED: [RESCHEDULE-UTC-HARDENED] Input date: ${date} -> UTC: ${targetDate.toISOString()}, Today UTC: ${today.toISOString()}`);
+      today.setHours(0, 0, 0, 0);
+      targetDate.setHours(0, 0, 0, 0);
       
       const isDueToday = assignment.dueDate && new Date(assignment.dueDate).getTime() === targetDate.getTime();
       const isOverdue = assignment.dueDate && new Date(assignment.dueDate) < targetDate;
       
       if (isDueToday || isOverdue) {
-        // SCHOOL TIMEZONE: Use timezone-aware weekday for consistent schedule selection
-        const { getSchoolWeekdayName } = await import('./lib/schoolTimezone');
-        const weekdayName = getSchoolWeekdayName(date);
+        // Find next open assignment block today
+        const weekday = targetDate.getDay();
+        const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const weekdayName = weekdayNames[weekday];
         
         const templateBlocks = await this.getScheduleTemplate(assignment.userId.replace('-user', ''), weekdayName);
         const assignmentBlocks = templateBlocks.filter(block => 
@@ -1458,10 +1356,9 @@ export class DatabaseStorage implements IStorage {
             const lowestPriority = todayScheduled[0];
             const tomorrow = new Date(targetDate);
             tomorrow.setDate(tomorrow.getDate() + 1);
-            const { toSchoolDateString } = await import('../shared/dateUtils');
             
             await this.updateAssignmentScheduling(lowestPriority.id, {
-              scheduledDate: toSchoolDateString(tomorrow),
+              scheduledDate: tomorrow.toISOString().split('T')[0],
               scheduledBlock: null,
               blockStart: null,
               blockEnd: null
@@ -2000,21 +1897,6 @@ export class MemStorage implements IStorage {
   async getAllAssignments(): Promise<Assignment[]> {
     // Return all assignments for print queue functionality
     return Array.from(this.assignments.values());
-  }
-
-  async markAssignmentDeleted(id: string): Promise<Assignment | undefined> {
-    // Stub implementation for MemStorage
-    const assignment = this.assignments.get(id);
-    if (assignment) {
-      this.assignments.delete(id);
-      return assignment;
-    }
-    return undefined;
-  }
-
-  async getDeletedAssignments(): Promise<Assignment[]> {
-    // Stub implementation for MemStorage
-    return [];
   }
 }
 
