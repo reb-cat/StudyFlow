@@ -161,8 +161,8 @@ export const updateDailyScheduleStatusSchema = insertDailyScheduleStatusSchema.p
 
 // Simple position tracking for sequential curriculum progression
 export const bibleCurriculumPosition = pgTable("bible_curriculum_position", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  studentName: text("student_name").notNull().unique(),
+  id: integer("id").primaryKey(),
+  studentName: varchar("student_name", { length: 100 }).notNull().unique(),
   currentWeek: integer("current_week").notNull().default(1),
   currentDay: integer("current_day").notNull().default(1),
   lastUpdated: timestamp("last_updated").defaultNow(),
@@ -170,7 +170,7 @@ export const bibleCurriculumPosition = pgTable("bible_curriculum_position", {
 
 // Student profiles for managing avatars and personal settings
 export const studentProfiles = pgTable("student_profiles", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   studentName: text("student_name").notNull().unique(), // "abigail", "khalil"
   displayName: text("display_name").notNull(), // "Abigail", "Khalil"
   profileImageUrl: text("profile_image_url"), // URL to profile image in object storage
