@@ -246,9 +246,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET /api/assignments-v2 - Get assignments for a user/date (bypasses frontend interception)
-  app.get('/api/assignments-v2', async (req, res) => {
-    console.log(`🚨🚨🚨 ROUTE HIT: /api/assignments-v2 route handler executing!`);
+  // GET /api/debug-fetch - Completely new endpoint to bypass all browser interception
+  app.get('/api/debug-fetch', async (req, res) => {
+    console.log(`🚨🚨🚨 ROUTE HIT: /api/debug-fetch route handler executing!`);
     console.log(`🔍 Request params:`, req.query);
     console.log(`🔍 Session auth:`, req.session?.authenticated);
     try {

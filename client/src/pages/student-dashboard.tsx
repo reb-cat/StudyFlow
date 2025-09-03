@@ -106,15 +106,15 @@ export default function StudentDashboard() {
 
   // Fetch assignments for the selected date (including scheduled ones)
   const { data: assignments = [], isLoading, refetch } = useQuery({
-    queryKey: ['/api/assignments-v2', selectedDate, studentName],
+    queryKey: ['/api/debug-fetch', selectedDate, studentName],
     queryFn: async () => {
       const params = new URLSearchParams({
         date: selectedDate,
         studentName: studentName,
         _t: Date.now().toString() // Cache buster
       });
-      const url = `/api/assignments-v2?${params}`;
-      console.log(`🔥 Frontend making assignments API call: ${url}`);
+      const url = `/api/debug-fetch?${params}`;
+      console.log(`🔥 Frontend making debug API call: ${url}`);
       const response = await fetch(url, {
         credentials: 'include',  // Ensure cookies are sent for auth
         cache: 'no-cache',       // Force fresh request
@@ -177,7 +177,7 @@ export default function StudentDashboard() {
 
   const handleAssignmentUpdate = () => {
     refetch();
-    queryClient.invalidateQueries({ queryKey: ['/api/assignments-v2', selectedDate, studentName] });
+    queryClient.invalidateQueries({ queryKey: ['/api/debug-fetch', selectedDate, studentName] });
   };
 
   // Status badge helpers for Overview Mode
