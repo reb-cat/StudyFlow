@@ -445,10 +445,9 @@ export class DatabaseStorage implements IStorage {
         return true;
       });
       
-      // Get schedule template blocks
-      const targetDateObj = new Date(targetDate);
-      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const weekday = weekdays[targetDateObj.getDay()];
+      // SCHOOL TIMEZONE: Use timezone-aware weekday for consistent schedule selection
+      const { getSchoolWeekdayName } = await import('./lib/schoolTimezone');
+      const weekday = getSchoolWeekdayName(targetDate);
       const scheduleBlocks = await this.getScheduleTemplate(studentName, weekday);
       
       // Use auto-scheduler
@@ -477,7 +476,7 @@ export class DatabaseStorage implements IStorage {
         blockType: b.blockType
       }));
       
-      const schedulingResults = autoScheduleAssignments(
+      const schedulingResults = await autoScheduleAssignments(
         assignmentsToSchedule,
         scheduleBlocksFormatted,
         studentName,
@@ -926,11 +925,9 @@ export class DatabaseStorage implements IStorage {
 
   async initializeDailySchedule(studentName: string, date: string): Promise<void> {
     try {
-      // Get current weekday (0 = Sunday, 1 = Monday, etc.)
-      const targetDate = new Date(date);
-      const weekday = targetDate.getDay();
-      const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const weekdayName = weekdayNames[weekday];
+      // SCHOOL TIMEZONE: Use timezone-aware weekday for consistent schedule selection
+      const { getSchoolWeekdayName } = await import('./lib/schoolTimezone');
+      const weekdayName = getSchoolWeekdayName(date);
       
       // Get all schedule template blocks for this student and weekday
       const templateBlocks = await this.getScheduleTemplate(studentName, weekdayName);
@@ -972,11 +969,9 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`🎯 Allocating assignments for ${studentName} on ${date}`);
       
-      // Get current weekday
-      const targetDate = new Date(date);
-      const weekday = targetDate.getDay();
-      const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const weekdayName = weekdayNames[weekday];
+      // SCHOOL TIMEZONE: Use timezone-aware weekday for consistent schedule selection
+      const { getSchoolWeekdayName } = await import('./lib/schoolTimezone');
+      const weekdayName = getSchoolWeekdayName(date);
       
       // Get assignment blocks (blockType = 'Assignment')
       const templateBlocks = await this.getScheduleTemplate(studentName, weekdayName);
@@ -1393,10 +1388,9 @@ export class DatabaseStorage implements IStorage {
       const isOverdue = assignment.dueDate && new Date(assignment.dueDate) < targetDate;
       
       if (isDueToday || isOverdue) {
-        // Find next open assignment block today
-        const weekday = targetDate.getDay();
-        const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const weekdayName = weekdayNames[weekday];
+        // SCHOOL TIMEZONE: Use timezone-aware weekday for consistent schedule selection
+        const { getSchoolWeekdayName } = await import('./lib/schoolTimezone');
+        const weekdayName = getSchoolWeekdayName(date);
         
         const templateBlocks = await this.getScheduleTemplate(assignment.userId.replace('-user', ''), weekdayName);
         const assignmentBlocks = templateBlocks.filter(block => 

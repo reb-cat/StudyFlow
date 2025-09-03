@@ -544,13 +544,13 @@ export interface AssignmentToSchedule {
 /**
  * Auto-schedule assignments into specific schedule blocks
  */
-export function autoScheduleAssignments(
+export async function autoScheduleAssignments(
   assignments: AssignmentToSchedule[],
   scheduleBlocks: ScheduleBlock[],
   studentName: string,
   targetDate: string,
   timeZone: string = 'America/New_York'
-): Map<string, SchedulingResult> {
+): Promise<Map<string, SchedulingResult>> {
   
   console.log(`🤖 Auto-Scheduler: Processing ${assignments.length} assignments for ${studentName} on ${targetDate}`);
   
@@ -575,9 +575,9 @@ export function autoScheduleAssignments(
     (!a.scheduledDate || !a.scheduledBlock)
   );
   
-  // 2. Get available blocks for target date
-  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const weekday = weekdays[targetDateObj.getDay()];
+  // 2. SCHOOL TIMEZONE: Get available blocks for target date using school timezone weekday
+  const { getSchoolWeekdayName } = await import('./schoolTimezone');
+  const weekday = getSchoolWeekdayName(targetDate);
   
   // CO-OP WORKFLOW: Separate blocks by type
   const assignmentBlocks = scheduleBlocks.filter(block => 

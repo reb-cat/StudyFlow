@@ -554,14 +554,15 @@ class JobScheduler {
     }
   }
 
-  private getNextAssignmentDate(): string {
+  private async getNextAssignmentDate(): Promise<string> {
     // For now, schedule assignments for the next weekday
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    // Skip weekends
-    while (tomorrow.getDay() === 0 || tomorrow.getDay() === 6) {
+    // SCHOOL TIMEZONE: Skip weekends using school timezone
+    const { isSchoolWeekend } = await import('./schoolTimezone');
+    while (isSchoolWeekend(tomorrow)) {
       tomorrow.setDate(tomorrow.getDate() + 1);
     }
     

@@ -817,10 +817,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { studentName, date } = req.params;
       
-      // Convert date to weekday name
-      const dateObj = new Date(date);
-      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const weekday = weekdays[dateObj.getDay()];
+      // SCHOOL TIMEZONE: Convert date to weekday name using school timezone
+      const { getSchoolWeekdayName } = await import('./lib/schoolTimezone');
+      const weekday = getSchoolWeekdayName(date);
       
       console.log(`Fetching schedule for ${studentName} on ${weekday} (${date})`);
       
@@ -2389,10 +2388,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       const userId = `${studentName.toLowerCase()}-user`;
       const updatedAssignments = await storage.getAssignments(userId, date);
       
-      // Get schedule template for the day
-      const dateObj = new Date(date);
-      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const weekday = weekdays[dateObj.getDay()];
+      // SCHOOL TIMEZONE: Get schedule template for the day using school timezone weekday
+      const { getSchoolWeekdayName } = await import('./lib/schoolTimezone');
+      const weekday = getSchoolWeekdayName(date);
       const scheduleBlocks = await storage.getScheduleTemplate(studentName, weekday);
       
       res.json({
