@@ -114,7 +114,13 @@ export default function StudentDashboard() {
       });
       const url = `/api/assignments?${params}`;
       console.log(`🔥 Frontend making assignments API call: ${url}`);
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        credentials: 'include',  // Ensure cookies are sent for auth
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      console.log(`🔥 Response status: ${response.status} ${response.statusText}`);
       if (!response.ok) {
         console.error(`🔥 API call failed: ${response.status} ${response.statusText}`);
         throw new Error('Failed to fetch assignments');
@@ -123,7 +129,8 @@ export default function StudentDashboard() {
       console.log(`🔥 API response:`, data);
       return data;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Disable caching to force fresh requests
+    gcTime: 0,    // Disable garbage collection caching
   });
 
   // Fetch schedule template for the student and date
