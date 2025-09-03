@@ -421,7 +421,7 @@ export default function StudentDashboard() {
   });
 
   // DEBUG LOGGING: Client Overview composition
-  const DEBUG_ORDERING = process.env.NODE_ENV === 'development' && false; // Enable when needed
+  const DEBUG_ORDERING = import.meta.env.DEV && false; // Enable when needed
   if (DEBUG_ORDERING && studentName === 'Abigail') {
     console.log('\n🧭 ORDER TRACE / CLIENT_OVERVIEW: allScheduleBlocks');
     allScheduleBlocks.forEach((block, i) => {

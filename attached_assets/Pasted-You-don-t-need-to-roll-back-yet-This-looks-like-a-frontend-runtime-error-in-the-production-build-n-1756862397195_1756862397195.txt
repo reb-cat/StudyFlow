@@ -1,0 +1,122 @@
+You don’t need to roll back yet. This looks like a frontend runtime error in the production build, not a backend outage. Let’s capture the exact error and patch it. Here’s a tight, do-now plan.
+
+Step 1 — Make prod tell you what broke (2 mins)
+
+Add a global error boundary and window listeners so the blank page shows an error instead of nothing.
+
+ErrorBoundary.tsx
+
+import { Component, ReactNode } from 'react';
+
+export class ErrorBoundary extends Component<{children:ReactNode}, {err?:Error}> {
+  state = { err: undefined as Error|undefined };
+  static getDerivedStateFromError(err: Error) { return { err }; }
+  componentDidCatch(err: Error, info: any) { console.error('[ReactBoundary]', err, info); }
+  render() {
+    if (this.state.err) {
+      return <div style={{padding:16}}>
+        <h2>Something went wrong.</h2>
+        <pre style={{whiteSpace:'pre-wrap'}}>{this.state.err.message}</pre>
+      </div>;
+    }
+    return this.props.children;
+  }
+}
+
+Wrap your app/root routes:
+
+import { ErrorBoundary } from './ErrorBoundary';
+root.render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
+
+Add global listeners once (e.g., in main.tsx before render):
+
+window.addEventListener('error', e => {
+  console.error('[window.error]', e.message, e.error?.stack);
+});
+window.addEventListener('unhandledrejection', e => {
+  console.error('[unhandledrejection]', e.reason);
+});
+console.log('[client env]', {
+  VITE_API_URL: import.meta.env.VITE_API_URL ?? '(empty= same-origin)',
+  BASE_URL: import.meta.env.BASE_URL, // Vite’s base, not your custom var
+});
+
+If a React render throws (common cause of blank), you’ll now see what and where in the console.
+
+Step 2 — Verify client envs (common prod-only break)
+
+Only variables prefixed with VITE_ are exposed to the client. If any component uses process.env.BASE_URL or import.meta.env.BASE_URL as your own app URL, it’s wrong—BASE_URL is a Vite internal path prefix, not your API. Make sure every fetch uses the same helper:
+
+// client/src/lib/api.ts
+const API = import.meta.env.VITE_API_URL || ''; // same-origin in monolith
+export const apiFetch = (path: string, init?: RequestInit) =>
+  fetch(`${API}${path}`, { credentials: 'include', ...init });
+
+Search for mistakes:
+
+rg -n "process\\.env\\.|import\\.meta\\.env\\.(?!VITE_)" client -g "!node_modules"
+
+If any client code reads non-VITE envs, replace with VITE_* or remove.
+
+Step 3 — Guard the student pages so they can’t crash (5 mins)
+
+Even with good data, one map/reduce on undefined will blank the page in prod.
+
+Add defensive defaults where you render schedule/overview:
+
+const safe = <T,>(v: T[] | null | undefined): T[] => Array.isArray(v) ? v : [];
+
+const daySchedule = safe(schedule).filter(x => x.scheduledDate === selectedDate);
+const dayAssignments = safe(assignments).filter(x => x.scheduledDate === selectedDate);
+
+// never assume objects exist
+const prog = progress ?? { done: 0, total: 0 };
+
+Show a friendly empty state instead of rendering nothing:
+
+if (!safe(daySchedule).length && !safe(dayAssignments).length) {
+  return <div style={{padding:16}}>No items for {selectedDate}.</div>;
+}
+
+Step 4 — Check the second endpoint on Overview
+
+Your /api/assignments?... call is good. The blank Overview typically also calls something like /api/schedule or /api/family that’s returning [] or 500 in prod.
+
+Open DevTools → Network on /student/abigail and inspect all calls. For any failing one, hit it directly:
+
+curl -sI https://study-flow.replit.app/api/schedule?date=2025-09-02&studentSlug=abigail | head -n1
+
+	•	404 → param mismatch (use studentSlug everywhere; server should resolve slug/name/id consistently).
+	•	401 → cookie not included on that call; ensure credentials:'include'.
+	•	500 → check server logs; probably a column/table mismatch after the schema changes.
+
+If your endpoints use different student params, normalize them (server-side shim):
+
+// shared resolver used by /api/schedule, /api/family, etc.
+const q = (req.query.studentSlug || req.query.studentId || req.query.studentName || req.query.name || '').toString();
+// try id → slug → case-insensitive name for ownerId
+
+Step 5 — Source maps for real stack traces (optional but helpful)
+
+Enable sourcemaps so prod logs point to files you recognize.
+	•	In vite.config.ts:
+
+export default defineConfig({
+  build: { sourcemap: true },
+  // ...
+});
+
+	•	Or set VITE_SOURCEMAP=true and honor it in config.
+
+Step 6 — Quick cache bust
+
+If you use a service worker or aggressive caching, stale JS can cause weirdness. Temporarily disable SW and add:
+
+<!-- index.html -->
+<meta http-equiv="Cache-Control" content="no-store" />
+
+Then hard refresh (⌘⇧R / Ctrl+F5).

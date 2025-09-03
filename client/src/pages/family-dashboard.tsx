@@ -72,35 +72,36 @@ export default function FamilyDashboard() {
     );
   }
 
+  // Safe array helper
+  const safe = <T,>(value: T[] | null | undefined): T[] => Array.isArray(value) ? value : [];
+
   // Transform API data to match component expectations
   const dashboardData = {
-    students: (apiData?.students || []).map((student: any) => ({
-      id: student.studentName,
-      name: student.profile?.displayName || (student.studentName.charAt(0).toUpperCase() + student.studentName.slice(1)),
-      initial: (student.profile?.displayName || student.studentName)[0].toUpperCase(),
-      profileImage: student.profile?.profileImageUrl,
-      currentMode: student.currentMode || 'overview',
+    students: safe(apiData?.students).map((student: any) => ({
+      id: student?.studentName || 'unknown',
+      name: student?.profile?.displayName || (student?.studentName ? student.studentName.charAt(0).toUpperCase() + student.studentName.slice(1) : 'Unknown'),
+      initial: (student?.profile?.displayName || student?.studentName || 'U')[0].toUpperCase(),
+      profileImage: student?.profile?.profileImageUrl,
+      currentMode: student?.currentMode || 'overview',
       todayStats: {
-        completed: student.completedToday || 0,
-        total: student.totalToday || 0,
-        inProgress: student.currentAssignmentTitle || 'No current assignment',
-        minutesWorked: student.minutesWorkedToday || 0,
-        targetMinutes: student.targetMinutesToday || 180
+        completed: student?.completedToday || 0,
+        total: student?.totalToday || 0,
+        inProgress: student?.currentAssignmentTitle || 'No current assignment',
+        minutesWorked: student?.minutesWorkedToday || 0,
+        targetMinutes: student?.targetMinutesToday || 180
       },
       flags: {
-        stuck: student.isStuck || false,
-        needsHelp: student.needsHelp || false,
-        overtimeOnTask: student.isOvertimeOnTask || false
+        stuck: student?.isStuck || false,
+        needsHelp: student?.needsHelp || false,
+        overtimeOnTask: student?.isOvertimeOnTask || false
       }
     })),
     
-    // Items ready for parent review/printing (placeholder for now)
-    printQueue: [
-      // Will be populated from real print queue data when integrated
-    ],
+    // Use actual print queue count from API stats
+    printQueue: Array.from({ length: apiData?.printQueueCount || 0 }, (_, i) => ({ id: i })),
     
     // Assignments that need parent attention from API
-    needsReview: apiData?.needsReview || []
+    needsReview: safe(apiData?.needsReview)
   };
 
   const getTotalFlags = (student: any) => {
