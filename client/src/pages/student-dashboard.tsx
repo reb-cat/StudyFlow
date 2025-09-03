@@ -124,15 +124,15 @@ export default function StudentDashboard() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Fetch schedule template for the student and date
+  // Fetch schedule template for the student (no auth required)
   const { data: scheduleTemplate = [] } = useQuery<any[]>({
-    queryKey: ['/api/schedule', studentName, selectedDate],
+    queryKey: ['/api/schedule-template', studentName],
     queryFn: async () => {
-      const response = await fetch(`/api/schedule/${studentName}/${selectedDate}`);
+      const response = await fetch(`/api/schedule-template/${studentName}`);
       if (!response.ok) throw new Error('Failed to fetch schedule template');
       return response.json();
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 30, // 30 minutes (template doesn't change often)
   });
 
   // Initialize daily schedule for today
