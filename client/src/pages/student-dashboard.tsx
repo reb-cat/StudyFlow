@@ -92,8 +92,8 @@ export default function StudentDashboard() {
   const studentName = params.student ? params.student.charAt(0).toUpperCase() + params.student.slice(1) : "Abigail";
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
-    // Set to September 2nd, 2025 to show assignments with instructions
-    return '2025-09-02';
+    // Use today's date in NY timezone
+    return toNYDateString();
   });
   const queryClient = useQueryClient();
 
@@ -104,17 +104,13 @@ export default function StudentDashboard() {
   };
 
 
-  // Fetch assignments for today (get assignments due on or before this date)
+  // Fetch assignments for the selected date (FIXED: fetch and filter use same date)
   const { data: assignments = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/assignments', selectedDate, studentName],
     queryFn: async () => {
-      // For scheduling purposes, show assignments due in the next few days
-      const currentDate = new Date(selectedDate);
-      const targetDate = new Date(currentDate);
-      targetDate.setDate(currentDate.getDate() + 2); // Show assignments due within 2 days
-      
+      // Use the SAME date for fetch and filter to prevent mismatch
       const params = new URLSearchParams({
-        date: toNYDateString(targetDate),
+        date: selectedDate, // Use selectedDate directly, not a calculated targetDate
         studentName: studentName
       });
       const response = await fetch(`/api/assignments?${params}`);
@@ -294,13 +290,15 @@ export default function StudentDashboard() {
     subject: block.subject
   }));
 
-  // Debug logging to see what's happening
+  // Debug logging to see what's happening  
   console.log('🔍 Schedule Debug:', {
     studentName,
     selectedDate,
     scheduleTemplateLength: scheduleTemplate.length,
     allScheduleBlocksLength: allScheduleBlocks.length,
-    firstFewBlocks: allScheduleBlocks.slice(0, 3)
+    assignmentsLength: assignments.length,
+    firstFewBlocks: allScheduleBlocks.slice(0, 3),
+    firstFewAssignments: assignments.slice(0, 2)
   });
 
   // Separate Bible blocks from other fixed blocks using real data
@@ -663,8 +661,22 @@ export default function StudentDashboard() {
                 </h3>
                   
                   <div className="space-y-3 print:space-y-0">
+                    {/* Show loading state */}
+                    {isLoading && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Loading schedule...
+                      </div>
+                    )}
+                    
+                    {/* Show empty state */}
+                    {!isLoading && allScheduleBlocks.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No schedule blocks found for {selectedDate}
+                      </div>
+                    )}
+                    
                     {/* Show ALL schedule blocks in chronological order with compact Apple-style layout */}
-                    {allScheduleBlocks
+                    {!isLoading && allScheduleBlocks.length > 0 && allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((block, index) => {
                         // Get appropriate icon component using cleaner mapping
