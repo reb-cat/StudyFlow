@@ -1236,6 +1236,12 @@ export class DatabaseStorage implements IStorage {
         const startTime = new Date(`2000-01-01T${block.startTime}`);
         const endTime = new Date(`2000-01-01T${block.endTime}`);
         const blockMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+        
+        // SCHED: Debug final block time calculations
+        const blockStartISO = new Date(`${date}T${block.startTime}`).toISOString();
+        const blockEndISO = new Date(`${date}T${block.endTime}`).toISOString();
+        console.log(`SCHED: Block ${block.blockNumber} - start: ${blockStartISO}, end: ${blockEndISO}, durationMin: ${blockMinutes}`);
+        
         return { block, blockMinutes };
       }).sort((a, b) => b.blockMinutes - a.blockMinutes); // Longest blocks first
       

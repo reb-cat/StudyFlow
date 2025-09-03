@@ -554,6 +554,17 @@ export function autoScheduleAssignments(
   
   console.log(`🤖 Auto-Scheduler: Processing ${assignments.length} assignments for ${studentName} on ${targetDate}`);
   
+  // SCHED: Debug input date and computed day boundaries
+  const targetDateObj = new Date(targetDate);
+  const startOfDay = new Date(targetDateObj);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDateObj);
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  console.log(`SCHED: Input date received: ${targetDate} (ISO: ${targetDateObj.toISOString()})`);
+  console.log(`SCHED: Computed start of day: ${startOfDay.toISOString()}`);
+  console.log(`SCHED: Computed end of day: ${endOfDay.toISOString()}`);
+  
   const results = new Map<string, SchedulingResult>();
   const today = new Date().toLocaleDateString('en-CA', { timeZone }); // Get today in America/New_York
   
@@ -564,7 +575,6 @@ export function autoScheduleAssignments(
   );
   
   // 2. Get available blocks for target date
-  const targetDateObj = new Date(targetDate);
   const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const weekday = weekdays[targetDateObj.getDay()];
   
