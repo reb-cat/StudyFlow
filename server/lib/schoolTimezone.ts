@@ -88,39 +88,45 @@ export function composeSchoolInstant(date: string, time: string): string {
   const minutes = parseInt(timeParts[1] || '0', 10);
   const seconds = parseInt(timeParts[2] || '0', 10);
   
-  // Parse date components
+  // Parse date components  
   const [year, month, day] = date.split('-').map(Number);
   
-  // Create the instant at the specified wall-clock time in school timezone
-  const schoolDate = new Date();
-  schoolDate.setFullYear(year, month - 1, day);
-  schoolDate.setHours(hours, minutes, seconds, 0);
+  // SIMPLIFIED & RELIABLE TIMEZONE CONVERSION:
+  // Use a deterministic approach that works regardless of system timezone
   
-  // Convert to school timezone aware instant - this handles DST automatically
-  // The time zone library will automatically adjust for DST
-  const utcInstant = new Date(schoolDate.toLocaleString('en-US', { timeZone: 'UTC' }));
+  // Step 1: Create a Date object in local time (this will be interpreted in system timezone)
+  const localDate = new Date(year, month - 1, day, hours, minutes, seconds);
   
-  // For proper timezone conversion, we need to work backwards from school time
-  const schoolOffset = getTimezoneOffset(schoolDate, SCHOOL_TIMEZONE);
-  const correctedUtc = new Date(schoolDate.getTime() - schoolOffset);
+  // Step 2: Get what this date/time looks like when interpreted in school timezone
+  const schoolTimeFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: SCHOOL_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit', 
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
   
-  const isoString = correctedUtc.toISOString();
+  // Step 3: Create a reference point - what is noon UTC on this date in school timezone?
+  const noonUTC = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  const noonInSchool = schoolTimeFormatter.formatToParts(noonUTC);
+  
+  // Extract the school timezone hour when it's noon UTC
+  const schoolNoonHour = parseInt(noonInSchool.find(p => p.type === 'hour')?.value || '12');
+  
+  // Calculate the offset: if noon UTC shows as 8 AM in school time, offset is -4 hours
+  const offsetHours = schoolNoonHour - 12;
+  
+  // Step 4: Apply this offset to our target time to convert to UTC
+  const utcResult = new Date(Date.UTC(year, month - 1, day, hours - offsetHours, minutes, seconds));
+  
+  const isoString = utcResult.toISOString();
   
   // Debug logging to show the conversion
   const schoolTimeDisplay = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   console.log(`COMPOSE: raw=${time} date=${date} -> school=${schoolTimeDisplay} NY -> iso=${isoString}`);
   
   return isoString;
-}
-
-/**
- * Get timezone offset in milliseconds for a given date in a specific timezone
- */
-function getTimezoneOffset(date: Date, timezone: string): number {
-  // Get the UTC time and the time in the target timezone
-  const utcTime = date.getTime();
-  const targetTime = new Date(date.toLocaleString('en-US', { timeZone: timezone })).getTime();
-  
-  // Return the difference (offset in milliseconds)
-  return utcTime - targetTime;
 }

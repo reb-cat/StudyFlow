@@ -1231,19 +1231,19 @@ export class DatabaseStorage implements IStorage {
       const assignedAssignments: string[] = [];
       
       // Calculate block durations and sort by duration (longest first for smart allocation)
-      const blocksWithDuration = availableAssignmentBlocks.map(block => {
+      const blocksWithDuration = await Promise.all(availableAssignmentBlocks.map(async block => {
         const startTime = new Date(`2000-01-01T${block.startTime}`);
         const endTime = new Date(`2000-01-01T${block.endTime}`);
         const blockMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
         
         // SCHED: Debug final block time calculations - FIXED for school timezone
-        const { composeSchoolInstant } = require('./lib/schoolTimezone');
+        const { composeSchoolInstant } = await import('./lib/schoolTimezone');
         const blockStartISO = composeSchoolInstant(date, block.startTime);
         const blockEndISO = composeSchoolInstant(date, block.endTime);
         console.log(`SCHED: Block ${block.blockNumber} - start: ${blockStartISO}, end: ${blockEndISO}, durationMin: ${blockMinutes}`);
         
         return { block, blockMinutes };
-      }).sort((a, b) => b.blockMinutes - a.blockMinutes); // Longest blocks first
+      })).then(blocks => blocks.sort((a, b) => b.blockMinutes - a.blockMinutes)); // Longest blocks first
       
       // Prepare assignment pool with time estimates
       const assignmentPool = optimizedSequence.map(({ assignment }) => ({
