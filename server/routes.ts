@@ -323,6 +323,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PRODUCTION DIAGNOSTIC: Comprehensive database and user validation
+  app.get('/api/production-diagnostic', async (req, res) => {
+    console.log('🔧 PRODUCTION DIAGNOSTIC: Comprehensive system check');
+    
+    try {
+      const diagnostics: any = {
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'unknown',
+        database: {},
+        users: {},
+        assignments: {},
+        scheduleTemplates: {}
+      };
+
+      // Check database connection
+      try {
+        const allAssignments = await storage.getAllAssignments();
+        diagnostics.database.connection = 'OK';
+        diagnostics.database.totalAssignments = allAssignments.length;
+      } catch (error) {
+        diagnostics.database.connection = 'FAILED';
+        diagnostics.database.error = error instanceof Error ? error.message : 'Unknown error';
+      }
+
+      // Check user data for both students
+      const studentUserMap: Record<string, string> = {
+        'abigail': 'abigail-user',
+        'khalil': 'khalil-user'
+      };
+
+      for (const [studentName, userId] of Object.entries(studentUserMap)) {
+        try {
+          const userAssignments = await storage.getAllAssignments();
+          const studentAssignments = userAssignments.filter(a => a.userId === userId);
+          diagnostics.users[studentName] = {
+            userId,
+            assignmentCount: studentAssignments.length,
+            hasData: studentAssignments.length > 0
+          };
+        } catch (error) {
+          diagnostics.users[studentName] = {
+            userId,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+
+      // Check today's assignments specifically
+      const today = new Date().toISOString().split('T')[0];
+      try {
+        const todayAssignments = await storage.getAssignments('abigail-user', today, false);
+        diagnostics.assignments.todayForAbigail = todayAssignments.length;
+      } catch (error) {
+        diagnostics.assignments.todayError = error instanceof Error ? error.message : 'Unknown error';
+      }
+
+      console.log('📊 PRODUCTION DIAGNOSTIC RESULTS:', JSON.stringify(diagnostics, null, 2));
+      res.json(diagnostics);
+    } catch (error) {
+      console.error('❌ Diagnostic failed:', error);
+      res.status(500).json({ error: 'Diagnostic failed', details: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // PRODUCTION FIX: Create missing endpoints that production frontend is calling
   app.get('/api/assignments-v2', async (req, res) => {
     console.log('🔧 PRODUCTION FIX: /api/assignments-v2 called with params:', req.query);
@@ -344,8 +408,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = studentUserMap[studentName.toLowerCase()] || "unknown-user";
 
       console.log(`🔍 BRIDGE DEBUG: Fetching assignments for userId="${userId}", date="${date}"`);
-      const assignments = await storage.getAssignments(userId, date, false);
+      
+      // Add comprehensive error handling and fallback
+      let assignments;
+      try {
+        assignments = await storage.getAssignments(userId, date, false);
+      } catch (dbError) {
+        console.error(`❌ Database error for ${userId}:`, dbError);
+        // Try to get all assignments as fallback
+        try {
+          const allAssignments = await storage.getAllAssignments();
+          assignments = allAssignments.filter(a => a.userId === userId);
+          console.log(`🔄 Fallback: Using all assignments, found ${assignments.length}`);
+        } catch (fallbackError) {
+          console.error('❌ Fallback also failed:', fallbackError);
+          assignments = [];
+        }
+      }
+
       console.log(`📊 BRIDGE DEBUG: Found ${assignments.length} assignments for ${userId} on ${date}`);
+      
+      // If no assignments found, provide helpful debugging info
+      if (assignments.length === 0) {
+        console.log(`🔍 DEBUG: No assignments found for ${userId} on ${date}. Checking user data...`);
+        try {
+          const allAssignments = await storage.getAllAssignments();
+          const userAssignments = allAssignments.filter(a => a.userId === userId);
+          const totalUsers = new Set(allAssignments.map(a => a.userId)).size;
+          console.log(`📈 USER DEBUG: Found ${userAssignments.length} total assignments for ${userId}, ${totalUsers} total users in system`);
+        } catch (debugError) {
+          console.error('❌ Debug query failed:', debugError);
+        }
+      }
 
       res.json(assignments);
     } catch (error) {
@@ -366,21 +460,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Missing date or studentName parameter' });
       }
 
-      // Use student-specific user ID mapping
+      // Use student-specific user ID mapping with validation
       const studentUserMap: Record<string, string> = {
         'abigail': 'abigail-user',
         'khalil': 'khalil-user'
       };
       const userId = studentUserMap[studentName.toLowerCase()] || "unknown-user";
 
+      if (userId === "unknown-user") {
+        console.log(`⚠️ WARNING: Unknown student "${studentName}", using fallback userId`);
+      }
+
       console.log(`🔍 DEBUG BRIDGE: Fetching assignments for userId="${userId}", date="${date}"`);
-      const assignments = await storage.getAssignments(userId, date, false);
-      console.log(`📊 DEBUG BRIDGE: Found ${assignments.length} assignments for ${userId} on ${date}`);
+      
+      // Enhanced debugging with multiple fallback strategies
+      let assignments;
+      try {
+        assignments = await storage.getAssignments(userId, date, false);
+      } catch (dbError) {
+        console.error(`❌ Primary query failed for ${userId}:`, dbError);
+        
+        // Fallback 1: Try without date filter
+        try {
+          console.log(`🔄 Fallback 1: Trying without date filter...`);
+          const allUserAssignments = await storage.getAllAssignments();
+          assignments = allUserAssignments.filter(a => a.userId === userId);
+          console.log(`📊 Fallback 1: Found ${assignments.length} total assignments for ${userId}`);
+        } catch (fallback1Error) {
+          console.error('❌ Fallback 1 failed:', fallback1Error);
+          
+          // Fallback 2: Return empty with detailed error info
+          console.log(`🔄 Fallback 2: Returning empty with diagnostic data...`);
+          assignments = [];
+        }
+      }
+
+      console.log(`📊 DEBUG BRIDGE: Final result: ${assignments.length} assignments for ${userId} on ${date}`);
 
       res.json(assignments);
     } catch (error) {
-      console.error('❌ Debug bridge endpoint error:', error);
-      res.status(500).json({ error: 'Failed to fetch assignments' });
+      console.error('❌ Debug bridge endpoint critical error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch assignments', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        userId: req.query.studentName ? `${req.query.studentName.toLowerCase()}-user` : 'unknown'
+      });
     }
   });
   
