@@ -480,7 +480,7 @@ export class DatabaseStorage implements IStorage {
         assignmentsToSchedule,
         scheduleBlocksFormatted,
         studentName,
-        targetDate,
+        date,
         'America/New_York'
       );
       
@@ -1055,9 +1055,9 @@ export class DatabaseStorage implements IStorage {
       
       // Get candidate assignments with ±7 day window and not completed
       const userId = `${studentName.toLowerCase()}-user`;
-      const windowStart = new Date(targetDate);
+      const windowStart = new Date(date + 'T00:00:00.000Z');
       windowStart.setDate(windowStart.getDate() - 7);
-      const windowEnd = new Date(targetDate);
+      const windowEnd = new Date(date + 'T00:00:00.000Z');
       windowEnd.setDate(windowEnd.getDate() + 7);
       
       const allAssignments = await this.getAssignments(userId);

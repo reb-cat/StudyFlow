@@ -9,6 +9,11 @@ import { jobScheduler } from "./lib/scheduler";
 console.log('🔧 StudyFlow Server Starting...');
 console.log(`📊 Environment: NODE_ENV=${process.env.NODE_ENV}, APP_ENV=${process.env.APP_ENV || 'undefined'}, TZ=${process.env.TZ || 'system-default'}`);
 console.log(`📚 School Timezone: America/New_York (for consistent weekday scheduling)`);
+
+// School Year Configuration
+import { getSchoolYearRange } from './lib/schoolYear';
+console.log(`🎓 School Year: ${getSchoolYearRange()}`);
+
 console.log(`🌐 Port: ${process.env.PORT || '5000'}`);
 
 const app = express();

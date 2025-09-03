@@ -41,7 +41,7 @@ export interface AssignmentIntelligence {
  * COMPREHENSIVE due date extraction from assignment titles
  * Handles ALL patterns found in dataset analysis
  */
-export function extractDueDateFromTitle(title: string): Date | null {
+export async function extractDueDateFromTitle(title: string): Promise<Date | null> {
   // Comprehensive patterns ordered by specificity
   const patterns = [
     // === EXPLICIT DUE PATTERNS ===
@@ -102,7 +102,7 @@ export function extractDueDateFromTitle(title: string): Date | null {
         dateStr = match[1];
       }
       
-      const parsedDate = parseDateString(dateStr);
+      const parsedDate = await parseDateString(dateStr);
       if (parsedDate) {
         console.log(`📅 COMPREHENSIVE: Extracted due date from "${title}" using pattern ${index + 1}: ${parsedDate.toDateString()}`);
         return parsedDate;
@@ -116,11 +116,11 @@ export function extractDueDateFromTitle(title: string): Date | null {
 /**
  * Enhanced date parsing with academic calendar context and intelligent year inference
  */
-function parseDateString(dateStr: string, courseContext?: {
+async function parseDateString(dateStr: string, courseContext?: {
   academicYear?: string;
   courseStartDate?: string;
   courseEndDate?: string;
-}): Date | null {
+}): Promise<Date | null> {
   try {
     // Handle different separators (/, -)
     const normalized = dateStr.replace(/-/g, '/');
@@ -147,8 +147,9 @@ function parseDateString(dateStr: string, courseContext?: {
     // ENHANCED ACADEMIC YEAR INFERENCE
     if (parts.length === 2) {
       const currentDate = new Date();
-      const currentSchoolYearStart = new Date('2025-08-01');
-      const currentSchoolYearEnd = new Date('2026-07-31');
+      const { getSchoolYearStartDate, getSchoolYearEndDate } = await import('./schoolYear');
+      const currentSchoolYearStart = getSchoolYearStartDate();
+      const currentSchoolYearEnd = getSchoolYearEndDate();
       
       // If we have course context, use it for better inference
       if (courseContext?.courseStartDate && courseContext?.courseEndDate) {
@@ -243,7 +244,7 @@ export function isRecurringAssignment(title: string, description?: string): bool
 /**
  * Detect if assignment data appears to be from previous academic year or template
  */
-export function isFromPreviousYearOrTemplate(assignmentDate: Date | null, courseStartDate?: string): boolean {
+export async function isFromPreviousYearOrTemplate(assignmentDate: Date | null, courseStartDate?: string): Promise<boolean> {
   if (!assignmentDate) return false;
   
   const currentDate = new Date();
@@ -259,8 +260,9 @@ export function isFromPreviousYearOrTemplate(assignmentDate: Date | null, course
     if (assignmentYear < courseStart.getFullYear()) return true;
   }
   
-  // Assignment due before June 15, 2025 (our filter date)
-  const filterDate = new Date('2025-06-15');
+  // Assignment due before school year filter date (dynamic)
+  const { getAssignmentFilterDate } = await import('./schoolYear');
+  const filterDate = getAssignmentFilterDate();
   if (assignmentDate < filterDate) return true;
   
   return false;
@@ -269,7 +271,7 @@ export function isFromPreviousYearOrTemplate(assignmentDate: Date | null, course
 /**
  * Enhanced comprehensive analysis of assignment with Canvas metadata
  */
-export function analyzeAssignmentWithCanvas(
+export async function analyzeAssignmentWithCanvas(
   title: string, 
   description?: string,
   canvasData?: {
@@ -286,9 +288,9 @@ export function analyzeAssignmentWithCanvas(
     inferred_end_date?: string;
     module_data?: any;
   }
-): AssignmentIntelligence {
+): Promise<AssignmentIntelligence> {
   const isInClass = isInClassActivity(title);
-  let extractedDueDate = extractDueDateFromTitle(title) || (isInClass ? extractClassDate(title) : null);
+  let extractedDueDate = await extractDueDateFromTitle(title) || (isInClass ? extractClassDate(title) : null);
   
   // COMPREHENSIVE MODULE TIMING EXTRACTION
   // Priority 1: Use module timing from inferred_start_date (existing successful pattern)
@@ -769,11 +771,12 @@ export async function autoScheduleAssignments(
 /**
  * Enhanced date validation with academic calendar context
  */
-export function validateExtractedDate(date: Date, title: string): { isValid: boolean; reason?: string } {
+export async function validateExtractedDate(date: Date, title: string): Promise<{ isValid: boolean; reason?: string }> {
   const currentDate = new Date();
-  const currentSchoolYearStart = new Date('2025-08-01');
-  const currentSchoolYearEnd = new Date('2026-07-31');
-  const nextSchoolYearEnd = new Date('2027-07-31');
+  const { getSchoolYearStartDate, getSchoolYearEndDate, getNextSchoolYearEndDate } = await import('./schoolYear');
+  const currentSchoolYearStart = getSchoolYearStartDate();
+  const currentSchoolYearEnd = getSchoolYearEndDate();
+  const nextSchoolYearEnd = getNextSchoolYearEndDate();
   
   // Check if date is unreasonably far in the past
   const twoYearsAgo = new Date();

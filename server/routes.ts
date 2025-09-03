@@ -669,12 +669,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import from instance 1
       if (canvasData.instance1) {
         for (const canvasAssignment of canvasData.instance1) {
-          // Skip assignments before June 15, 2025
+          // Skip assignments before school year filter date (dynamic)
           if (canvasAssignment.due_at) {
             const dueDate = new Date(canvasAssignment.due_at);
-            const cutoffDate = new Date('2025-06-15');
+            const { getAssignmentFilterDate } = await import('./lib/schoolYear');
+            const cutoffDate = getAssignmentFilterDate();
             if (dueDate < cutoffDate) {
-              console.log(`⏭️ Skipping old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before June 15, 2025`);
+              console.log(`⏭️ Skipping old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before school year filter`);
               continue;
             }
           }
@@ -738,9 +739,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Skip only assignments before January 1, 2024 (extremely old assignments)
           if (canvasAssignment.due_at) {
             const dueDate = new Date(canvasAssignment.due_at);
-            const cutoffDate = new Date('2024-01-01');
+            const { getVeryOldAssignmentCutoff } = await import('./lib/schoolYear');
+            const cutoffDate = getVeryOldAssignmentCutoff();
             if (dueDate < cutoffDate) {
-              console.log(`⏭️ Skipping very old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before January 1, 2024`);
+              console.log(`⏭️ Skipping very old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before very old cutoff`);
               continue;
             }
           }
