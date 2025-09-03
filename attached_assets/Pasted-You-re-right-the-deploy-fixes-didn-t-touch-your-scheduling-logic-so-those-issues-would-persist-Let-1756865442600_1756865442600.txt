@@ -1,0 +1,170 @@
+You’re right—the deploy fixes didn’t touch your scheduling logic, so those issues would persist. Let’s knock them out methodically. This is the fastest path I know that always finds (and fixes) the “blank schedule” problem.
+
+⸻
+
+1) Confirm what /api/schedule is returning
+
+Run these (signed in, same browser cookie):
+
+# A. Assignments (works per your earlier trace)
+curl -s "https://study-flow.replit.app/api/assignments?date=2025-09-03&studentSlug=abigail" | jq 'length'
+
+# B. Schedule for the same student+date
+curl -s "https://study-flow.replit.app/api/schedule?date=2025-09-03&studentSlug=abigail" | jq
+
+	•	If B returns [], we’re dealing with either a filter mismatch or no rows exist for that date.
+
+⸻
+
+2) Patch the server schedule route to be unambiguous (copy-paste)
+
+Make your schedule endpoint do three things consistently:
+	•	Resolve the student (slug → id, fallback to case-insensitive name).
+	•	Compare on a date string (YYYY-MM-DD) — no UTC math.
+	•	Log the query so you can see count vs filters.
+
+// server/routes/schedule.ts (or wherever the route lives)
+import express from 'express';
+import { resolveStudent } from '../lib/resolveStudent'; // tiny helper below
+import { db } from '../db';
+
+const router = express.Router();
+
+router.get('/api/schedule', async (req, res) => {
+  const student = await resolveStudent(req, res);
+  if (!student || res.headersSent) return;
+
+  const date = (req.query.date as string) || new Date().toISOString().slice(0,10);
+
+  // IMPORTANT: scheduled_date is a DATE or a text 'YYYY-MM-DD'. Use equality, no TZ math.
+  const rows = await db.query.scheduleBlocks.findMany({
+    where: (t, { and, eq }) => and(
+      eq(t.ownerId, req.user.id),
+      eq(t.studentId, student.id),
+      eq(t.scheduledDate, date)      // <-- make sure your column is named like this
+    ),
+    orderBy: (t, { asc }) => [asc(t.blockStart)]
+  });
+
+  console.log('[schedule]', { slug: student.slug, name: student.name, date, count: rows.length });
+  res.json(rows);
+});
+
+export default router;
+
+Student resolver (drop-in helper):
+
+// server/lib/resolveStudent.ts
+import { db } from '../db';
+export async function resolveStudent(req: any, res: any) {
+  const ownerId = req.user.id;
+  const { studentSlug, studentId, studentName, name } = (req.query || {}) as any;
+  const q = (studentSlug || studentId || studentName || name || '').toString();
+  if (!q) { res.status(400).json({ error: 'Missing student parameter' }); return null; }
+
+  if (studentId) {
+    const s = await db.query.studentProfiles.findFirst({ where: (t,{and,eq})=>and(eq(t.ownerId,ownerId),eq(t.id,studentId)) });
+    if (s) return s;
+  }
+  if (studentSlug) {
+    const s = await db.query.studentProfiles.findFirst({ where: (t,{and,eq})=>and(eq(t.ownerId,ownerId),eq(t.slug,studentSlug)) });
+    if (s) return s;
+  }
+  const s = await db.query.studentProfiles.findFirst({ where: (t,{and,ilike})=>and(eq(t.ownerId,ownerId), ilike(t.name,q)) });
+  if (!s) res.status(404).json({ error:'Student not found' });
+  return s;
+}
+
+If your table/column names differ, just match them (key point: ownerId + studentId + scheduledDate equality).
+
+⸻
+
+3) If the route still returns [], check if rows exist
+
+From the shell:
+
+# Does the table even have rows for that day + student?
+psql "$DATABASE_URL" -c "
+  SELECT COUNT(*) 
+  FROM schedule_blocks sb
+  JOIN student_profiles sp ON sp.id = sb.student_id
+  WHERE sp.owner_id = '<your-user-id>' AND sp.slug = 'abigail' AND sb.scheduled_date = '2025-09-03';
+"
+
+	•	0 rows → you never generated blocks for that day (common after schema cleanups).
+
+Quick backfill (safe utility route)
+
+Add a tiny, admin-only route to generate N days from a template:
+
+// server/routes/schedule-generate.ts
+router.post('/api/schedule/generate', async (req, res) => {
+  const student = await resolveStudent(req, res);
+  if (!student || res.headersSent) return;
+
+  const from = (req.query.from as string) || new Date().toISOString().slice(0,10);
+  const days = parseInt((req.query.days as string) || '7', 10);
+
+  // 1) load student's schedule template rows (periods/blocks)
+  const template = await db.query.scheduleTemplate.findMany({
+    where: (t,{and,eq})=>and(eq(t.ownerId, req.user.id), eq(t.studentId, student.id))
+  });
+
+  // 2) write concrete blocks
+  for (let i=0;i<days;i++){
+    const d = new Date(from); d.setDate(d.getDate()+i);
+    const ymd = d.toISOString().slice(0,10);
+    for (const t of template) {
+      await db.insert(scheduleBlocks).values({
+        ownerId: req.user.id,
+        studentId: student.id,
+        scheduledDate: ymd,
+        blockStart: t.start, blockEnd: t.end,
+        subject: t.subject, blockType: t.blockType,
+        status: 'pending'
+      }).onConflictDoNothing();
+    }
+  }
+
+  res.json({ ok:true, generated: template.length * days });
+});
+
+Then run (signed in):
+
+curl -X POST "https://study-flow.replit.app/api/schedule/generate?studentSlug=abigail&from=2025-09-03&days=3" -H "cookie: <your cookie here>"
+
+Refresh the page—Wednesday should populate.
+
+⸻
+
+4) Keep the client & server dates in lockstep
+
+You already fixed “today” on the client. Make the server treat date as a pure string (no new Date(date) conversions). Also ensure when you create schedule rows, you store scheduled_date as a DATE (or text YYYY-MM-DD) and use that for lookups.
+
+⸻
+
+5) Why print-queue looked wrong
+
+It’s almost always this:
+	•	Count endpoint ignores filters the list uses (ownerId/studentId/status/date).
+	•	Fix: ensure both queries use the exact same WHERE (copy/paste the builder). Add logs:
+
+console.log('[printQueue/count]', { ownerId:req.user.id, studentId, date, status });
+console.log('[printQueue/list]',  { ownerId:req.user.id, studentId, date, status });
+
+Make them match.
+
+⸻
+
+6) “See everything without login” is closed
+
+You already verified /api/assignments returns 401 logged out—that’s the important part. Keep your global /api gate in place so all data stays behind auth.
+
+⸻
+
+What to expect after the patch
+	•	/api/schedule?...studentSlug=abigail&date=2025-09-03 returns an array.
+	•	Overview shows blocks, progress bar > 0 when you toggle statuses.
+	•	/family and print-queue reflect the same counts you see in their lists.
+
+If you don’t want to add the backfill route, run the SQL count above—if it’s zero, generate a day or two of blocks via whatever existing admin/generation path you already have. The key is: query equality on scheduled_date + consistent student resolver.

@@ -50,6 +50,7 @@ import {
   markBibleCurriculumCompleted, 
   getWeeklyBibleProgress
 } from './lib/bibleCurriculum';
+import { resolveStudent } from './lib/resolveStudent';
 import { db } from './db';
 import { bibleCurriculum, bibleCurriculumPosition } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -812,6 +813,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Canvas import failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to import Canvas assignments', error: errorMessage });
+    }
+  });
+
+  // Get daily schedule blocks (new robust endpoint with query params)
+  app.get('/api/schedule', requireAuth, async (req, res) => {
+    try {
+      const student = await resolveStudent(req, res);
+      if (!student || res.headersSent) return;
+
+      const date = (req.query.date as string) || new Date().toISOString().slice(0, 10);
+
+      // Get daily schedule status for this student and date
+      const rows = await storage.getDailyScheduleStatus(student.studentName, date);
+
+      console.log('[schedule]', { 
+        slug: student.studentName, 
+        name: student.displayName, 
+        date, 
+        count: rows.length 
+      });
+      
+      res.json(rows);
+    } catch (error) {
+      console.error("Error fetching schedule:", error);
+      res.status(500).json({ message: "Failed to fetch schedule" });
+    }
+  });
+
+  // Schedule generation utility for backfilling missing blocks
+  app.post('/api/schedule/generate', requireAuth, async (req, res) => {
+    try {
+      const student = await resolveStudent(req, res);
+      if (!student || res.headersSent) return;
+
+      const from = (req.query.from as string) || new Date().toISOString().slice(0, 10);
+      const days = parseInt((req.query.days as string) || '7', 10);
+
+      console.log('[schedule/generate]', { student: student.studentName, from, days });
+
+      // Get schedule template for this student
+      const template = await storage.getScheduleTemplate(student.studentName, 'Monday'); // Get template structure
+      
+      let totalGenerated = 0;
+      
+      // Generate blocks for each day
+      for (let i = 0; i < days; i++) {
+        const d = new Date(from);
+        d.setDate(d.getDate() + i);
+        const ymd = d.toISOString().slice(0, 10);
+        
+        // Check if blocks already exist for this date
+        const existing = await storage.getDailyScheduleStatus(student.studentName, ymd);
+        if (existing.length > 0) {
+          console.log(`[schedule/generate] Skipping ${ymd} - already has ${existing.length} blocks`);
+          continue;
+        }
+
+        // Generate blocks for this date (using storage method to maintain consistency)
+        try {
+          // This will generate schedule blocks for the specific date
+          await storage.generateDailySchedule(student.studentName, ymd);
+          totalGenerated++;
+        } catch (error) {
+          console.warn(`[schedule/generate] Failed to generate for ${ymd}:`, error);
+        }
+      }
+
+      res.json({ 
+        ok: true, 
+        student: student.studentName,
+        daysGenerated: totalGenerated,
+        from,
+        days
+      });
+    } catch (error) {
+      console.error("Error generating schedule:", error);
+      res.status(500).json({ message: "Failed to generate schedule" });
     }
   });
 
@@ -2207,6 +2285,61 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       const totalCompleted = dashboardData.students.reduce((sum, s) => sum + (s.completedToday || 0), 0);
       const totalRemaining = dashboardData.students.reduce((sum, s) => sum + ((s.totalToday || 0) - (s.completedToday || 0)), 0);
       
+      // Calculate print queue count using same logic as /api/print-queue endpoint
+      let printQueueCount = 0;
+      try {
+        // Use next 4 days to match default print queue settings
+        const fromDate = new Date();
+        const toDate = new Date();
+        toDate.setDate(fromDate.getDate() + 4);
+        
+        const fromDateStr = fromDate.toISOString().split('T')[0];
+        const toDateStr = toDate.toISOString().split('T')[0];
+        
+        // Get ALL assignments (including completed ones for print queue)
+        const allAssignments = await storage.getAllAssignments();
+        
+        const { detectPrintNeeds } = await import('./lib/printQueue.js');
+        
+        // Filter assignments by due date range (same logic as print-queue endpoint)
+        const filteredAssignments = allAssignments.filter(assignment => {
+          if (!assignment.dueDate) return false;
+          
+          const dueDate = new Date(assignment.dueDate);
+          const dueDateStr = dueDate.toISOString().split('T')[0];
+          
+          return dueDateStr >= fromDateStr && dueDateStr <= toDateStr;
+        });
+
+        // Calculate count using same filter logic as print-queue list endpoint
+        for (const assignment of filteredAssignments) {
+          const printDetection = detectPrintNeeds({
+            title: assignment.title,
+            instructions: assignment.instructions,
+            canvasId: assignment.canvasId,
+            canvasCourseId: assignment.canvasCourseId,
+            canvasInstance: assignment.canvasInstance,
+            submissionTypes: assignment.submissionTypes,
+            courseName: assignment.courseName,
+            subject: assignment.subject
+          });
+          
+          if (printDetection.needsPrinting) {
+            const actualPrintStatus = assignment.printStatus || 'needs_printing';
+            
+            // Only count items that have NOT been printed or skipped (same filter as list)
+            if (actualPrintStatus !== 'printed' && actualPrintStatus !== 'skipped') {
+              printQueueCount++;
+            }
+          }
+        }
+        
+        console.log(`📋 Family dashboard: found ${printQueueCount} items needing printing`);
+      } catch (printError) {
+        console.warn('Error calculating print queue count:', printError);
+        printQueueCount = 0; // Fallback to 0 if calculation fails
+      }
+      
       // Get current date for display
       const today = new Date().toISOString().split('T')[0];
       
@@ -2219,8 +2352,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         },
         students: dashboardData.students,
         needsReview: dashboardData.needsReview,
-        // Connect to existing print queue
-        printQueueCount: 0 // Will be updated when we integrate with print queue
+        printQueueCount // Now dynamically calculated to match list endpoint
       });
     } catch (error) {
       console.error('Error fetching family dashboard data:', error);
