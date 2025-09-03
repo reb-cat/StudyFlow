@@ -5,6 +5,11 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { jobScheduler } from "./lib/scheduler";
 
+// 🚀 Boot Log - Environment Configuration
+console.log('🔧 StudyFlow Server Starting...');
+console.log(`📊 Environment: NODE_ENV=${process.env.NODE_ENV}, APP_ENV=${process.env.APP_ENV || 'undefined'}, TZ=${process.env.TZ || 'system-default'}`);
+console.log(`🌐 Port: ${process.env.PORT || '5000'}`);
+
 const app = express();
 
 // Use PostgreSQL session storage for production reliability
