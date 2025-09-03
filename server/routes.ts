@@ -246,8 +246,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET /api/assignments - Get assignments for a user/date
-  app.get('/api/assignments', requireAuth, async (req, res) => {
+  // GET /api/assignments-v2 - Get assignments for a user/date (bypasses frontend interception)
+  app.get('/api/assignments-v2', requireAuth, async (req, res) => {
     console.log(`🚨🚨🚨 ROUTE HIT: /api/assignments route handler executing!`);
     try {
       const { date, startDate, endDate, studentName, includeCompleted } = req.query;
