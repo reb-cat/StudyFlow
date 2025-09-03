@@ -997,11 +997,15 @@ export default function AssignmentsPage() {
 
       {/* Edit Assignment Form */}
       {showEditForm && editingAssignment && (
-        <Card className="border-blue-200 dark:border-blue-800 mb-6 bg-blue-50 dark:bg-blue-950/30">
-          <CardHeader>
-            <CardTitle>Edit Assignment</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Dialog open={showEditForm} onOpenChange={setShowEditForm}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Assignment</DialogTitle>
+              <DialogDescription>
+                Make changes to the assignment details below.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Title *</label>
@@ -1102,14 +1106,7 @@ export default function AssignmentsPage() {
               </div>
             </div>
 
-            <div className="flex gap-2 pt-4">
-              <Button
-                onClick={handleSaveEdit}
-                disabled={editAssignmentMutation.isPending}
-                data-testid="button-save-edit"
-              >
-                Save Changes
-              </Button>
+            <DialogFooter className="flex gap-2 pt-4">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -1120,9 +1117,16 @@ export default function AssignmentsPage() {
               >
                 Cancel
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+              <Button
+                onClick={handleSaveEdit}
+                disabled={editAssignmentMutation.isPending}
+                data-testid="button-save-edit"
+              >
+                {editAssignmentMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
       
       {/* Parent Resolution Dialog */}
