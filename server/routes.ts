@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { env } from "./env";
 
 // Family authentication middleware
 const requireAuth = (req: any, res: any, next: any) => {
@@ -19,9 +20,15 @@ const setupFamilyAuth = (app: Express) => {
       return res.status(400).json({ message: 'Password required' });
     }
     
-    if (password === process.env.FAMILY_PASSWORD) {
+    if (password === env.familyPassword) {
       req.session.authenticated = true;
-      res.json({ success: true });
+      req.session.save((err) => {
+        if (err) {
+          console.error('[unlock] Failed to save session:', err);
+          return res.status(500).json({ message: 'Failed to save session' });
+        }
+        res.json({ success: true });
+      });
     } else {
       res.status(401).json({ message: 'Invalid password' });
     }
