@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Printer, Check, X, Clock, AlertTriangle, BookOpen, FileText, Calendar } from "lucide-react";
-import { safe } from "@/lib/safeUtils";
 
 interface PrintQueueItem {
   id: string;
@@ -99,11 +98,10 @@ export default function PrintQueue() {
     },
   });
 
-  // Extract all items from grouped data with safe handling
-  const groupsByDate = safe(printQueueData?.groupsByDate);
-  const allItems = groupsByDate.flatMap(group => safe(group?.items));
-  const pendingItems = allItems.filter(item => item?.printStatus && item.printStatus !== 'printed' && item.printStatus !== 'skipped');
-  const completedItems = allItems.filter(item => item?.printStatus && (item.printStatus === 'printed' || item.printStatus === 'skipped'));
+  // Extract all items from grouped data
+  const allItems = printQueueData?.groupsByDate.flatMap(group => group.items) ?? [];
+  const pendingItems = allItems.filter(item => item.printStatus !== 'printed' && item.printStatus !== 'skipped');
+  const completedItems = allItems.filter(item => item.printStatus === 'printed' || item.printStatus === 'skipped');
 
   const totalPages = pendingItems.reduce((sum, item) => sum + item.estimatedPages, 0);
   const highPriorityCount = pendingItems.filter(item => item.priority === 'high').length;
@@ -215,19 +213,9 @@ export default function PrintQueue() {
             <h3 className="text-lg font-semibold text-foreground mb-2">
               All Set! 🎉
             </h3>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground">
               No items need printing in this date range. Try a different range!
             </p>
-            {/* Debug info for the "9 jobs but no list" issue */}
-            <details className="text-left text-xs text-muted-foreground bg-muted/30 p-3 rounded">
-              <summary className="cursor-pointer font-medium">Debug Info</summary>
-              <div className="mt-2 space-y-1">
-                <div>Total API items: {allItems.length}</div>
-                <div>Pending items: {pendingItems.length}</div>
-                <div>Completed items: {completedItems.length}</div>
-                <div>Date groups: {groupsByDate.length}</div>
-              </div>
-            </details>
           </Card>
         ) : (
           <div className="space-y-6">

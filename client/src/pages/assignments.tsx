@@ -35,13 +35,9 @@ function isParentTask(title: string, courseName?: string | null): boolean {
 export default function AssignmentsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  // Get current student from URL or default to Khalil (most active user)
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlStudent = urlParams.get('student');
-  const [selectedStudent, setSelectedStudent] = useState<string>(urlStudent || 'Khalil');
+  const [selectedStudent, setSelectedStudent] = useState<string>('Abigail');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('pending');
-  // Default to all schedulable assignments (today + upcoming + already scheduled)
   const [dateFilter, setDateFilter] = useState<string>('upcoming');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [bulkOperation, setBulkOperation] = useState<string>('');
@@ -355,7 +351,7 @@ export default function AssignmentsPage() {
   // Combine assignments and Bible items for display
   const allDisplayItems = [...assignments, ...bibleAsAssignments];
 
-  // Filter assignments based on current filters  
+  // Filter assignments based on current filters
   const filteredAssignments = allDisplayItems.filter(assignment => {
     // Search filter
     if (searchTerm && !assignment.title.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -372,22 +368,15 @@ export default function AssignmentsPage() {
       return false;
     }
 
-    // Date filter - optimized for scheduling workflow
+    // Date filter
     const today = new Date();
     const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
-    const isScheduled = assignment.scheduledDate && assignment.scheduledBlock;
     
     if (dateFilter === 'overdue' && (!dueDate || dueDate >= today)) {
       return false;
     }
-    if (dateFilter === 'today') {
-      // Show: due today OR scheduled for today
-      const todayStr = today.toDateString();
-      const isDueToday = dueDate && dueDate.toDateString() === todayStr;
-      const isScheduledToday = assignment.scheduledDate === today.toISOString().split('T')[0];
-      if (!isDueToday && !isScheduledToday) {
-        return false;
-      }
+    if (dateFilter === 'today' && (!dueDate || dueDate.toDateString() !== today.toDateString())) {
+      return false;
     }
     if (dateFilter === 'this_week') {
       const weekEnd = new Date(today);
@@ -395,23 +384,6 @@ export default function AssignmentsPage() {
       if (!dueDate || dueDate > weekEnd) {
         return false;
       }
-    }
-    if (dateFilter === 'upcoming') {
-      // Show: all workable assignments (schedulable + already scheduled)
-      // Exclude assignments that are far in the future (>2 weeks) unless already scheduled
-      const twoWeeksOut = new Date(today);
-      twoWeeksOut.setDate(today.getDate() + 14);
-      
-      if (isScheduled) {
-        return true; // Always show scheduled assignments
-      }
-      
-      if (!dueDate) {
-        return true; // Show assignments without due dates (could be schedulable)
-      }
-      
-      // Show if due within 2 weeks or overdue
-      return dueDate <= twoWeeksOut;
     }
 
     return true;
@@ -466,39 +438,18 @@ export default function AssignmentsPage() {
       return assignment.canvasUrl;
     }
     
-    // Course name to course ID mapping for Khalil's courses
-    const courseIdMap: Record<string, string> = {
-      '25/26 T2 7th-12th Gr Health': '11890055',
-      '25/26 M5 HS American History': '11941567', 
-      '25/26 M4 Earth Science': '12010150',
-      '25/26 T6 9th Gr English Fundamentals': '12178247'
-    };
-    
-    const baseUrl = assignment.canvasInstance === 2 
-      ? import.meta.env.VITE_CANVAS_BASE_URL_2 
-      : import.meta.env.VITE_CANVAS_BASE_URL;
-      
-    if (!baseUrl) {
-      return null;
-    }
-    
-    const cleanUrl = baseUrl.replace(/\/$/, '');
-    
-    // First try: Use existing course ID + canvas ID
-    if (assignment.canvasId && assignment.canvasCourseId) {
-      return `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
-    }
-    
-    // Second try: Map course name to course ID if Canvas ID exists
-    if (assignment.canvasId && assignment.courseName) {
-      const courseId = courseIdMap[assignment.courseName];
-      if (courseId) {
-        return `${cleanUrl}/courses/${courseId}/assignments/${assignment.canvasId}`;
+    // Try to construct URL from Canvas data
+    if (assignment.canvasId && assignment.canvasCourseId && assignment.canvasInstance) {
+      const baseUrl = assignment.canvasInstance === 1 
+        ? import.meta.env.VITE_CANVAS_BASE_URL 
+        : import.meta.env.VITE_CANVAS_BASE_URL_2;
+      if (baseUrl) {
+        const cleanUrl = baseUrl.replace(/\/$/, '');
+        return `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
       }
     }
     
-    // Fallback: Canvas dashboard for the student
-    return `${cleanUrl}/`;
+    return null;
   };
 
   const handleSaveEdit = () => {
@@ -623,11 +574,11 @@ export default function AssignmentsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="upcoming">Schedulable (Default)</SelectItem>
                   <SelectItem value="all">All Dates</SelectItem>
                   <SelectItem value="overdue">Overdue</SelectItem>
-                  <SelectItem value="today">Today Only</SelectItem>
+                  <SelectItem value="today">Due Today</SelectItem>
                   <SelectItem value="this_week">This Week</SelectItem>
+                  <SelectItem value="upcoming">Upcoming</SelectItem>
                 </SelectContent>
               </Select>
 

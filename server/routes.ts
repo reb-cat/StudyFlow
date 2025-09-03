@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { env } from "./env";
 
 // Family authentication middleware
 const requireAuth = (req: any, res: any, next: any) => {
@@ -20,15 +19,9 @@ const setupFamilyAuth = (app: Express) => {
       return res.status(400).json({ message: 'Password required' });
     }
     
-    if (password === env.familyPassword) {
+    if (password === process.env.FAMILY_PASSWORD) {
       req.session.authenticated = true;
-      req.session.save((err) => {
-        if (err) {
-          console.error('[unlock] Failed to save session:', err);
-          return res.status(500).json({ message: 'Failed to save session' });
-        }
-        res.json({ success: true });
-      });
+      res.json({ success: true });
     } else {
       res.status(401).json({ message: 'Invalid password' });
     }
@@ -57,7 +50,6 @@ import {
   markBibleCurriculumCompleted, 
   getWeeklyBibleProgress
 } from './lib/bibleCurriculum';
-import { resolveStudent } from './lib/resolveStudent';
 import { db } from './db';
 import { bibleCurriculum, bibleCurriculumPosition } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -75,9 +67,6 @@ const emailConfig = {
 import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
-  // Health check endpoint for uptime monitoring
-  app.get('/health', (_req, res) => res.json({ ok: true }));
   
   // Setup family authentication
   setupFamilyAuth(app);
@@ -350,7 +339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // PATCH /api/assignments - Update assignment
-  app.patch('/api/assignments', requireAuth, async (req, res) => {
+  app.patch('/api/assignments', async (req, res) => {
     try {
       const { id, ...updateData } = req.body;
       
@@ -390,7 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/assignments/extract-due-dates - Retroactive due date extraction
-  app.post('/api/assignments/extract-due-dates', requireAuth, async (req, res) => {
+  app.post('/api/assignments/extract-due-dates', async (req, res) => {
     try {
       const { studentName, dryRun = false } = req.body;
       
@@ -431,7 +420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // });
 
   // Canvas integration endpoints
-  app.get('/api/canvas/:studentName', requireAuth, async (req, res) => {
+  app.get('/api/canvas/:studentName', async (req, res) => {
     try {
       const { studentName } = req.params;
       
@@ -521,7 +510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // POST /api/sync-canvas-completion/:studentName - Sync completion status from Canvas for existing assignments
-  app.post('/api/sync-canvas-completion/:studentName', requireAuth, async (req, res) => {
+  app.post('/api/sync-canvas-completion/:studentName', async (req, res) => {
     try {
       const { studentName } = req.params;
       console.log(`\n🔄 Starting Canvas completion sync for: ${studentName}`);
@@ -823,83 +812,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get daily schedule blocks (new robust endpoint with query params)
-  app.get('/api/schedule', requireAuth, async (req, res) => {
-    try {
-      const student = await resolveStudent(req, res);
-      if (!student || res.headersSent) return;
-
-      const date = (req.query.date as string) || new Date().toISOString().slice(0, 10);
-
-      // Get daily schedule status for this student and date
-      const rows = await storage.getDailyScheduleStatus(student.studentName, date);
-
-      console.log('[schedule]', { 
-        slug: student.studentName, 
-        name: student.displayName, 
-        date, 
-        count: rows.length 
-      });
-      
-      res.json(rows);
-    } catch (error) {
-      console.error("Error fetching schedule:", error);
-      res.status(500).json({ message: "Failed to fetch schedule" });
-    }
-  });
-
-  // Schedule generation utility for backfilling missing blocks
-  app.post('/api/schedule/generate', requireAuth, async (req, res) => {
-    try {
-      const student = await resolveStudent(req, res);
-      if (!student || res.headersSent) return;
-
-      const from = (req.query.from as string) || new Date().toISOString().slice(0, 10);
-      const days = parseInt((req.query.days as string) || '7', 10);
-
-      console.log('[schedule/generate]', { student: student.studentName, from, days });
-
-      // Get schedule template for this student
-      const template = await storage.getScheduleTemplate(student.studentName, 'Monday'); // Get template structure
-      
-      let totalGenerated = 0;
-      
-      // Generate blocks for each day
-      for (let i = 0; i < days; i++) {
-        const d = new Date(from);
-        d.setDate(d.getDate() + i);
-        const ymd = d.toISOString().slice(0, 10);
-        
-        // Check if blocks already exist for this date
-        const existing = await storage.getDailyScheduleStatus(student.studentName, ymd);
-        if (existing.length > 0) {
-          console.log(`[schedule/generate] Skipping ${ymd} - already has ${existing.length} blocks`);
-          continue;
-        }
-
-        // Generate blocks for this date (using storage method to maintain consistency)
-        try {
-          // This will generate schedule blocks for the specific date
-          await storage.generateDailySchedule(student.studentName, ymd);
-          totalGenerated++;
-        } catch (error) {
-          console.warn(`[schedule/generate] Failed to generate for ${ymd}:`, error);
-        }
-      }
-
-      res.json({ 
-        ok: true, 
-        student: student.studentName,
-        daysGenerated: totalGenerated,
-        from,
-        days
-      });
-    } catch (error) {
-      console.error("Error generating schedule:", error);
-      res.status(500).json({ message: "Failed to generate schedule" });
-    }
-  });
-
   // Get schedule template for a specific student and date with Bible curriculum integration
   app.get('/api/schedule/:studentName/:date', requireAuth, async (req, res) => {
     try {
@@ -945,7 +857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Parent notification endpoint (when student clicks "Stuck")
-  app.post('/api/notify-parent', requireAuth, async (req, res) => {
+  app.post('/api/notify-parent', async (req, res) => {
     try {
       const { studentName, assignmentTitle, message } = req.body;
       
@@ -1041,7 +953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // });
 
   // Bible curriculum routes
-  app.get('/api/bible/current-week', requireAuth, async (req, res) => {
+  app.get('/api/bible/current-week', async (req, res) => {
     try {
       const bibleData = await storage.getBibleCurrentWeek();
       res.json(bibleData);
@@ -1051,7 +963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/bible/week/:weekNumber', requireAuth, async (req, res) => {
+  app.get('/api/bible/week/:weekNumber', async (req, res) => {
     try {
       const weekNumber = parseInt(req.params.weekNumber);
       const bibleData = await storage.getBibleCurriculum(weekNumber);
@@ -1062,31 +974,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/bible/completion', requireAuth, async (req, res) => {
+  app.patch('/api/bible/completion', async (req, res) => {
     try {
-      const { weekNumber, dayOfWeek, completed, studentName } = req.body;
+      const { weekNumber, dayOfWeek, completed } = req.body;
       
       if (typeof weekNumber !== 'number' || typeof dayOfWeek !== 'number' || typeof completed !== 'boolean') {
         return res.status(400).json({ message: 'Invalid data provided' });
       }
       
-      if (!studentName || typeof studentName !== 'string') {
-        return res.status(400).json({ message: 'Student name is required' });
-      }
+      const updated = await storage.updateBibleCompletion(weekNumber, dayOfWeek, completed);
       
-      // Use the proper Bible curriculum completion function that advances student position
-      const success = await markBibleCurriculumCompleted(
-        weekNumber,
-        dayOfWeek,
-        "daily_reading",
-        studentName
-      );
-      
-      if (!success) {
+      if (!updated) {
         return res.status(404).json({ message: 'Bible curriculum entry not found' });
       }
       
-      res.json({ success: true, weekNumber, dayOfWeek, completed, studentName });
+      res.json(updated);
     } catch (error) {
       console.error('Error updating Bible completion:', error);
       res.status(500).json({ message: 'Failed to update Bible completion' });
@@ -1094,7 +996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auto-scheduling route - triggers assignment allocation via daily schedule initialization
-  app.post('/api/assignments/auto-schedule', requireAuth, async (req, res) => {
+  app.post('/api/assignments/auto-schedule', async (req, res) => {
     try {
       const { studentName, targetDate } = req.body;
       
@@ -1380,7 +1282,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       // Send parent notification if requested
       if (needsHelp) {
         try {
-          await fetch(`${process.env.BASE_URL || 'http://localhost:5000'}/api/notify-parent`, {
+          await fetch('http://localhost:5000/api/notify-parent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1451,7 +1353,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // Attendance tracking routes for fixed blocks
-  app.get('/api/attendance/:userId', requireAuth, async (req, res) => {
+  app.get('/api/attendance/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
       const date = req.query.date as string;
@@ -1464,7 +1366,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
-  app.post('/api/attendance', requireAuth, async (req, res) => {
+  app.post('/api/attendance', async (req, res) => {
     try {
       const { userId, blockId, date, attended, blockType } = req.body;
       
@@ -1552,25 +1454,12 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // Schedule template routes - using real database data instead of hardcoded blocks
-  app.get('/api/schedule-template/:studentName', requireAuth, async (req, res) => {
+  app.get('/api/schedule-template/:studentName', async (req, res) => {
     try {
       const { studentName } = req.params;
       const weekday = req.query.weekday as string;
       
-      console.log('[schedule-template]', { studentName, weekday });
-      
       const templateData = await storage.getScheduleTemplate(studentName, weekday);
-      
-      console.log('[schedule-template] RESULT:', { 
-        studentName, 
-        count: templateData.length,
-        firstBlock: templateData[0] ? {
-          id: templateData[0].id,
-          blockType: templateData[0].blockType,
-          startTime: templateData[0].startTime
-        } : null
-      });
-      
       res.json(templateData);
     } catch (error) {
       console.error('Error fetching schedule template:', error);
@@ -1579,7 +1468,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // Manual Canvas sync trigger (for testing)
-  app.post('/api/sync-canvas', requireAuth, async (req, res) => {
+  app.post('/api/sync-canvas', async (req, res) => {
     try {
       console.log('🔧 Manual Canvas sync triggered via API');
       await jobScheduler.runSyncNow();
@@ -1600,7 +1489,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
   
   // Print Queue Management API for Parent Dashboard
-  app.get('/api/print-queue', requireAuth, async (req, res) => {
+  app.get('/api/print-queue', async (req, res) => {
     try {
       const { startDate, endDate, days } = req.query;
       
@@ -1722,7 +1611,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
   
-  app.post('/api/print-queue/:assignmentId/status', requireAuth, async (req, res) => {
+  app.post('/api/print-queue/:assignmentId/status', async (req, res) => {
     try {
       const { assignmentId } = req.params;
       const { status } = req.body;
@@ -2157,7 +2046,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   // Student Profile Management API endpoints
   
   // GET /api/students/:studentName/assignments - Get assignments for specific student
-  app.get('/api/students/:studentName/assignments', requireAuth, async (req, res) => {
+  app.get('/api/students/:studentName/assignments', async (req, res) => {
     try {
       const { studentName } = req.params;
       const { date, includeCompleted } = req.query;
@@ -2200,7 +2089,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // GET /api/students/:studentName/profile - Get student profile
-  app.get('/api/students/:studentName/profile', requireAuth, async (req, res) => {
+  app.get('/api/students/:studentName/profile', async (req, res) => {
     try {
       const { studentName } = req.params;
       const profile = await storage.getStudentProfile(studentName);
@@ -2212,7 +2101,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // PUT /api/students/:studentName/profile - Update student profile
-  app.put('/api/students/:studentName/profile', requireAuth, async (req, res) => {
+  app.put('/api/students/:studentName/profile', async (req, res) => {
     try {
       const { studentName } = req.params;
       const { profileImageUrl, themeColor } = req.body;
@@ -2232,7 +2121,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/profile-image/upload - Get upload URL for profile image
-  app.post('/api/profile-image/upload', requireAuth, async (req, res) => {
+  app.post('/api/profile-image/upload', async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
@@ -2244,7 +2133,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/profile-image/complete - Complete profile image upload
-  app.post('/api/profile-image/complete', requireAuth, async (req, res) => {
+  app.post('/api/profile-image/complete', async (req, res) => {
     try {
       const { uploadUrl, studentName } = req.body;
       
@@ -2284,68 +2173,13 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   // Family Dashboard API endpoints
   
   // GET /api/family/dashboard - Get family dashboard data
-  app.get('/api/family/dashboard', requireAuth, async (req, res) => {
+  app.get('/api/family/dashboard', async (req, res) => {
     try {
       const dashboardData = await storage.getFamilyDashboardData();
       
       // Calculate daily stats across all students
       const totalCompleted = dashboardData.students.reduce((sum, s) => sum + (s.completedToday || 0), 0);
       const totalRemaining = dashboardData.students.reduce((sum, s) => sum + ((s.totalToday || 0) - (s.completedToday || 0)), 0);
-      
-      // Calculate print queue count using same logic as /api/print-queue endpoint
-      let printQueueCount = 0;
-      try {
-        // Use next 4 days to match default print queue settings
-        const fromDate = new Date();
-        const toDate = new Date();
-        toDate.setDate(fromDate.getDate() + 4);
-        
-        const fromDateStr = fromDate.toISOString().split('T')[0];
-        const toDateStr = toDate.toISOString().split('T')[0];
-        
-        // Get ALL assignments (including completed ones for print queue)
-        const allAssignments = await storage.getAllAssignments();
-        
-        const { detectPrintNeeds } = await import('./lib/printQueue.js');
-        
-        // Filter assignments by due date range (same logic as print-queue endpoint)
-        const filteredAssignments = allAssignments.filter(assignment => {
-          if (!assignment.dueDate) return false;
-          
-          const dueDate = new Date(assignment.dueDate);
-          const dueDateStr = dueDate.toISOString().split('T')[0];
-          
-          return dueDateStr >= fromDateStr && dueDateStr <= toDateStr;
-        });
-
-        // Calculate count using same filter logic as print-queue list endpoint
-        for (const assignment of filteredAssignments) {
-          const printDetection = detectPrintNeeds({
-            title: assignment.title,
-            instructions: assignment.instructions,
-            canvasId: assignment.canvasId,
-            canvasCourseId: assignment.canvasCourseId,
-            canvasInstance: assignment.canvasInstance,
-            submissionTypes: assignment.submissionTypes,
-            courseName: assignment.courseName,
-            subject: assignment.subject
-          });
-          
-          if (printDetection.needsPrinting) {
-            const actualPrintStatus = assignment.printStatus || 'needs_printing';
-            
-            // Only count items that have NOT been printed or skipped (same filter as list)
-            if (actualPrintStatus !== 'printed' && actualPrintStatus !== 'skipped') {
-              printQueueCount++;
-            }
-          }
-        }
-        
-        console.log(`📋 Family dashboard: found ${printQueueCount} items needing printing`);
-      } catch (printError) {
-        console.warn('Error calculating print queue count:', printError);
-        printQueueCount = 0; // Fallback to 0 if calculation fails
-      }
       
       // Get current date for display
       const today = new Date().toISOString().split('T')[0];
@@ -2359,7 +2193,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         },
         students: dashboardData.students,
         needsReview: dashboardData.needsReview,
-        printQueueCount // Now dynamically calculated to match list endpoint
+        // Connect to existing print queue
+        printQueueCount: 0 // Will be updated when we integrate with print queue
       });
     } catch (error) {
       console.error('Error fetching family dashboard data:', error);
@@ -2368,7 +2203,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/family/student/:studentName/flags - Update student flags (stuck, need help, etc.)
-  app.post('/api/family/student/:studentName/flags', requireAuth, async (req, res) => {
+  app.post('/api/family/student/:studentName/flags', async (req, res) => {
     try {
       const { studentName } = req.params;
       const { isStuck, needsHelp, isOvertimeOnTask } = req.body;
@@ -2391,7 +2226,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/family/student/:studentName/status - Update student activity status
-  app.post('/api/family/student/:studentName/status', requireAuth, async (req, res) => {
+  app.post('/api/family/student/:studentName/status', async (req, res) => {
     try {
       const { studentName } = req.params;
       const { 
@@ -2428,7 +2263,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // GET /api/family/student/:studentName/status - Get current student status
-  app.get('/api/family/student/:studentName/status', requireAuth, async (req, res) => {
+  app.get('/api/family/student/:studentName/status', async (req, res) => {
     try {
       const { studentName } = req.params;
       const status = await storage.getStudentStatus(studentName);
@@ -2463,7 +2298,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/family/initialize - Initialize student status data for testing
-  app.post('/api/family/initialize', requireAuth, async (req, res) => {
+  app.post('/api/family/initialize', async (req, res) => {
     try {
       console.log('🔧 Initializing student status data with REAL current state...');
       
@@ -2536,7 +2371,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   }>();
 
   // POST /api/guided/:studentName/:date/need-more-time - Reschedule assignment needing more time
-  app.post('/api/guided/:studentName/:date/need-more-time', requireAuth, async (req, res) => {
+  app.post('/api/guided/:studentName/:date/need-more-time', async (req, res) => {
     try {
       const { studentName, date } = req.params;
       const { assignmentId } = req.body;
@@ -2576,7 +2411,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/guided/:studentName/:date/stuck - Mark assignment as stuck with 15-second undo window
-  app.post('/api/guided/:studentName/:date/stuck', requireAuth, async (req, res) => {
+  app.post('/api/guided/:studentName/:date/stuck', async (req, res) => {
     try {
       const { studentName, date } = req.params;
       const { assignmentId, reason, needsHelp } = req.body;
@@ -2606,7 +2441,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
                 // Get assignment details for notification
                 const assignment = await storage.getAssignment(assignmentId);
                 if (assignment) {
-                  await fetch(`${process.env.BASE_URL || 'http://localhost:5000'}/api/notify-parent`, {
+                  await fetch('http://localhost:5000/api/notify-parent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2662,7 +2497,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/guided/:studentName/:date/stuck/cancel - Cancel stuck marking (undo)
-  app.post('/api/guided/:studentName/:date/stuck/cancel', requireAuth, async (req, res) => {
+  app.post('/api/guided/:studentName/:date/stuck/cancel', async (req, res) => {
     try {
       const { pendingKey } = req.body;
       
@@ -2697,7 +2532,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // Admin endpoint to reset Bible progress
-  app.post('/api/admin/bible/reset', requireAuth, async (req, res) => {
+  app.post('/api/admin/bible/reset', async (req, res) => {
     try {
       const { studentName, scope = 'both' } = req.body;
       
@@ -2742,7 +2577,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/assignments/:id/resolve - Parent resolution of stuck assignments
-  app.post('/api/assignments/:id/resolve', requireAuth, async (req, res) => {
+  app.post('/api/assignments/:id/resolve', async (req, res) => {
     try {
       const { id } = req.params;
       const { action, notes, studentName } = req.body;

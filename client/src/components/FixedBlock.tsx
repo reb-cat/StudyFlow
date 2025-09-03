@@ -58,7 +58,7 @@ export function FixedBlock({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 'attendance-tracking',
+          userId: 'demo-user-1',
           blockId,
           date,
           attended,

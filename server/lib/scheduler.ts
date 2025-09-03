@@ -48,7 +48,7 @@ class JobScheduler {
         // FIRST: Sync completion status for existing assignments
         console.log(`✅ Checking for completed assignments for ${studentName}...`);
         try {
-          const completionSyncResponse = await fetch(`${process.env.BASE_URL || 'http://localhost:5000'}/api/sync-canvas-completion/${studentName}`, {
+          const completionSyncResponse = await fetch(`http://localhost:5000/api/sync-canvas-completion/${studentName}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
           });

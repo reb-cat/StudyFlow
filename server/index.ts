@@ -1,21 +1,16 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
-import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { jobScheduler } from "./lib/scheduler";
-import { env } from "./env";
 
 const app = express();
-
-// Trust proxy for production deployment behind reverse proxy
-app.set('trust proxy', 1);
 
 // Use PostgreSQL session storage for production reliability
 const PgSession = connectPgSimple(session);
 const sessionStore = new PgSession({
-  conString: env.databaseUrl,
+  conString: process.env.DATABASE_URL,
   tableName: 'sessions',
   createTableIfMissing: true,
   ttl: 24 * 60 * 60, // 24 hours in seconds
@@ -24,63 +19,33 @@ const sessionStore = new PgSession({
 // Session middleware for family authentication
 app.use(session({
   store: sessionStore,
-  secret: env.sessionSecret || env.familyPassword || 'fallback-secret',
+  secret: process.env.SESSION_SECRET || process.env.FAMILY_PASSWORD || 'fallback-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: env.cookieSecure,
-    sameSite: env.cookieSameSite,
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 7
+    secure: process.env.NODE_ENV === 'production', // Auto-secure in production
+    httpOnly: true, // Prevent XSS attacks
+    sameSite: 'lax', // CSRF protection
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
 
+// CORS configuration for production session cookies
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// Rate limiting for auth and write routes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts per window
-  message: { error: 'Too many attempts, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const writeLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100, // 100 requests per minute
-  message: { error: 'Too many requests, please slow down.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Apply rate limiting to auth routes
-app.use('/api/unlock', authLimiter);
-app.use('/api/login', authLimiter);
-
-// Apply rate limiting to write operations
-app.use('/api/assignments', writeLimiter);
-app.use('/api/schedule', writeLimiter);
-app.use('/api/bible', writeLimiter);
-
-// 🔒 Global API gate — allow only /api/auth/*, /api/unlock, and /health without a session
-app.use('/api', (req, res, next) => {
-  // Allow auth-related endpoints and health check
-  if (req.path.startsWith('/auth') || req.path === '/unlock' || req.path === '/logout' || req.path === '/health') {
-    return next();
-  }
-
-  // Check if user is authenticated
-  const authed =
-    (req.session && (req.session.user || req.session.authenticated === true)) ||
-    false;
-
-  if (!authed) {
-    return res.status(401).json({ message: 'Authentication required' });
-  }
-  next();
-});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -115,17 +80,18 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Production-safe error handler (non-verbose)
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('[error]', err); // Full stack server-side only
-    res.status(500).json({ error: 'Something went wrong.' });
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    res.status(status).json({ message });
+    throw err;
   });
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  const isProd = env.appEnv === "production";
-  if (!isProd) {
+  if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
@@ -142,7 +108,6 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
-    console.log('[ready]', { env: env.appEnv, port });
     
     // Start the job scheduler for daily Canvas sync
     jobScheduler.start();

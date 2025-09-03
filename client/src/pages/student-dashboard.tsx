@@ -92,8 +92,8 @@ export default function StudentDashboard() {
   const studentName = params.student ? params.student.charAt(0).toUpperCase() + params.student.slice(1) : "Abigail";
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
-    // Use today's date in NY timezone
-    return toNYDateString();
+    // Set to September 2nd, 2025 to show assignments with instructions
+    return '2025-09-02';
   });
   const queryClient = useQueryClient();
 
@@ -104,13 +104,17 @@ export default function StudentDashboard() {
   };
 
 
-  // Fetch assignments for the selected date (FIXED: fetch and filter use same date)
+  // Fetch assignments for today (get assignments due on or before this date)
   const { data: assignments = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/assignments', selectedDate, studentName],
     queryFn: async () => {
-      // Use the SAME date for fetch and filter to prevent mismatch
+      // For scheduling purposes, show assignments due in the next few days
+      const currentDate = new Date(selectedDate);
+      const targetDate = new Date(currentDate);
+      targetDate.setDate(currentDate.getDate() + 2); // Show assignments due within 2 days
+      
       const params = new URLSearchParams({
-        date: selectedDate, // Use selectedDate directly, not a calculated targetDate
+        date: toNYDateString(targetDate),
         studentName: studentName
       });
       const response = await fetch(`/api/assignments?${params}`);
@@ -120,15 +124,10 @@ export default function StudentDashboard() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Fetch schedule template for the student (no auth required)
+  // Fetch schedule template for the student and date
   const { data: scheduleTemplate = [] } = useQuery<any[]>({
-    queryKey: ['/api/schedule-template', studentName],
-    queryFn: async () => {
-      const response = await fetch(`/api/schedule-template/${studentName}`);
-      if (!response.ok) throw new Error('Failed to fetch schedule template');
-      return response.json();
-    },
-    staleTime: 1000 * 60 * 30, // 30 minutes (template doesn't change often)
+    queryKey: ['/api/schedule', studentName, selectedDate],
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Initialize daily schedule for today
@@ -290,17 +289,6 @@ export default function StudentDashboard() {
     subject: block.subject
   }));
 
-  // Debug logging to see what's happening  
-  console.log('🔍 Schedule Debug:', {
-    studentName,
-    selectedDate,
-    scheduleTemplateLength: scheduleTemplate.length,
-    allScheduleBlocksLength: allScheduleBlocks.length,
-    assignmentsLength: assignments.length,
-    firstFewBlocks: allScheduleBlocks.slice(0, 3),
-    firstFewAssignments: assignments.slice(0, 2)
-  });
-
   // Separate Bible blocks from other fixed blocks using real data
   const bibleBlocks = allScheduleBlocks.filter((block) => block.blockType === 'bible');
   const fixedBlocks = allScheduleBlocks.filter((block) => 
@@ -421,7 +409,7 @@ export default function StudentDashboard() {
   });
 
   // DEBUG LOGGING: Client Overview composition
-  const DEBUG_ORDERING = import.meta.env.DEV && false; // Enable when needed
+  const DEBUG_ORDERING = process.env.NODE_ENV === 'development' && false; // Enable when needed
   if (DEBUG_ORDERING && studentName === 'Abigail') {
     console.log('\n🧭 ORDER TRACE / CLIENT_OVERVIEW: allScheduleBlocks');
     allScheduleBlocks.forEach((block, i) => {
@@ -661,22 +649,8 @@ export default function StudentDashboard() {
                 </h3>
                   
                   <div className="space-y-3 print:space-y-0">
-                    {/* Show loading state */}
-                    {isLoading && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        Loading schedule...
-                      </div>
-                    )}
-                    
-                    {/* Show empty state */}
-                    {!isLoading && allScheduleBlocks.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No schedule blocks found for {selectedDate}
-                      </div>
-                    )}
-                    
                     {/* Show ALL schedule blocks in chronological order with compact Apple-style layout */}
-                    {!isLoading && allScheduleBlocks.length > 0 && allScheduleBlocks
+                    {allScheduleBlocks
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((block, index) => {
                         // Get appropriate icon component using cleaner mapping

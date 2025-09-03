@@ -51,7 +51,7 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
       const response = await fetch('/api/bible/completion', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ weekNumber, dayOfWeek, completed, studentName })
+        body: JSON.stringify({ weekNumber, dayOfWeek, completed })
       });
       if (!response.ok) throw new Error('Failed to update Bible completion');
       return response.json();
