@@ -112,9 +112,16 @@ export default function StudentDashboard() {
         date: selectedDate,
         studentName: studentName
       });
-      const response = await fetch(`/api/assignments?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch assignments');
-      return response.json();
+      const url = `/api/assignments?${params}`;
+      console.log(`🔥 Frontend making assignments API call: ${url}`);
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`🔥 API call failed: ${response.status} ${response.statusText}`);
+        throw new Error('Failed to fetch assignments');
+      }
+      const data = await response.json();
+      console.log(`🔥 API response:`, data);
+      return data;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
