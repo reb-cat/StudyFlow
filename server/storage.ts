@@ -1,12 +1,11 @@
 import { 
-  type User, type InsertUser, 
   type Assignment, type InsertAssignment, type UpdateAssignment,
   type ScheduleTemplate, type InsertScheduleTemplate,
   type BibleCurriculum, type InsertBibleCurriculum,
   type StudentProfile, type InsertStudentProfile,
   type StudentStatus, type InsertStudentStatus,
   type DailyScheduleStatus, type InsertDailyScheduleStatus,
-  users, assignments, scheduleTemplate, bibleCurriculum, studentProfiles, studentStatus, dailyScheduleStatus
+  assignments, scheduleTemplate, bibleCurriculum, studentProfiles, studentStatus, dailyScheduleStatus
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
