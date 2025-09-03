@@ -566,17 +566,6 @@ export function autoScheduleAssignments(
   console.log(`SCHED: [UTC-HARDENED] Computed start of day: ${startOfDay.toISOString()}`);
   console.log(`SCHED: [UTC-HARDENED] Computed end of day: ${endOfDay.toISOString()}`);
   
-  // SCHED: Additional validation - show first 2 blocks example
-  if (assignmentBlocks.length >= 2) {
-    for (let i = 0; i < Math.min(2, assignmentBlocks.length); i++) {
-      const block = assignmentBlocks[i];
-      const blockStartISO = new Date(`${targetDate}T${block.startTime}Z`).toISOString();
-      const blockEndISO = new Date(`${targetDate}T${block.endTime}Z`).toISOString();
-      const durationMin = Math.floor((new Date(blockEndISO).getTime() - new Date(blockStartISO).getTime()) / (1000 * 60));
-      console.log(`SCHED: [UTC-HARDENED] Block ${block.blockNumber} example - start: ${blockStartISO}, end: ${blockEndISO}, durationMin: ${durationMin}`);
-    }
-  }
-  
   const results = new Map<string, SchedulingResult>();
   const today = new Date().toLocaleDateString('en-CA', { timeZone }); // Get today in America/New_York
   
