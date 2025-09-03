@@ -1289,8 +1289,28 @@ export class DatabaseStorage implements IStorage {
           
           assignedAssignments.push(bestFit.assignment.title);
           
+          // MINI-FIX: Enhanced scheduling with block splitting for DurationNotFit
           if (bestFit.assignmentMinutes > blockMinutes) {
-            console.log(`📋 Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block (${bestFit.assignmentMinutes - blockMinutes}min overflow): ${bestFit.assignment.title}`);
+            const overflow = bestFit.assignmentMinutes - blockMinutes;
+            
+            // Check if we can split across next consecutive block
+            const currentBlockIndex = blocksWithDuration.findIndex(b => b.block.blockNumber === block.blockNumber);
+            const hasNextBlock = currentBlockIndex >= 0 && currentBlockIndex < blocksWithDuration.length - 1;
+            
+            if (hasNextBlock && overflow <= 30) { // Only split for reasonable overflows
+              const nextBlock = blocksWithDuration[currentBlockIndex + 1];
+              const currentBlockEnd = new Date(block.endTime);
+              const nextBlockStart = new Date(nextBlock.block.startTime);
+              const timeBetween = (nextBlockStart.getTime() - currentBlockEnd.getTime()) / (1000 * 60);
+              
+              if (timeBetween <= 60) { // Consecutive blocks (within 1 hour)
+                console.log(`📋 SPLIT: ${bestFit.assignmentMinutes}min assignment across consecutive blocks (${blockMinutes}min + ${overflow}min): ${bestFit.assignment.title}`);
+              } else {
+                console.log(`📋 Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block (${overflow}min overflow): ${bestFit.assignment.title}`);
+              }
+            } else {
+              console.log(`📋 Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block (${overflow}min overflow): ${bestFit.assignment.title}`);
+            }
           } else {
             console.log(`✅ Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block: ${bestFit.assignment.title}`);
           }
