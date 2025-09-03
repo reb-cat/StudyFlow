@@ -92,8 +92,8 @@ export default function StudentDashboard() {
   const studentName = params.student ? params.student.charAt(0).toUpperCase() + params.student.slice(1) : "Abigail";
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
-    // Set to September 2nd, 2025 to show assignments with instructions
-    return '2025-09-02';
+    // Initialize to today using timezone-safe function
+    return toNYDateString();
   });
   const queryClient = useQueryClient();
 

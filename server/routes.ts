@@ -324,22 +324,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PRODUCTION FIX: Create missing endpoints that production frontend is calling
-  app.get('/api/assignments-v2', requireAuth, async (req, res) => {
-    console.log('🔧 PRODUCTION FIX: Redirecting /api/assignments-v2 to /api/assignments');
-    // Forward to the real assignments endpoint with same query params
-    const queryString = new URLSearchParams(req.query as any).toString();
-    req.url = `/api/assignments?${queryString}`;
-    req.path = '/api/assignments';
-    return app._router.handle(req, res);
+  app.get('/api/assignments-v2', async (req, res) => {
+    console.log('🔧 PRODUCTION FIX: /api/assignments-v2 called with params:', req.query);
+    
+    try {
+      // Extract parameters
+      const { date, studentName } = req.query as { date?: string; studentName?: string };
+      
+      if (!date || !studentName) {
+        console.log('❌ Missing required parameters:', { date, studentName });
+        return res.status(400).json({ error: 'Missing date or studentName parameter' });
+      }
+
+      // Use student-specific user ID mapping
+      const studentUserMap: Record<string, string> = {
+        'abigail': 'abigail-user',
+        'khalil': 'khalil-user'
+      };
+      const userId = studentUserMap[studentName.toLowerCase()] || "unknown-user";
+
+      console.log(`🔍 BRIDGE DEBUG: Fetching assignments for userId="${userId}", date="${date}"`);
+      const assignments = await storage.getAssignments(userId, date, false);
+      console.log(`📊 BRIDGE DEBUG: Found ${assignments.length} assignments for ${userId} on ${date}`);
+
+      res.json(assignments);
+    } catch (error) {
+      console.error('❌ Bridge endpoint error:', error);
+      res.status(500).json({ error: 'Failed to fetch assignments' });
+    }
   });
 
-  app.get('/api/debug-fetch', requireAuth, async (req, res) => {
-    console.log('🔧 PRODUCTION FIX: /api/debug-fetch called - forwarding to assignments');
-    // Forward to the real assignments endpoint with same query params  
-    const queryString = new URLSearchParams(req.query as any).toString();
-    req.url = `/api/assignments?${queryString}`;
-    req.path = '/api/assignments';
-    return app._router.handle(req, res);
+  app.get('/api/debug-fetch', async (req, res) => {
+    console.log('🔧 PRODUCTION FIX: /api/debug-fetch called with params:', req.query);
+    
+    try {
+      // Extract parameters
+      const { date, studentName } = req.query as { date?: string; studentName?: string };
+      
+      if (!date || !studentName) {
+        console.log('❌ Missing required parameters:', { date, studentName });
+        return res.status(400).json({ error: 'Missing date or studentName parameter' });
+      }
+
+      // Use student-specific user ID mapping
+      const studentUserMap: Record<string, string> = {
+        'abigail': 'abigail-user',
+        'khalil': 'khalil-user'
+      };
+      const userId = studentUserMap[studentName.toLowerCase()] || "unknown-user";
+
+      console.log(`🔍 DEBUG BRIDGE: Fetching assignments for userId="${userId}", date="${date}"`);
+      const assignments = await storage.getAssignments(userId, date, false);
+      console.log(`📊 DEBUG BRIDGE: Found ${assignments.length} assignments for ${userId} on ${date}`);
+
+      res.json(assignments);
+    } catch (error) {
+      console.error('❌ Debug bridge endpoint error:', error);
+      res.status(500).json({ error: 'Failed to fetch assignments' });
+    }
   });
   
   // POST /api/assignments - Create new assignment
