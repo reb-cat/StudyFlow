@@ -8,9 +8,20 @@ import { jobScheduler } from "./lib/scheduler";
 const app = express();
 
 // Use PostgreSQL session storage for production reliability
+const isDev = process.env.NODE_ENV !== 'production';
+const sessionDbUrl = isDev 
+  ? process.env.DATABASE_URL_DEV!
+  : process.env.DATABASE_URL!;
+
+if (!sessionDbUrl) {
+  throw new Error(isDev 
+    ? "DATABASE_URL_DEV is required for development sessions" 
+    : "DATABASE_URL is required for production sessions");
+}
+
 const PgSession = connectPgSimple(session);
 const sessionStore = new PgSession({
-  conString: process.env.DATABASE_URL,
+  conString: sessionDbUrl,
   tableName: 'sessions',
   createTableIfMissing: true,
   ttl: 24 * 60 * 60, // 24 hours in seconds
@@ -19,7 +30,7 @@ const sessionStore = new PgSession({
 // Session middleware for family authentication
 app.use(session({
   store: sessionStore,
-  secret: process.env.SESSION_SECRET || process.env.FAMILY_PASSWORD || 'fallback-secret',
+  secret: process.env.SESSION_SECRET || process.env.FAMILY_PASSWORD || (isDev ? 'dev-fallback-secret' : (() => { throw new Error('SESSION_SECRET or FAMILY_PASSWORD required in production'); })()),
   resave: false,
   saveUninitialized: false,
   cookie: {
