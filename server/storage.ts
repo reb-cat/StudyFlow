@@ -141,13 +141,24 @@ export class DatabaseStorage implements IStorage {
       console.log(`🎯 Type filtering: ${beforeTypeFilter} → ${assignmentList.length} assignments (excluded participation/attendance)`);
 
       // SECOND: Exclude completed assignments from daily planning (unless admin mode)
-      // Only show assignments that are actively workable (pending, needs_more_time, stuck)
+      // CRITICAL FIX: Include scheduled assignments for the specified date for frontend display
       if (!includeCompleted) {
         const beforeCompletionFilter = assignmentList.length;
-        assignmentList = assignmentList.filter((assignment: any) => 
-          assignment.completionStatus !== 'completed'
-        );
-        console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments)`);
+        assignmentList = assignmentList.filter((assignment: any) => {
+          // Always include completed assignments if they're not truly completed
+          if (assignment.completionStatus !== 'completed') {
+            return true;
+          }
+          
+          // FRONTEND DISPLAY: Include scheduled assignments for the requested date
+          if (date && assignment.scheduledDate === date && assignment.scheduledBlock) {
+            console.log(`📅 Including scheduled assignment for ${date}: ${assignment.title}`);
+            return true;
+          }
+          
+          return false;
+        });
+        console.log(`📝 Status filtering: ${beforeCompletionFilter} → ${assignmentList.length} assignments (excluded completed assignments, included scheduled for ${date})`);
       } else {
         console.log(`🔧 Admin mode: Including completed assignments (${assignmentList.length} total after type filtering)`);
       }
@@ -409,9 +420,9 @@ export class DatabaseStorage implements IStorage {
       const userId = `${studentName.toLowerCase()}-user`;
       
       // Get unscheduled assignments - EXCLUDE PARENT TASKS
-      const userAssignments = await this.getAssignments(userId);
+      const userAssignments = await this.getAssignments(userId, undefined, false);
       const unscheduledAssignments = userAssignments.filter(a => {
-        // First filter: must be pending and not scheduled
+        // First filter: must be pending and not already scheduled
         if (a.completionStatus !== 'pending' || (a.scheduledDate && a.scheduledBlock)) {
           return false;
         }

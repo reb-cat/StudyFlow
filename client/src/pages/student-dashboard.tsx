@@ -293,29 +293,16 @@ export default function StudentDashboard() {
 
   // USE BACKEND-ALLOCATED ASSIGNMENTS: Match assignments to blocks using scheduledBlock field
   const populatedAssignmentBlocks = (() => {
-    // Debug: Log all assignment data
-    console.log('🔍 DEBUG: All assignments:', assignments.length, assignments);
-    console.log('🔍 DEBUG: Selected date:', selectedDate);
-    console.log('🔍 DEBUG: Assignment blocks:', assignmentBlocks.length, assignmentBlocks.map(b => ({ id: b.id, startTime: b.startTime })));
-    
     // Filter assignments that are scheduled for the selected date
     const scheduledAssignments = assignments.filter(assignment => 
       assignment.scheduledDate === selectedDate && assignment.scheduledBlock
     );
-    
-    console.log('🔍 DEBUG: Scheduled assignments for', selectedDate, ':', scheduledAssignments.length, scheduledAssignments);
     
     return assignmentBlocks.map((block) => {
       // Find assignment allocated to this specific block by the backend
       const selectedAssignment = scheduledAssignments.find(assignment => 
         assignment.scheduledBlock === block.id
       ) || null;
-      
-      if (selectedAssignment) {
-        console.log(`🎯 Found assignment for block ${block.id}:`, selectedAssignment.title);
-      } else {
-        console.log(`❌ No assignment found for block ${block.id}`);
-      }
       
       return {
         ...block,
