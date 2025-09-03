@@ -158,12 +158,12 @@ export class DatabaseStorage implements IStorage {
         
         // Check if this is a date range (comma-separated) or single date
         if (date.includes(',')) {
-          // Parse date range: "startDate,endDate"
+          // Parse date range: "startDate,endDate" 
           const [startDate, endDate] = date.split(',');
           pastLimit = new Date(startDate);
           futureLimit = new Date(endDate);
         } else {
-          // Single date - use existing logic for daily scheduling
+          // Single date - apply 3-day focus window for daily scheduling
           const requestDate = new Date(date);
           futureLimit = new Date(requestDate);
           futureLimit.setDate(requestDate.getDate() + 3); // Only 3 days ahead for daily focus
