@@ -1,0 +1,32 @@
+Goal: Identify every difference between Dev Preview and Production Deploy that could affect the schedule (build-time vars, runtime vars, DB, timezone, feature flags). Audit only—don’t modify files.
+
+A) Client (Vite) — Build-time vs Dev-time
+	1.	List all import.meta.env.* keys referenced in the client (grep for import.meta.env).
+	2.	Dev Preview values: run the dev server and print the values of those keys in the browser console (capture output).
+	3.	Production Build values: run vite build, then search built JS in dist/ for the corresponding values (grep the domain strings or the key names). Report any that are undefined/empty/different from Dev.
+	4.	Confirm whether any code paths are gated by process.env.NODE_ENV or import.meta.env.MODE in the client. Show lines.
+
+B) Server — Runtime vars & code paths
+5) Print the effective values at startup for: NODE_ENV, APP_ENV, TZ, SCHOOL_YEAR_START_DATE. Do this twice:
+	•	Dev run: npm run dev
+	•	Prod-like local run: NODE_ENV=production node dist/index.js (after build), using the dev DB to avoid risk.
+Capture both boot logs side-by-side.
+
+	6.	List any if (process.env.NODE_ENV === 'production') or similar branches in server code that touch scheduling, time math, caching, or cookies. Show file:line.
+
+C) Database & migrations per environment
+7) For Dev run: print which DB URL is used (mask creds), list applied Drizzle migrations, and row counts for tables used by schedule (list table names + COUNT(*)).
+8) For a Prod Deploy simulation (don’t deploy): show which env var would supply the DB URL during Deploy, and whether your Deploy profile runs migrations/seed automatically. If Replit distinguishes Deploy secrets, list them (names only).
+
+D) Time & Timezone
+9) Print TZ during Dev run and during the Prod-like local run from step 5. If unset, note the default timezone the runtime uses.
+10) In the scheduler module, list all places that construct “start of day/end of day” or parse date-only strings (e.g., 'YYYY-MM-DD'). Show file:line and the exact code snippets (read-only).
+
+E) Network behavior (Dev vs Prod-like)
+11) In Dev Preview, open the schedule page once and capture: the request URL(s) for schedule data, HTTP status, and response shape (keys only).
+12) In the Prod-like local run (dist server), do the same. Compare base URLs, statuses, and whether any 401/404/500s occur.
+
+Output format:
+	•	A concise table or bullet list per section A–E, highlighting differences only.
+	•	Explicitly call out anything that is undefined in the Production Build (section A.3).
+	•	Do not change any files or secrets; this is audit-only.
