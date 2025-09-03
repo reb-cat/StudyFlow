@@ -127,6 +127,11 @@ export default function StudentDashboard() {
   // Fetch schedule template for the student and date
   const { data: scheduleTemplate = [] } = useQuery<any[]>({
     queryKey: ['/api/schedule', studentName, selectedDate],
+    queryFn: async () => {
+      const response = await fetch(`/api/schedule/${studentName}/${selectedDate}`);
+      if (!response.ok) throw new Error('Failed to fetch schedule template');
+      return response.json();
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
