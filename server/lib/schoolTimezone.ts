@@ -70,3 +70,57 @@ export function isSchoolWeekend(date: string | Date): boolean {
   const weekdayNum = getSchoolWeekdayNumber(date);
   return weekdayNum === 0 || weekdayNum === 6; // Sunday or Saturday
 }
+
+/**
+ * CRITICAL FIX: Compose block instant at School Timezone local wall-clock time
+ * 
+ * Takes YYYY-MM-DD date and HH:MM(:SS) time and returns the instant that represents 
+ * that wall-clock time in SCHOOL_TIMEZONE, then converts to UTC for storage/comparison.
+ * 
+ * @param date - Date string in YYYY-MM-DD format
+ * @param time - Time string in HH:MM or HH:MM:SS format
+ * @returns UTC ISO string representing the school timezone instant
+ */
+export function composeSchoolInstant(date: string, time: string): string {
+  // Parse time components, handle both HH:MM and HH:MM:SS
+  const timeParts = time.split(':');
+  const hours = parseInt(timeParts[0], 10);
+  const minutes = parseInt(timeParts[1] || '0', 10);
+  const seconds = parseInt(timeParts[2] || '0', 10);
+  
+  // Parse date components
+  const [year, month, day] = date.split('-').map(Number);
+  
+  // Create the instant at the specified wall-clock time in school timezone
+  const schoolDate = new Date();
+  schoolDate.setFullYear(year, month - 1, day);
+  schoolDate.setHours(hours, minutes, seconds, 0);
+  
+  // Convert to school timezone aware instant - this handles DST automatically
+  // The time zone library will automatically adjust for DST
+  const utcInstant = new Date(schoolDate.toLocaleString('en-US', { timeZone: 'UTC' }));
+  
+  // For proper timezone conversion, we need to work backwards from school time
+  const schoolOffset = getTimezoneOffset(schoolDate, SCHOOL_TIMEZONE);
+  const correctedUtc = new Date(schoolDate.getTime() - schoolOffset);
+  
+  const isoString = correctedUtc.toISOString();
+  
+  // Debug logging to show the conversion
+  const schoolTimeDisplay = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  console.log(`COMPOSE: raw=${time} date=${date} -> school=${schoolTimeDisplay} NY -> iso=${isoString}`);
+  
+  return isoString;
+}
+
+/**
+ * Get timezone offset in milliseconds for a given date in a specific timezone
+ */
+function getTimezoneOffset(date: Date, timezone: string): number {
+  // Get the UTC time and the time in the target timezone
+  const utcTime = date.getTime();
+  const targetTime = new Date(date.toLocaleString('en-US', { timeZone: timezone })).getTime();
+  
+  // Return the difference (offset in milliseconds)
+  return utcTime - targetTime;
+}

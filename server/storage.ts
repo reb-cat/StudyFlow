@@ -1236,9 +1236,10 @@ export class DatabaseStorage implements IStorage {
         const endTime = new Date(`2000-01-01T${block.endTime}`);
         const blockMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
         
-        // SCHED: Debug final block time calculations (UTC HARDENING: explicit UTC parsing)
-        const blockStartISO = new Date(`${date}T${block.startTime}Z`).toISOString();
-        const blockEndISO = new Date(`${date}T${block.endTime}Z`).toISOString();
+        // SCHED: Debug final block time calculations - FIXED for school timezone
+        const { composeSchoolInstant } = require('./lib/schoolTimezone');
+        const blockStartISO = composeSchoolInstant(date, block.startTime);
+        const blockEndISO = composeSchoolInstant(date, block.endTime);
         console.log(`SCHED: Block ${block.blockNumber} - start: ${blockStartISO}, end: ${blockEndISO}, durationMin: ${blockMinutes}`);
         
         return { block, blockMinutes };
