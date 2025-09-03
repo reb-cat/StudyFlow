@@ -121,6 +121,13 @@ export default function StudentDashboard() {
         }
       });
       console.log(`🔥 Response status: ${response.status} ${response.statusText}`);
+      
+      // ✨ CRITICAL FIX: Check for 401 and surface the error instead of silently failing
+      if (response.status === 401) {
+        console.error(`🚨 AUTHENTICATION FAILED: ${response.status} ${response.statusText}`);
+        throw new Error('Authentication failed - please refresh the page');
+      }
+      
       if (!response.ok) {
         console.error(`🔥 API call failed: ${response.status} ${response.statusText}`);
         throw new Error('Failed to fetch assignments');
