@@ -276,7 +276,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filterDate = `${startDate},${endDate}`;
       }
       
+      console.log(`🔍 PRODUCTION DEBUG: Fetching assignments for userId="${userId}", date="${filterDate}", includeCompleted="${includeCompletedBool}"`);
       const assignments = await storage.getAssignments(userId, filterDate, includeCompletedBool);
+      console.log(`📊 PRODUCTION DEBUG: Found ${assignments.length} assignments in database for ${userId}`);
+      
+      if (assignments.length === 0) {
+        console.log(`❌ PRODUCTION DEBUG: No assignments found! Check:
+          1. Is data in database for userId="${userId}"?
+          2. Is date filtering too restrictive for date="${filterDate}"?
+          3. Is student name mapping correct for studentName="${studentName}"?`);
+      }
       
       // FIXED: Proper data separation architecture
       // Bible blocks get content from bible_curriculum table ONLY
@@ -312,6 +321,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to fetch assignments', error: errorMessage });
     }
+  });
+
+  // PRODUCTION FIX: Create missing endpoints that production frontend is calling
+  app.get('/api/assignments-v2', requireAuth, async (req, res) => {
+    console.log('🔧 PRODUCTION FIX: Redirecting /api/assignments-v2 to /api/assignments');
+    // Forward to the real assignments endpoint with same query params
+    const queryString = new URLSearchParams(req.query as any).toString();
+    req.url = `/api/assignments?${queryString}`;
+    req.path = '/api/assignments';
+    return app._router.handle(req, res);
+  });
+
+  app.get('/api/debug-fetch', requireAuth, async (req, res) => {
+    console.log('🔧 PRODUCTION FIX: /api/debug-fetch called - forwarding to assignments');
+    // Forward to the real assignments endpoint with same query params  
+    const queryString = new URLSearchParams(req.query as any).toString();
+    req.url = `/api/assignments?${queryString}`;
+    req.path = '/api/assignments';
+    return app._router.handle(req, res);
   });
   
   // POST /api/assignments - Create new assignment
