@@ -1237,9 +1237,9 @@ export class DatabaseStorage implements IStorage {
         const endTime = new Date(`2000-01-01T${block.endTime}`);
         const blockMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
         
-        // SCHED: Debug final block time calculations
-        const blockStartISO = new Date(`${date}T${block.startTime}`).toISOString();
-        const blockEndISO = new Date(`${date}T${block.endTime}`).toISOString();
+        // SCHED: Debug final block time calculations (UTC HARDENING: explicit UTC parsing)
+        const blockStartISO = new Date(`${date}T${block.startTime}Z`).toISOString();
+        const blockEndISO = new Date(`${date}T${block.endTime}Z`).toISOString();
         console.log(`SCHED: Block ${block.blockNumber} - start: ${blockStartISO}, end: ${blockEndISO}, durationMin: ${blockMinutes}`);
         
         return { block, blockMinutes };
@@ -1381,10 +1381,13 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`Assignment ${assignmentId} not found`);
       }
       
-      const targetDate = new Date(date);
+      // UTC HARDENING: Parse date-only string as UTC midnight, not local time
+      const targetDate = new Date(date + 'T00:00:00.000Z');
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      targetDate.setHours(0, 0, 0, 0);
+      today.setUTCHours(0, 0, 0, 0);
+      targetDate.setUTCHours(0, 0, 0, 0);
+      
+      console.log(`SCHED: [RESCHEDULE-UTC-HARDENED] Input date: ${date} -> UTC: ${targetDate.toISOString()}, Today UTC: ${today.toISOString()}`);
       
       const isDueToday = assignment.dueDate && new Date(assignment.dueDate).getTime() === targetDate.getTime();
       const isOverdue = assignment.dueDate && new Date(assignment.dueDate) < targetDate;

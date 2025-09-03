@@ -1,0 +1,31 @@
+Task: Minimal “UTC hardening” patch in the scheduler (limited scope).
+Goal: Stop local-time parsing from shifting blocks by DST/travel. Keep display unchanged.
+
+Scope (only these callsites):
+	1.	server/lib/assignmentIntelligence.ts lines near 558–560 (date-only parsing + start/end-of-day).
+	2.	server/storage.ts lines near 1384–1387 (date-only parsing + local start-of-day).
+
+What to implement (behavior, not code):
+	•	When a date comes in as a date-only string like YYYY-MM-DD, interpret it as UTC midnight of that date, not local time.
+	•	Compute start of day and end of day in UTC (00:00:00.000Z to 23:59:59.999Z).
+	•	For any “combine date + time” operation (e.g., 2025-09-02 + 09:00), construct the timestamp as that date/time in UTC, not local time.
+	•	Do not change any client/UI formatting; the API should still return ISO strings.
+	•	Do not change any other files/lines outside the scope above.
+
+Instrumented validation (keep logs temporary):
+	•	Add SCHED: logs around those two spots to print, for one example date:
+	•	input date string, computed UTC start/end of day (ISO), and first 2 generated blocks {start,end,durationMin} as ISO.
+	•	Keep existing SCHED: logs you already added elsewhere.
+
+Acceptance checks (please run & report):
+	1.	Probe: Hit one schedule day that looked “off” before (same student/date). Capture the SCHED: logs before and after the change for those two spots (Replit can snapshot logs).
+	2.	Offset check: For one block, confirm: server SCHED start ISO == API JSON start (string match).
+	3.	Display check: In the browser, note the on-screen time for that block and the client’s timezone from the console; confirm the hour difference equals the expected UTC offset (e.g., UTC→EDT = −4h).
+	4.	Regression guard: Add 2 tiny checks (existing test setup, no new libs):
+	•	Given date-only 2025-09-02 and 09:00–10:00, resulting ISO should be 2025-09-02T09:00:00Z..10:00:00Z.
+	•	End-of-day boundary on same date should cap at 23:59:59.999Z.
+
+Constraints:
+	•	No new dependencies.
+	•	Keep changes minimal and localized to the lines listed.
+	•	Do not alter DB, routes, or client display code.
