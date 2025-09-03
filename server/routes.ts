@@ -250,6 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/assignments', requireAuth, async (req, res) => {
     try {
       const { date, startDate, endDate, studentName, includeCompleted } = req.query;
+      console.log(`🔥 API ROUTE: /api/assignments called with date=${date}, studentName=${studentName}, includeCompleted=${includeCompleted}`);
       
       // Use student-specific user ID mapping  
       let userId = "unknown-user"; // fallback (was demo-user-1 - removed to prevent mock data contamination)
@@ -276,7 +277,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filterDate = `${startDate},${endDate}`;
       }
       
+      console.log(`🔥 API ROUTE: About to call storage.getAssignments(${userId}, ${filterDate}, ${includeCompletedBool})`);
       const assignments = await storage.getAssignments(userId, filterDate, includeCompletedBool);
+      console.log(`🔥 API ROUTE: storage.getAssignments returned ${assignments.length} assignments`);
       
       // FIXED: Proper data separation architecture
       // Bible blocks get content from bible_curriculum table ONLY
