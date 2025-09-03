@@ -1,0 +1,114 @@
+Let’s lock auth back down now with two surgical fixes: one on the server (authoritative) and one on the client (UX redirect). No features removed.
+
+⸻
+
+1) Server: hard-gate all /api/* except /api/auth/*
+
+Add this before any routes are registered (i.e., above registerRoutes(app) in index.ts, after the session middleware):
+
+// 🔒 Global API gate — allow only /api/auth/* without a session
+app.use('/api', (req, res, next) => {
+  // allow healthcheck if you mount it under /api
+  if (req.path.startsWith('/auth') || req.path === '/health') return next();
+
+  // accept either shape your app uses to mark login
+  const authed =
+    (req.session && (req.session.user || req.session.authenticated === true)) ||
+    false;
+
+  if (!authed) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  next();
+});
+
+Keep your existing rate limiters and then call registerRoutes(app) as you already do.
+
+Why this works: it sits in front of every /api/* handler and short-circuits with 401 unless you’re logged in. Public SPA files can still load, but student data only comes from protected APIs, so the student pages can’t show info when logged out.
+
+Quick tests (logged out):
+
+curl -sI https://<your-repl>/api/assignments | head -n1   # expect 401
+curl -sI https://<your-repl>/api/students/abigail | head -n1  # expect 401
+curl -s https://<your-repl>/api/auth/status                 # { authenticated:false }
+
+
+⸻
+
+2) Client: redirect to login if not authenticated (no blank pages)
+
+At app boot (e.g., your top-level App or a small AuthGate component), check status and guard any private routes (like /student/:slug, /family, /print-queue, etc.):
+
+// client/src/auth/AuthGate.tsx
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'wouter';
+
+export default function AuthGate({ children }: { children: React.ReactNode }) {
+  const [ok, setOk] = useState<boolean | null>(null);
+  const [, navigate] = useNavigate();
+  const [loc] = useLocation();
+
+  useEffect(() => {
+    fetch('/api/auth/status', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setOk(!!d?.authenticated))
+      .catch(() => setOk(false));
+  }, [loc]); // re-check on route change in case session expired
+
+  if (ok === null) return <div style={{ padding: 16 }}>Checking session…</div>;
+  if (!ok) {
+    navigate(`/login?next=${encodeURIComponent(loc)}`);
+    return null;
+  }
+  return <>{children}</>;
+}
+
+Wrap private routes:
+
+// Example with wouter’s Switch/Route
+<Route path="/student/:slug">
+  <AuthGate><StudentPage/></AuthGate>
+</Route>
+<Route path="/family">
+  <AuthGate><FamilyPage/></AuthGate>
+</Route>
+<Route path="/print-queue">
+  <AuthGate><PrintQueue/></AuthGate>
+</Route>
+
+Public routes (/, /login, /health) stay unwrapped.
+
+⸻
+
+3) Cookie/session sanity for prod
+	•	Replit production is HTTPS → keep:
+
+cookie: {
+  secure: true,
+  sameSite: 'lax',
+  httpOnly: true,
+  maxAge: 1000*60*60*24*7
+}
+
+
+	•	Ensure secrets:
+
+APP_ENV=production
+NODE_ENV=production
+SESSION_SECRET=... (long random)
+
+
+	•	You tested locally with COOKIE_SECURE=false (good for http preview). Set it true in production secrets.
+
+⸻
+
+4) 60-second verification
+
+Logged out (private window):
+	•	/student/abigail → gets redirected to /login.
+	•	/api/assignments → 401.
+
+Logged in:
+	•	/api/auth/status → { authenticated:true }
+	•	/student/abigail → shows data.
+	•	/family & /print-queue → load and match counts.

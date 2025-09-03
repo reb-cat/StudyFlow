@@ -64,6 +64,22 @@ app.use('/api/assignments', writeLimiter);
 app.use('/api/schedule', writeLimiter);
 app.use('/api/bible', writeLimiter);
 
+// 🔒 Global API gate — allow only /api/auth/* without a session
+app.use('/api', (req, res, next) => {
+  // allow healthcheck if you mount it under /api
+  if (req.path.startsWith('/auth') || req.path === '/health') return next();
+
+  // accept either shape your app uses to mark login
+  const authed =
+    (req.session && (req.session.user || req.session.authenticated === true)) ||
+    false;
+
+  if (!authed) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
