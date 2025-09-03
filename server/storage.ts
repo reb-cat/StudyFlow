@@ -102,6 +102,8 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]> {
     try {
+      console.log(`📚 DEBUG getAssignments: userId=${userId}, date=${date}, includeCompleted=${includeCompleted}`);
+      
       // CRITICAL: Filter out soft-deleted assignments to prevent confusion for students with executive function needs
       let result = await db.select().from(assignments).where(
         and(
@@ -113,6 +115,7 @@ export class DatabaseStorage implements IStorage {
         )
       );
       let assignmentList = result || [];
+      console.log(`📚 DEBUG: Initial query returned ${assignmentList.length} assignments for ${userId}`);
       
       // For daily scheduling: exclude completed assignments and filter by date
       // This keeps the daily view focused while the database contains the full Canvas dataset
@@ -152,7 +155,7 @@ export class DatabaseStorage implements IStorage {
           
           // FRONTEND DISPLAY: Include scheduled assignments for the requested date
           if (date && assignment.scheduledDate === date && assignment.scheduledBlock) {
-            console.log(`📅 Including scheduled assignment for ${date}: ${assignment.title}`);
+            console.log(`📅 Including scheduled assignment for ${date}: ${assignment.title} (scheduledBlock: ${assignment.scheduledBlock})`);
             return true;
           }
           
