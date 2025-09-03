@@ -166,7 +166,7 @@ export class DatabaseStorage implements IStorage {
           // Single date - use existing logic for daily scheduling
           const requestDate = new Date(date);
           futureLimit = new Date(requestDate);
-          futureLimit.setDate(requestDate.getDate() + 21); // 3 weeks ahead
+          futureLimit.setDate(requestDate.getDate() + 3); // Only 3 days ahead for daily focus
           
           // Allow overdue assignments up to 30 days back (for catch-up work)
           pastLimit = new Date(requestDate);
