@@ -343,7 +343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // PATCH /api/assignments - Update assignment
-  app.patch('/api/assignments', async (req, res) => {
+  app.patch('/api/assignments', requireAuth, async (req, res) => {
     try {
       const { id, ...updateData } = req.body;
       
@@ -383,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/assignments/extract-due-dates - Retroactive due date extraction
-  app.post('/api/assignments/extract-due-dates', async (req, res) => {
+  app.post('/api/assignments/extract-due-dates', requireAuth, async (req, res) => {
     try {
       const { studentName, dryRun = false } = req.body;
       
@@ -424,7 +424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // });
 
   // Canvas integration endpoints
-  app.get('/api/canvas/:studentName', async (req, res) => {
+  app.get('/api/canvas/:studentName', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       
@@ -514,7 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // POST /api/sync-canvas-completion/:studentName - Sync completion status from Canvas for existing assignments
-  app.post('/api/sync-canvas-completion/:studentName', async (req, res) => {
+  app.post('/api/sync-canvas-completion/:studentName', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       console.log(`\n🔄 Starting Canvas completion sync for: ${studentName}`);
@@ -938,7 +938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Parent notification endpoint (when student clicks "Stuck")
-  app.post('/api/notify-parent', async (req, res) => {
+  app.post('/api/notify-parent', requireAuth, async (req, res) => {
     try {
       const { studentName, assignmentTitle, message } = req.body;
       
@@ -1034,7 +1034,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // });
 
   // Bible curriculum routes
-  app.get('/api/bible/current-week', async (req, res) => {
+  app.get('/api/bible/current-week', requireAuth, async (req, res) => {
     try {
       const bibleData = await storage.getBibleCurrentWeek();
       res.json(bibleData);
@@ -1044,7 +1044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/bible/week/:weekNumber', async (req, res) => {
+  app.get('/api/bible/week/:weekNumber', requireAuth, async (req, res) => {
     try {
       const weekNumber = parseInt(req.params.weekNumber);
       const bibleData = await storage.getBibleCurriculum(weekNumber);
@@ -1055,7 +1055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/bible/completion', async (req, res) => {
+  app.patch('/api/bible/completion', requireAuth, async (req, res) => {
     try {
       const { weekNumber, dayOfWeek, completed, studentName } = req.body;
       
@@ -1087,7 +1087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auto-scheduling route - triggers assignment allocation via daily schedule initialization
-  app.post('/api/assignments/auto-schedule', async (req, res) => {
+  app.post('/api/assignments/auto-schedule', requireAuth, async (req, res) => {
     try {
       const { studentName, targetDate } = req.body;
       
@@ -1444,7 +1444,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // Attendance tracking routes for fixed blocks
-  app.get('/api/attendance/:userId', async (req, res) => {
+  app.get('/api/attendance/:userId', requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
       const date = req.query.date as string;
@@ -1457,7 +1457,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
-  app.post('/api/attendance', async (req, res) => {
+  app.post('/api/attendance', requireAuth, async (req, res) => {
     try {
       const { userId, blockId, date, attended, blockType } = req.body;
       
@@ -1545,7 +1545,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // Schedule template routes - using real database data instead of hardcoded blocks
-  app.get('/api/schedule-template/:studentName', async (req, res) => {
+  app.get('/api/schedule-template/:studentName', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       const weekday = req.query.weekday as string;
@@ -1572,7 +1572,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // Manual Canvas sync trigger (for testing)
-  app.post('/api/sync-canvas', async (req, res) => {
+  app.post('/api/sync-canvas', requireAuth, async (req, res) => {
     try {
       console.log('🔧 Manual Canvas sync triggered via API');
       await jobScheduler.runSyncNow();
@@ -1593,7 +1593,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
   
   // Print Queue Management API for Parent Dashboard
-  app.get('/api/print-queue', async (req, res) => {
+  app.get('/api/print-queue', requireAuth, async (req, res) => {
     try {
       const { startDate, endDate, days } = req.query;
       
@@ -1715,7 +1715,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
   
-  app.post('/api/print-queue/:assignmentId/status', async (req, res) => {
+  app.post('/api/print-queue/:assignmentId/status', requireAuth, async (req, res) => {
     try {
       const { assignmentId } = req.params;
       const { status } = req.body;
@@ -2150,7 +2150,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   // Student Profile Management API endpoints
   
   // GET /api/students/:studentName/assignments - Get assignments for specific student
-  app.get('/api/students/:studentName/assignments', async (req, res) => {
+  app.get('/api/students/:studentName/assignments', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       const { date, includeCompleted } = req.query;
@@ -2193,7 +2193,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // GET /api/students/:studentName/profile - Get student profile
-  app.get('/api/students/:studentName/profile', async (req, res) => {
+  app.get('/api/students/:studentName/profile', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       const profile = await storage.getStudentProfile(studentName);
@@ -2205,7 +2205,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // PUT /api/students/:studentName/profile - Update student profile
-  app.put('/api/students/:studentName/profile', async (req, res) => {
+  app.put('/api/students/:studentName/profile', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       const { profileImageUrl, themeColor } = req.body;
@@ -2225,7 +2225,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/profile-image/upload - Get upload URL for profile image
-  app.post('/api/profile-image/upload', async (req, res) => {
+  app.post('/api/profile-image/upload', requireAuth, async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
@@ -2237,7 +2237,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/profile-image/complete - Complete profile image upload
-  app.post('/api/profile-image/complete', async (req, res) => {
+  app.post('/api/profile-image/complete', requireAuth, async (req, res) => {
     try {
       const { uploadUrl, studentName } = req.body;
       
@@ -2277,7 +2277,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   // Family Dashboard API endpoints
   
   // GET /api/family/dashboard - Get family dashboard data
-  app.get('/api/family/dashboard', async (req, res) => {
+  app.get('/api/family/dashboard', requireAuth, async (req, res) => {
     try {
       const dashboardData = await storage.getFamilyDashboardData();
       
@@ -2361,7 +2361,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/family/student/:studentName/flags - Update student flags (stuck, need help, etc.)
-  app.post('/api/family/student/:studentName/flags', async (req, res) => {
+  app.post('/api/family/student/:studentName/flags', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       const { isStuck, needsHelp, isOvertimeOnTask } = req.body;
@@ -2384,7 +2384,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/family/student/:studentName/status - Update student activity status
-  app.post('/api/family/student/:studentName/status', async (req, res) => {
+  app.post('/api/family/student/:studentName/status', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       const { 
@@ -2421,7 +2421,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // GET /api/family/student/:studentName/status - Get current student status
-  app.get('/api/family/student/:studentName/status', async (req, res) => {
+  app.get('/api/family/student/:studentName/status', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
       const status = await storage.getStudentStatus(studentName);
@@ -2456,7 +2456,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/family/initialize - Initialize student status data for testing
-  app.post('/api/family/initialize', async (req, res) => {
+  app.post('/api/family/initialize', requireAuth, async (req, res) => {
     try {
       console.log('🔧 Initializing student status data with REAL current state...');
       
@@ -2529,7 +2529,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   }>();
 
   // POST /api/guided/:studentName/:date/need-more-time - Reschedule assignment needing more time
-  app.post('/api/guided/:studentName/:date/need-more-time', async (req, res) => {
+  app.post('/api/guided/:studentName/:date/need-more-time', requireAuth, async (req, res) => {
     try {
       const { studentName, date } = req.params;
       const { assignmentId } = req.body;
@@ -2569,7 +2569,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/guided/:studentName/:date/stuck - Mark assignment as stuck with 15-second undo window
-  app.post('/api/guided/:studentName/:date/stuck', async (req, res) => {
+  app.post('/api/guided/:studentName/:date/stuck', requireAuth, async (req, res) => {
     try {
       const { studentName, date } = req.params;
       const { assignmentId, reason, needsHelp } = req.body;
@@ -2655,7 +2655,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/guided/:studentName/:date/stuck/cancel - Cancel stuck marking (undo)
-  app.post('/api/guided/:studentName/:date/stuck/cancel', async (req, res) => {
+  app.post('/api/guided/:studentName/:date/stuck/cancel', requireAuth, async (req, res) => {
     try {
       const { pendingKey } = req.body;
       
@@ -2690,7 +2690,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // Admin endpoint to reset Bible progress
-  app.post('/api/admin/bible/reset', async (req, res) => {
+  app.post('/api/admin/bible/reset', requireAuth, async (req, res) => {
     try {
       const { studentName, scope = 'both' } = req.body;
       
@@ -2735,7 +2735,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   });
 
   // POST /api/assignments/:id/resolve - Parent resolution of stuck assignments
-  app.post('/api/assignments/:id/resolve', async (req, res) => {
+  app.post('/api/assignments/:id/resolve', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { action, notes, studentName } = req.body;
