@@ -294,6 +294,15 @@ export default function StudentDashboard() {
     subject: block.subject
   }));
 
+  // Debug logging to see what's happening
+  console.log('🔍 Schedule Debug:', {
+    studentName,
+    selectedDate,
+    scheduleTemplateLength: scheduleTemplate.length,
+    allScheduleBlocksLength: allScheduleBlocks.length,
+    firstFewBlocks: allScheduleBlocks.slice(0, 3)
+  });
+
   // Separate Bible blocks from other fixed blocks using real data
   const bibleBlocks = allScheduleBlocks.filter((block) => block.blockType === 'bible');
   const fixedBlocks = allScheduleBlocks.filter((block) => 
