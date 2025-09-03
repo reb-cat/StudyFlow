@@ -495,14 +495,16 @@ export function analyzeAssignment(title: string, description?: string): Assignme
 export function getSmartSchedulingDate(intelligence: AssignmentIntelligence, fallbackDate: string): string {
   // For in-class activities that are schedulable (makeup work), use the class date
   if (intelligence.extractedDueDate && intelligence.isSchedulable) {
-    return intelligence.extractedDueDate.toISOString().split('T')[0];
+    const { toSchoolDateString } = require('../../shared/dateUtils');
+    return toSchoolDateString(intelligence.extractedDueDate);
   }
   
   // For homework with extracted due dates, schedule a day or two before
   if (intelligence.extractedDueDate && intelligence.category === 'homework') {
     const scheduledDate = new Date(intelligence.extractedDueDate);
     scheduledDate.setDate(scheduledDate.getDate() - 1); // Schedule day before due
-    return scheduledDate.toISOString().split('T')[0];
+    const { toSchoolDateString } = require('../../shared/dateUtils');
+    return toSchoolDateString(scheduledDate);
   }
   
   return fallbackDate;
@@ -569,7 +571,8 @@ export async function autoScheduleAssignments(
   console.log(`SCHED: [UTC-HARDENED] Computed end of day: ${endOfDay.toISOString()}`);
   
   const results = new Map<string, SchedulingResult>();
-  const today = new Date().toLocaleDateString('en-CA', { timeZone }); // Get today in America/New_York
+  const { getTodayString } = require('../../shared/dateUtils');
+  const today = getTodayString(); // Get today in School Timezone
   
   // 1. Filter assignments that need scheduling
   const unscheduledAssignments = assignments.filter(a => 

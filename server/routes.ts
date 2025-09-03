@@ -657,7 +657,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/import-canvas/:studentName', requireAuth, async (req, res) => {
     try {
       const { studentName } = req.params;
-      const today = new Date().toISOString().split('T')[0];
+      const { getTodayString } = await import('../shared/dateUtils');
+      const today = getTodayString();
       
       // For demo purposes, use a fixed user ID
       const userId = `${studentName.toLowerCase()}-user`;
@@ -672,7 +673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Skip assignments before school year filter date (dynamic)
           if (canvasAssignment.due_at) {
             const dueDate = new Date(canvasAssignment.due_at);
-            const { getAssignmentFilterDate } = await import('./lib/schoolYear');
+            const { getAssignmentFilterDate } = require('./lib/schoolYear');
             const cutoffDate = getAssignmentFilterDate();
             if (dueDate < cutoffDate) {
               console.log(`⏭️ Skipping old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before school year filter`);
@@ -739,7 +740,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Skip only assignments before January 1, 2024 (extremely old assignments)
           if (canvasAssignment.due_at) {
             const dueDate = new Date(canvasAssignment.due_at);
-            const { getVeryOldAssignmentCutoff } = await import('./lib/schoolYear');
+            const { getVeryOldAssignmentCutoff } = require('./lib/schoolYear');
             const cutoffDate = getVeryOldAssignmentCutoff();
             if (dueDate < cutoffDate) {
               console.log(`⏭️ Skipping very old assignment "${canvasAssignment.name}" (due: ${dueDate.toDateString()}) - before very old cutoff`);
@@ -1100,12 +1101,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (daysUntilDue <= 1) {
           // Due today/tomorrow - reschedule to today if possible, tomorrow otherwise
           reschedulingStrategy = 'URGENT: Rescheduled to today/tomorrow due to proximity to due date';
-          newScheduledDate = today.toISOString().split('T')[0];
+          const { getTodayString } = require('../shared/dateUtils');
+          newScheduledDate = getTodayString();
         } else if (daysUntilDue <= 3) {
           // Due soon - reschedule to tomorrow
           const tomorrow = new Date(today);
           tomorrow.setDate(tomorrow.getDate() + 1);
-          newScheduledDate = tomorrow.toISOString().split('T')[0];
+          const { toSchoolDateString } = require('../shared/dateUtils');
+          newScheduledDate = toSchoolDateString(tomorrow);
           reschedulingStrategy = 'Due soon - rescheduled to tomorrow';
         } else {
           // Due later - reschedule to next available day
@@ -1118,7 +1121,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // No due date - reschedule to tomorrow
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        newScheduledDate = tomorrow.toISOString().split('T')[0];
+        const { toSchoolDateString } = require('../shared/dateUtils');
+        newScheduledDate = toSchoolDateString(tomorrow);
         reschedulingStrategy = 'No due date - rescheduled to tomorrow';
       }
       
@@ -1173,7 +1177,8 @@ Partially completed - continued in: ${continuedTitle}`.trim(),
       
       // IMMEDIATE SCHEDULE REORDERING: Bump lower priority items and reschedule
       const studentName = assignment.userId.replace('-user', '');
-      const today = new Date().toISOString().split('T')[0];
+      const { getTodayString } = await import('../shared/dateUtils');
+      const today = getTodayString();
       
       try {
         // Step 1: If continuing for today, bump lower priority assignments
@@ -1216,9 +1221,10 @@ Partially completed - continued in: ${continuedTitle}`.trim(),
             const assignmentToBump = toBump[0];
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
+            const { toSchoolDateString } = require('../shared/dateUtils');
             
             await storage.updateAssignment(assignmentToBump.id, {
-              scheduledDate: tomorrow.toISOString().split('T')[0],
+              scheduledDate: toSchoolDateString(tomorrow),
               scheduledBlock: null, // Will be auto-scheduled
               notes: `${assignmentToBump.notes || ''}
 Bumped to make room for: ${continuedTitle}`.trim(),
@@ -1509,8 +1515,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         toDate.setDate(fromDate.getDate() + daysAhead);
       }
       
-      const fromDateStr = fromDate.toISOString().split('T')[0];
-      const toDateStr = toDate.toISOString().split('T')[0];
+      const { toSchoolDateString } = require('../shared/dateUtils');
+      const fromDateStr = toSchoolDateString(fromDate);
+      const toDateStr = toSchoolDateString(toDate);
       
       console.log(`📋 Fetching print queue for ${fromDateStr} to ${toDateStr}`);
       
@@ -1524,7 +1531,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         if (!assignment.dueDate) return false;
         
         const dueDate = new Date(assignment.dueDate);
-        const dueDateStr = dueDate.toISOString().split('T')[0];
+        const { toSchoolDateString } = require('../shared/dateUtils');
+        const dueDateStr = toSchoolDateString(dueDate);
         
         return dueDateStr >= fromDateStr && dueDateStr <= toDateStr;
       });
@@ -1573,7 +1581,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       const groupedByDate: { [date: string]: any[] } = {};
       
       for (const item of printQueue) {
-        const dateKey = item.dueDate ? new Date(item.dueDate).toISOString().split('T')[0] : 'no-date';
+        const { toSchoolDateString } = require('../shared/dateUtils');
+        const dateKey = item.dueDate ? toSchoolDateString(new Date(item.dueDate)) : 'no-date';
         if (!groupedByDate[dateKey]) {
           groupedByDate[dateKey] = [];
         }
@@ -1946,7 +1955,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       res.json({
         weekNumber,
         curriculum,
-        date: targetDate.toISOString().split('T')[0],
+        date: toSchoolDateString(targetDate),
         weekday: targetDate.toLocaleDateString('en-US', { weekday: 'long' })
       });
     } catch (error) {
@@ -2183,7 +2192,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       const totalRemaining = dashboardData.students.reduce((sum, s) => sum + ((s.totalToday || 0) - (s.completedToday || 0)), 0);
       
       // Get current date for display
-      const today = new Date().toISOString().split('T')[0];
+      const { getTodayString } = await import('../shared/dateUtils');
+      const today = getTodayString();
       
       res.json({
         date: today,
@@ -2304,7 +2314,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       console.log('🔧 Initializing student status data with REAL current state...');
       
       // Get real assignments for both students today
-      const today = new Date().toISOString().split('T')[0];
+      const { getTodayString } = await import('../shared/dateUtils');
+      const today = getTodayString();
       const abigailAssignments = await storage.getAssignments('abigail-user', today, false);
       const khalilAssignments = await storage.getAssignments('khalil-user', today, false);
       
@@ -2609,8 +2620,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
           updateData.notes = `${assignment.notes || ''}\nPARENT RESOLVED: ${notes || 'Parent helped with: ' + originalReason}`.trim();
           
           // Smart reschedule for today if possible, tomorrow if full
-          const todayDate = new Date().toISOString().split('T')[0];
-          const tomorrowDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          const { getTodayString, toSchoolDateString } = await import('../shared/dateUtils');
+          const todayDate = getTodayString();
+          const tomorrowDate = toSchoolDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
           
           // Try today first, then tomorrow
           updateData.scheduledDate = todayDate;
@@ -2623,7 +2635,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
           // Assignment modified - reschedule with changes
           updateData.completionStatus = 'pending';
           updateData.notes = `${assignment.notes || ''}\nPARENT MODIFIED: ${notes || 'Parent modified assignment requirements'}`.trim();
-          updateData.scheduledDate = new Date().toISOString().split('T')[0];
+          updateData.scheduledDate = require('../shared/dateUtils').getTodayString();
           updateData.scheduledBlock = null;
           break;
           
@@ -2641,7 +2653,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
           updateData.notes = `${assignment.notes || ''}\nPARENT DEFERRED: ${notes || 'Still needs more work - rescheduled with additional time'}`.trim();
           
           // Schedule for tomorrow or later
-          const laterDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          const laterDate = require('../shared/dateUtils').toSchoolDateString(new Date(Date.now() + 24 * 60 * 60 * 1000));
           updateData.scheduledDate = laterDate;
           updateData.scheduledBlock = null;
           

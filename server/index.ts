@@ -12,7 +12,9 @@ console.log(`📚 School Timezone: America/New_York (for consistent weekday sche
 
 // School Year Configuration
 import { getSchoolYearRange } from './lib/schoolYear';
+import { getTodayString, TIMEZONE } from '../shared/dateUtils';
 console.log(`🎓 School Year: ${getSchoolYearRange()}`);
+console.log(`📅 Today(SCHOOL) = ${getTodayString()} in ${TIMEZONE}`);
 
 console.log(`🌐 Port: ${process.env.PORT || '5000'}`);
 

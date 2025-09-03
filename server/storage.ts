@@ -173,7 +173,8 @@ export class DatabaseStorage implements IStorage {
           pastLimit.setDate(requestDate.getDate() - 30);
         } 
         
-        console.log(`🗓️ Date filtering: ${pastLimit.toISOString().split('T')[0]} to ${futureLimit.toISOString().split('T')[0]} (including overdue assignments)`);
+        const { toSchoolDateString } = await import('../shared/dateUtils');
+        console.log(`🗓️ Date filtering: ${toSchoolDateString(pastLimit)} to ${toSchoolDateString(futureLimit)} (including overdue assignments)`);
         
         const beforeDateFilter = assignmentList.length;
         assignmentList = assignmentList.filter((assignment: any) => {
@@ -191,9 +192,11 @@ export class DatabaseStorage implements IStorage {
             // For date ranges, check if overdue against current date
             const now = new Date();
             const isOverdue = dueDate < now;
-            console.log(`✅ Including assignment due ${dueDate.toISOString().split('T')[0]}${isOverdue ? ' (overdue)' : ''}: ${assignment.title}`);
+            const { toSchoolDateString } = require('../shared/dateUtils');
+            console.log(`✅ Including assignment due ${toSchoolDateString(dueDate)}${isOverdue ? ' (overdue)' : ''}: ${assignment.title}`);
           } else {
-            console.log(`❌ Excluding assignment due ${dueDate.toISOString().split('T')[0]} (outside range): ${assignment.title}`);
+            const { toSchoolDateString } = require('../shared/dateUtils');
+            console.log(`❌ Excluding assignment due ${toSchoolDateString(dueDate)} (outside range): ${assignment.title}`);
           }
           
           return isInRange;
@@ -820,7 +823,8 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Get assignments that need parent attention
-      const today = new Date().toISOString().split('T')[0];
+      const { getTodayString } = await import('../shared/dateUtils');
+      const today = getTodayString();
       const needsReviewAssignments = await db
         .select()
         .from(assignments)
@@ -1419,9 +1423,10 @@ export class DatabaseStorage implements IStorage {
             const lowestPriority = todayScheduled[0];
             const tomorrow = new Date(targetDate);
             tomorrow.setDate(tomorrow.getDate() + 1);
+            const { toSchoolDateString } = await import('../shared/dateUtils');
             
             await this.updateAssignmentScheduling(lowestPriority.id, {
-              scheduledDate: tomorrow.toISOString().split('T')[0],
+              scheduledDate: toSchoolDateString(tomorrow),
               scheduledBlock: null,
               blockStart: null,
               blockEnd: null
