@@ -88,10 +88,15 @@ export const iconFor = (kind: BlockKind, label?: string) => {
   }
 };
 
-export default function StudentDashboard() {
+interface StudentDashboardProps {
+  studentOverride?: string;
+}
+
+export default function StudentDashboard({ studentOverride }: StudentDashboardProps = {}) {
   const params = useParams<{ student: string }>();
-  // Capitalize student name for consistency, default to Abigail if no student provided
-  const studentName = params.student ? params.student.charAt(0).toUpperCase() + params.student.slice(1) : "Abigail";
+  // Use override first, then params, then default to Abigail
+  const rawStudent = studentOverride || params.student;
+  const studentName = rawStudent ? rawStudent.charAt(0).toUpperCase() + rawStudent.slice(1) : "Abigail";
   const [isGuidedMode, setIsGuidedMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     // Initialize to today using timezone-safe function
