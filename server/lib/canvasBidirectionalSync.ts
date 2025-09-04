@@ -13,6 +13,7 @@ interface CanvasAssignment {
   grading_standard_id?: number;
   graded_submissions_exist?: boolean;
   has_submitted_submissions?: boolean;
+  published?: boolean;
 }
 
 /**
@@ -27,10 +28,9 @@ export async function syncAssignmentDeletions(
     console.log(`🔄 Checking for deleted assignments for ${studentUserId}`);
     
     // Get all existing assignments from database (including already soft deleted for comparison)
-    const databaseAssignments = await storage.getAllAssignments(true); // Include deleted for comparison
+    const databaseAssignments = await storage.getAllAssignments(); // Include deleted for comparison
     const studentDbAssignments = databaseAssignments.filter(
-      a => a.userId === studentUserId && a.canvasId // Only check Canvas-synced assignments
-      // TODO: Add && !a.deletedAt after schema is pushed  
+      a => a.userId === studentUserId && a.canvasId && !a.deletedAt // Only active Canvas-synced assignments
     );
     
     // Get current Canvas assignment IDs
@@ -135,8 +135,7 @@ export async function performBidirectionalSync(
   console.log(`🔄 Starting bidirectional Canvas sync for ${studentUserId}`);
   
   // First sync deletions (assignments removed from Canvas)
-  // TODO: Re-enable after deletedAt field is added to schema
-  // await syncAssignmentDeletions(studentUserId, canvasAssignments);
+  await syncAssignmentDeletions(studentUserId, canvasAssignments);
   
   // Then sync completion status (Canvas grades → StudyFlow completion) - THIS IS THE CRITICAL FIX
   await syncCompletionStatus(studentUserId, canvasAssignments);

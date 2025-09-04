@@ -171,8 +171,14 @@ export class DatabaseStorage implements IStorage {
   async getAllAssignments(includeDeleted = false): Promise<Assignment[]> {
     try {
       // Get ALL assignments across all users for print queue
-      // TODO: Add soft deletion back after schema is pushed
-      const result = await db.select().from(assignments);
+      let query = db.select().from(assignments);
+      
+      // Filter out soft-deleted assignments unless specifically requested
+      if (!includeDeleted) {
+        query = query.where(isNull(assignments.deletedAt));
+      }
+      
+      const result = await query;
       return result || [];
     } catch (error) {
       console.error('Error getting all assignments:', error);
@@ -573,13 +579,22 @@ export class DatabaseStorage implements IStorage {
 
   async getBibleCurrentWeek(): Promise<BibleCurriculum[]> {
     try {
-      // Get the current week based on date - for now, use week 1
-      // TODO: Implement proper week calculation based on start date
-      const currentWeek = 1;
+      // Calculate current week based on school year start date
+      const schoolYearStart = new Date('2025-08-26'); // Typical school year start
+      const today = new Date();
+      
+      // Calculate weeks since school started
+      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+      const weeksSinceStart = Math.floor((today.getTime() - schoolYearStart.getTime()) / msPerWeek) + 1;
+      
+      // Ensure we stay within the 52-week curriculum bounds
+      const currentWeek = Math.max(1, Math.min(weeksSinceStart, 52));
+      
       return this.getBibleCurriculum(currentWeek);
     } catch (error) {
       console.error('Error getting current bible week:', error);
-      return [];
+      // Fallback to week 1 if calculation fails
+      return this.getBibleCurriculum(1);
     }
   }
 

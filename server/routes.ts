@@ -1,9 +1,9 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 
 // Family authentication middleware
-const requireAuth = (req: any, res: any, next: any) => {
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   if (req.session.authenticated) {
     return next();
   }
@@ -12,7 +12,7 @@ const requireAuth = (req: any, res: any, next: any) => {
 
 // Simple unlock endpoint for family password
 const setupFamilyAuth = (app: Express) => {
-  app.post('/api/unlock', (req, res) => {
+  app.post('/api/unlock', (req: Request, res: Response) => {
     const { password } = req.body;
     
     if (!password) {
@@ -28,12 +28,12 @@ const setupFamilyAuth = (app: Express) => {
   });
   
   // Check authentication status
-  app.get('/api/auth/status', (req, res) => {
+  app.get('/api/auth/status', (req: Request, res: Response) => {
     res.json({ authenticated: !!req.session.authenticated });
   });
   
   // Logout endpoint
-  app.post('/api/logout', (req, res) => {
+  app.post('/api/logout', (req: Request, res: Response) => {
     req.session.destroy((err) => {
       if (err) {
         return res.status(500).json({ message: 'Failed to logout' });
