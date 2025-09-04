@@ -218,9 +218,9 @@ SELECT 1;`,
       WHERE 
           LENGTH(start_time) > 5 OR LENGTH(end_time) > 5;
 
-      -- Now add unique constraint to enable UPSERT ON CONFLICT functionality
+      -- Now add unique constraint to enable UPSERT ON CONFLICT functionality (skip if exists)
       ALTER TABLE schedule_template 
-      ADD CONSTRAINT schedule_template_upsert_key 
+      ADD CONSTRAINT IF NOT EXISTS schedule_template_upsert_key 
       UNIQUE (student_name, weekday, block_number);
     `,
     down: `
