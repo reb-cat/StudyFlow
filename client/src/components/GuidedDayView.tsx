@@ -526,8 +526,9 @@ export function GuidedDayView({
         const blockStatus = dailyScheduleStatus.find(status => 
           status.blockNumber === block.blockNumber
         );
-        // Block is incomplete if no status or status is not 'complete'
-        return !blockStatus || (blockStatus.status !== 'complete' && blockStatus.status !== 'done');
+        // Block is incomplete if no status or status is not 'complete'/'done'/'overtime' 
+        // 'overtime' blocks are considered complete for positioning purposes
+        return !blockStatus || !['complete', 'done', 'overtime'].includes(blockStatus.status);
       });
       
       // Always go to first incomplete block, or start at 0 if all complete
@@ -818,9 +819,9 @@ export function GuidedDayView({
     // Handle Bible blocks - always reschedule to tomorrow (Bible only happens in morning)
     if (currentBlock?.type === 'bible') {
       try {
-        // Update block status to show it's been rescheduled
+        // Mark Bible block as complete for today since it's rescheduled to tomorrow
         await apiRequest('PATCH', `/api/schedule/${studentName}/${selectedDate}/block/${currentBlock.templateBlockId || currentBlock.id}/status`, {
-          status: 'overtime'
+          status: 'complete'
         });
         
         // Bible always goes to tomorrow - it only happens first thing in the morning
