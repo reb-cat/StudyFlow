@@ -368,21 +368,23 @@ export default function AssignmentsPage() {
       return false;
     }
 
-    // Date filter
-    const today = new Date();
-    const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
-    
-    if (dateFilter === 'overdue' && (!dueDate || dueDate >= today)) {
-      return false;
-    }
-    if (dateFilter === 'today' && (!dueDate || dueDate.toDateString() !== today.toDateString())) {
-      return false;
-    }
-    if (dateFilter === 'this_week') {
-      const weekEnd = new Date(today);
-      weekEnd.setDate(today.getDate() + 7);
-      if (!dueDate || dueDate > weekEnd) {
+    // Date filter (Bible assignments always pass date filters since they're ongoing curriculum)
+    if (!assignment.isBibleItem) {
+      const today = new Date();
+      const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
+      
+      if (dateFilter === 'overdue' && (!dueDate || dueDate >= today)) {
         return false;
+      }
+      if (dateFilter === 'today' && (!dueDate || dueDate.toDateString() !== today.toDateString())) {
+        return false;
+      }
+      if (dateFilter === 'this_week') {
+        const weekEnd = new Date(today);
+        weekEnd.setDate(today.getDate() + 7);
+        if (!dueDate || dueDate > weekEnd) {
+          return false;
+        }
       }
     }
 
