@@ -640,28 +640,31 @@ export class DatabaseStorage implements IStorage {
 
   async updateScheduleTemplate(studentName: string, weekday: string, blocks: ScheduleTemplate[]): Promise<void> {
     try {
-      // Delete existing blocks for this student/weekday
-      await db.delete(scheduleTemplate).where(
-        and(
-          eq(scheduleTemplate.studentName, studentName),
-          eq(scheduleTemplate.weekday, weekday)
-        )
-      );
+      // Use a transaction to ensure atomic delete+insert operation
+      await db.transaction(async (tx) => {
+        // Delete existing blocks for this student/weekday
+        await tx.delete(scheduleTemplate).where(
+          and(
+            eq(scheduleTemplate.studentName, studentName),
+            eq(scheduleTemplate.weekday, weekday)
+          )
+        );
 
-      // Insert new blocks
-      if (blocks.length > 0) {
-        const insertBlocks = blocks.map(block => ({
-          studentName: block.studentName,
-          weekday: block.weekday,
-          blockNumber: block.blockNumber,
-          startTime: block.startTime,
-          endTime: block.endTime,
-          subject: block.subject,
-          blockType: block.blockType
-        }));
-        
-        await db.insert(scheduleTemplate).values(insertBlocks);
-      }
+        // Insert new blocks
+        if (blocks.length > 0) {
+          const insertBlocks = blocks.map(block => ({
+            studentName: block.studentName,
+            weekday: block.weekday,
+            blockNumber: block.blockNumber,
+            startTime: block.startTime,
+            endTime: block.endTime,
+            subject: block.subject,
+            blockType: block.blockType
+          }));
+          
+          await tx.insert(scheduleTemplate).values(insertBlocks);
+        }
+      });
       
       console.log(`Updated schedule template for ${studentName} on ${weekday} with ${blocks.length} blocks`);
     } catch (error) {
