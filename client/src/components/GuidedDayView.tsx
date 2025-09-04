@@ -436,12 +436,31 @@ export function GuidedDayView({
     };
 
     // Add Canvas assignments due TODAY for classes happening TODAY
-    const todayAssignments = assignments.filter(a => 
-      a.dueDate && a.completionStatus === 'pending' && 
-      new Date(a.dueDate + 'T12:00:00').toDateString() === new Date(selectedDate + 'T12:00:00').toDateString()
-    );
+    const selectedDateObj = new Date(selectedDate + 'T12:00:00');
+    const todayAssignments = assignments.filter(a => {
+      if (!a.dueDate || a.completionStatus !== 'pending') return false;
+      
+      // Handle both date formats: YYYY-MM-DD and MM/DD/YYYY  
+      const dueDate = new Date(a.dueDate + (a.dueDate.includes('-') ? 'T12:00:00' : ''));
+      const isSameDate = dueDate.toDateString() === selectedDateObj.toDateString();
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`📅 Assignment "${a.title}": due=${a.dueDate}, parsed=${dueDate.toDateString()}, selected=${selectedDateObj.toDateString()}, match=${isSameDate}`);
+      }
+      
+      return isSameDate;
+    });
 
-    // DEBUG: Disabled for performance
+    // DEBUG: Enhanced logging to see what's happening
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 ASSIGNMENT DEBUG:', {
+        totalAssignments: assignments.length,
+        pendingAssignments: assignments.filter(a => a.completionStatus === 'pending').length,
+        todayAssignments: todayAssignments.length,
+        selectedDate,
+        sampleAssignments: assignments.slice(0, 3).map(a => ({ title: a.title, dueDate: a.dueDate, status: a.completionStatus }))
+      });
+    }
 
     todayAssignments.forEach(assignment => {
       const subject = assignment.courseName || assignment.subject;
