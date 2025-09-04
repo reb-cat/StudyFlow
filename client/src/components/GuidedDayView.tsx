@@ -524,11 +524,15 @@ export function GuidedDayView({
       // Find the first block that is NOT completed/done
       const firstIncompleteIndex = scheduleBlocks.findIndex(block => {
         const blockStatus = dailyScheduleStatus.find(status => 
-          status.blockNumber === block.blockNumber
+          status.templateBlockId === (block.templateBlockId || block.id)
         );
         // Block is incomplete if no status or status is not 'complete'/'done'/'overtime' 
         // 'overtime' blocks are considered complete for positioning purposes
-        return !blockStatus || !['complete', 'done', 'overtime'].includes(blockStatus.status);
+        const isComplete = blockStatus && ['complete', 'done', 'overtime'].includes(blockStatus.status);
+        
+        console.log(`🔍 Block ${block.blockNumber} (${block.id}): status=${blockStatus?.status || 'none'}, isComplete=${isComplete}`);
+        
+        return !isComplete;
       });
       
       // Always go to first incomplete block, or start at 0 if all complete
