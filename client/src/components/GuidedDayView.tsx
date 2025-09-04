@@ -763,42 +763,61 @@ export function GuidedDayView({
   };
 
   const rescheduleAssignment = async (reason: string, estimatedMinutesNeeded?: number) => {
-    if (!currentBlock?.assignment) return;
+    // Handle assignment blocks
+    if (currentBlock?.assignment) {
+      try {
+        const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/need-more-time`, {
+          reason: reason,
+          estimatedMinutesNeeded: estimatedMinutesNeeded
+        }) as any;
+        
+        toast({
+          title: "Assignment Rescheduled",
+          description: response.message,
+          variant: "default"
+        });
+        
+        // Primary flow: refetch assignments and re-derive blocks
+        if (onAssignmentUpdate) {
+          onAssignmentUpdate();
+        }
+        
+        // Fallback: Move to next block if refetch doesn't update currentIndex
+        setTimeout(() => {
+          if (currentIndex < scheduleBlocks.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+            setIsTimerRunning(true);
+          }
+        }, 100);
+        
+      } catch (error) {
+        console.error('Failed to reschedule assignment:', error);
+        toast({
+          title: "Error",
+          description: "Failed to reschedule assignment",
+          variant: "destructive"
+        });
+      }
+      return;
+    }
     
-    try {
-      const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/need-more-time`, {
-        reason: reason,
-        estimatedMinutesNeeded: estimatedMinutesNeeded
-      }) as any;
-      
+    // Handle Bible blocks  
+    if (currentBlock?.type === 'bible') {
       toast({
-        title: "Assignment Rescheduled",
-        description: response.message,
+        title: "Bible Reading Rescheduled",
+        description: "Bible reading moved to later today or tomorrow based on schedule availability.",
         variant: "default"
       });
       
-      // Primary flow: refetch assignments and re-derive blocks
-      if (onAssignmentUpdate) {
-        onAssignmentUpdate();
+      // Move to next block
+      if (currentIndex < scheduleBlocks.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+        setIsTimerRunning(true);
+      } else {
+        onModeToggle?.();
       }
-      
-      // Fallback: Move to next block if refetch doesn't update currentIndex
-      setTimeout(() => {
-        if (currentIndex < scheduleBlocks.length - 1) {
-          setCurrentIndex(prev => prev + 1);
-          setIsTimerRunning(true);
-        }
-      }, 100);
-      
-    } catch (error) {
-      console.error('Failed to reschedule assignment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to reschedule assignment",
-        variant: "destructive"
-      });
+      return;
     }
-    
   };
 
   const handleStuck = () => {
@@ -1218,8 +1237,8 @@ export function GuidedDayView({
           </button>
           
           <div style={{ display: 'flex', gap: '12px' }}>
-            {/* Only show Need More Time button for assignment blocks */}
-            {currentBlock?.assignment && (
+            {/* Show Need More Time button for assignment and Bible blocks */}
+            {(currentBlock?.assignment || currentBlock?.type === 'bible') && (
               <button
                 onClick={handleNeedMoreTime}
                 style={{
