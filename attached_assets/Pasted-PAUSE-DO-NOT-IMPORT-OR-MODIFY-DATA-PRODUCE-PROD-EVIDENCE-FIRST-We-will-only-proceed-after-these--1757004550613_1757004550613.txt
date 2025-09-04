@@ -1,0 +1,36 @@
+PAUSE. DO NOT IMPORT OR MODIFY DATA. PRODUCE PROD EVIDENCE FIRST.
+
+We will only proceed after these four production artifacts are attached. No localhost. No dev. No “pending deploy”.
+	1.	Router proof (Prod)
+	•	Hit https://study-flow.replit.app/api/__nope__.
+	•	Attach a screenshot showing HTTP 404 with Content-Type: application/json and a JSON body (not HTML).
+	•	If it’s HTML 200/OK → the router fix is not deployed.
+	2.	Auth proof (Prod)
+	•	Reproduce a login and attach Response Headers screenshot showing:
+Set-Cookie: connect.sid=…; HttpOnly; Secure; SameSite=None; Path=/
+	•	Attach Application → Cookies → https://study-flow.replit.app screenshot showing that cookie present.
+	•	Paste /api/me JSON showing authenticated: true.
+	3.	Template presence (Prod, raw JSON)
+	•	Call: GET https://study-flow.replit.app/api/schedule-template/Abigail/Thursday
+	•	Attach the raw JSON (not a summary): list with each block’s startTime, endTime, subject, blockType.
+	•	Also paste length (count).
+	•	This must show 10 real blocks (Bible, Prep/Load, Travel, Co-op classes, Lunch, etc.).
+	•	If it shows 3 “Assignment” placeholders, say so explicitly. Do not fabricate or “sync”.
+	4.	Planner result (Prod, HAR + JSON)
+	•	With cookies present, run:
+POST /api/schedule/Abigail/<YYYY-MM-DD>/initialize then GET /api/schedule/Abigail/<YYYY-MM-DD>
+	•	Attach a HAR covering those two calls.
+	•	Paste the exact JSON from GET /schedule/....
+	•	Items must map to the real template subjects (e.g., Bible, American Literature (Co-op)), not generic “Assignment”.
+
+Important consistency check
+Your “Phase E” log claimed:
+PLANNER METRICS: tasks_total=13, due_today=1, filtered=8, scheduled=TBD, template_block_count=10, coop_day=false.
+You must state which environment produced that line (Dev or Prod). If Prod, attach the server log line with timestamp and the request path that triggered it. If Dev, do not present it as Prod evidence.
+
+Decision rule
+	•	If #1, #2, #3, #4 are all satisfied on production, we’ll proceed to the one-time import of the missing 7 blocks (with a pre-import backup and a post-import count = 10).
+	•	If #3 still shows only 3 placeholders, root cause remains Prod missing template data. After proofs above, you can propose the import steps.
+	•	If #1 fails (HTML from /api/__nope__), stop—router order isn’t fixed in Prod and we won’t change data.
+
+Return these four artifacts now. No more dev evidence, no data writes, no “syncs,” until they are attached from https://study-flow.replit.app.
