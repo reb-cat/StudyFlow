@@ -1,19 +1,21 @@
 HTTP/2 200 
-content-length: 16
+cache-control: private
+content-length: 37
 content-type: application/json; charset=utf-8
-date: Thu, 04 Sep 2025 14:35:02 GMT
-etag: W/"10-oV4hJxRVSENxc/wX8+mA4/Pe4tA"
+date: Thu, 04 Sep 2025 16:33:19 GMT
+etag: W/"25-UNRdd/BeW2jtUx+EYimk6ajB+tw"
+expires: Thu, 04 Sep 2025 16:33:19 GMT
 referrer-policy: strict-origin-when-cross-origin
 server: Google Frontend
+set-cookie: connect.sid=s%3ANf8mhi3qRxAq78RLH_mqx8_A-9SomIlP.AexES9kEZUhoC8oM2kFcQBqis4lJyPiGJUcLZOGAZFk; Path=/; Expires=Fri, 05 Sep 2025 16:33:19 GMT; HttpOnly; Secure; SameSite=None
 strict-transport-security: max-age=63072000; includeSubDomains
 strict-transport-security: max-age=31536000; includeSubDomains
-x-cloud-trace-context: a01e61b8e3e1de1a35b3f0bde1d382b9;o=1
+x-cloud-trace-context: c3bdc9f42ce81a9683a732a2ea0ccf95;o=1
 x-content-type-options: nosniff
-x-frame-options: DENY
 x-powered-by: Express
 x-ratelimit-limit: 1000
 x-ratelimit-remaining: 999
-x-ratelimit-reset: 1756997402673
+x-ratelimit-reset: 1757004499508
 x-xss-protection: 1; mode=block
 via: 1.1 google
 alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000

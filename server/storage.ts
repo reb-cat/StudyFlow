@@ -1031,6 +1031,15 @@ export class DatabaseStorage implements IStorage {
       
       // Get assignment blocks (blockType = 'Assignment')
       const templateBlocks = await this.getScheduleTemplate(studentName, weekdayName);
+      
+      // PHASE D: Safety check for template completeness
+      const template_block_count = templateBlocks.length;
+      if (template_block_count < 6) {
+        const errorMsg = `Template incomplete for ${studentName} on ${weekdayName} - only ${template_block_count} blocks found (minimum 6 required)`;
+        console.error(`❌ PLANNER ERROR: ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+      
       const assignmentBlocks = templateBlocks.filter(block => 
         block.blockType === 'Assignment' || block.subject === 'Assignment'
       ).sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -1215,6 +1224,9 @@ export class DatabaseStorage implements IStorage {
       const studyHallBlocks = templateBlocks.filter(block => block.blockType === 'Study Hall');
       const isCoopDay = studyHallBlocks.length > 0;
       console.log(`🏫 CO-OP DAY CHECK: ${isCoopDay ? 'YES' : 'NO'} - ${assignmentBlocks.length} home blocks + ${studyHallBlocks.length} study hall blocks on ${weekdayName}`);
+      
+      // PHASE D: Comprehensive planner logging (single line with all counts)
+      console.log(`📊 PLANNER METRICS: tasks_total=${allAssignments.length}, due_today=${dueToday.length}, filtered=${candidateAssignments.length}, scheduled=TBD, template_block_count=${template_block_count}, coop_day=${isCoopDay}`);
       
       if (candidateAssignments.length === 0) {
         console.log(`📝 No candidate assignments found for allocation`);

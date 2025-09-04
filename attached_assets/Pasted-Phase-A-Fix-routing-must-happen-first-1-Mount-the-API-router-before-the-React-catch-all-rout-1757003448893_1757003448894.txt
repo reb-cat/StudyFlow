@@ -1,0 +1,36 @@
+Phase A — Fix routing (must happen first)
+	1.	Mount the API router before the React “catch-all” route in production.
+	2.	Re-deploy once.
+	3.	Proof required (screenshots):
+	•	Hitting /api/__nope__ on prod returns a JSON 404 (not HTML).
+	•	A normal planner API (e.g., /api/schedule/Abigail/<date>) returns JSON.
+
+Phase B — Re-prove authentication in prod
+	4.	Capture the login response headers on prod showing:
+Set-Cookie: connect.sid=…; HttpOnly; Secure; SameSite=None; Path=/.
+	5.	Show Application → Cookies for https://study-flow.replit.app with that cookie present.
+	6.	Show /api/me on prod returning the authenticated user.
+
+Phase C — Fix data parity (no fabricating blocks)
+	7.	Do not “sync” or “clean” dev. Instead:
+	•	Export a read-only list of Thursday template blocks for Abigail from Dev and Prod (start/end, subject, block type).
+	•	Confirm IDs and names for courses/subjects match between envs (or provide a mapping).
+	8.	Prepare a one-time import plan from Dev → Prod for the 10 real template blocks, with these guardrails:
+	•	Take a backup snapshot of Prod before any change.
+	•	Import only the missing Thursday blocks for Abigail; do not touch existing assignments or logs.
+	•	After import, the count must equal 10 and block times/subjects must match the Dev list exactly.
+
+Phase D — Add planner guardrails (so this can’t regress)
+	9.	On planner initialization in prod, log a single line with counts:
+tasks_total, due_today, filtered, scheduled, template_block_count, coop_day.
+	10.	Add a safety check: if template_block_count < 6, return a clear JSON error (e.g., “Template incomplete for this day”) instead of silently scheduling into placeholders.
+
+Phase E — Acceptance pack (attach all from prod)
+	•	Router proof: /api/__nope__ → JSON 404.
+	•	Login Set-Cookie screenshot + Cookies panel.
+	•	/api/me JSON.
+	•	Template before/after counts for Abigail Thursday (Dev=10, Prod=10), with the list of blocks (start–end–subject–type).
+	•	Planner re-test HAR:
+	•	POST /initialize returns success,
+	•	GET /schedule/<date> returns non-empty items that correspond to real blocks, not placeholders.
+	•	One planner log line showing counts (including template_block_count=10).

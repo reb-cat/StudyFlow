@@ -3032,6 +3032,15 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
+  // PHASE A FIX: API 404 handler - must be LAST API route to catch unmatched /api/* paths
+  app.use('/api/*', (req: Request, res: Response) => {
+    res.status(404).json({ 
+      message: 'API endpoint not found',
+      path: req.path,
+      method: req.method 
+    });
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
