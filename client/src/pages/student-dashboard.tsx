@@ -54,6 +54,7 @@ import { FixedBlock } from '@/components/FixedBlock';
 import { apiRequest } from '@/lib/queryClient';
 import type { Assignment, DailyScheduleStatus, ScheduleTemplate } from '@shared/schema';
 import { getTodayString, getToday, parseDateString, formatDateDisplay, getDayName, addDays, isToday } from '@shared/dateUtils';
+import { normalizeAssignment } from '@shared/normalize';
 
 // Timezone-safe New York date string function
 const toNYDateString = (d = new Date()) => {
@@ -796,8 +797,34 @@ export default function StudentDashboard() {
                       if (block.blockType === 'assignment') {
                         const populatedBlock = populatedAssignmentBlocks.find(pb => pb.id === block.id);
                         if (populatedBlock && populatedBlock.assignment) {
-                          blockTitle = populatedBlock.assignment.displayTitle || populatedBlock.assignment.title;
-                          blockDetails = populatedBlock.assignment.courseName || '';
+                          // Use normalizeAssignment to get rich display data like Guided mode
+                          const normalized = normalizeAssignment({
+                            id: populatedBlock.assignment.id,
+                            title: populatedBlock.assignment.title,
+                            course: populatedBlock.assignment.courseName,
+                            instructions: populatedBlock.assignment.instructions,
+                            dueAt: populatedBlock.assignment.dueDate
+                          });
+                          
+                          blockTitle = normalized.displayTitle;
+                          
+                          // Build rich details: course + due date + time estimate
+                          const detailParts = [];
+                          if (normalized.courseLabel) {
+                            detailParts.push(normalized.courseLabel);
+                          }
+                          if (normalized.effectiveDueAt) {
+                            const dueDate = new Date(normalized.effectiveDueAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric'
+                            });
+                            detailParts.push(`Due: ${dueDate}`);
+                          }
+                          if (populatedBlock.assignment.estimatedMinutes) {
+                            detailParts.push(`${populatedBlock.assignment.estimatedMinutes} min`);
+                          }
+                          
+                          blockDetails = detailParts.join(' • ');
                         } else {
                           blockTitle = 'Open Assignment Block';
                           blockDetails = '';
