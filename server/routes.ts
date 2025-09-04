@@ -1816,7 +1816,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
-  app.put('/api/schedule-template/:studentName/:weekday', async (req, res) => {
+  app.put('/api/schedule-template/:studentName/:weekday', requireAuth, async (req, res) => {
     try {
       const { studentName, weekday } = req.params;
       const { blocks } = req.body;

@@ -64,10 +64,11 @@ export default function ScheduleTemplates() {
         description: "Schedule template updated successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Admin panel save error:', error);
       toast({
-        title: "Error",
-        description: "Failed to update schedule template",
+        title: "Error", 
+        description: error?.message || "Failed to update schedule template",
         variant: "destructive",
       });
     },
