@@ -1,0 +1,90 @@
+RUNBOOK — Root-Cause of Prod Schedule Divergence (READ-ONLY)
+
+Goal: Explain why Prod shows empty/incorrect schedules while Dev works. Produce side-by-side evidence and pick one root cause with proof.
+Hard rule: No writes of any kind (no deletes, imports, syncs, “emergency blocks,” seeds, or schema changes).
+
+Test Targets
+	•	Prod: https://study-flow.replit.app
+	•	Dev: the dev server you’ve been using
+	•	Student: Abigail, weekday Thursday; date = today (local)
+
+⸻
+
+Deliverables (must include all)
+	1.	One-page conclusion: single most likely root cause + exact fix direction (2–3 sentences).
+	2.	Router proof (Prod): Nonexistent API path (e.g., /api/__nope__) returns JSON 404 (API), not HTML (SPA). Screenshot/response.
+	3.	Template presence (Dev vs Prod):
+	•	GET /api/schedule-template/Abigail/Thursday in both envs.
+	•	Attach raw JSON and counts (number of blocks; list first 10 with startTime, endTime, subject, blockType).
+	•	If Prod returns HTML, that’s router order; if it returns JSON with < 10 blocks (e.g., only “Assignment” placeholders), that’s missing data.
+	4.	Assignments due today (Prod):
+	•	GET /api/assignments?date=<YYYY-MM-DD>&studentName=Abigail
+	•	Attach first 10 items (id, title, due, courseId). Show total count.
+	5.	Planner consumption (Prod):
+	•	POST /api/schedule/Abigail/<YYYY-MM-DD>/initialize then GET /api/schedule/Abigail/<YYYY-MM-DD>
+	•	Attach the exact JSON bodies. If empty [], report why (see #6).
+	6.	Planner trace (Prod) — counts only (no code changes). Capture/log or infer and report:
+	•	tasks_total, due_today, filtered_count, scheduled_count, and whether Co-op Day suppressed scheduling.
+	•	If you can’t access logs, derive from response fields or mark UNKNOWN.
+	7.	Timezone window (Prod & Dev):
+	•	In browser Console: new Date().toISOString() and Intl.DateTimeFormat().resolvedOptions().timeZone.
+	•	Report the day window the planner uses for “today” (UTC start/end if visible). Flag off-by-one.
+	8.	Auth proof (Prod):
+	•	Login response headers screenshot with Set-Cookie: …; HttpOnly; Secure; SameSite=None; Path=/.
+	•	Cookies panel screenshot showing the session cookie for study-flow.replit.app.
+	•	/api/me JSON showing authenticated user.
+
+Verdict rule:
+	•	If Prod template endpoint returns few/placeholder blocks while Dev has the full 10, root cause = missing template data in Prod.
+	•	If template is present but planner still returns [], root cause = planner suppression (Co-op Day, filters, or date window).
+	•	If planner/template endpoints return HTML, root cause = router order (API behind SPA).
+
+⸻
+
+What NOT to do
+	•	Do not delete, import, seed, “clean,” or “sync” anything.
+	•	Do not create “emergency” or “placeholder” blocks.
+	•	Do not run local/localhost evidence as “proof.”
+
+⸻
+
+Report Template (return this exact structure)
+
+ROOT CAUSE (one sentence):
+[...]
+FIX DIRECTION:
+[...]
+
+EVIDENCE
+1) Router proof (Prod):
+- /api/__nope__ → status/body: [...]
+- Interpretation: API before SPA? [yes/no]
+
+2) Template presence:
+- Dev /schedule-template/Abigail/Thursday: blocks=__, sample=[...]
+- Prod /schedule-template/Abigail/Thursday: blocks=__, sample=[...]
+- Interpretation: Prod missing template? [yes/no]
+
+3) Assignments today (Prod):
+- total=__, first 5: [ {id,title,due,courseId}, ... ]
+
+4) Planner (Prod):
+- POST /initialize → body: [...]
+- GET /schedule/... → body: [...]
+- Interpretation: planner scheduled items? [yes/no]
+
+5) Planner trace (Prod):
+- tasks_total=__, due_today=__, filtered=__, scheduled=__, coopDay=[true/false/unknown]
+
+6) Timezone window:
+- Dev ISO/TZ: [...]
+- Prod ISO/TZ: [...]
+- Planner day window: [...]
+- Off-by-one risk: [yes/no]
+
+7) Auth proof (Prod):
+- Set-Cookie header screenshot attached [yes/no]
+- Cookies panel screenshot attached [yes/no]
+- /api/me JSON: [...]
+
+VERDICT: GO/NO-GO (with reason)
