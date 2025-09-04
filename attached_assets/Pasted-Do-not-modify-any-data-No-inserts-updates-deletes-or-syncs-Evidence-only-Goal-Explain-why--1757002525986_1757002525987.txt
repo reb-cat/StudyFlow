@@ -1,0 +1,107 @@
+Do not modify any data. No inserts, updates, deletes, or “syncs.” Evidence only.
+
+Goal
+
+Explain why production shows empty/incorrect schedules while development works. Produce concrete, side-by-side evidence of config, schema, and data differences that impact the planner. Deliver a one-page conclusion with the single most likely root cause.
+
+Scope
+	•	Prod site: https://study-flow.replit.app
+	•	Dev environment: the current dev server the agent used earlier
+	•	Student focus: Abigail (Thursday sample), plus 1 additional student if available
+
+Hard Rules
+	•	READ-ONLY ONLY. Do not “clean up,” “seed,” “sync,” or “remove duplicates.”
+	•	Test both environments and show side-by-side artifacts.
+	•	If a step fails in Prod, stop and report NO-GO + failing artifact.
+
+⸻
+
+Checklist (perform all; no writes)
+
+1) Environment & build
+	1.	Capture environment flags in each env:
+	•	Is “production detection” on? (the flag/logic that flips secure cookies & prod settings)
+	•	Proxy trust enabled?
+	•	Feature flags related to planner/co-op day?
+	2.	Artifact: screenshot/log snippet from both envs showing these flags at startup.
+
+2) Router order (API vs SPA)
+	1.	Verify API router mounts before the SPA catch-all in Prod.
+	2.	Artifact: evidence that a non-existent API path in Prod returns JSON 404 (API) not HTML (React).
+	•	If HTML → report: “API behind SPA; routes falling through.”
+
+3) Database schema parity
+
+For Dev and Prod, compute a simple schema fingerprint (table + column names + types + indexes) for key tables:
+	•	ScheduleTemplate, Assignments/Tasks (whatever backs “assignments”), Sessions, any PlannerRules/CoopDays table.
+Artifacts:
+	•	A one-page diff listing missing/extra columns or indexes per env.
+	•	Explicit call-out if Prod lacks columns like plannedStart, courseId, or any FK the planner joins on.
+
+4) Data parity for the student/day (READ-ONLY)
+
+For Abigail, Thursday (and one more student if available), capture counts in Dev vs Prod:
+	•	ScheduleTemplate blocks for Thursday
+	•	Assignments/Tasks due today (local day window)
+	•	Eligible items the planner considers (if the planner stores a “ready/eligible” view)
+Artifacts:
+	•	A small table: Dev vs Prod counts for each bucket.
+	•	5 sample rows per bucket (id, title/subject, start/end or due, blockType, status, courseId).
+
+5) Planner behavior trace
+
+If the planner logs steps, enable read-only tracing (no code changes; just capture logs). Otherwise, hit the planner endpoints and capture the computed counts:
+	•	When hitting POST /api/schedule/<student>/<date>/initialize in Prod, capture any logs/metrics:
+tasks_total, due_today, filtered_by_rule, scheduled.
+Artifacts:
+	•	One log line (or synthesized summary) for Dev and Prod for the same student/date.
+	•	If Prod shows filtered_by_rule == tasks_total, list which rule(s) triggered.
+
+6) Time zone & date windows
+	•	Record new Date().toISOString() and Intl.DateTimeFormat().resolvedOptions().timeZone in Prod UI.
+	•	Confirm the planner’s day window in Prod (start/end timestamps it uses for “today”).
+Artifacts:
+	•	Single line showing the exact UTC window used for today in both envs (e.g., 2025-09-04T00:00:00-05:00 → 2025-09-04T23:59:59-05:00).
+	•	Note any UTC/local off-by-one.
+
+7) Co-op Day logic
+	•	Determine if Co-op Day suppresses scheduling in Prod for Abigail.
+	•	Artifact: the flag/source of truth for Co-op Day in each env and whether the planner honors/ignores it; include value for the tested date.
+
+8) Tenant/User scoping
+	•	Verify the user/tenant id used in Prod queries equals Dev when loading Abigail’s data.
+	•	Check case normalization (abigail vs Abigail) and any FK joins (studentId, courseId).
+Artifacts:
+	•	The exact IDs used in both envs and a note if student/courses are mapped differently.
+
+9) API contract parity
+	•	Confirm response shapes for:
+	•	/api/assignments?date=YYYY-MM-DD&studentName=Abigail
+	•	/api/schedule/<student>/<date>
+	•	Artifact: 10-item sample (id/title/date/links) from Dev vs Prod showing any field mismatches (e.g., Prod missing courseId the planner expects).
+
+⸻
+
+Deliverables (must include all)
+	1.	One-page summary: the single most likely root cause (1–2 sentences) + impact + fix direction.
+	2.	Schema diff (Dev vs Prod) for key tables.
+	3.	Counts table Dev vs Prod (templates, assignments due today, eligible, scheduled).
+	4.	Planner trace (counts: total/due/filtered/scheduled) for Abigail today in both envs.
+	5.	Timezone window comparison (Dev vs Prod).
+	6.	Router order proof (Prod API returns JSON 404 on fake path, not HTML).
+	7.	HAR from Prod when opening /student/abigail (to show planner endpoints & responses).
+	8.	Screenshots of any flags/headers proving prod vs dev differences (proxy trust, SameSite/Secure, co-op flag).
+
+⸻
+
+Pass/Fail rules
+	•	PASS = You identify a concrete, evidenced difference that explains why Prod schedules are empty/incorrect (e.g., missing Prod migration, planner filtering everything due to Co-op, wrong day window, API behind SPA).
+	•	FAIL = You suggest cleaning/syncing data, generate “emergency blocks,” or make any writes. Any dev-only evidence is insufficient.
+
+⸻
+
+Examples of acceptable root causes
+	•	“Prod DB missing ScheduleTemplate.courseId column → join fails → planner yields 0.”
+	•	“Prod uses UTC day window; all 1:15 PM tasks fall outside local ‘today’.”
+	•	“Co-op Day flag true in Prod for 9/4; planner suppresses all academic blocks.”
+	•	“API router mounted after SPA in Prod; /api/schedule hits React HTML → planner never runs.”
