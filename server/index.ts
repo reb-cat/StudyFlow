@@ -200,23 +200,50 @@ app.use((req, res, next) => {
     logger.warn('Database', 'Failed to generate fingerprint', { error: error.message });
   }
 
-  // Idempotent seeding for production parity
-  try {
-    logger.info('Server', '🌱 Running database seeds...');
-    
-    // Seed schedule templates
-    const scheduleResult = await seedAbigailThursdayTemplate();
-    logger.info('Server', 'Schedule template seeding completed', scheduleResult);
-    
-    // Seed Bible curriculum
-    const { seedBibleCurriculum } = await import('./lib/seed-bible-curriculum');
-    const curriculumResult = await seedBibleCurriculum();
-    logger.info('Server', 'Bible curriculum seeding completed', curriculumResult);
-    
-  } catch (error: any) {
-    logger.error('Server', 'Database seeding failed', { error: error.message });
-    if (isProduction) {
-      process.exit(1);
+  // Controlled seeding for production safety
+  const seedControl = process.env.RUN_SEEDS || 'on';
+  
+  if (seedControl === 'off') {
+    logger.info('Server', '🚫 Database seeding DISABLED (RUN_SEEDS=off)');
+  } else if (seedControl === 'once') {
+    logger.info('Server', '🌱 Running database seeds (ONE-SHOT MODE)...');
+    try {
+      // Seed schedule templates
+      const scheduleResult = await seedAbigailThursdayTemplate();
+      logger.info('Server', 'Schedule template seeding completed', scheduleResult);
+      
+      // Seed Bible curriculum
+      const { seedBibleCurriculum } = await import('./lib/seed-bible-curriculum');
+      const curriculumResult = await seedBibleCurriculum();
+      logger.info('Server', 'Bible curriculum seeding completed', curriculumResult);
+      
+      logger.warn('Server', '⚠️  ONE-SHOT SEEDING COMPLETE - SET RUN_SEEDS=off IMMEDIATELY');
+      
+    } catch (error: any) {
+      logger.error('Server', 'Database seeding failed', { error: error.message });
+      if (isProduction) {
+        process.exit(1);
+      }
+    }
+  } else {
+    // Default behavior for development
+    try {
+      logger.info('Server', '🌱 Running database seeds...');
+      
+      // Seed schedule templates
+      const scheduleResult = await seedAbigailThursdayTemplate();
+      logger.info('Server', 'Schedule template seeding completed', scheduleResult);
+      
+      // Seed Bible curriculum
+      const { seedBibleCurriculum } = await import('./lib/seed-bible-curriculum');
+      const curriculumResult = await seedBibleCurriculum();
+      logger.info('Server', 'Bible curriculum seeding completed', curriculumResult);
+      
+    } catch (error: any) {
+      logger.error('Server', 'Database seeding failed', { error: error.message });
+      if (isProduction) {
+        process.exit(1);
+      }
     }
   }
 
