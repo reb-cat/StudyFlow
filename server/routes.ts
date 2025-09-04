@@ -42,7 +42,7 @@ const setupFamilyAuth = (app: Express) => {
     });
   });
 };
-import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema } from "@shared/schema";
+import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, type Assignment } from "@shared/schema";
 import { getElevenLabsService } from "./lib/elevenlabs";
 import { 
   getBibleSubjectForSchedule, 
@@ -410,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`🔍 BRIDGE DEBUG: Fetching assignments for userId="${userId}", date="${date}"`);
       
       // Add comprehensive error handling and fallback
-      let assignments;
+      let assignments: Assignment[];
       try {
         assignments = await storage.getAssignments(userId, date, false);
       } catch (dbError) {
@@ -474,7 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`🔍 DEBUG BRIDGE: Fetching assignments for userId="${userId}", date="${date}"`);
       
       // Enhanced debugging with multiple fallback strategies
-      let assignments;
+      let assignments: Assignment[];
       try {
         assignments = await storage.getAssignments(userId, date, false);
       } catch (dbError) {
@@ -503,7 +503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         error: 'Failed to fetch assignments', 
         details: error instanceof Error ? error.message : 'Unknown error',
-        userId: req.query.studentName ? `${req.query.studentName.toLowerCase()}-user` : 'unknown'
+        userId: req.query.studentName ? `${String(req.query.studentName).toLowerCase()}-user` : 'unknown'
       });
     }
   });
@@ -737,7 +737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Match and update completion status
       for (const dbAssignment of existingAssignments) {
         if (dbAssignment.creationSource !== 'canvas_sync') continue; // Only sync Canvas assignments
-        if (dbAssignment.completionStatus === 'completed') continue; // Already completed
+        if (dbAssignment.completionStatus === 'grading_delay') continue; // Already processed for grading delay
         
         // Find matching Canvas assignment by title and course
         const canvasMatch = allCanvasAssignments.find(ca => 
@@ -778,9 +778,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Method 3: Handle zero-point assignments (0 points possible)
           if (!isGraded && canvasMatch.points_possible === 0) {
             // For zero-point assignments, check if it's marked as missing or has a grade
-            if (canvasMatch.submission && (canvasMatch.submission.missing || canvasMatch.submission.workflow_state)) {
+            if (canvasMatch.submission && ((canvasMatch.submission as any).missing || canvasMatch.submission.workflow_state)) {
               isGraded = true;
-              gradeReason = `zero-point assignment graded (missing: ${canvasMatch.submission.missing})`;
+              gradeReason = `zero-point assignment graded (missing: ${(canvasMatch.submission as any).missing})`;
             }
           }
           
@@ -2865,7 +2865,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
             
             await resend.emails.send({
               from: process.env.RESEND_FROM,
-              to: studentEmail,
+              to: studentEmail || process.env.PARENT_EMAIL || 'no-reply@studyflow.com',
               subject: `StudyFlow Update: ${assignment.title} - Ready to Continue`,
               html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
