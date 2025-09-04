@@ -408,14 +408,41 @@ export function GuidedDayView({
     const subjects = new Set<string>();
     const dueAssignments: Assignment[] = [];
     
+    // Helper function to check if subject happens at co-op
+    const isCoopSubject = (subject: string) => {
+      const subjectLower = subject.toLowerCase();
+      // Exclude subjects that DON'T happen at co-op
+      if (subjectLower.includes('forensic')) return false;
+      if (subjectLower.includes('science') && !subjectLower.includes('earth science')) return false;
+      if (subjectLower.includes('biology')) return false;
+      if (subjectLower.includes('chemistry')) return false;
+      // Only include subjects that DO happen at co-op
+      return (
+        subjectLower.includes('math') || 
+        subjectLower.includes('algebra') || 
+        subjectLower.includes('geometry') ||
+        subjectLower.includes('english') || 
+        subjectLower.includes('literature') || 
+        subjectLower.includes('writing') ||
+        subjectLower.includes('history') || 
+        subjectLower.includes('social studies') ||
+        subjectLower.includes('health') ||
+        subjectLower.includes('art') ||
+        subjectLower.includes('baking') || 
+        subjectLower.includes('cooking') ||
+        subjectLower.includes('photography')
+      );
+    };
+    
     // ONLY collect subjects from actual Canvas assignments in schedule blocks
     scheduleBlocks.forEach(block => {
       if (block.type === 'assignment' && block.assignment) {
         const subject = block.assignment.courseName || block.assignment.subject;
-        if (subject) subjects.add(subject);
-        dueAssignments.push(block.assignment);
+        if (subject && isCoopSubject(subject)) {
+          subjects.add(subject);
+          dueAssignments.push(block.assignment);
+        }
       }
-      // Removed: Generic block.subject collection - only use Canvas data
     });
 
     // Add Canvas assignments due today (even if not scheduled yet)
@@ -425,9 +452,11 @@ export function GuidedDayView({
         const today = new Date(selectedDate);
         if (dueDate.toDateString() === today.toDateString()) {
           const subject = assignment.courseName || assignment.subject;
-          if (subject) subjects.add(subject);
-          if (!dueAssignments.find(a => a.id === assignment.id)) {
-            dueAssignments.push(assignment);
+          if (subject && isCoopSubject(subject)) {
+            subjects.add(subject);
+            if (!dueAssignments.find(a => a.id === assignment.id)) {
+              dueAssignments.push(assignment);
+            }
           }
         }
       }
@@ -435,17 +464,15 @@ export function GuidedDayView({
 
     const checklist: { item: string; category: 'books' | 'materials' | 'homework' | 'general' }[] = [];
 
-    // Subject-specific books and materials
+    // Subject-specific books and materials (only for co-op subjects)
     subjects.forEach(subject => {
       const subjectLower = subject.toLowerCase();
       
-      // Books (only subjects that actually need books at co-op)
+      // Books and materials needed at co-op
       if (subjectLower.includes('math') || subjectLower.includes('geometry') || subjectLower.includes('algebra')) {
         checklist.push({ item: 'Calculator and math notebook', category: 'materials' });
       } else if (subjectLower.includes('english') || subjectLower.includes('literature') || subjectLower.includes('writing')) {
         checklist.push({ item: 'English novel and reading notebook', category: 'books' });
-      } else if (subjectLower.includes('science') || subjectLower.includes('biology') || subjectLower.includes('chemistry') || subjectLower.includes('earth science')) {
-        checklist.push({ item: 'Science textbook and lab notebook', category: 'books' });
       } else if (subjectLower.includes('history') || subjectLower.includes('social studies')) {
         checklist.push({ item: 'History textbook and timeline materials', category: 'books' });
       } else if (subjectLower.includes('art')) {
@@ -457,19 +484,35 @@ export function GuidedDayView({
       } else if (subjectLower.includes('photography')) {
         checklist.push({ item: 'Camera and photography assignments', category: 'materials' });
       }
-      // Note: Forensics is done at home, so no co-op materials needed
 
-      // Binder for each Canvas subject (except forensics which stays home)
-      if (!subjectLower.includes('forensic')) {
-        checklist.push({ item: `${subject} binder/folder`, category: 'materials' });
+      // Clean subject name for binder (remove term/grade info)
+      const cleanSubject = subject
+        .replace(/\d{2}\/\d{2}\s+/g, '') // Remove dates like "25/26 "
+        .replace(/T\d+\s+/g, '') // Remove codes like "T2 "
+        .replace(/M\d+\s+/g, '') // Remove codes like "M5 "
+        .replace(/\d+(th|st|nd|rd)\s*-?\s*\d*(th|st|nd|rd)?\s*(Gr|Grade)\s*/gi, '') // Remove grade ranges
+        .replace(/HS\s+/g, '') // Remove "HS "
+        .trim();
+      
+      if (cleanSubject) {
+        checklist.push({ item: `${cleanSubject} binder/folder`, category: 'materials' });
       }
     });
 
-    // Homework items for assignments due today
+    // Homework items for co-op assignments due today
     dueAssignments.forEach(assignment => {
       if (assignment.completionStatus === 'pending') {
+        // Clean assignment title (remove term/grade info)
+        const cleanTitle = assignment.title
+          .replace(/\d{2}\/\d{2}\s+/g, '') // Remove dates like "25/26 "
+          .replace(/T\d+\s+/g, '') // Remove codes like "T2 "
+          .replace(/M\d+\s+/g, '') // Remove codes like "M5 "
+          .replace(/\d+(th|st|nd|rd)\s*-?\s*\d*(th|st|nd|rd)?\s*(Gr|Grade)\s*/gi, '') // Remove grade ranges
+          .replace(/HS\s+/g, '') // Remove "HS "
+          .trim();
+        
         checklist.push({ 
-          item: `Completed: ${assignment.title}`, 
+          item: `Completed: ${cleanTitle}`, 
           category: 'homework' 
         });
       }
@@ -558,12 +601,17 @@ export function GuidedDayView({
   const currentBlock = scheduleBlocks[currentIndex];
   
 
-  // Check if current block is Prep/Load time
+  // Get day name from selectedDate for co-op day check
+  const dayName = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
+  
+  // Check if current block is Prep/Load time AND it's Monday or Thursday (co-op days only)
   const isPrepLoadBlock = currentBlock && (
     currentBlock.title?.toLowerCase().includes('prep') || 
     currentBlock.title?.toLowerCase().includes('load') ||
     currentBlock.blockType?.toLowerCase().includes('prep') ||
     currentBlock.blockType?.toLowerCase().includes('load')
+  ) && (
+    dayName === 'Monday' || dayName === 'Thursday'
   );
   const prepChecklist = generatePrepChecklist();
   const normalized = useMemo(() => {
