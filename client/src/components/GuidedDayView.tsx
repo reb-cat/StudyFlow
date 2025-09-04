@@ -953,11 +953,6 @@ export function GuidedDayView({
                 </button>
               )}
             </div>
-            {currentBlock.type === 'assignment' && (normalized?.courseLabel || currentBlock.assignment?.courseName || currentBlock.assignment?.subject) && (
-              <span className="shrink-0 rounded-full border border-border bg-card/90 px-3 py-1 text-xs font-medium text-muted-foreground">
-                {normalized?.courseLabel ?? currentBlock.assignment?.courseName ?? currentBlock.assignment?.subject}
-              </span>
-            )}
             {/* Instructions Dropdown Button */}
             {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
               <button
