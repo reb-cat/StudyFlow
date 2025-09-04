@@ -390,23 +390,22 @@ export function GuidedDayView({
       ? composedSchedule
       : buildScheduleBlocks();
 
-  // Generate prep checklist based on day's schedule and assignments
+  // Generate prep checklist based on ACTUAL Canvas assignments only
   const generatePrepChecklist = () => {
     const subjects = new Set<string>();
     const dueAssignments: Assignment[] = [];
     
-    // Collect subjects from schedule blocks
+    // ONLY collect subjects from actual Canvas assignments in schedule blocks
     scheduleBlocks.forEach(block => {
       if (block.type === 'assignment' && block.assignment) {
         const subject = block.assignment.courseName || block.assignment.subject;
         if (subject) subjects.add(subject);
         dueAssignments.push(block.assignment);
-      } else if (block.subject) {
-        subjects.add(block.subject);
       }
+      // Removed: Generic block.subject collection - only use Canvas data
     });
 
-    // Add assignments due today (even if not scheduled yet)
+    // Add Canvas assignments due today (even if not scheduled yet)
     assignments.forEach(assignment => {
       if (assignment.dueDate) {
         const dueDate = new Date(assignment.dueDate);
@@ -447,7 +446,7 @@ export function GuidedDayView({
       }
       // Note: Forensics is done at home, so no co-op materials needed
 
-      // Binder for each subject (except forensics which stays home)
+      // Binder for each Canvas subject (except forensics which stays home)
       if (!subjectLower.includes('forensic')) {
         checklist.push({ item: `${subject} binder/folder`, category: 'materials' });
       }
