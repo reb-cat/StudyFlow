@@ -72,6 +72,25 @@ const setupFamilyAuth = (app: Express) => {
       sessionId: req.sessionID
     });
   });
+
+  // Debug endpoint for production troubleshooting
+  app.get('/api/debug', (req: Request, res: Response) => {
+    res.json({
+      nodeEnv: process.env.NODE_ENV,
+      replitDeployment: process.env.REPLIT_DEPLOYMENT,
+      isProduction: process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1',
+      sessionId: req.sessionID,
+      hasSession: !!req.session,
+      authenticated: req.session.authenticated,
+      userId: req.session.userId,
+      cookieSecure: req.secure,
+      protocol: req.protocol,
+      headers: {
+        'x-forwarded-proto': req.get('x-forwarded-proto'),
+        'host': req.get('host')
+      }
+    });
+  });
   
   // Logout endpoint
   app.post('/api/logout', (req: Request, res: Response) => {

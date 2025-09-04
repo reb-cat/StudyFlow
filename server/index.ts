@@ -24,8 +24,9 @@ const app = express();
 app.set('trust proxy', 1);
 console.log('✅ PROXY TRUST ENABLED: Server will recognize HTTPS behind Replit proxy');
 
-// Production-ready session configuration
-const isProduction = process.env.NODE_ENV === 'production';
+// Production-ready session configuration  
+// FIXED: Detect production via Replit deployment environment
+const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
 
 // Require SESSION_SECRET for session management
 if (!process.env.SESSION_SECRET) {
