@@ -483,8 +483,9 @@ export function GuidedDayView({
     // If no assignments due today for co-op classes, still show basic co-op prep items
 
     const checklist: { item: string; category: 'books' | 'materials' | 'homework' | 'general' }[] = [];
+    const processedSubjects = new Set<string>(); // Track processed subjects to prevent duplicates
 
-    // Add user's custom items for co-op subjects scheduled today
+    // Process each co-op subject scheduled today exactly once
     todaysCoopSubjects.forEach(subject => {
       // Clean subject name for matching (remove ALL extraneous details)
       const cleanSubject = subject
@@ -498,6 +499,12 @@ export function GuidedDayView({
         .replace(/fundamentals/gi, '') // Remove "Fundamentals" 
         .trim().toLowerCase();
 
+      // Skip if we've already processed this subject (prevent duplicates)
+      if (processedSubjects.has(cleanSubject)) {
+        return;
+      }
+      processedSubjects.add(cleanSubject);
+
       // Find custom items for this subject
       const subjectItems = customItems.filter(item => 
         item.subject.toLowerCase() === cleanSubject ||
@@ -505,16 +512,16 @@ export function GuidedDayView({
         item.subject.toLowerCase().includes(cleanSubject)
       );
 
-      // Add custom items if any exist
-      subjectItems.forEach(item => {
-        checklist.push({
-          item: item.itemName,
-          category: item.category as 'books' | 'materials' | 'general'
+      if (subjectItems.length > 0) {
+        // Add ONLY custom items (no fallback binder)
+        subjectItems.forEach(item => {
+          checklist.push({
+            item: item.itemName,
+            category: item.category as 'books' | 'materials' | 'general'
+          });
         });
-      });
-
-      // If no custom items exist, add a basic binder/folder item
-      if (subjectItems.length === 0 && cleanSubject) {
+      } else if (cleanSubject) {
+        // Add ONLY one binder/folder item (no hardcoded subject-specific items)
         const displaySubject = subject
           .replace(/\d{2}\/\d{2}\s+/g, '')
           .replace(/T\d+\s+/g, '')
