@@ -758,12 +758,17 @@ export function GuidedDayView({
   };
 
   const handleNeedMoreTime = () => {
+    console.log('🚨 Need More Time clicked!', { currentBlock, hasAssignment: !!currentBlock?.assignment });
     // Directly reschedule - no popup needed for better executive function UX
     rescheduleAssignment('Need more time');
   };
 
   const rescheduleAssignment = async (reason: string, estimatedMinutesNeeded?: number) => {
-    if (!currentBlock?.assignment) return;
+    console.log('🚨 rescheduleAssignment called', { currentBlock, assignment: currentBlock?.assignment });
+    if (!currentBlock?.assignment) {
+      console.log('🚨 No assignment found, returning early');
+      return;
+    }
     
     try {
       const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/need-more-time`, {
