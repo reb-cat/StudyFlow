@@ -601,8 +601,8 @@ export function GuidedDayView({
   const currentBlock = scheduleBlocks[currentIndex];
   
 
-  // Get day name from selectedDate for co-op day check
-  const dayName = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
+  // Get day name from selectedDate for co-op day check (timezone-safe)
+  const dayName = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' });
   
   // Check if current block is Prep/Load time AND it's Monday or Thursday (co-op days only)
   const isPrepLoadBlock = currentBlock && (
