@@ -159,7 +159,7 @@ export async function seedAbigailThursdayTemplate(): Promise<{
   message: string;
 }> {
   const seedName = 'abigail_thursday_template';
-  const seedVersion = 'v3'; // Updated for proper UPSERT functionality
+  const seedVersion = 'v4'; // PRODUCTION FIX: Handle case sensitivity and force re-run
   const checksum = calculateSeedChecksum(ABIGAIL_THURSDAY_TEMPLATE);
 
   try {
@@ -185,6 +185,13 @@ export async function seedAbigailThursdayTemplate(): Promise<{
           blocks: ABIGAIL_THURSDAY_TEMPLATE.length,
           checksum
         });
+
+        // PRODUCTION FIX: Clean up case sensitivity issues first
+        await tx.execute(sql`
+          DELETE FROM schedule_template 
+          WHERE LOWER(student_name) = 'abigail' AND weekday = 'Thursday'
+        `);
+        logger.info('Seed', 'Cleaned up case-sensitive duplicates');
 
         // Use proper UPSERT with ON CONFLICT UPDATE to handle replacing incorrect rows
         for (const block of ABIGAIL_THURSDAY_TEMPLATE) {
@@ -245,6 +252,13 @@ export async function seedAbigailThursdayTemplate(): Promise<{
           blocks: ABIGAIL_THURSDAY_TEMPLATE.length,
           checksum
         });
+
+        // PRODUCTION FIX: Clean up case sensitivity issues first (non-transactional)
+        await db.execute(sql`
+          DELETE FROM schedule_template 
+          WHERE LOWER(student_name) = 'abigail' AND weekday = 'Thursday'
+        `);
+        logger.info('Seed', 'Cleaned up case-sensitive duplicates (non-transactional)');
 
         // Use proper UPSERT with ON CONFLICT UPDATE to handle replacing incorrect rows (without transaction)
         for (const block of ABIGAIL_THURSDAY_TEMPLATE) {
