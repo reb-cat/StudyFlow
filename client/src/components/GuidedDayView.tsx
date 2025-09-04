@@ -431,14 +431,39 @@ export function GuidedDayView({
     
     // Helper function to check if assignment subject matches today's co-op classes
     const matchesTodaysCoopClass = (assignmentSubject: string) => {
+      if (!assignmentSubject) return false;
+      
       const subjectLower = assignmentSubject.toLowerCase();
       for (const coopSubject of Array.from(todaysCoopSubjects)) {
-        // Flexible matching for subject names
-        if (subjectLower.includes('health') && coopSubject.includes('health')) return true;
-        if ((subjectLower.includes('art') || subjectLower.includes('bible')) && coopSubject.includes('art')) return true;
-        if ((subjectLower.includes('english') || subjectLower.includes('literature') || subjectLower.includes('writing')) && coopSubject.includes('english')) return true;
-        if ((subjectLower.includes('math') || subjectLower.includes('geometry') || subjectLower.includes('algebra')) && coopSubject.includes('math')) return true;
-        if ((subjectLower.includes('history') || subjectLower.includes('social studies')) && coopSubject.includes('history')) return true;
+        const coopLower = coopSubject.toLowerCase();
+        
+        // Direct contains matching (most important)
+        if (subjectLower.includes(coopLower) || coopLower.includes(subjectLower)) return true;
+        
+        // Flexible subject-specific matching
+        if (subjectLower.includes('health') && coopLower.includes('health')) return true;
+        if ((subjectLower.includes('art') || subjectLower.includes('bible')) && coopLower.includes('art')) return true;
+        
+        // Enhanced English/Literature matching
+        if ((subjectLower.includes('english') || subjectLower.includes('literature') || 
+             subjectLower.includes('writing') || subjectLower.includes('american lit') ||
+             subjectLower.includes('lit/comp') || subjectLower.includes('composition')) && 
+            (coopLower.includes('english') || coopLower.includes('literature') || coopLower.includes('american'))) return true;
+            
+        // Enhanced Math matching  
+        if ((subjectLower.includes('math') || subjectLower.includes('geometry') || 
+             subjectLower.includes('algebra')) && 
+            (coopLower.includes('math') || coopLower.includes('geometry'))) return true;
+            
+        if ((subjectLower.includes('history') || subjectLower.includes('social studies')) && 
+            coopLower.includes('history')) return true;
+        
+        // Photography matching
+        if (subjectLower.includes('photo') && coopLower.includes('photo')) return true;
+        
+        // Forensics/Science matching  
+        if ((subjectLower.includes('forensic') || subjectLower.includes('science')) && 
+            (coopLower.includes('forensic') || coopLower.includes('science'))) return true;
       }
       return false;
     };
