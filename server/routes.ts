@@ -63,6 +63,15 @@ const setupFamilyAuth = (app: Express) => {
   app.get('/api/auth/status', (req: Request, res: Response) => {
     res.json({ authenticated: !!req.session.authenticated });
   });
+
+  // Who am I endpoint - required for acceptance proof
+  app.get('/api/me', requireAuth, (req: Request, res: Response) => {
+    res.json({
+      authenticated: true,
+      userId: req.session.userId,
+      sessionId: req.sessionID
+    });
+  });
   
   // Logout endpoint
   app.post('/api/logout', (req: Request, res: Response) => {
