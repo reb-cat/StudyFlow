@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { normalizeAssignment } from '@shared/normalize';
-import { Play, Pause, RotateCcw, CheckCircle, Clock, HelpCircle, Volume2, VolumeX, AlertCircle, ChevronRight, Undo } from 'lucide-react';
+import { Play, Pause, RotateCcw, CheckCircle, Clock, HelpCircle, Volume2, VolumeX, AlertCircle, ChevronRight, Undo, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Assignment } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
@@ -12,6 +12,11 @@ const toNYDateString = (d = new Date()) => {
   const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(d);
   const y = p.find(x=>x.type==='year')!.value, m=p.find(x=>x.type==='month')!.value, da=p.find(x=>x.type==='day')!.value;
   return `${y}-${m}-${da}`;
+};
+
+// Strip HTML tags from text
+const stripHtml = (html: string): string => {
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
 };
 
 // Text-to-Speech hook for Khalil's guided day
@@ -519,6 +524,7 @@ export function GuidedDayView({
   const [isProcessingStuck, setIsProcessingStuck] = useState(false);
   const [bibleData, setBibleData] = useState<any>(null);
   const [checkedItems, setCheckedItems] = useState(new Set<string>());
+  const [showInstructions, setShowInstructions] = useState(false);
   const { toast } = useToast();
 
   const currentBlock = scheduleBlocks[currentIndex];
@@ -952,74 +958,50 @@ export function GuidedDayView({
                 {normalized?.courseLabel ?? currentBlock.assignment?.courseName ?? currentBlock.assignment?.subject}
               </span>
             )}
+            {/* Instructions Dropdown Button */}
+            {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
+              <button
+                onClick={() => setShowInstructions(!showInstructions)}
+                className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded transition-colors"
+                data-testid="button-toggle-instructions"
+              >
+                Instructions {showInstructions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+            )}
           </div>
-          {currentBlock.type === 'assignment' && (normalized?.effectiveDueAt || currentBlock.assignment?.dueDate) && (
-            <div style={{ 
-              fontSize: '14px', 
-              color: colors.textMuted, 
-              marginBottom: '12px'
-            }}>
-              Due: {new Date(normalized?.effectiveDueAt ?? currentBlock.assignment!.dueDate!).toLocaleDateString()}
+          {/* Instructions Dropdown Content */}
+          {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && showInstructions && (
+            <div className="mt-3 p-3 bg-blue-50/50 dark:bg-slate-700/50 rounded-lg border border-blue-200/50 dark:border-slate-600/50">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">i</span>
+                </div>
+                <h4 className="text-sm font-medium text-foreground">Instructions</h4>
+                {/* Speaker button for instructions - only for Khalil */}
+                {studentName.toLowerCase() === 'khalil' && (
+                  <button
+                    onClick={() => {
+                      if (isPlaying) {
+                        stop();
+                      } else {
+                        speak(`Assignment instructions: ${stripHtml(currentBlock.assignment.instructions)}`);
+                      }
+                    }}
+                    className="ml-auto w-7 h-7 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors"
+                    title={isPlaying ? "Stop reading" : "Read instructions aloud"}
+                    data-testid="button-speak-instructions"
+                  >
+                    {isPlaying ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                  </button>
+                )}
+              </div>
+              <div className="text-sm leading-relaxed text-foreground/90" data-testid="assignment-instructions">
+                {stripHtml(currentBlock.assignment.instructions)}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Instructions Panel - CRITICAL FOR STUDENTS */}
-        {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
-          <div className="mb-6 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-5 py-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div 
-                className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center"
-                style={{ flexShrink: 0 }}
-              >
-                <span className="text-white text-xs font-bold">i</span>
-              </div>
-              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-                Instructions
-              </h3>
-              {/* Speaker button for instructions - only for Khalil */}
-              {studentName.toLowerCase() === 'khalil' && (
-                <button
-                  onClick={() => {
-                    if (isPlaying) {
-                      stop();
-                    } else {
-                      speak(`Assignment instructions: ${currentBlock.assignment.instructions}`);
-                    }
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    border: 'none',
-                    backgroundColor: isPlaying ? '#EF4444' : '#F59E0B',
-                    color: 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    marginLeft: 'auto'
-                  }}
-                  title={isPlaying ? "Stop reading" : "Read instructions aloud"}
-                  data-testid="button-speak-instructions"
-                >
-                  {isPlaying ? <VolumeX size={12} /> : <Volume2 size={12} />}
-                </button>
-              )}
-            </div>
-            <div 
-              className="text-sm leading-relaxed text-foreground"
-              style={{ 
-                whiteSpace: 'pre-wrap',
-                lineHeight: '1.5'
-              }}
-              data-testid="assignment-instructions"
-            >
-              {currentBlock.assignment.instructions}
-            </div>
-          </div>
-        )}
 
         {/* Co-op Prep Checklist - shows during Prep/Load blocks */}
         {isPrepLoadBlock && prepChecklist.length > 0 && (
