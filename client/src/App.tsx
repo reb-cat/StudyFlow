@@ -32,11 +32,8 @@ export const useAuth = () => useContext(AuthContext);
 function Router() {
   const { isAuthenticated, setIsAuthenticated } = useAuth();
 
-  console.log('🔐 DEBUG: Router auth state:', isAuthenticated);
-
   // Show loading while checking auth
   if (isAuthenticated === null) {
-    console.log('🔐 DEBUG: Showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>
@@ -46,11 +43,8 @@ function Router() {
 
   // Show unlock page if not authenticated
   if (!isAuthenticated) {
-    console.log('🔐 DEBUG: Showing unlock page');
     return <UnlockPage onUnlock={() => setIsAuthenticated(true)} />;
   }
-
-  console.log('🔐 DEBUG: Showing authenticated app');
 
   // Show app if authenticated
   return (
@@ -80,21 +74,18 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check authentication status ONLY on initial app load
     const checkAuth = async () => {
       try {
-        console.log('🔐 DEBUG: Checking authentication status...');
         const response = await fetch('/api/auth/status', {
           credentials: 'include'
         });
         
         if (response.ok) {
           const data = await response.json();
-          console.log('🔐 DEBUG: Auth response:', data);
           setIsAuthenticated(data.authenticated);
         } else {
-          console.log('🔐 DEBUG: Auth check failed with status:', response.status);
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('🔐 DEBUG: Auth check failed:', error);
+        console.error('Auth check failed:', error);
         setIsAuthenticated(false);
       }
     };

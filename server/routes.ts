@@ -15,21 +15,14 @@ const setupFamilyAuth = (app: Express) => {
   app.post('/api/unlock', (req: Request, res: Response) => {
     const { password } = req.body;
     
-    console.log('🔐 DEBUG: Unlock attempt with password:', password ? '[PROVIDED]' : '[EMPTY]');
-    console.log('🔐 DEBUG: Expected family password:', process.env.FAMILY_PASSWORD ? '[SET]' : '[NOT SET]');
-    console.log('🔐 DEBUG: Request body:', req.body);
-    
     if (!password) {
-      console.log('🔐 DEBUG: Rejecting - no password provided');
       return res.status(400).json({ message: 'Password required' });
     }
     
     if (password === process.env.FAMILY_PASSWORD) {
-      console.log('🔐 DEBUG: Password match - setting authenticated = true');
       req.session.authenticated = true;
       res.json({ success: true });
     } else {
-      console.log('🔐 DEBUG: Password mismatch - rejecting');
       res.status(401).json({ message: 'Invalid password' });
     }
   });
