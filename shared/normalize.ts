@@ -18,7 +18,32 @@ function inferDueDateFromText(text:string, now=new Date()): Date | null {
   return d;
 }
 
-function cleanTitleNoise(title:string){ return title.replace(/\bhomework\b/ig,'').replace(/\bdue\b[^,;:]*$/i,'').replace(/\s{2,}/g,' ').trim(); }
+function cleanTitleNoise(title:string){ 
+  return title
+    // Remove basic noise
+    .replace(/\bhomework\b/ig,'')
+    .replace(/\bdue\b[^,;:]*$/i,'')
+    
+    // Remove academic year patterns (executive function friendly)
+    .replace(/\b\d{2}\/\d{2}\b/g,'')  // "25/26", "24/25"
+    .replace(/\b\d{4}[-\/]\d{4}\b/g,'')  // "2025-2026", "2024/2025"
+    .replace(/\b\d{4}[-\/]\d{2}\b/g,'')  // "2025-26", "2024/25"
+    .replace(/\b\d{2}[-\/]\d{4}\b/g,'')  // "25-2026", "24/2025"
+    
+    // Remove term/semester patterns
+    .replace(/\bT[1-4]\b/g,'')  // "T1", "T2", "T3", "T4"
+    .replace(/\b(?:Term|Quarter|Semester)\s*[1-4]\b/gi,'')  // "Term 1", "Quarter 2", "Semester 1"
+    .replace(/\b(?:Fall|Spring|Summer|Winter)\s*\d{4}\b/gi,'')  // "Fall 2025", "Spring 2026"
+    
+    // Remove grade level patterns
+    .replace(/\b\d+(?:st|nd|rd|th)[-\s]*(?:\d+(?:st|nd|rd|th))?\s*Gr(?:ade)?s?\b/gi,'')  // "7th-12th Gr", "7th Grade"
+    .replace(/\bGrades?\s*\d+[-\s]*\d*\b/gi,'')  // "Grades 7-12", "Grade 7"
+    .replace(/\b\d+[-\s]*\d+\s*Gr(?:ade)?s?\b/gi,'')  // "7-12 Grades", "K-12 Grade"
+    
+    // Remove institutional codes and extra whitespace
+    .replace(/\s{2,}/g,' ')
+    .trim(); 
+}
 
 function titleFromInstructions(instr:string|null|undefined, fallback:string, course?:string|null): string {
   const t=(instr||'').toLowerCase(); const bits:string[]=[];
