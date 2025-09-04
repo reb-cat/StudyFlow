@@ -36,9 +36,9 @@ const setupFamilyAuth = (app: Express) => {
     }
     
     if (password === process.env.FAMILY_PASSWORD) {
-      // CRITICAL: Store user in session AND save it
+      // CRITICAL: Write user into session and save before responding
       req.session.authenticated = true;
-      req.session.userId = 'family'; // Same field API checks
+      req.session.userId = 'family'; // Same field that auth guards will check
       
       req.session.save((err) => {
         if (err) {
@@ -46,11 +46,10 @@ const setupFamilyAuth = (app: Express) => {
           return res.status(500).json({ message: 'Session save failed' });
         }
         
-        // REQUESTED LOG: On login - session id and user id after saving session
-        logger.info('Auth', 'Login successful', { 
+        // Step 5 Evidence: Log sessionId and userId after saving session
+        console.log('✅ LOGIN OK:', { 
           sessionId: req.sessionID, 
-          userId: req.session.userId,
-          isProduction: process.env.NODE_ENV === 'production'
+          userId: req.session.userId 
         });
         
         res.json({ success: true, authenticated: true });

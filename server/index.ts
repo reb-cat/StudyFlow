@@ -22,13 +22,18 @@ const app = express();
 
 // CRITICAL: Trust proxy for production (enables secure cookies)
 app.set('trust proxy', 1);
+console.log('✅ PROXY TRUST ENABLED: Server will recognize HTTPS behind Replit proxy');
 
 // Production-ready session configuration
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Require FAMILY_PASSWORD in all environments
-if (!process.env.FAMILY_PASSWORD) {
-  throw new Error('FAMILY_PASSWORD environment variable is required');
+// Require SESSION_SECRET for session management
+if (!process.env.SESSION_SECRET) {
+  console.log('⚠️  SESSION_SECRET not found, falling back to FAMILY_PASSWORD');
+}
+const sessionSecret = process.env.SESSION_SECRET || process.env.FAMILY_PASSWORD;
+if (!sessionSecret) {
+  throw new Error('SESSION_SECRET or FAMILY_PASSWORD environment variable is required');
 }
 
 // Log production environment detection
@@ -39,10 +44,10 @@ console.log('🔍 SESSION DEBUG:', {
   willUseSameSiteNone: isProduction
 });
 
-// Session middleware - MUST be before all other middleware
-// Using memory store temporarily until we fix PostgreSQL session schema
+// Session middleware - MUST be before all other middleware and routes  
+// Temporarily using memory store for evidence demonstration
 app.use(session({
-  secret: process.env.FAMILY_PASSWORD,
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   name: 'connect.sid',
@@ -55,6 +60,8 @@ app.use(session({
     domain: undefined // Let browser handle domain
   }
 }));
+console.log('✅ SESSION MIDDLEWARE MOUNTED: One shared session system for login and all /api/* routes');
+console.log('✅ CONNECTED TO SESSION STORE: Using memory store (temp - will migrate to PostgreSQL)');
 
 // Security middleware for production
 if (isProduction) {
@@ -70,7 +77,7 @@ if (isProduction) {
   app.use((req, res, next) => {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    // REMOVED: X-Frame-Options: DENY breaks Replit iframe preview
+    // Step 7: X-Frame-Options REMOVED to prevent breaking Replit iframe preview
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     next();
@@ -82,12 +89,11 @@ app.use(express.urlencoded({ extended: false }));
 
 // Session debugging middleware (for troubleshooting auth issues)
 app.use((req: Request, res: Response, next: NextFunction) => {
-  // REQUESTED LOG: On first hit to /api/schedule/* - session id and user id presence
-  if (req.path.startsWith('/api/schedule/')) {
-    logger.debug('Auth', 'Schedule API hit', { 
+  // Step 6 Evidence: Log first line of schedule handlers
+  if (req.path.startsWith('/api/schedule/') || req.path.startsWith('/api/assignments')) {
+    console.log('✅ SCHEDULE HIT:', { 
       sessionId: req.sessionID, 
       hasUserId: !!req.session.userId,
-      authenticated: !!req.session.authenticated,
       path: req.path
     });
   }
