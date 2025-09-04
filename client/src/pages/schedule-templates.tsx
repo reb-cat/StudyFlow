@@ -51,10 +51,7 @@ export default function ScheduleTemplates() {
 
   const saveScheduleMutation = useMutation({
     mutationFn: async (blocks: ScheduleBlock[]) => {
-      return apiRequest(`/api/schedule-template/${selectedStudent}/${selectedWeekday}`, {
-        method: 'PUT',
-        body: { blocks }
-      });
+      return apiRequest('PUT', `/api/schedule-template/${selectedStudent}/${selectedWeekday}`, { blocks });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/schedule-template'] });
@@ -182,7 +179,7 @@ export default function ScheduleTemplates() {
                 <SelectTrigger data-testid="select-student">
                   <SelectValue placeholder="Select student" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" side="bottom" align="start">
                   <SelectItem value="Abigail">Abigail</SelectItem>
                   <SelectItem value="Khalil">Khalil</SelectItem>
                 </SelectContent>
@@ -194,7 +191,7 @@ export default function ScheduleTemplates() {
                 <SelectTrigger data-testid="select-weekday">
                   <SelectValue placeholder="Select weekday" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" side="bottom" align="start">
                   {WEEKDAYS.map(day => (
                     <SelectItem key={day} value={day}>{day}</SelectItem>
                   ))}
@@ -299,7 +296,7 @@ export default function ScheduleTemplates() {
                       <SelectTrigger data-testid={`select-block-type-${index}`}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" side="bottom" align="start">
                         {BLOCK_TYPES.map(type => (
                           <SelectItem key={type} value={type}>{type}</SelectItem>
                         ))}
