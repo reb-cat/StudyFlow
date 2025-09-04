@@ -1,0 +1,24 @@
+Goal: explain and fix why schedule_template (and bible_curriculum) differ between Dev and Prod, without manual SQL. Use migrations + idempotent seeds only.
+	1.	Prove the target in Prod
+	•	Show the effective DATABASE_URL host/dbname (redacted) used in Prod deploy logs.
+	•	Show Prod SELECT COUNT(*) FROM schedule_template and … WHERE student_name='Abigail' AND weekday='Thursday' (counts only).
+	2.	Prove whether seeds ran in Prod
+	•	Paste the exact seed trigger condition (which env var controls “run in Prod”).
+	•	Attach the Prod seed summary: inserted=__, skipped=__ for schedule_template and bible_curriculum.
+	•	If no Prod seed summary exists → seed didn’t run; fix the condition and redeploy.
+	3.	Normalize identity keys used by seeds
+	•	Confirm the unique key the seed uses (e.g., {student_name, weekday, start_time, end_time}).
+	•	Confirm the exact time string format in Prod rows (HH:MM vs HH:MM:SS) and make the seed use that format.
+	•	Confirm student and weekday strings match Prod (Abigail vs abigail, Thursday vs Thu).
+	4.	Re-run seeds in Prod (idempotent)
+	•	After adjusting the trigger and formats, redeploy.
+	•	Return the Prod seed summary lines:
+	•	schedule_template: expect inserted=10, skipped=0 the first time (or inserted≤10 if placeholders already there), then inserted=0, skipped=10 on a second run.
+	•	bible_curriculum: show non-zero inserts on first run, then all skipped.
+	5.	Acceptance artifacts (Prod only)
+	•	GET /api/schedule-template/Abigail/Thursday → 10 blocks (raw JSON showing real subjects & correct HH:MM times).
+	•	POST /api/schedule/Abigail/<today>/initialize then GET /api/schedule/Abigail/<today> → 200 JSON with real subjects (not “Assignment”) + HAR.
+	•	One planner log line: tasks_total=…, due_today=…, filtered=…, scheduled=…, template_block_count=10, coop_day=false.
+	•	bible_curriculum: counts + 3 sample rows from Prod (API or DB read).
+
+NO-GO if: seed didn’t run in Prod, GET /schedule-template still shows 3 blocks, planner returns generic “Assignment,” or bible_curriculum is still empty.
