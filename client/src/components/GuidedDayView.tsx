@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { normalizeAssignment } from '@shared/normalize';
 import { Play, Pause, RotateCcw, CheckCircle, Clock, HelpCircle, Volume2, VolumeX, AlertCircle, ChevronRight, Undo, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { Assignment } from '@shared/schema';
+import type { Assignment, ChecklistItem } from '@shared/schema';
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { getTodayString, formatDateShort } from '@shared/dateUtils';
 
@@ -331,6 +332,13 @@ export function GuidedDayView({
   // Text-to-Speech for Khalil's guided day
   const { speak, stop, isPlaying } = useTextToSpeech();
   
+  // Get user's custom checklist items
+  const { data: customChecklistItems = [] } = useQuery<ChecklistItem[]>({
+    queryKey: [`/api/checklist/${studentName}`],
+    enabled: !!studentName,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+  
   // Build actual schedule from schedule template (fallback) OR use parent-composed
   const buildScheduleBlocks = (): ScheduleBlock[] => {
     if (scheduleTemplate.length === 0) {
@@ -404,7 +412,7 @@ export function GuidedDayView({
   }, [composedSchedule, scheduleTemplate, assignments, selectedDate, studentName]);
 
   // Generate prep checklist based on co-op classes scheduled TODAY only
-  const generatePrepChecklist = () => {
+  const generatePrepChecklist = (customItems: ChecklistItem[] = []) => {
     const subjects = new Set<string>();
     const dueAssignments: Assignment[] = [];
     
@@ -476,28 +484,9 @@ export function GuidedDayView({
 
     const checklist: { item: string; category: 'books' | 'materials' | 'homework' | 'general' }[] = [];
 
-    // Subject-specific books and materials for ALL co-op subjects scheduled today
+    // Add user's custom items for co-op subjects scheduled today
     todaysCoopSubjects.forEach(subject => {
-      const subjectLower = subject.toLowerCase();
-      
-      // Books and materials needed at co-op
-      if (subjectLower.includes('math') || subjectLower.includes('geometry') || subjectLower.includes('algebra')) {
-        checklist.push({ item: 'Calculator and math notebook', category: 'materials' });
-      } else if (subjectLower.includes('english') || subjectLower.includes('literature') || subjectLower.includes('writing')) {
-        checklist.push({ item: 'English novel and reading notebook', category: 'books' });
-      } else if (subjectLower.includes('history') || subjectLower.includes('social studies')) {
-        checklist.push({ item: 'History textbook and timeline materials', category: 'books' });
-      } else if (subjectLower.includes('art')) {
-        checklist.push({ item: 'Art supplies and sketchbook', category: 'materials' });
-      } else if (subjectLower.includes('health')) {
-        checklist.push({ item: 'Health textbook and worksheet folder', category: 'books' });
-      } else if (subjectLower.includes('baking') || subjectLower.includes('cooking')) {
-        checklist.push({ item: 'Recipe cards and measuring tools', category: 'materials' });
-      } else if (subjectLower.includes('photography')) {
-        checklist.push({ item: 'Camera and photography assignments', category: 'materials' });
-      }
-
-      // Clean subject name for binder (remove ALL extraneous details)
+      // Clean subject name for matching (remove ALL extraneous details)
       const cleanSubject = subject
         .replace(/\d{2}\/\d{2}\s+/g, '') // Remove dates like "25/26 "
         .replace(/T\d+\s+/g, '') // Remove codes like "T2 "
@@ -507,10 +496,37 @@ export function GuidedDayView({
         .replace(/\s*-\s*[a-z]\s+[a-z]+$/gi, '') // Remove teacher names like "- B Scolaro", "- J Welch"
         .replace(/\s+&\s+the\s+bible/gi, '') // Simplify "Art & the Bible" to just "Art"
         .replace(/fundamentals/gi, '') // Remove "Fundamentals" 
-        .trim();
-      
-      if (cleanSubject) {
-        checklist.push({ item: `${cleanSubject} binder/folder`, category: 'materials' });
+        .trim().toLowerCase();
+
+      // Find custom items for this subject
+      const subjectItems = customItems.filter(item => 
+        item.subject.toLowerCase() === cleanSubject ||
+        cleanSubject.includes(item.subject.toLowerCase()) ||
+        item.subject.toLowerCase().includes(cleanSubject)
+      );
+
+      // Add custom items if any exist
+      subjectItems.forEach(item => {
+        checklist.push({
+          item: item.itemName,
+          category: item.category as 'books' | 'materials' | 'general'
+        });
+      });
+
+      // If no custom items exist, add a basic binder/folder item
+      if (subjectItems.length === 0 && cleanSubject) {
+        const displaySubject = subject
+          .replace(/\d{2}\/\d{2}\s+/g, '')
+          .replace(/T\d+\s+/g, '')
+          .replace(/M\d+\s+/g, '')
+          .replace(/\d+(th|st|nd|rd)\s*-?\s*\d*(th|st|nd|rd)?\s*(Gr|Grade)\s*/gi, '')
+          .replace(/HS\s+/gi, '')
+          .replace(/\s*-\s*[a-z]\s+[a-z]+$/gi, '')
+          .replace(/\s+&\s+the\s+bible/gi, '')
+          .replace(/fundamentals/gi, '')
+          .trim();
+          
+        checklist.push({ item: `${displaySubject} binder/folder`, category: 'materials' });
       }
     });
 
@@ -629,7 +645,7 @@ export function GuidedDayView({
     dayName === 'Monday' || dayName === 'Thursday'
   );
   
-  const prepChecklist = generatePrepChecklist();
+  const prepChecklist = generatePrepChecklist(customChecklistItems);
   
   // DEBUG: Log checklist detection
   if (process.env.NODE_ENV === 'development' && currentBlock && false) { // Disabled for performance

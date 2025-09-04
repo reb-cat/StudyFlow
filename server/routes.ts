@@ -132,7 +132,11 @@ const setupFamilyAuth = (app: Express) => {
     });
   });
 };
-import { insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, type Assignment } from "@shared/schema";
+import { 
+  insertAssignmentSchema, updateAssignmentSchema, insertScheduleTemplateSchema, 
+  insertChecklistItemSchema, updateChecklistItemSchema, 
+  type Assignment, type ChecklistItem 
+} from "@shared/schema";
 import { getElevenLabsService } from "./lib/elevenlabs";
 import { 
   getBibleSubjectForSchedule, 
@@ -704,6 +708,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Due date extraction failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ message: 'Failed to extract due dates', error: errorMessage });
+    }
+  });
+
+  // Checklist Item Management API endpoints
+  
+  // GET /api/checklist/:studentName - Get checklist items for student
+  app.get('/api/checklist/:studentName', requireAuth, async (req, res) => {
+    try {
+      const { studentName } = req.params;
+      const { subject } = req.query;
+      
+      const items = await storage.getChecklistItems(studentName, subject as string | undefined);
+      res.json(items);
+    } catch (error) {
+      logger.error('API', 'Failed to fetch checklist items', { error: error instanceof Error ? error.message : String(error) });
+      res.status(500).json({ message: 'Failed to fetch checklist items' });
+    }
+  });
+
+  // POST /api/checklist - Create new checklist item
+  app.post('/api/checklist', requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertChecklistItemSchema.parse(req.body);
+      const newItem = await storage.createChecklistItem(validatedData);
+      
+      res.status(201).json({ 
+        message: 'Checklist item created successfully', 
+        item: newItem 
+      });
+    } catch (error) {
+      logger.error('API', 'Failed to create checklist item', { error: error instanceof Error ? error.message : String(error) });
+      res.status(400).json({ message: 'Failed to create checklist item' });
+    }
+  });
+
+  // PATCH /api/checklist/:id - Update checklist item
+  app.patch('/api/checklist/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = updateChecklistItemSchema.parse(req.body);
+      
+      const updatedItem = await storage.updateChecklistItem(id, validatedData);
+      
+      if (!updatedItem) {
+        return res.status(404).json({ message: 'Checklist item not found' });
+      }
+      
+      res.json({ 
+        message: 'Checklist item updated successfully', 
+        item: updatedItem 
+      });
+    } catch (error) {
+      logger.error('API', 'Failed to update checklist item', { error: error instanceof Error ? error.message : String(error) });
+      res.status(400).json({ message: 'Failed to update checklist item' });
+    }
+  });
+
+  // DELETE /api/checklist/:id - Delete checklist item
+  app.delete('/api/checklist/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteChecklistItem(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: 'Checklist item not found' });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      logger.error('API', 'Failed to delete checklist item', { error: error instanceof Error ? error.message : String(error) });
+      res.status(500).json({ message: 'Failed to delete checklist item' });
     }
   });
   

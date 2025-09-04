@@ -12,7 +12,8 @@ import {
   BookOpen, 
   Target,
   Clock,
-  RefreshCw
+  RefreshCw,
+  CheckSquare
 } from 'lucide-react';
 
 interface AdminTile {
@@ -46,6 +47,14 @@ const adminTiles: AdminTile[] = [
     href: "/students",
     icon: Users,
     color: "green"
+  },
+  {
+    title: "Checklist Manager",
+    description: "Customize prep items for each co-op subject",
+    href: "/checklist-manager",
+    icon: CheckSquare,
+    color: "emerald",
+    badge: "New"
   },
   {
     title: "Family Dashboard",

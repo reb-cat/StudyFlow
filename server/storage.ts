@@ -5,7 +5,8 @@ import {
   type StudentProfile, type InsertStudentProfile,
   type StudentStatus, type InsertStudentStatus,
   type DailyScheduleStatus, type InsertDailyScheduleStatus,
-  assignments, scheduleTemplate, bibleCurriculum, studentProfiles, studentStatus, dailyScheduleStatus
+  type ChecklistItem, type InsertChecklistItem, type UpdateChecklistItem,
+  assignments, scheduleTemplate, bibleCurriculum, studentProfiles, studentStatus, dailyScheduleStatus, checklistItems
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -64,6 +65,12 @@ export interface IStorage {
   }>;
   rescheduleNeedMoreTime(assignmentId: string, date: string): Promise<void>;
   markStuckWithUndo(assignmentId: string): Promise<void>;
+  
+  // Checklist item operations
+  getChecklistItems(studentName: string, subject?: string): Promise<ChecklistItem[]>;
+  createChecklistItem(item: InsertChecklistItem): Promise<ChecklistItem>;
+  updateChecklistItem(id: string, updates: UpdateChecklistItem): Promise<ChecklistItem | undefined>;
+  deleteChecklistItem(id: string): Promise<boolean>;
 }
 
 // Database storage implementation using local Replit database
@@ -1632,6 +1639,66 @@ export class DatabaseStorage implements IStorage {
       console.error('Error marking assignment as stuck:', error);
     }
   }
+
+  // Checklist item operations
+  async getChecklistItems(studentName: string, subject?: string): Promise<ChecklistItem[]> {
+    try {
+      let conditions = [
+        eq(checklistItems.studentName, studentName),
+        eq(checklistItems.isActive, true)
+      ];
+      
+      if (subject) {
+        conditions.push(eq(checklistItems.subject, subject));
+      }
+      
+      const items = await db.select()
+        .from(checklistItems)
+        .where(and(...conditions))
+        .orderBy(checklistItems.category, checklistItems.sortOrder, checklistItems.itemName);
+      
+      return items || [];
+    } catch (error) {
+      console.error('❌ Error fetching checklist items:', error);
+      return [];
+    }
+  }
+
+  async createChecklistItem(item: InsertChecklistItem): Promise<ChecklistItem> {
+    try {
+      const [newItem] = await db.insert(checklistItems).values(item).returning();
+      return newItem;
+    } catch (error) {
+      console.error('❌ Error creating checklist item:', error);
+      throw error;
+    }
+  }
+
+  async updateChecklistItem(id: string, updates: UpdateChecklistItem): Promise<ChecklistItem | undefined> {
+    try {
+      const [updatedItem] = await db.update(checklistItems)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(checklistItems.id, id))
+        .returning();
+      return updatedItem;
+    } catch (error) {
+      console.error('❌ Error updating checklist item:', error);
+      return undefined;
+    }
+  }
+
+  async deleteChecklistItem(id: string): Promise<boolean> {
+    try {
+      const [deletedItem] = await db.update(checklistItems)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(checklistItems.id, id))
+        .returning();
+      return !!deletedItem;
+    } catch (error) {
+      console.error('❌ Error deleting checklist item:', error);
+      return false;
+    }
+  }
 }
 
 // Keep MemStorage for fallback
@@ -2127,6 +2194,34 @@ export class MemStorage implements IStorage {
   async getAllAssignments(): Promise<Assignment[]> {
     // Return all assignments for print queue functionality
     return Array.from(this.assignments.values());
+  }
+
+  // Checklist item stub methods
+  async getChecklistItems(studentName: string, subject?: string): Promise<ChecklistItem[]> {
+    return [];
+  }
+
+  async createChecklistItem(item: InsertChecklistItem): Promise<ChecklistItem> {
+    const newItem: ChecklistItem = {
+      id: randomUUID(),
+      studentName: item.studentName,
+      subject: item.subject,
+      itemName: item.itemName,
+      category: item.category,
+      isActive: item.isActive ?? true,
+      sortOrder: item.sortOrder ?? 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    return newItem;
+  }
+
+  async updateChecklistItem(id: string, updates: UpdateChecklistItem): Promise<ChecklistItem | undefined> {
+    return undefined;
+  }
+
+  async deleteChecklistItem(id: string): Promise<boolean> {
+    return false;
   }
 }
 

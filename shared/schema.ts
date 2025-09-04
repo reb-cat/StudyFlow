@@ -216,6 +216,21 @@ export const sessions = pgTable("sessions", {
   expiresAt: timestamp("expires_at").notNull(),
 });
 
+// Custom checklist items for co-op prep - allows students to manage their own specific items
+export const checklistItems = pgTable("checklist_items", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentName: text("student_name").notNull(), // "Khalil", "Abigail"
+  subject: text("subject").notNull(), // "health", "art", "english", etc.
+  itemName: text("item_name").notNull(), // "Watercolor paints", "Health folder", etc.
+  category: text("category", {
+    enum: ["books", "materials", "general"]
+  }).notNull(), // Classification for organization
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").default(0), // For custom ordering
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Bible curriculum schemas
 export const insertBibleCurriculumSchema = createInsertSchema(bibleCurriculum).omit({
   id: true,
@@ -241,6 +256,15 @@ export const insertSessionSchema = createInsertSchema(sessions).omit({
   id: true,
   createdAt: true,
 });
+
+// Checklist item schemas
+export const insertChecklistItemSchema = createInsertSchema(checklistItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateChecklistItemSchema = insertChecklistItemSchema.partial();
 
 // Progress session schemas
 export const insertProgressSessionSchema = createInsertSchema(progressSessions).omit({
@@ -280,3 +304,7 @@ export type InsertStudentStatus = typeof studentStatus.$inferInsert;
 
 export type Session = typeof sessions.$inferSelect;
 export type InsertSession = z.infer<typeof insertSessionSchema>;
+
+export type ChecklistItem = typeof checklistItems.$inferSelect;
+export type InsertChecklistItem = z.infer<typeof insertChecklistItemSchema>;
+export type UpdateChecklistItem = z.infer<typeof updateChecklistItemSchema>;
