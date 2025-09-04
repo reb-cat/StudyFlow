@@ -7,15 +7,23 @@ import { generalRateLimit, authRateLimit, apiRateLimit, strictRateLimit, uploadR
 
 // Family authentication middleware - reads the same field set during login
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (req.session.authenticated) {
-    return next();
+  // REQUESTED LOG: If 401 happens, include short reason
+  if (!req.session) {
+    logger.debug('Auth', '401: No session cookie found');
+    return res.status(401).json({ code: 401, message: 'Authentication required', reason: 'no session cookie' });
   }
-  // Clear JSON response for auth failures
-  res.status(401).json({ 
-    code: 401,
-    message: 'Authentication required',
-    authenticated: false 
-  });
+  
+  if (!req.session.authenticated) {
+    logger.debug('Auth', '401: Session present but not authenticated');
+    return res.status(401).json({ code: 401, message: 'Authentication required', reason: 'session present but not authenticated' });
+  }
+  
+  if (!req.session.userId) {
+    logger.debug('Auth', '401: Session present but no user id'); 
+    return res.status(401).json({ code: 401, message: 'Authentication required', reason: 'session present but no user id' });
+  }
+  
+  next();
 };
 
 // Simple unlock endpoint for family password
@@ -34,9 +42,16 @@ const setupFamilyAuth = (app: Express) => {
       
       req.session.save((err) => {
         if (err) {
-          logger.error('Session save failed: ' + String(err));
+          logger.error('Auth', 'Session save failed', { error: err.message });
           return res.status(500).json({ message: 'Session save failed' });
         }
+        
+        // REQUESTED LOG: On login - session id and user id after saving session
+        logger.info('Auth', 'Login successful', { 
+          sessionId: req.sessionID, 
+          userId: req.session.userId 
+        });
+        
         res.json({ success: true, authenticated: true });
       });
     } else {

@@ -72,7 +72,15 @@ app.use(express.urlencoded({ extended: false }));
 
 // Session debugging middleware (for troubleshooting auth issues)
 app.use((req: Request, res: Response, next: NextFunction) => {
-  logger.debug('Session Debug: ' + req.method + ' ' + req.path);
+  // REQUESTED LOG: On first hit to /api/schedule/* - session id and user id presence
+  if (req.path.startsWith('/api/schedule/')) {
+    logger.debug('Auth', 'Schedule API hit', { 
+      sessionId: req.sessionID, 
+      hasUserId: !!req.session.userId,
+      authenticated: !!req.session.authenticated,
+      path: req.path
+    });
+  }
   next();
 });
 
