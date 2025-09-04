@@ -313,6 +313,8 @@ interface GuidedDayViewProps {
   composedSchedule?: GuidedBlock[];
   onAssignmentUpdate?: () => void;
   onModeToggle?: () => void;
+  /** Schedule block completion status for synchronization with Overview mode */
+  dailyScheduleStatus?: Array<any>;
 }
 
 export function GuidedDayView({ 
@@ -322,7 +324,8 @@ export function GuidedDayView({
   scheduleTemplate = [],
   composedSchedule = [],
   onAssignmentUpdate,
-  onModeToggle 
+  onModeToggle,
+  dailyScheduleStatus = []
 }: GuidedDayViewProps) {
   
   // Text-to-Speech for Khalil's guided day
@@ -513,6 +516,25 @@ export function GuidedDayView({
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
+  
+  // Calculate correct starting position based on completion status from Overview mode
+  useEffect(() => {
+    if (scheduleBlocks.length > 0 && dailyScheduleStatus.length > 0) {
+      // Find the first non-completed block
+      const firstIncompleteIndex = scheduleBlocks.findIndex(block => {
+        const blockStatus = dailyScheduleStatus.find(status => 
+          status.blockNumber === block.blockNumber
+        );
+        return !blockStatus || blockStatus.status !== 'complete';
+      });
+      
+      // If we found an incomplete block, start there, otherwise start at 0
+      const startIndex = firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0;
+      
+      console.log(`🎯 Guided sync: Starting at block ${startIndex} based on overview completion status`);
+      setCurrentIndex(startIndex);
+    }
+  }, [scheduleBlocks, dailyScheduleStatus]);
   const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());
   const [timeRemaining, setTimeRemaining] = useState<number | null>(20 * 60);
   const [exitClickCount, setExitClickCount] = useState(0);
@@ -653,6 +675,21 @@ export function GuidedDayView({
     
     setCompletedBlocks(prev => new Set([...Array.from(prev), currentBlock.id]));
     setIsTimerRunning(false);
+    
+    // Update schedule block status for synchronization with Overview mode
+    try {
+      await apiRequest('PATCH', `/api/schedule/${studentName}/${selectedDate}/block/${currentBlock.blockNumber}/status`, {
+        status: 'complete'
+      });
+      
+      // Invalidate schedule status cache to sync with Overview mode
+      if (onAssignmentUpdate) {
+        onAssignmentUpdate(); // This will refresh both assignment and schedule status data
+      }
+    } catch (error) {
+      console.error('Failed to update schedule block status:', error);
+      // Don't fail the whole completion for this - it's a sync issue
+    }
     
     // Call API for assignment completion
     if (currentBlock.type === 'assignment' && currentBlock.assignment) {

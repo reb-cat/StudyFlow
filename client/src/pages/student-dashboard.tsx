@@ -144,7 +144,7 @@ export default function StudentDashboard() {
     initializeSchedule();
   }, [studentName, selectedDate]);
 
-  // Fetch daily schedule status for Overview Mode
+  // Fetch daily schedule status for both Overview and Guided Mode synchronization
   const { data: dailyScheduleStatus = [], isLoading: isStatusLoading } = useQuery<Array<DailyScheduleStatus & { template: ScheduleTemplate }>>({
     queryKey: ['/api/schedule', studentName, selectedDate, 'status'],
     queryFn: async () => {
@@ -153,7 +153,7 @@ export default function StudentDashboard() {
       return response.json();
     },
     staleTime: 1000 * 30, // 30 seconds for real-time updates
-    enabled: !isGuidedMode, // Only fetch when in Overview Mode
+    // Always fetch to maintain synchronization between modes
   });
 
   // Get Bible curriculum for printable schedule
@@ -620,6 +620,7 @@ export default function StudentDashboard() {
               composedSchedule={composedForGuided}
               onAssignmentUpdate={handleAssignmentUpdate}
               onModeToggle={() => setIsGuidedMode(false)}
+              dailyScheduleStatus={dailyScheduleStatus}
             />
           </div>
         ) : (
