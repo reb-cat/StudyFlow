@@ -1187,56 +1187,65 @@ export class DatabaseStorage implements IStorage {
         return { block, blockMinutes };
       }).sort((a, b) => b.blockMinutes - a.blockMinutes); // Longest blocks first
       
-      // Prepare assignment pool with time estimates
+      // Prepare assignment pool with time estimates - PRESERVE subject distribution order
       const assignmentPool = optimizedSequence.map(({ assignment }) => ({
         assignment,
         assignmentMinutes: assignment.actualEstimatedMinutes || 30,
         assigned: false
-      })).sort((a, b) => b.assignmentMinutes - a.assignmentMinutes); // Longest assignments first
+      })); // Keep optimized subject distribution order - DO NOT resort by time!
       
-      // Phase 1: Smart allocation - try to fit assignments optimally
-      for (const { block, blockMinutes } of blocksWithDuration) {
-        let bestFit = null;
-        let bestFitIndex = -1;
+      // Phase 1: Subject-aware allocation - allocate in subject-distributed order
+      let blockIndex = 0;
+      for (let i = 0; i < assignmentPool.length && blockIndex < blocksWithDuration.length; i++) {
+        const item = assignmentPool[i];
+        if (item.assigned) continue;
         
-        // Find the best fitting unassigned assignment
-        for (let i = 0; i < assignmentPool.length; i++) {
-          const item = assignmentPool[i];
-          if (item.assigned) continue;
+        // Find a suitable block for this assignment (prefer sequential order for subject distribution)
+        let selectedBlock = null;
+        let selectedBlockIndex = -1;
+        
+        // First, try to use blocks in order to maintain subject distribution
+        for (let j = blockIndex; j < blocksWithDuration.length; j++) {
+          const { block, blockMinutes } = blocksWithDuration[j];
           
-          // Allow assignments that are up to 30 minutes longer than the block (increased from 15)
+          // Allow assignments that are up to 30 minutes longer than the block
           const timeBuffer = 30;
           const allowableTime = blockMinutes + timeBuffer;
           
           if (item.assignmentMinutes <= allowableTime) {
-            // Prefer assignments that fit exactly, then longer ones that utilize the block well
-            if (!bestFit || 
-                (item.assignmentMinutes <= blockMinutes && bestFit.assignmentMinutes > blockMinutes) ||
-                (item.assignmentMinutes > bestFit.assignmentMinutes && bestFit.assignmentMinutes <= blockMinutes)) {
-              bestFit = item;
-              bestFitIndex = i;
-            }
+            selectedBlock = block;
+            selectedBlockIndex = j;
+            break; // Take first suitable block to maintain subject order
           }
         }
         
-        if (bestFit) {
-          // Schedule the best fitting assignment
-          bestFit.assigned = true;
+        if (selectedBlock) {
+          // Schedule the assignment in subject-distributed order
+          item.assigned = true;
           
-          await this.updateAssignmentScheduling(bestFit.assignment.id, {
+          await this.updateAssignmentScheduling(item.assignment.id, {
             scheduledDate: date,
-            scheduledBlock: block.blockNumber,
-            blockStart: block.startTime,
-            blockEnd: block.endTime
+            scheduledBlock: selectedBlock.blockNumber,
+            blockStart: selectedBlock.startTime,
+            blockEnd: selectedBlock.endTime
           });
           
-          assignedAssignments.push(bestFit.assignment.title);
+          assignedAssignments.push(item.assignment.title);
           
-          if (bestFit.assignmentMinutes > blockMinutes) {
-            console.log(`📋 Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block (${bestFit.assignmentMinutes - blockMinutes}min overflow): ${bestFit.assignment.title}`);
+          // Remove used block from available pool
+          blocksWithDuration.splice(selectedBlockIndex, 1);
+          
+          // Calculate block duration for logging
+          const selectedBlockMinutes = Math.floor((new Date(`2000-01-01T${selectedBlock.endTime}`).getTime() - new Date(`2000-01-01T${selectedBlock.startTime}`).getTime()) / (1000 * 60));
+          const timeOverflow = Math.max(0, item.assignmentMinutes - selectedBlockMinutes);
+          
+          if (timeOverflow > 0) {
+            console.log(`📋 Scheduled ${item.assignmentMinutes}min assignment in ${selectedBlockMinutes}min block (${timeOverflow}min overflow): ${item.assignment.title}`);
           } else {
-            console.log(`✅ Scheduled ${bestFit.assignmentMinutes}min assignment in ${blockMinutes}min block: ${bestFit.assignment.title}`);
+            console.log(`✅ Scheduled ${item.assignmentMinutes}min assignment in ${selectedBlockMinutes}min block: ${item.assignment.title}`);
           }
+        } else {
+          console.log(`⚠️ No suitable block found for assignment: ${item.assignment.title} (${item.assignmentMinutes}min)`);
         }
       }
       
