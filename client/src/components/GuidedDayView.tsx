@@ -539,7 +539,6 @@ export function GuidedDayView({
   const [timeRemaining, setTimeRemaining] = useState<number | null>(20 * 60);
   const [exitClickCount, setExitClickCount] = useState(0);
   const [showDoneDialog, setShowDoneDialog] = useState(false);
-  const [showNeedTimeDialog, setShowNeedTimeDialog] = useState(false);
   const [showStuckDialog, setShowStuckDialog] = useState(false);
   const [stuckCountdown, setStuckCountdown] = useState(0);
   const [stuckPendingKey, setStuckPendingKey] = useState<string | null>(null);
@@ -759,7 +758,8 @@ export function GuidedDayView({
   };
 
   const handleNeedMoreTime = () => {
-    setShowNeedTimeDialog(true);
+    // Directly reschedule - no popup needed for better executive function UX
+    rescheduleAssignment('Need more time');
   };
 
   const rescheduleAssignment = async (reason: string, estimatedMinutesNeeded?: number) => {
@@ -798,7 +798,6 @@ export function GuidedDayView({
       });
     }
     
-    setShowNeedTimeDialog(false);
   };
 
   const handleStuck = () => {
@@ -1404,63 +1403,6 @@ export function GuidedDayView({
         </div>
       )}
 
-      {/* Need More Time Dialog */}
-      {showNeedTimeDialog && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: colors.surface,
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '400px',
-            width: '90%'
-          }}>
-            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>
-              Need More Time?
-            </h3>
-            <p style={{ marginBottom: '20px', color: colors.textMuted }}>
-              This assignment will be rescheduled intelligently based on its due date and priority.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button
-                onClick={() => rescheduleAssignment('Need more time')}
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  backgroundColor: colors.progress,
-                  color: 'white',
-                  border: 'none',
-                  fontSize: '16px',
-                  cursor: 'pointer'
-                }}
-              >
-                ⏰ Reschedule This Assignment
-              </button>
-              <button
-                onClick={() => setShowNeedTimeDialog(false)}
-                style={{
-                  padding: '8px',
-                  borderRadius: '8px',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  color: colors.textMuted,
-                  fontSize: '14px',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Stuck Dialog */}
       {showStuckDialog && (
