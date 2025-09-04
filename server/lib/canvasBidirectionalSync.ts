@@ -101,20 +101,20 @@ export async function syncCompletionStatus(
           });
         }
         
-        // Check if Canvas shows this as completed (graded by teacher)
-        // If assignment is graded in Canvas, it should be marked complete in StudyFlow
-        const isCanvasCompleted = canvasAssignment.graded_submissions_exist;
+        // DISABLED: Auto-completion sync due to data integrity issues
+        // Canvas graded_submissions_exist can be true if ANY student has graded work,
+        // not necessarily THIS specific student, causing false completions.
+        // 
+        // StudyFlow completion status should ONLY be managed by:
+        // 1. Manual student/parent completion actions in StudyFlow UI
+        // 2. Admin manual status changes in Assignment Manager
+        // 
+        // Canvas sync is now limited to: imports, deletions, and metadata updates
+        console.log(`🔒 Canvas sync: Preserving StudyFlow completion status for "${canvasAssignment.name}" (status: ${dbAssignment.completionStatus})`);
         
-        // BIDIRECTIONAL SYNC: Handle both directions
-        if (isCanvasCompleted && dbAssignment.completionStatus === 'pending') {
-          // Canvas shows graded → mark as completed
-          await storage.updateAssignmentStatus(dbAssignment.id, 'completed');
-          console.log(`✅ Canvas grade sync: Marked "${canvasAssignment.name}" as completed`);
-        } else if (!isCanvasCompleted && dbAssignment.completionStatus === 'completed') {
-          // Canvas shows NOT graded but StudyFlow shows completed → revert to pending
-          // This handles cases where teachers ungrade, reopen assignments, or remove grades
-          await storage.updateAssignmentStatus(dbAssignment.id, 'pending');
-          console.log(`🔄 Canvas grade sync: Reverted "${canvasAssignment.name}" from completed back to pending (assignment ungraded/reopened)`);
+        // DEBUG: Log Canvas grading data for transparency but take no action
+        if (canvasAssignment.name.includes('Points, Lines and Planes')) {
+          console.log(`📊 Canvas grading data (NO AUTO-SYNC): graded_submissions_exist=${canvasAssignment.graded_submissions_exist}, has_submitted_submissions=${canvasAssignment.has_submitted_submissions}`);
         }
       }
     }
