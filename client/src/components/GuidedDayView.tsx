@@ -3,7 +3,7 @@ import { normalizeAssignment } from '@shared/normalize';
 import { Play, Pause, RotateCcw, CheckCircle, Clock, HelpCircle, Volume2, VolumeX, AlertCircle, ChevronRight, Undo, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Assignment } from '@shared/schema';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { getTodayString, formatDateShort } from '@shared/dateUtils';
 
@@ -517,31 +517,26 @@ export function GuidedDayView({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
   
-  // Calculate correct starting position based on completion status from Overview mode
-  // BUT preserve user's current position if they're already in guided mode
-  const [hasInitialSync, setHasInitialSync] = useState(false);
+  // Always sync with overview completion status to find first incomplete block
+  // This ensures guided view reflects exactly what's in overview
   useEffect(() => {
     if (scheduleBlocks.length > 0 && dailyScheduleStatus.length > 0) {
-      // Only do initial sync once when first entering guided mode
-      if (!hasInitialSync) {
-        // Find the first non-completed block
-        const firstIncompleteIndex = scheduleBlocks.findIndex(block => {
-          const blockStatus = dailyScheduleStatus.find(status => 
-            status.blockNumber === block.blockNumber
-          );
-          return !blockStatus || blockStatus.status !== 'complete';
-        });
-        
-        // If we found an incomplete block, start there, otherwise start at 0
-        const startIndex = firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0;
-        
-        console.log(`🎯 Guided sync: Starting at block ${startIndex} based on overview completion status`);
-        setCurrentIndex(startIndex);
-        setHasInitialSync(true);
-      }
-      // After initial sync, preserve user's current position during refetches
+      // Find the first block that is NOT completed/done
+      const firstIncompleteIndex = scheduleBlocks.findIndex(block => {
+        const blockStatus = dailyScheduleStatus.find(status => 
+          status.blockNumber === block.blockNumber
+        );
+        // Block is incomplete if no status or status is not 'complete'
+        return !blockStatus || (blockStatus.status !== 'complete' && blockStatus.status !== 'done');
+      });
+      
+      // Always go to first incomplete block, or start at 0 if all complete
+      const targetIndex = firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0;
+      
+      console.log(`🎯 Guided sync: Moving to block ${targetIndex} (first incomplete based on overview status)`);
+      setCurrentIndex(targetIndex);
     }
-  }, [scheduleBlocks, dailyScheduleStatus, hasInitialSync]);
+  }, [scheduleBlocks, dailyScheduleStatus]);
   const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());
   const [timeRemaining, setTimeRemaining] = useState<number | null>(20 * 60);
   const [exitClickCount, setExitClickCount] = useState(0);
@@ -684,11 +679,15 @@ export function GuidedDayView({
     
     // Update schedule block status for synchronization with Overview mode
     try {
-      await apiRequest('PATCH', `/api/schedule/${studentName}/${selectedDate}/block/${currentBlock.blockNumber}/status`, {
+      await apiRequest('PATCH', `/api/schedule/${studentName}/${selectedDate}/block/${currentBlock.templateBlockId || currentBlock.id}/status`, {
         status: 'complete'
       });
       
+      console.log(`✅ Updated block status to 'complete' for block ${currentBlock.templateBlockId || currentBlock.id}`);
+      
       // Invalidate schedule status cache to sync with Overview mode
+      queryClient.invalidateQueries({ queryKey: ['/api/schedule', studentName, selectedDate, 'status'] });
+      
       if (onAssignmentUpdate) {
         onAssignmentUpdate(); // This will refresh both assignment and schedule status data
       }
@@ -773,6 +772,11 @@ export function GuidedDayView({
     // Handle assignment blocks
     if (currentBlock?.assignment) {
       try {
+        // Update block status to show it needs more time
+        await apiRequest('PATCH', `/api/schedule/${studentName}/${selectedDate}/block/${currentBlock.templateBlockId || currentBlock.id}/status`, {
+          status: 'overtime'
+        });
+        
         const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/need-more-time`, {
           reason: reason,
           estimatedMinutesNeeded: estimatedMinutesNeeded
@@ -783,6 +787,9 @@ export function GuidedDayView({
           description: response.message,
           variant: "default"
         });
+        
+        // Trigger status refetch for overview pills
+        queryClient.invalidateQueries({ queryKey: ['/api/schedule', studentName, selectedDate, 'status'] });
         
         // Primary flow: refetch assignments and re-derive blocks
         if (onAssignmentUpdate) {
@@ -808,41 +815,29 @@ export function GuidedDayView({
       return;
     }
     
-    // Handle Bible blocks - reschedule to later same day  
+    // Handle Bible blocks - always reschedule to tomorrow (Bible only happens in morning)
     if (currentBlock?.type === 'bible') {
       try {
-        // Check if there are later Bible blocks today
-        const laterBibleBlocks = scheduleBlocks.slice(currentIndex + 1).filter(block => 
-          block.type === 'bible'
-        );
+        // Update block status to show it's been rescheduled
+        await apiRequest('PATCH', `/api/schedule/${studentName}/${selectedDate}/block/${currentBlock.templateBlockId || currentBlock.id}/status`, {
+          status: 'overtime'
+        });
         
-        if (laterBibleBlocks.length > 0) {
-          // Mark current Bible block as skipped (but don't advance curriculum)
-          const response = await apiRequest('POST', `/api/bible-curriculum/reschedule`, {
-            studentName: studentName,
-            date: selectedDate,
-            skipToLater: true
-          }) as any;
-          
-          toast({
-            title: "Bible Reading Rescheduled",
-            description: `Bible reading moved to later Bible block today (${laterBibleBlocks[laterBibleBlocks.length - 1].startTime}).`,
-            variant: "default"
-          });
-        } else {
-          // No later Bible blocks - reschedule to tomorrow
-          await apiRequest('POST', `/api/bible-curriculum/reschedule`, {
-            studentName: studentName,
-            date: selectedDate,
-            skipToTomorrow: true
-          }) as any;
-          
-          toast({
-            title: "Bible Reading Rescheduled",
-            description: "Bible reading moved to tomorrow - no later Bible blocks today.",
-            variant: "default"
-          });
-        }
+        // Bible always goes to tomorrow - it only happens first thing in the morning
+        await apiRequest('POST', `/api/bible-curriculum/reschedule`, {
+          studentName: studentName,
+          date: selectedDate,
+          skipToTomorrow: true
+        }) as any;
+        
+        toast({
+          title: "Bible Reading Rescheduled",
+          description: "Bible reading moved to tomorrow morning.",
+          variant: "default"
+        });
+        
+        // Trigger status refetch for overview pills
+        queryClient.invalidateQueries({ queryKey: ['/api/schedule', studentName, selectedDate, 'status'] });
         
         // Trigger refetch to update schedule
         if (onAssignmentUpdate) {
@@ -860,8 +855,8 @@ export function GuidedDayView({
       } catch (error) {
         console.error('Failed to reschedule Bible reading:', error);
         toast({
-          title: "Bible Reading Rescheduled",
-          description: "Bible reading moved to later today or tomorrow.",
+          title: "Bible Reading Rescheduled", 
+          description: "Bible reading moved to tomorrow morning.",
           variant: "default"
         });
         
@@ -887,11 +882,19 @@ export function GuidedDayView({
     setIsProcessingStuck(true);
     
     try {
+      // Update block status to show it's stuck
+      await apiRequest('PATCH', `/api/schedule/${studentName}/${selectedDate}/block/${currentBlock.templateBlockId || currentBlock.id}/status`, {
+        status: 'stuck'
+      });
+      
       const response = await apiRequest('POST', `/api/guided/${studentName}/${selectedDate}/stuck`, {
         assignmentId: currentBlock.assignment.id,
         reason: reason,
         needsHelp: needsHelp
       }) as any;
+      
+      // Trigger status refetch for overview pills
+      queryClient.invalidateQueries({ queryKey: ['/api/schedule', studentName, selectedDate, 'status'] });
       
       // Start 15-second countdown
       setStuckCountdown(15);

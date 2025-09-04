@@ -1198,26 +1198,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Student name and date are required' });
       }
       
-      console.log(`📖 Bible Reschedule: ${studentName} on ${date} - skipToLater: ${skipToLater}, skipToTomorrow: ${skipToTomorrow}`);
+      console.log(`📖 Bible Reschedule: ${studentName} on ${date} - always goes to tomorrow morning`);
       
-      if (skipToLater) {
-        // For same-day reschedule, we just mark the current Bible block as "skipped" 
-        // but don't advance the curriculum position. This allows the same reading 
-        // to appear in the next Bible block.
-        res.json({
-          success: true,
-          message: 'Bible reading rescheduled to later Bible block today'
-        });
-      } else if (skipToTomorrow) {
-        // For tomorrow reschedule, we also don't advance the curriculum
-        // The same reading will appear tomorrow
-        res.json({
-          success: true,
-          message: 'Bible reading rescheduled to tomorrow'
-        });
-      } else {
-        res.status(400).json({ message: 'Must specify either skipToLater or skipToTomorrow' });
-      }
+      // Bible always goes to tomorrow - it only happens first thing in the morning
+      // We don't advance the curriculum position, so the same reading appears tomorrow
+      res.json({
+        success: true,
+        message: 'Bible reading rescheduled to tomorrow morning'
+      });
       
     } catch (error) {
       console.error('Error rescheduling Bible curriculum:', error);
