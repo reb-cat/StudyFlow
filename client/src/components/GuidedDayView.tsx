@@ -325,6 +325,8 @@ export function GuidedDayView({
   
   // Build actual schedule from schedule template (fallback) OR use parent-composed
   const buildScheduleBlocks = (): ScheduleBlock[] => {
+    console.log(`📋 buildScheduleBlocks called with ${assignments.length} assignments and ${scheduleTemplate.length} template blocks`);
+    
     if (scheduleTemplate.length === 0) {
       // Demo schedule for testing
       return [
@@ -369,10 +371,14 @@ export function GuidedDayView({
         } else {
           console.log(`❌ No assignment found for block ${block.blockNumber}`);
           // Debug: show what assignments we have
-          const availableAssignments = assignments.slice(0, 3).map(a => 
-            `"${a.title}" (userId: ${a.userId}, date: ${a.scheduledDate}, block: ${a.scheduledBlock})`
-          );
-          console.log(`🔍 Available assignments: ${availableAssignments.join(', ')}`);
+          if (assignments.length === 0) {
+            console.log(`🚨 NO ASSIGNMENTS LOADED! Check the query.`);
+          } else {
+            const availableAssignments = assignments.slice(0, 3).map(a => 
+              `"${a.title}" (userId: ${a.userId}, date: ${a.scheduledDate}, block: ${a.scheduledBlock})`
+            );
+            console.log(`🔍 Available assignments: ${availableAssignments.join(', ')}`);
+          }
         }
       } else {
         type = 'fixed';
@@ -401,10 +407,14 @@ export function GuidedDayView({
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
   };
 
-  const scheduleBlocks: any[] =
-    (composedSchedule && composedSchedule.length > 0)
+  const scheduleBlocks: any[] = useMemo(() => {
+    const hasComposed = composedSchedule && composedSchedule.length > 0;
+    console.log(`🎛️ Schedule source: ${hasComposed ? 'COMPOSED' : 'TEMPLATE'} (composed: ${composedSchedule?.length || 0}, template: ${scheduleTemplate.length})`);
+    
+    return hasComposed
       ? composedSchedule
       : buildScheduleBlocks();
+  }, [composedSchedule, scheduleTemplate, assignments, selectedDate, studentName]);
 
   // Generate prep checklist based on ACTUAL Canvas assignments only
   const generatePrepChecklist = () => {
@@ -533,6 +543,18 @@ export function GuidedDayView({
   const { toast } = useToast();
 
   const currentBlock = scheduleBlocks[currentIndex];
+  
+  // Debug: Log current block and assignment matching
+  if (currentBlock?.type === 'assignment') {
+    console.log(`🎯 Current Block Debug:`, {
+      blockIndex: currentIndex,
+      blockNumber: currentBlock.blockNumber,
+      blockType: currentBlock.blockType,
+      hasAssignment: !!currentBlock.assignment,
+      assignmentTitle: currentBlock.assignment?.title,
+      hasInstructions: !!currentBlock.assignment?.instructions
+    });
+  }
 
   // Check if current block is Prep/Load time
   const isPrepLoadBlock = currentBlock && (
