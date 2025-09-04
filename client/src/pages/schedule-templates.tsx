@@ -44,7 +44,7 @@ export default function ScheduleTemplates() {
   const [hasChanges, setHasChanges] = useState(false);
   const { toast } = useToast();
 
-  const { data: scheduleBlocks = [], isLoading } = useQuery({
+  const { data: scheduleBlocks = [], isLoading } = useQuery<ScheduleBlock[]>({
     queryKey: ['/api/schedule-template', selectedStudent, selectedWeekday],
     enabled: !!selectedStudent && !!selectedWeekday,
   });
@@ -73,7 +73,7 @@ export default function ScheduleTemplates() {
 
   // Initialize editing blocks when data changes
   useEffect(() => {
-    if (scheduleBlocks.length > 0) {
+    if (scheduleBlocks && scheduleBlocks.length > 0) {
       setEditingBlocks([...scheduleBlocks]);
       setHasChanges(false);
     }
@@ -116,8 +116,10 @@ export default function ScheduleTemplates() {
   };
 
   const resetChanges = () => {
-    setEditingBlocks([...scheduleBlocks]);
-    setHasChanges(false);
+    if (scheduleBlocks) {
+      setEditingBlocks([...scheduleBlocks]);
+      setHasChanges(false);
+    }
   };
 
   const getBlockTypeBadgeColor = (blockType: string) => {
