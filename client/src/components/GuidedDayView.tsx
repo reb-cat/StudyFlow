@@ -1170,130 +1170,28 @@ export function GuidedDayView({
               </h3>
             </div>
             
-            <div className="space-y-3">
-              {/* Books & Textbooks */}
-              {prepChecklist.some(item => item.category === 'books') && (
-                <div>
-                  <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide mb-2">
-                    📚 Books & Textbooks
-                  </h4>
-                  <div className="space-y-1">
-                    {prepChecklist.filter(item => item.category === 'books').map((item, index) => (
-                      <label key={`books-${index}`} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checkedItems.has(`books-${index}`)}
-                          onChange={(e) => {
-                            const newChecked = new Set(checkedItems);
-                            if (e.target.checked) {
-                              newChecked.add(`books-${index}`);
-                            } else {
-                              newChecked.delete(`books-${index}`);
-                            }
-                            setCheckedItems(newChecked);
-                          }}
-                          className="w-4 h-4 rounded border-2 border-foreground/30"
-                          data-testid={`checkbox-books-${index}`}
-                        />
-                        <span className="text-sm text-foreground">{item.item}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Materials & Supplies */}
-              {prepChecklist.some(item => item.category === 'materials') && (
-                <div>
-                  <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide mb-2">
-                    ✏️ Materials & Supplies
-                  </h4>
-                  <div className="space-y-1">
-                    {prepChecklist.filter(item => item.category === 'materials').map((item, index) => (
-                      <label key={`materials-${index}`} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checkedItems.has(`materials-${index}`)}
-                          onChange={(e) => {
-                            const newChecked = new Set(checkedItems);
-                            if (e.target.checked) {
-                              newChecked.add(`materials-${index}`);
-                            } else {
-                              newChecked.delete(`materials-${index}`);
-                            }
-                            setCheckedItems(newChecked);
-                          }}
-                          className="w-4 h-4 rounded border-2 border-foreground/30"
-                          data-testid={`checkbox-materials-${index}`}
-                        />
-                        <span className="text-sm text-foreground">{item.item}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Completed Homework */}
-              {prepChecklist.some(item => item.category === 'homework') && (
-                <div>
-                  <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide mb-2">
-                    📝 Assignments Due Today
-                  </h4>
-                  <div className="space-y-1">
-                    {prepChecklist.filter(item => item.category === 'homework').map((item, index) => (
-                      <label key={`homework-${index}`} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checkedItems.has(`homework-${index}`)}
-                          onChange={(e) => {
-                            const newChecked = new Set(checkedItems);
-                            if (e.target.checked) {
-                              newChecked.add(`homework-${index}`);
-                            } else {
-                              newChecked.delete(`homework-${index}`);
-                            }
-                            setCheckedItems(newChecked);
-                          }}
-                          className="w-4 h-4 rounded border-2 border-foreground/30"
-                          data-testid={`checkbox-homework-${index}`}
-                        />
-                        <span className="text-sm text-foreground">{item.item}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* General Items */}
-              {prepChecklist.some(item => item.category === 'general') && (
-                <div>
-                  <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide mb-2">
-                    🎒 General Items
-                  </h4>
-                  <div className="space-y-1">
-                    {prepChecklist.filter(item => item.category === 'general').map((item, index) => (
-                      <label key={`general-${index}`} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checkedItems.has(`general-${index}`)}
-                          onChange={(e) => {
-                            const newChecked = new Set(checkedItems);
-                            if (e.target.checked) {
-                              newChecked.add(`general-${index}`);
-                            } else {
-                              newChecked.delete(`general-${index}`);
-                            }
-                            setCheckedItems(newChecked);
-                          }}
-                          className="w-4 h-4 rounded border-2 border-foreground/30"
-                          data-testid={`checkbox-general-${index}`}
-                        />
-                        <span className="text-sm text-foreground">{item.item}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div className="space-y-2">
+              {/* Simple flat list - no category headers for EF-friendly design */}
+              {prepChecklist.map((item, index) => (
+                <label key={`item-${index}`} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={checkedItems.has(`item-${index}`)}
+                    onChange={(e) => {
+                      const newChecked = new Set(checkedItems);
+                      if (e.target.checked) {
+                        newChecked.add(`item-${index}`);
+                      } else {
+                        newChecked.delete(`item-${index}`);
+                      }
+                      setCheckedItems(newChecked);
+                    }}
+                    className="w-4 h-4 rounded border-2 border-foreground/30"
+                    data-testid={`checkbox-item-${index}`}
+                  />
+                  <span className="text-sm text-foreground">{item.item}</span>
+                </label>
+              ))}
             </div>
           </div>
         )}
