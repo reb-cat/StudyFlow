@@ -611,7 +611,9 @@ export function GuidedDayView({
     currentBlock.blockType?.toLowerCase().includes('prep') ||
     currentBlock.blockType?.toLowerCase().includes('load') ||
     currentBlock.subject?.toLowerCase().includes('prep') ||
-    currentBlock.subject?.toLowerCase().includes('load')
+    currentBlock.subject?.toLowerCase().includes('load') ||
+    currentBlock.type?.toLowerCase().includes('prep') ||
+    currentBlock.type?.toLowerCase().includes('load')
   ) && (
     dayName === 'Monday' || dayName === 'Thursday'
   );
@@ -625,6 +627,7 @@ export function GuidedDayView({
       blockType: currentBlock.blockType,
       subject: currentBlock.subject,
       dayName,
+      selectedDate,
       isPrepLoadBlock,
       checklistLength: prepChecklist.length,
       conditions: {
@@ -632,8 +635,14 @@ export function GuidedDayView({
         isCoopDay: dayName === 'Monday' || dayName === 'Thursday',
         titleHasPrep: currentBlock.title?.toLowerCase().includes('prep'),
         blockTypeHasPrep: currentBlock.blockType?.toLowerCase().includes('prep'),
-        subjectHasPrep: currentBlock.subject?.toLowerCase().includes('prep')
-      }
+        subjectHasPrep: currentBlock.subject?.toLowerCase().includes('prep'),
+        typeHasPrep: currentBlock.type?.toLowerCase().includes('prep'),
+        titleHasLoad: currentBlock.title?.toLowerCase().includes('load'),
+        blockTypeHasLoad: currentBlock.blockType?.toLowerCase().includes('load'),
+        subjectHasLoad: currentBlock.subject?.toLowerCase().includes('load'),
+        typeHasLoad: currentBlock.type?.toLowerCase().includes('load')
+      },
+      renderCondition: isPrepLoadBlock && prepChecklist.length > 0
     });
   }
   const normalized = useMemo(() => {
