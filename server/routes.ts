@@ -714,7 +714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Checklist Item Management API endpoints
   
   // GET /api/checklist/:studentName - Get checklist items for student
-  app.get('/api/checklist/:studentName', requireAuth, async (req, res) => {
+  app.get('/api/checklist/:studentName', async (req, res) => {
     try {
       const { studentName } = req.params;
       const { subject } = req.query;
@@ -728,7 +728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/checklist - Create new checklist item
-  app.post('/api/checklist', requireAuth, async (req, res) => {
+  app.post('/api/checklist', async (req, res) => {
     try {
       const validatedData = insertChecklistItemSchema.parse(req.body);
       const newItem = await storage.createChecklistItem(validatedData);
@@ -744,7 +744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH /api/checklist/:id - Update checklist item
-  app.patch('/api/checklist/:id', requireAuth, async (req, res) => {
+  app.patch('/api/checklist/:id', async (req, res) => {
     try {
       const { id } = req.params;
       const validatedData = updateChecklistItemSchema.parse(req.body);
@@ -766,7 +766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/checklist/:id - Delete checklist item
-  app.delete('/api/checklist/:id', requireAuth, async (req, res) => {
+  app.delete('/api/checklist/:id', async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteChecklistItem(id);
