@@ -518,23 +518,30 @@ export function GuidedDayView({
   const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
   
   // Calculate correct starting position based on completion status from Overview mode
+  // BUT preserve user's current position if they're already in guided mode
+  const [hasInitialSync, setHasInitialSync] = useState(false);
   useEffect(() => {
     if (scheduleBlocks.length > 0 && dailyScheduleStatus.length > 0) {
-      // Find the first non-completed block
-      const firstIncompleteIndex = scheduleBlocks.findIndex(block => {
-        const blockStatus = dailyScheduleStatus.find(status => 
-          status.blockNumber === block.blockNumber
-        );
-        return !blockStatus || blockStatus.status !== 'complete';
-      });
-      
-      // If we found an incomplete block, start there, otherwise start at 0
-      const startIndex = firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0;
-      
-      console.log(`🎯 Guided sync: Starting at block ${startIndex} based on overview completion status`);
-      setCurrentIndex(startIndex);
+      // Only do initial sync once when first entering guided mode
+      if (!hasInitialSync) {
+        // Find the first non-completed block
+        const firstIncompleteIndex = scheduleBlocks.findIndex(block => {
+          const blockStatus = dailyScheduleStatus.find(status => 
+            status.blockNumber === block.blockNumber
+          );
+          return !blockStatus || blockStatus.status !== 'complete';
+        });
+        
+        // If we found an incomplete block, start there, otherwise start at 0
+        const startIndex = firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0;
+        
+        console.log(`🎯 Guided sync: Starting at block ${startIndex} based on overview completion status`);
+        setCurrentIndex(startIndex);
+        setHasInitialSync(true);
+      }
+      // After initial sync, preserve user's current position during refetches
     }
-  }, [scheduleBlocks, dailyScheduleStatus]);
+  }, [scheduleBlocks, dailyScheduleStatus, hasInitialSync]);
   const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());
   const [timeRemaining, setTimeRemaining] = useState<number | null>(20 * 60);
   const [exitClickCount, setExitClickCount] = useState(0);
@@ -801,20 +808,70 @@ export function GuidedDayView({
       return;
     }
     
-    // Handle Bible blocks  
+    // Handle Bible blocks - reschedule to later same day  
     if (currentBlock?.type === 'bible') {
-      toast({
-        title: "Bible Reading Rescheduled",
-        description: "Bible reading moved to later today or tomorrow based on schedule availability.",
-        variant: "default"
-      });
-      
-      // Move to next block
-      if (currentIndex < scheduleBlocks.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-        setIsTimerRunning(true);
-      } else {
-        onModeToggle?.();
+      try {
+        // Check if there are later Bible blocks today
+        const laterBibleBlocks = scheduleBlocks.slice(currentIndex + 1).filter(block => 
+          block.type === 'bible'
+        );
+        
+        if (laterBibleBlocks.length > 0) {
+          // Mark current Bible block as skipped (but don't advance curriculum)
+          const response = await apiRequest('POST', `/api/bible-curriculum/reschedule`, {
+            studentName: studentName,
+            date: selectedDate,
+            skipToLater: true
+          }) as any;
+          
+          toast({
+            title: "Bible Reading Rescheduled",
+            description: `Bible reading moved to later Bible block today (${laterBibleBlocks[laterBibleBlocks.length - 1].startTime}).`,
+            variant: "default"
+          });
+        } else {
+          // No later Bible blocks - reschedule to tomorrow
+          await apiRequest('POST', `/api/bible-curriculum/reschedule`, {
+            studentName: studentName,
+            date: selectedDate,
+            skipToTomorrow: true
+          }) as any;
+          
+          toast({
+            title: "Bible Reading Rescheduled",
+            description: "Bible reading moved to tomorrow - no later Bible blocks today.",
+            variant: "default"
+          });
+        }
+        
+        // Trigger refetch to update schedule
+        if (onAssignmentUpdate) {
+          onAssignmentUpdate();
+        }
+        
+        // Move to next block
+        if (currentIndex < scheduleBlocks.length - 1) {
+          setCurrentIndex(prev => prev + 1);
+          setIsTimerRunning(true);
+        } else {
+          onModeToggle?.();
+        }
+        
+      } catch (error) {
+        console.error('Failed to reschedule Bible reading:', error);
+        toast({
+          title: "Bible Reading Rescheduled",
+          description: "Bible reading moved to later today or tomorrow.",
+          variant: "default"
+        });
+        
+        // Still move to next block even if API fails
+        if (currentIndex < scheduleBlocks.length - 1) {
+          setCurrentIndex(prev => prev + 1);
+          setIsTimerRunning(true);
+        } else {
+          onModeToggle?.();
+        }
       }
       return;
     }

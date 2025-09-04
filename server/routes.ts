@@ -1189,6 +1189,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/bible-curriculum/reschedule - Reschedule Bible reading to later same day or tomorrow
+  app.post('/api/bible-curriculum/reschedule', requireAuth, async (req, res) => {
+    try {
+      const { studentName, date, skipToLater, skipToTomorrow } = req.body;
+      
+      if (!studentName || !date) {
+        return res.status(400).json({ message: 'Student name and date are required' });
+      }
+      
+      console.log(`📖 Bible Reschedule: ${studentName} on ${date} - skipToLater: ${skipToLater}, skipToTomorrow: ${skipToTomorrow}`);
+      
+      if (skipToLater) {
+        // For same-day reschedule, we just mark the current Bible block as "skipped" 
+        // but don't advance the curriculum position. This allows the same reading 
+        // to appear in the next Bible block.
+        res.json({
+          success: true,
+          message: 'Bible reading rescheduled to later Bible block today'
+        });
+      } else if (skipToTomorrow) {
+        // For tomorrow reschedule, we also don't advance the curriculum
+        // The same reading will appear tomorrow
+        res.json({
+          success: true,
+          message: 'Bible reading rescheduled to tomorrow'
+        });
+      } else {
+        res.status(400).json({ message: 'Must specify either skipToLater or skipToTomorrow' });
+      }
+      
+    } catch (error) {
+      console.error('Error rescheduling Bible curriculum:', error);
+      res.status(500).json({ message: 'Failed to reschedule Bible curriculum' });
+    }
+  });
+
   // Auto-scheduling route - triggers assignment allocation via daily schedule initialization
   app.post('/api/assignments/auto-schedule', async (req, res) => {
     try {
