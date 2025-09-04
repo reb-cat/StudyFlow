@@ -57,13 +57,6 @@ function Router() {
       <Route path="/students" component={StudentSelection} />
       <Route path="/student" component={StudentSelection} />
       <Route path="/student/:student" component={StudentDashboard} />
-      {/* Direct student routes for convenience */}
-      <Route path="/abigail">
-        {(params) => <StudentDashboard studentOverride="abigail" />}
-      </Route>
-      <Route path="/khalil">
-        {(params) => <StudentDashboard studentOverride="khalil" />}
-      </Route>
       <Route path="/admin">
         <AdminAuth>
           <AdminPanel />

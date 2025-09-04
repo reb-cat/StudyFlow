@@ -818,7 +818,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const completedDate = new Date(dbAssignment.completedAt);
               const daysSinceCompleted = Math.floor((Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
               
-              if (daysSinceCompleted >= 5 && dbAssignment.completionStatus !== 'grading_delay') {
+              if (daysSinceCompleted >= 5 && dbAssignment.completionStatus === 'completed') {
                 console.log(`⚠️ Grading delay detected: "${dbAssignment.title}" completed ${daysSinceCompleted} days ago but still ungraded`);
                 
                 await storage.updateAssignment(dbAssignment.id, {
