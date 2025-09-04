@@ -23,7 +23,7 @@ type NewItem = {
 
 export default function ChecklistManager() {
   const [selectedStudent, setSelectedStudent] = useState('Abigail');
-  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('all');
   const [editingItem, setEditingItem] = useState<ChecklistItem | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newItem, setNewItem] = useState<NewItem>({
@@ -46,7 +46,7 @@ export default function ChecklistManager() {
   const subjects = Array.from(new Set(checklistItems.map(item => item.subject))).sort();
 
   // Filter items by selected subject
-  const filteredItems = selectedSubject 
+  const filteredItems = selectedSubject && selectedSubject !== 'all'
     ? checklistItems.filter(item => item.subject === selectedSubject)
     : checklistItems;
 
@@ -167,7 +167,7 @@ export default function ChecklistManager() {
                 <SelectValue placeholder="All subjects" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All subjects</SelectItem>
+                <SelectItem value="all">All subjects</SelectItem>
                 {subjects.map(subject => (
                   <SelectItem key={subject} value={subject}>{subject}</SelectItem>
                 ))}
