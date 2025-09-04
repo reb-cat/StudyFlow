@@ -1,12 +1,11 @@
 import { 
-  type User, type InsertUser, 
   type Assignment, type InsertAssignment, type UpdateAssignment,
   type ScheduleTemplate, type InsertScheduleTemplate,
   type BibleCurriculum, type InsertBibleCurriculum,
   type StudentProfile, type InsertStudentProfile,
   type StudentStatus, type InsertStudentStatus,
   type DailyScheduleStatus, type InsertDailyScheduleStatus,
-  users, assignments, scheduleTemplate, bibleCurriculum, studentProfiles, studentStatus, dailyScheduleStatus
+  assignments, scheduleTemplate, bibleCurriculum, studentProfiles, studentStatus, dailyScheduleStatus
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -16,10 +15,6 @@ import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
 // you might need
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  
   // Assignment operations
   getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]>;
   getAllAssignments(): Promise<Assignment[]>; // For print queue - gets all assignments across all users
@@ -67,38 +62,6 @@ export interface IStorage {
 
 // Database storage implementation using local Replit database
 export class DatabaseStorage implements IStorage {
-  async getUser(id: string): Promise<User | undefined> {
-    try {
-      const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
-      return result[0] || undefined;
-    } catch (error) {
-      console.error('Error getting user:', error);
-      return undefined;
-    }
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    try {
-      const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
-      return result[0] || undefined;
-    } catch (error) {
-      console.error('Error getting user by username:', error);
-      return undefined;
-    }
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    try {
-      const result = await db.insert(users).values({
-        ...insertUser,
-        profileImageUrl: insertUser.profileImageUrl || null
-      }).returning();
-      return result[0];
-    } catch (error) {
-      console.error('Error creating user:', error);
-      throw new Error('Failed to create user');
-    }
-  }
 
   async getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]> {
     try {
