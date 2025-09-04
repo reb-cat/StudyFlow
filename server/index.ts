@@ -31,18 +31,28 @@ if (!process.env.FAMILY_PASSWORD) {
   throw new Error('FAMILY_PASSWORD environment variable is required');
 }
 
+// Log production environment detection
+console.log('🔍 SESSION DEBUG:', {
+  NODE_ENV: process.env.NODE_ENV,
+  isProduction,
+  willUseSecureCookies: isProduction,
+  willUseSameSiteNone: isProduction
+});
+
 // Session middleware - MUST be before all other middleware
 // Using memory store temporarily until we fix PostgreSQL session schema
 app.use(session({
   secret: process.env.FAMILY_PASSWORD,
   resave: false,
   saveUninitialized: false,
+  name: 'connect.sid',
   cookie: {
     secure: isProduction, // HTTPS required in production
     httpOnly: true, // Prevent XSS
     sameSite: isProduction ? 'none' : 'lax', // Production-safe: SameSite=None
     path: '/', // Explicit path for whole app
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    domain: undefined // Let browser handle domain
   }
 }));
 
@@ -56,11 +66,11 @@ if (isProduction) {
     next();
   });
 
-  // Security headers
+  // Security headers (Replit-compatible)
   app.use((req, res, next) => {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
+    // REMOVED: X-Frame-Options: DENY breaks Replit iframe preview
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     next();

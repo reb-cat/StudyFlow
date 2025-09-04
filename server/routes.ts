@@ -49,7 +49,8 @@ const setupFamilyAuth = (app: Express) => {
         // REQUESTED LOG: On login - session id and user id after saving session
         logger.info('Auth', 'Login successful', { 
           sessionId: req.sessionID, 
-          userId: req.session.userId 
+          userId: req.session.userId,
+          isProduction: process.env.NODE_ENV === 'production'
         });
         
         res.json({ success: true, authenticated: true });
