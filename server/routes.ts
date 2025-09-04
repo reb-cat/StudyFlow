@@ -1741,6 +1741,17 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       });
     } catch (error) {
       console.error('Error initializing daily schedule:', error);
+      
+      // Check if this is a template incomplete error (JSON format)
+      try {
+        const errorObj = JSON.parse(error.message);
+        if (errorObj.error && errorObj.error.code === 'TEMPLATE_INCOMPLETE') {
+          return res.status(400).json(errorObj);
+        }
+      } catch (parseError) {
+        // Not a JSON error, continue with generic handling
+      }
+      
       res.status(500).json({ message: 'Failed to initialize daily schedule' });
     }
   });

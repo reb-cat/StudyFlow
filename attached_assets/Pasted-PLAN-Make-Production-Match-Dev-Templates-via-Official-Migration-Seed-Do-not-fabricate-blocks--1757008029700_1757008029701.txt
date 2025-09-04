@@ -1,0 +1,43 @@
+PLAN — Make Production Match Dev (Templates via Official Migration + Seed)
+
+Do not fabricate blocks. Do not run manual SQL in prod.
+Only use repo migrations + an idempotent seed step.
+
+Phase 0 — Proof of mismatch (read-only)
+	•	Show SELECT column_name,data_type FROM information_schema.columns WHERE table_name='schedule_template' ORDER BY ordinal_position; in dev and prod (redact creds).
+	•	Show counts:
+	•	SELECT COUNT(*) FROM schedule_template;
+	•	SELECT COUNT(*) FROM schedule_template WHERE student_name='Abigail' AND weekday='Thursday';
+	•	Return a 1-line summary: “Dev has X rows (Thursday=10). Prod has Y rows (Thursday=3). Column sets are [same/different].”
+
+Phase 1 — Schema guard (migration)
+	•	Add/confirm a uniqueness constraint so seeds can safely upsert:
+Unique key: {student_name, weekday, start_time, end_time}.
+	•	If prod is missing any columns present in dev, include them in this migration.
+	•	Migration ID: 002_template_unique_key_and_parity.
+
+Phase 2 — Idempotent seed (no deletes)
+	•	Implement a seed runner that upserts the canonical 10 Thursday blocks for student=Abigail (the same list used in dev):
+08:00–08:20 Bible / 08:20–08:30 Prep/Load / 08:45–09:15 Travel / 09:15–10:15 American Literature (Co-op) / 10:20–11:20 Study Hall (Co-op) / 11:25–12:25 Geometry (Co-op) / 12:25–12:50 Lunch / 12:55–13:55 Photography (Co-op) / 14:00–15:00 Yearbook (Co-op) / 15:00–15:30 Travel Home.
+	•	Upsert by the unique key above; if a row exists, do nothing; if missing, insert.
+	•	Scope strictly to Abigail/Thursday. Do not delete the 3 placeholders yet; the upsert will coexist safely.
+
+Phase 3 — Safety rails (planner behavior)
+	•	Add a guard where planner initialization checks template_block_count.
+	•	If < 6, return a clear JSON error (e.g., {error:{code:"TEMPLATE_INCOMPLETE", message:"Schedule template incomplete for this day"}}) and do not inject “emergency blocks.”
+	•	Log one line: planner metrics … template_block_count=__.
+
+Phase 4 — Deploy + acceptance (production-only artifacts)
+
+Attach all of the following from https://study-flow.replit.app:
+	1.	Migration list before/after showing 002_template_unique_key_and_parity applied in prod.
+	2.	Seed summary log: “seed schedule templates: inserted=N, skipped=M (idempotent).”
+	3.	GET /api/schedule-template/Abigail/Thursday raw JSON with 10 blocks, and the count.
+	4.	Planner HAR: POST /api/schedule/Abigail/<YYYY-MM-DD>/initialize then GET /api/schedule/Abigail/<YYYY-MM-DD> → 200 JSON with real subjects (not “Assignment”).
+	5.	One planner log line: tasks_total=…, due_today=…, filtered=…, scheduled=…, template_block_count=10, coop_day=false.
+	6.	UI screenshot of /student/abigail showing “Today’s Schedule” populated with the real block names.
+
+NO-GO rules
+	•	Any manual SQL/row edits in prod outside the migration/seed runner.
+	•	Any public /api/debug/* endpoints. (Use logs or a temporary authenticated route that you remove after acceptance.)
+	•	Any dev/localhost evidence presented as prod proof.

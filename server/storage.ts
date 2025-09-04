@@ -1034,10 +1034,19 @@ export class DatabaseStorage implements IStorage {
       
       // PHASE D: Safety check for template completeness
       const template_block_count = templateBlocks.length;
+      console.log(`📊 PLANNER METRICS: template_block_count=${template_block_count}`);
+      
       if (template_block_count < 6) {
-        const errorMsg = `Template incomplete for ${studentName} on ${weekdayName} - only ${template_block_count} blocks found (minimum 6 required)`;
-        console.error(`❌ PLANNER ERROR: ${errorMsg}`);
-        throw new Error(errorMsg);
+        const errorMsg = `Schedule template incomplete for this day`;
+        console.error(`❌ PLANNER ERROR: Template incomplete for ${studentName} on ${weekdayName} - only ${template_block_count} blocks found (minimum 6 required)`);
+        
+        // Return specific JSON error format as requested
+        throw new Error(JSON.stringify({
+          error: {
+            code: "TEMPLATE_INCOMPLETE",
+            message: "Schedule template incomplete for this day"
+          }
+        }));
       }
       
       const assignmentBlocks = templateBlocks.filter(block => 

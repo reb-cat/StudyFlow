@@ -135,8 +135,8 @@ SELECT 1;`,
     `
   },
   {
-    id: '002_schedule_template_constraints_and_seed_tracking',
-    description: 'Add uniqueness constraints to schedule_template for safe upserts and seed tracking table',
+    id: '002_template_unique_key_and_parity',
+    description: 'Add uniqueness constraint for schedule template safe upserts and seed tracking table',
     timestamp: Date.now(),
     up: `
       -- Clean up any duplicate entries first (keeping only the first occurrence)
