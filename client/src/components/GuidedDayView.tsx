@@ -524,7 +524,6 @@ export function GuidedDayView({
       checklist.push(
         { item: 'Lunch and water bottle', category: 'general' },
         { item: 'Writing utensils (pens, pencils, highlighters)', category: 'general' },
-        { item: 'Notebook paper and sticky notes', category: 'general' }
       );
     }
 
@@ -621,7 +620,7 @@ export function GuidedDayView({
   const prepChecklist = generatePrepChecklist();
   
   // DEBUG: Log checklist detection
-  if (process.env.NODE_ENV === 'development' && currentBlock) {
+  if (process.env.NODE_ENV === 'development' && currentBlock && false) { // Disabled for performance
     console.log('🔍 Prep/Load Detection:', {
       blockTitle: currentBlock.title,
       blockType: currentBlock.blockType,
