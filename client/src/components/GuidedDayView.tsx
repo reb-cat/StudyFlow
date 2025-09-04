@@ -457,8 +457,8 @@ export function GuidedDayView({
 
     const checklist: { item: string; category: 'books' | 'materials' | 'homework' | 'general' }[] = [];
 
-    // Subject-specific books and materials (only for co-op subjects)
-    subjects.forEach(subject => {
+    // Subject-specific books and materials for ALL co-op subjects scheduled today
+    todaysCoopSubjects.forEach(subject => {
       const subjectLower = subject.toLowerCase();
       
       // Books and materials needed at co-op
