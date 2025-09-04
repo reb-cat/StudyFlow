@@ -531,7 +531,10 @@ export function GuidedDayView({
           .replace(/\s*-\s*[a-z]\s+[a-z]+$/gi, '')
           .replace(/\s+&\s+the\s+bible/gi, '')
           .replace(/fundamentals/gi, '')
-          .trim();
+          .trim()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
           
         checklist.push({ item: `${displaySubject} binder/folder`, category: 'materials' });
       }
