@@ -57,7 +57,6 @@ function Router() {
       <Route path="/family" component={FamilyDashboard} />
       <Route path="/students" component={StudentSelection} />
       <Route path="/student" component={StudentSelection} />
-      <Route path="/student/:student" component={StudentDashboard} />
       <Route path="/admin">
         <AdminAuth>
           <AdminPanel />
@@ -67,6 +66,7 @@ function Router() {
       <Route path="/print-queue" component={PrintQueue} />
       <Route path="/schedule-templates" component={ScheduleTemplates} />
       <Route path="/checklist-manager" component={ChecklistManager} />
+      <Route path="/student/:student" component={StudentDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
