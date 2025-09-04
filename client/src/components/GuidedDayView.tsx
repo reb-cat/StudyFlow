@@ -441,7 +441,20 @@ export function GuidedDayView({
       new Date(a.dueDate + 'T12:00:00').toDateString() === new Date(selectedDate + 'T12:00:00').toDateString()
     );
 
-    // DEBUG: Disabled for performance
+    // DEBUG: Let's see what's happening
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 CHECKLIST DEBUG:', {
+        todaysCoopSubjects: Array.from(todaysCoopSubjects),
+        totalAssignments: assignments.length,
+        todayAssignments: todayAssignments.length,
+        dueAssignments: dueAssignments.length,
+        selectedDate
+      });
+      if (todayAssignments.length > 0) {
+        console.log('📅 Assignments due today:', todayAssignments.map(a => `${a.title} (${a.courseName}) - ${a.dueDate}`));
+      }
+    }
+
     todayAssignments.forEach(assignment => {
       const subject = assignment.courseName || assignment.subject;
       if (subject && matchesTodaysCoopClass(subject)) {
