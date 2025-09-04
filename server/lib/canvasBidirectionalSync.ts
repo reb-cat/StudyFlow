@@ -105,10 +105,16 @@ export async function syncCompletionStatus(
         // If assignment is graded in Canvas, it should be marked complete in StudyFlow
         const isCanvasCompleted = canvasAssignment.graded_submissions_exist;
         
-        // Only sync to "completed" if Canvas shows it's truly done AND our status is still "pending"
+        // BIDIRECTIONAL SYNC: Handle both directions
         if (isCanvasCompleted && dbAssignment.completionStatus === 'pending') {
+          // Canvas shows graded → mark as completed
           await storage.updateAssignmentStatus(dbAssignment.id, 'completed');
           console.log(`✅ Canvas grade sync: Marked "${canvasAssignment.name}" as completed`);
+        } else if (!isCanvasCompleted && dbAssignment.completionStatus === 'completed') {
+          // Canvas shows NOT graded but StudyFlow shows completed → revert to pending
+          // This handles cases where teachers ungrade, reopen assignments, or remove grades
+          await storage.updateAssignmentStatus(dbAssignment.id, 'pending');
+          console.log(`🔄 Canvas grade sync: Reverted "${canvasAssignment.name}" from completed back to pending (assignment ungraded/reopened)`);
         }
       }
     }
@@ -129,9 +135,10 @@ export async function performBidirectionalSync(
   console.log(`🔄 Starting bidirectional Canvas sync for ${studentUserId}`);
   
   // First sync deletions (assignments removed from Canvas)
-  await syncAssignmentDeletions(studentUserId, canvasAssignments);
+  // TODO: Re-enable after deletedAt field is added to schema
+  // await syncAssignmentDeletions(studentUserId, canvasAssignments);
   
-  // Then sync completion status (Canvas grades → StudyFlow completion)
+  // Then sync completion status (Canvas grades → StudyFlow completion) - THIS IS THE CRITICAL FIX
   await syncCompletionStatus(studentUserId, canvasAssignments);
   
   console.log(`✅ Bidirectional Canvas sync complete for ${studentUserId}`);

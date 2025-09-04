@@ -497,6 +497,20 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async markAssignmentDeleted(id: string): Promise<Assignment | undefined> {
+    try {
+      // Soft delete: set deletedAt timestamp instead of removing from database
+      const result = await db.update(assignments)
+        .set({ deletedAt: new Date() })
+        .where(eq(assignments.id, id))
+        .returning();
+      return result[0] || undefined;
+    } catch (error) {
+      console.error('Error marking assignment as deleted:', error);
+      return undefined;
+    }
+  }
+
   // Schedule template operations
   async getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]> {
     try {
