@@ -125,7 +125,7 @@ export class DatabaseStorage implements IStorage {
           // Single date - use existing logic for daily scheduling
           const requestDate = new Date(date);
           futureLimit = new Date(requestDate);
-          futureLimit.setDate(requestDate.getDate() + 21); // 3 weeks ahead
+          futureLimit.setDate(requestDate.getDate() + 7); // 1 week ahead max (students need to learn material first)
           
           // Allow overdue assignments up to 30 days back (for catch-up work)
           pastLimit = new Date(requestDate);
@@ -1018,7 +1018,7 @@ export class DatabaseStorage implements IStorage {
         // Include assignments that are workable: pending, needs_more_time, stuck
         // EXCLUDE only truly completed assignments
         const workableStatuses = ['pending', 'needs_more_time', 'stuck', 'in_progress'];
-        if (!workableStatuses.includes(assignment.completionStatus)) {
+        if (!workableStatuses.includes(assignment.completionStatus || 'pending')) {
           console.log(`🚫 Excluding non-workable assignment: ${assignment.title} (status: ${assignment.completionStatus})`);
           return false;
         }
