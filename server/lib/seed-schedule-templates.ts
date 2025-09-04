@@ -7,14 +7,14 @@ import { sql } from 'drizzle-orm';
 import { withTransaction } from './db-utils';
 
 // Define the source of truth: Abigail's Thursday schedule (10 blocks)
-// Based on development environment analysis
+// Based on development environment analysis - NORMALIZED TO HH:MM FORMAT
 export const ABIGAIL_THURSDAY_TEMPLATE = [
   {
     studentName: 'Abigail',
     weekday: 'Thursday',
     blockNumber: null,
-    startTime: '08:00:00',
-    endTime: '08:20:00',
+    startTime: '08:00',
+    endTime: '08:20',
     subject: 'Bible',
     blockType: 'Bible'
   },
@@ -22,8 +22,8 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
     studentName: 'Abigail',
     weekday: 'Thursday',
     blockNumber: null,
-    startTime: '08:20:00',
-    endTime: '08:30:00',
+    startTime: '08:20',
+    endTime: '08:30',
     subject: 'Prep/Load',
     blockType: 'Prep/Load'
   },
@@ -31,8 +31,8 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
     studentName: 'Abigail',
     weekday: 'Thursday',
     blockNumber: null,
-    startTime: '08:45:00',
-    endTime: '09:15:00',
+    startTime: '08:45',
+    endTime: '09:15',
     subject: 'Travel to Co-op',
     blockType: 'Travel'
   },
@@ -40,8 +40,8 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
     studentName: 'Abigail',
     weekday: 'Thursday',
     blockNumber: null,
-    startTime: '09:15:00',
-    endTime: '10:15:00',
+    startTime: '09:15',
+    endTime: '10:15',
     subject: 'American Literature and Composition',
     blockType: 'Co-op'
   },
@@ -49,8 +49,8 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
     studentName: 'Abigail',
     weekday: 'Thursday',
     blockNumber: null,
-    startTime: '10:20:00',
-    endTime: '11:20:00',
+    startTime: '10:20',
+    endTime: '11:20',
     subject: 'Study Hall',
     blockType: 'Co-op'
   },
@@ -58,8 +58,8 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
     studentName: 'Abigail',
     weekday: 'Thursday',
     blockNumber: null,
-    startTime: '11:25:00',
-    endTime: '12:25:00',
+    startTime: '11:25',
+    endTime: '12:25',
     subject: 'Geometry (2x week) - L Cejas-Brown',
     blockType: 'Co-op'
   },
@@ -67,8 +67,8 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
     studentName: 'Abigail',
     weekday: 'Thursday',
     blockNumber: null,
-    startTime: '12:25:00',
-    endTime: '12:50:00',
+    startTime: '12:25',
+    endTime: '12:50',
     subject: 'Lunch',
     blockType: 'Lunch'
   },
@@ -76,8 +76,8 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
     studentName: 'Abigail',
     weekday: 'Thursday',
     blockNumber: null,
-    startTime: '12:55:00',
-    endTime: '13:55:00',
+    startTime: '12:55',
+    endTime: '13:55',
     subject: 'Photography - S Hughes',
     blockType: 'Co-op'
   },
@@ -85,8 +85,8 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
     studentName: 'Abigail',
     weekday: 'Thursday',
     blockNumber: null,
-    startTime: '14:00:00',
-    endTime: '15:00:00',
+    startTime: '14:00',
+    endTime: '15:00',
     subject: 'Yearbook - S Hughes',
     blockType: 'Co-op'
   },
@@ -94,8 +94,8 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
     studentName: 'Abigail',
     weekday: 'Thursday',
     blockNumber: null,
-    startTime: '15:00:00',
-    endTime: '15:30:00',
+    startTime: '15:00',
+    endTime: '15:30',
     subject: 'Travel Home',
     blockType: 'Travel'
   }
@@ -157,7 +157,7 @@ export async function seedAbigailThursdayTemplate(): Promise<{
   message: string;
 }> {
   const seedName = 'abigail_thursday_template';
-  const seedVersion = 'v1';
+  const seedVersion = 'v2'; // Updated for HH:MM time format normalization
   const checksum = calculateSeedChecksum(ABIGAIL_THURSDAY_TEMPLATE);
 
   try {

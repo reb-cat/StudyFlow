@@ -203,8 +203,16 @@ app.use((req, res, next) => {
   // Idempotent seeding for production parity
   try {
     logger.info('Server', '🌱 Running database seeds...');
-    const seedResult = await seedAbigailThursdayTemplate();
-    logger.info('Server', 'Database seeding completed', seedResult);
+    
+    // Seed schedule templates
+    const scheduleResult = await seedAbigailThursdayTemplate();
+    logger.info('Server', 'Schedule template seeding completed', scheduleResult);
+    
+    // Seed Bible curriculum
+    const { seedBibleCurriculum } = await import('./lib/seed-bible-curriculum');
+    const curriculumResult = await seedBibleCurriculum();
+    logger.info('Server', 'Bible curriculum seeding completed', curriculumResult);
+    
   } catch (error: any) {
     logger.error('Server', 'Database seeding failed', { error: error.message });
     if (isProduction) {

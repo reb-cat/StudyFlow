@@ -1,0 +1,43 @@
+Pre-flight (2 tiny checks)
+	1.	Time format in Prod schedule_template
+	•	Run (Prod DB):
+SELECT DISTINCT start_time, end_time FROM schedule_template WHERE student_name='Abigail' AND weekday='Thursday' ORDER BY start_time LIMIT 5;
+	•	If you see HH:MM (e.g., 09:00) but your seed uses HH:MM:SS (e.g., 09:00:00), adjust the seed to use HH:MM or normalize in a migration.
+	•	Your unique key {student_name, weekday, start_time, end_time} must use exact same strings or upserts won’t match.
+	2.	Seed runner will actually execute in Prod
+	•	Confirm it runs on startup in prod (your note says “no env gate; runs everywhere”).
+	•	Make sure it logs a summary: inserted=…, skipped=… so you can prove it ran.
+
+⸻
+
+Deploy → What you should see (PROD artifacts you should collect)
+	1.	Migration proof: 002_template_unique_key_and_parity applied.
+	2.	Seed summary (PROD): expect inserted=10, skipped=0 the first time.
+	•	If you still see inserted=0, skipped=10, it’s almost always the time format or casing/weekday label mismatch.
+	3.	Template JSON (PROD):
+GET /api/schedule-template/Abigail/Thursday → 10 blocks, with the real subjects and the HH:MM times you chose above.
+	4.	Planner HAR (PROD):
+POST /api/schedule/Abigail/<today>/initialize then GET /api/schedule/Abigail/<today> → 200 JSON with real subjects (not “Assignment”).
+	5.	Planner metrics line:
+tasks_total=…, due_today=…, filtered=…, scheduled=…, template_block_count=10, coop_day=false.
+	6.	UI screenshot (PROD): /student/abigail showing Today’s Schedule populated with those subjects.
+
+GO only if all six artifacts are from production and match the above.
+
+⸻
+
+Bible curriculum (why blank + the fix)
+	•	Your scan already found: no official seed exists for bible_curriculum. That’s why Dev has data and Prod doesn’t.
+	•	Add a small, idempotent seed (same pattern as templates):
+	•	Unique key: whatever identifies a chapter/lesson uniquely (e.g., {course_id, unit, lesson_no} or {curriculum_id, day}).
+	•	Seed uses upsert (insert if missing, skip if present).
+	•	Log: bible_curriculum seed: inserted=…, skipped=….
+	•	Acceptance (PROD): counts + a few sample rows, and a UI/API that consumes them showing non-empty data.
+
+⸻
+
+If the template seed “inserts 0” again
+	•	Compare one dev row vs one prod row for Abigail/Thursday:
+student_name, weekday, start_time, end_time, subject, block_type.
+	•	Normalize time strings and labels (e.g., “Thursday” vs “Thu”; “Abigail” vs “abigail”).
+	•	Re-run deploy; seed should flip to inserted > 0.
