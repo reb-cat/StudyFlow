@@ -5,12 +5,17 @@ import { logger } from "./lib/logger";
 import { basicHealthCheck, readinessCheck, livenessCheck, metricsEndpoint } from "./lib/health-checks";
 import { generalRateLimit, authRateLimit, apiRateLimit, strictRateLimit, uploadRateLimit } from "./lib/rate-limiting";
 
-// Family authentication middleware
+// Family authentication middleware - reads the same field set during login
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   if (req.session.authenticated) {
     return next();
   }
-  res.status(401).json({ message: 'Authentication required' });
+  // Clear JSON response for auth failures
+  res.status(401).json({ 
+    code: 401,
+    message: 'Authentication required',
+    authenticated: false 
+  });
 };
 
 // Simple unlock endpoint for family password
@@ -23,8 +28,17 @@ const setupFamilyAuth = (app: Express) => {
     }
     
     if (password === process.env.FAMILY_PASSWORD) {
+      // CRITICAL: Store user in session AND save it
       req.session.authenticated = true;
-      res.json({ success: true });
+      req.session.userId = 'family'; // Same field API checks
+      
+      req.session.save((err) => {
+        if (err) {
+          logger.error('Session save failed: ' + String(err));
+          return res.status(500).json({ message: 'Session save failed' });
+        }
+        res.json({ success: true, authenticated: true });
+      });
     } else {
       res.status(401).json({ message: 'Invalid password' });
     }
@@ -68,6 +82,11 @@ const emailConfig = {
   parentEmail: process.env.PARENT_EMAIL || '',
 };
 import { jobScheduler } from "./lib/scheduler";
+
+// Helper function to normalize student names case-insensitively
+const normalizeStudentName = (name: string): string => {
+  return name.toLowerCase().trim();
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   

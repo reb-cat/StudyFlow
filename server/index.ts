@@ -1,5 +1,14 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPg from "connect-pg-simple";
+
+// Extend session types to include our custom properties
+declare module 'express-session' {
+  interface SessionData {
+    authenticated?: boolean;
+    userId?: string;
+  }
+}
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { jobScheduler } from "./lib/scheduler";
@@ -11,6 +20,9 @@ import { setupSecurityHeaders } from "./lib/security-headers";
 
 const app = express();
 
+// CRITICAL: Trust proxy for production (enables secure cookies)
+app.set('trust proxy', 1);
+
 // Production-ready session configuration
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -19,6 +31,8 @@ if (!process.env.FAMILY_PASSWORD) {
   throw new Error('FAMILY_PASSWORD environment variable is required');
 }
 
+// Session middleware - MUST be before all other middleware
+// Using memory store temporarily until we fix PostgreSQL session schema
 app.use(session({
   secret: process.env.FAMILY_PASSWORD,
   resave: false,
@@ -26,7 +40,8 @@ app.use(session({
   cookie: {
     secure: isProduction, // HTTPS required in production
     httpOnly: true, // Prevent XSS
-    sameSite: isProduction ? 'strict' : 'lax', // CSRF protection
+    sameSite: isProduction ? 'none' : 'lax', // Production-safe: SameSite=None
+    path: '/', // Explicit path for whole app
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
@@ -54,6 +69,12 @@ if (isProduction) {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Session debugging middleware (for troubleshooting auth issues)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  logger.debug('Session Debug: ' + req.method + ' ' + req.path);
+  next();
+});
 
 // Production-ready request logging middleware
 app.use((req, res, next) => {

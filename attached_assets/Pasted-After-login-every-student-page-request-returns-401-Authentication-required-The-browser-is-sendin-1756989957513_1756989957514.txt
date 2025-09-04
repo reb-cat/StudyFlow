@@ -1,0 +1,27 @@
+After login, every student-page request returns 401 “Authentication required.” The browser is sending a cookie (connect.sid=…), but the API doesn’t accept/recognize it. This is a session/auth wiring issue in production.
+
+What I need Replit to do (plain English)
+	1.	Use one shared session across the whole app
+	•	Make sure the same session system is applied to all routes (login and every /api/* endpoint), not separate or partial setups.
+	2.	Use one secret everywhere
+	•	Ensure the session/JWT secret is identical for login and the API in production. Only one value should be set in Replit Secrets.
+	3.	Trust the proxy so secure cookies work
+	•	Turn on proxy trust so the server treats requests as HTTPS and will issue/accept secure cookies.
+	4.	Set the cookie with production-safe attributes
+	•	The login response must set a cookie with exactly these attributes:
+HttpOnly; Secure; SameSite=None; Path=/
+Do not scope it to a sub-path. Do not set Domain=localhost.
+	5.	Actually store the user into the session on login
+	•	After a successful password check, store the user’s id in the session (the same field the API checks) and save the session before replying.
+	6.	Use one persistent session store
+	•	Do not use an in-memory store that resets. Use a single store so the session from the login request is available on the next request.
+	7.	Put middleware in the right order
+	•	Session system first, then any auth guard, then the API routes—so the API can read the session.
+	8.	Make the auth check read the same field
+	•	Whatever field is written at login (e.g., current user id) is the one the API must check on /api/assignments and /api/schedule/*.
+	9.	Return clear JSON on auth failures
+	•	On 401, respond with a small JSON object (code + message) so the UI can show “Please sign in” instead of going blank.
+	10.	(Secondary but quick) Normalize inputs
+
+	•	Treat student names case-insensitively or switch those calls to a stable student ID.
+	•	Make both assignments and schedule use the same calendar date (respect user timezone).
