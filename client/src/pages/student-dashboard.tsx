@@ -163,7 +163,7 @@ export default function StudentDashboard() {
     enabled: !!studentName,
   });
   
-  const bibleData = bibleResponse?.curriculum;
+  const bibleData = (bibleResponse as any)?.curriculum || {};
 
   const handleAssignmentUpdate = () => {
     refetch();

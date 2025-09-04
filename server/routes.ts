@@ -1147,17 +1147,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Found ${enhancedScheduleBlocks.length} schedule blocks:`, scheduleBlocks);
       
-      // FIX: Map database snake_case to frontend camelCase
-      const frontendCompatibleBlocks = enhancedScheduleBlocks.map(block => ({
-        ...block,
-        startTime: block.startTime || block.start_time,
-        endTime: block.endTime || block.end_time,
-        blockType: block.blockType || block.block_type,
-        studentName: block.studentName || block.student_name,
-        blockNumber: block.blockNumber || block.block_number
-      }));
+      // The fields are already in camelCase from Drizzle
+      console.log('DEBUG: First block sample:', enhancedScheduleBlocks[0]);
       
-      res.json(frontendCompatibleBlocks);
+      res.json(enhancedScheduleBlocks);
     } catch (error) {
       console.error("Error fetching schedule:", error);
       res.status(500).json({ message: "Failed to fetch schedule" });
