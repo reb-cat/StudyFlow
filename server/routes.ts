@@ -97,7 +97,7 @@ const setupFamilyAuth = (app: Express) => {
       res.status(503).json({
         status: 'unhealthy',
         connection: false,
-        error: error.message,
+        error: error?.message || 'Unknown error',
         timestamp: new Date().toISOString()
       });
     }
@@ -1774,7 +1774,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       
       // Check if this is a template incomplete error (JSON format)
       try {
-        const errorObj = JSON.parse(error.message);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorObj = JSON.parse(errorMessage);
         if (errorObj.error && errorObj.error.code === 'TEMPLATE_INCOMPLETE') {
           return res.status(400).json(errorObj);
         }
