@@ -1,0 +1,57 @@
+Phase D — One-time Import Plan (no code, exact steps)
+
+Goal: Bring Prod’s Thursday template for Abigail from 3 → 10 blocks, identical to Dev (Bible, Prep/Load, Travel, Co-op classes, Lunch, etc.). No other data touched.
+
+D1) Pre-import proof (both envs)
+	•	Dev list (source of truth): Export the 10 Thursday blocks (start–end–subject–blockType–blockNumber).
+	•	Prod list (target): You already have the 3 placeholders JSON.
+	•	Mapping table: Show a 10-row table: for each Dev block, indicate exists/missing in Prod.
+
+D2) Backup
+	•	Take a timestamped Prod DB snapshot. Save snapshot id/name in the ticket.
+
+D3) Import scope (read carefully)
+	•	Insert only the 7 missing blocks for studentName=Abigail, weekday=Thursday.
+	•	Keep time format as HH:MM (24-hour).
+	•	Use new IDs; do not overwrite the 3 existing placeholders yet.
+	•	No edits to assignments, sessions, logs, or other weekdays/students.
+
+D4) Collision + integrity checks (dry run mindset)
+	•	After insert, SELECT COUNT(*) for Thursday should be 10.
+	•	Validate unique blockNumbers 1–10 (or your canonical sequence).
+	•	Validate there are no overlapping times and all required fields present.
+
+Do not delete the 3 placeholders until Phase E passes. We can clean them after we see the schedule working.
+
+⸻
+
+Phase E — Acceptance (evidence required from production)
+
+E1) Template presence
+	•	GET /api/schedule-template/Abigail/Thursday → 10 blocks.
+Attach raw JSON (all 10 with start/end/subject/blockType).
+
+E2) Planner result (HAR + JSON)
+	•	POST /api/schedule/Abigail/<YYYY-MM-DD>/initialize
+	•	GET /api/schedule/Abigail/<YYYY-MM-DD>
+	•	Must return a non-empty array whose items map to real subjects (e.g., “Bible”, “American Literature (Co-op)”), not “Assignment”.
+	•	Attach a HAR covering both calls and the raw JSON from the GET.
+
+E3) Planner metrics line
+	•	Provide a single log line from the request above showing counts:
+tasks_total=__, due_today=__, filtered=__, scheduled=__, template_block_count=10, coop_day=false
+
+E4) UI check
+	•	Screenshot of /student/abigail showing “Today’s Schedule” populated with real block names.
+
+E5) Post-success cleanup (optional, only after E1–E4 pass)
+	•	Remove the 3 placeholder “Assignment” blocks for Thursday.
+	•	Re-run E1 to confirm count still 10 and names/times correct.
+
+⸻
+
+NO-GO rules (non-negotiable)
+	•	If the router starts serving HTML again on /api/__nope__ → STOP.
+	•	If login Set-Cookie isn’t present (HttpOnly; Secure; SameSite=None; Path=/) → STOP.
+	•	If GET /schedule-template/Abigail/Thursday after import ≠ 10 or subjects/times don’t match Dev → STOP, roll back using the snapshot.
+	•	If planner returns only “Assignment” blocks after import → STOP and attach metrics; do not delete placeholders.
