@@ -274,9 +274,10 @@ SELECT 1;`,
   }
 ];
 
-// Main migration function - safe for production
-export async function runMigrations(): Promise<{ applied: number; skipped: number }> {
+// Main migration function - safe for production with graceful failure handling
+export async function runMigrations(): Promise<{ applied: number; skipped: number; success: boolean }> {
   try {
+    // Ensure migrations table exists first
     await ensureMigrationsTable();
     
     const appliedMigrations = await getAppliedMigrations();
@@ -286,20 +287,71 @@ export async function runMigrations(): Promise<{ applied: number; skipped: numbe
 
     if (pendingMigrations.length === 0) {
       logger.info('Migrations', 'No pending migrations to apply');
-      return { applied: 0, skipped: appliedMigrations.length };
+      return { applied: 0, skipped: appliedMigrations.length, success: true };
     }
 
-    // Apply migrations one by one
+    let appliedCount = 0;
+    let failedCount = 0;
+
+    // Apply migrations one by one with individual error handling
     for (const migration of pendingMigrations) {
-      await applyMigration(migration);
+      try {
+        await applyMigration(migration);
+        appliedCount++;
+      } catch (error: any) {
+        failedCount++;
+        logger.error('Migrations', `Migration ${migration.id} failed`, { 
+          error: error.message,
+          migration: migration.id 
+        });
+        
+        // For critical migrations, we might want to continue with others
+        // Instead of failing completely
+        if (migration.id === '003_schedule_template_upsert_constraint') {
+          // This constraint might already exist, which is OK
+          if (error.message?.includes('already exists')) {
+            logger.warn('Migrations', `Constraint already exists, marking as applied: ${migration.id}`);
+            appliedCount++;
+            failedCount--;
+            
+            // Record as applied to prevent future attempts
+            try {
+              const checksum = calculateChecksum(migration);
+              await db.execute(sql`
+                INSERT INTO __migrations (id, description, checksum)
+                VALUES (${migration.id}, ${migration.description}, ${checksum})
+                ON CONFLICT (id) DO NOTHING
+              `);
+            } catch (recordError) {
+              logger.warn('Migrations', 'Failed to record constraint migration', { error: recordError });
+            }
+          }
+        }
+      }
     }
 
-    logger.info('Migrations', `Successfully applied ${pendingMigrations.length} migrations`);
-    return { applied: pendingMigrations.length, skipped: appliedMigrations.length };
+    const success = failedCount === 0;
+    
+    if (success) {
+      logger.info('Migrations', `Successfully applied ${appliedCount} migrations`);
+    } else {
+      logger.warn('Migrations', `Applied ${appliedCount} migrations, ${failedCount} failed`);
+    }
+    
+    return { 
+      applied: appliedCount, 
+      skipped: appliedMigrations.length,
+      success
+    };
 
   } catch (error: any) {
-    logger.error('Migrations', 'Migration failed', { error: error.message });
-    throw new Error(`Migration failed: ${error.message}`);
+    logger.error('Migrations', 'Migration system failed', { error: error.message });
+    // Return failure but don't throw - let app continue
+    return { 
+      applied: 0, 
+      skipped: 0, 
+      success: false 
+    };
   }
 }
 

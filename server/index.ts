@@ -14,6 +14,7 @@ import { setupVite, serveStatic } from "./vite";
 import { jobScheduler } from "./lib/scheduler";
 import { logger } from "./lib/logger";
 import { runMigrations } from "./lib/migrations";
+import { connectionManager } from "./lib/db-connection";
 import { seedAbigailThursdayTemplate, getTemplateStatus } from "./lib/seed-schedule-templates";
 import { startResourceMonitoring } from "./lib/resource-monitoring";
 import { validateRequiredEnvironment } from "./lib/env-validation";
@@ -46,22 +47,28 @@ console.log('🔍 SESSION DEBUG:', {
   willUseSameSiteNone: isProduction
 });
 
-// Session store - PostgreSQL for production stability
+// Session store - PostgreSQL for production stability with fallback
 const PgStore = connectPg(session);
 let sessionStore;
 
-try {
-  // Try to connect to PostgreSQL session store
-  sessionStore = new PgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: true,
-    tableName: 'sessions',
-    ttl: 24 * 60 * 60 // 24 hours
-  });
-  console.log('✅ CONNECTED TO POSTGRESQL SESSION STORE');
-} catch (error: any) {
-  console.warn('⚠️  PostgreSQL session store failed, using memory fallback:', error.message);
-  sessionStore = undefined; // Use default memory store
+// Only use PostgreSQL store if we have a valid connection
+if (process.env.DATABASE_URL) {
+  try {
+    sessionStore = new PgStore({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: true,
+      tableName: 'sessions',
+      ttl: 24 * 60 * 60, // 24 hours
+      schemaName: 'public'
+    });
+    console.log('✅ CONFIGURED POSTGRESQL SESSION STORE');
+  } catch (error: any) {
+    console.warn('⚠️  PostgreSQL session store setup failed, using memory fallback:', error.message);
+    sessionStore = undefined;
+  }
+} else {
+  console.warn('⚠️  No DATABASE_URL found, using memory session store');
+  sessionStore = undefined;
 }
 
 // Session middleware - MUST be before all other middleware and routes  
@@ -192,15 +199,24 @@ app.use((req, res, next) => {
     }
   }
 
-  // Run database migrations before starting services
-  try {
+  // Database connection validation and migrations
+  logger.info('Server', '🔌 Validating database connection...');
+  
+  const dbConnected = await connectionManager.validateConnection();
+  if (!dbConnected) {
+    logger.error('Server', '❌ Database connection failed - server will start in degraded mode');
+    // Don't exit - allow server to start for health checks
+  } else {
+    logger.info('Server', '✅ Database connection established');
+    
+    // Only run migrations if we have a stable connection
     logger.info('Server', '🔄 Running database migrations...');
     const migrationResult = await runMigrations();
-    logger.info('Server', 'Database migrations completed', migrationResult);
-  } catch (error: any) {
-    logger.error('Server', 'Database migration failed', { error: error.message });
-    if (isProduction) {
-      process.exit(1);
+    
+    if (migrationResult.success) {
+      logger.info('Server', 'Database migrations completed successfully', migrationResult);
+    } else {
+      logger.warn('Server', 'Database migrations completed with issues - server will continue', migrationResult);
     }
   }
 

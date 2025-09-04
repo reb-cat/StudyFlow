@@ -78,6 +78,30 @@ const setupFamilyAuth = (app: Express) => {
   app.get('/health/ready', readinessCheck);  
   app.get('/health/live', livenessCheck);
   app.get('/metrics', metricsEndpoint);
+  
+  // Database connection status endpoint
+  app.get('/health/database', async (req: Request, res: Response) => {
+    try {
+      const { connectionManager } = await import('./lib/db-connection');
+      const diagnostics = await connectionManager.getConnectionDiagnostics();
+      
+      res.status(diagnostics.isConnected ? 200 : 503).json({
+        status: diagnostics.isConnected ? 'healthy' : 'unhealthy',
+        connection: diagnostics.isConnected,
+        retryCount: diagnostics.retryCount,
+        serverInfo: diagnostics.serverInfo,
+        error: diagnostics.error,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(503).json({
+        status: 'unhealthy',
+        connection: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
 
   // Debug endpoint for production troubleshooting
   app.get('/api/debug', (req: Request, res: Response) => {
