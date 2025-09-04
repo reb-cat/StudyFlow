@@ -766,8 +766,9 @@ export function GuidedDayView({
     if (!currentBlock?.assignment) return;
     
     try {
-      const response = await apiRequest('POST', `/api/guided/${studentName}/${selectedDate}/need-more-time`, {
-        assignmentId: currentBlock.assignment.id
+      const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/need-more-time`, {
+        reason: reason,
+        estimatedMinutesNeeded: estimatedMinutesNeeded
       }) as any;
       
       toast({
