@@ -916,42 +916,6 @@ export function GuidedDayView({
                   : (normalized?.displayTitle || currentBlock.title)}
               </h2>
               
-              {/* Speaker button for assignment title - only for Khalil */}
-              {studentName.toLowerCase() === 'khalil' && (
-                <button
-                  onClick={() => {
-                    if (isPlaying) {
-                      stop();
-                    } else {
-                      const titleText = currentBlock.type === 'bible'
-                        ? (bibleData?.dailyReading?.readingTitle
-                            ? `Bible reading: ${bibleData.dailyReading.readingTitle}`
-                            : 'Bible reading time')
-                        : `Assignment: ${normalized?.displayTitle || currentBlock.title}`;
-                      speak(titleText);
-                    }
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '50%',
-                    border: 'none',
-                    backgroundColor: isPlaying ? '#EF4444' : colors.primary,
-                    color: 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    flexShrink: 0
-                  }}
-                  title={isPlaying ? "Stop reading" : "Read title aloud"}
-                  data-testid="button-speak-title"
-                >
-                  {isPlaying ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                </button>
-              )}
             </div>
             {/* Instructions Dropdown Button */}
             {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
