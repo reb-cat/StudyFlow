@@ -408,6 +408,7 @@ export default function StudentDashboard() {
         title: a?.displayTitle || a?.title || 'Open Assignment Block',
         estimatedMinutes: a?.estimatedMinutes ?? 30,
         assignmentId: a?.id ?? null,
+        assignment: a, // 🎯 FIX: Pass full assignment object with instructions
       };
     }
     if (block.blockType === 'bible') {
