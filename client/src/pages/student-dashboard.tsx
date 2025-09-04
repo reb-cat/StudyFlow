@@ -55,6 +55,7 @@ import { apiRequest } from '@/lib/queryClient';
 import type { Assignment, DailyScheduleStatus, ScheduleTemplate } from '@shared/schema';
 import { getTodayString, getToday, parseDateString, formatDateDisplay, getDayName, addDays, isToday } from '@shared/dateUtils';
 import { normalizeAssignment } from '@shared/normalize';
+import { toMinutes } from '@shared/debug';
 
 // Timezone-safe New York date string function
 const toNYDateString = (d = new Date()) => {
@@ -399,6 +400,10 @@ export default function StudentDashboard() {
       startTime: block.startTime?.slice(0,5) || '00:00',
       endTime: block.endTime?.slice(0,5) || '00:00',
     };
+    
+    // 🎯 FIX: Calculate estimatedMinutes for ALL blocks using same logic as Overview
+    const estimatedMinutes = toMinutes(block.endTime) - toMinutes(block.startTime);
+    
     if (block.blockType === 'assignment') {
       const pb = populatedAssignmentBlocks.find(pb => pb.id === block.id);
       const a = pb?.assignment;
@@ -406,16 +411,26 @@ export default function StudentDashboard() {
         ...base,
         type: 'assignment' as const,
         title: a?.displayTitle || a?.title || 'Open Assignment Block',
-        estimatedMinutes: a?.estimatedMinutes ?? 30,
+        estimatedMinutes: a?.estimatedMinutes ?? 30, // Use assignment-specific time for assignments
         assignmentId: a?.id ?? null,
         assignment: a, // 🎯 FIX: Pass full assignment object with instructions
       };
     }
     if (block.blockType === 'bible') {
-      return { ...base, type: 'bible' as const, title: 'Bible' };
+      return { 
+        ...base, 
+        type: 'bible' as const, 
+        title: 'Bible',
+        estimatedMinutes: estimatedMinutes // Use calculated time
+      };
     }
     // fixed: travel, co-op, lunch, movement, prep/load, etc.
-    return { ...base, type: 'fixed' as const, title: block.subject || 'Fixed Block' };
+    return { 
+      ...base, 
+      type: 'fixed' as const, 
+      title: block.subject || 'Fixed Block',
+      estimatedMinutes: estimatedMinutes // 🎯 CRITICAL: Use calculated time, not default!
+    };
   });
 
   // DEBUG LOGGING: Client Overview composition
