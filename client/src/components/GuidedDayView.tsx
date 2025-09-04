@@ -758,17 +758,12 @@ export function GuidedDayView({
   };
 
   const handleNeedMoreTime = () => {
-    console.log('🚨 Need More Time clicked!', { currentBlock, hasAssignment: !!currentBlock?.assignment });
     // Directly reschedule - no popup needed for better executive function UX
     rescheduleAssignment('Need more time');
   };
 
   const rescheduleAssignment = async (reason: string, estimatedMinutesNeeded?: number) => {
-    console.log('🚨 rescheduleAssignment called', { currentBlock, assignment: currentBlock?.assignment });
-    if (!currentBlock?.assignment) {
-      console.log('🚨 No assignment found, returning early');
-      return;
-    }
+    if (!currentBlock?.assignment) return;
     
     try {
       const response = await apiRequest('POST', `/api/assignments/${currentBlock.assignment.id}/need-more-time`, {
@@ -1223,24 +1218,27 @@ export function GuidedDayView({
           </button>
           
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button
-              onClick={handleNeedMoreTime}
-              style={{
-                flex: 1,
-                padding: '12px',
-                borderRadius: '12px',
-                backgroundColor: 'transparent',
-                border: `2px solid ${colors.progress}`,
-                color: colors.progress,
-                fontSize: '16px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              data-testid="button-need-more-time"
-            >
-              Need More Time
-            </button>
+            {/* Only show Need More Time button for assignment blocks */}
+            {currentBlock?.assignment && (
+              <button
+                onClick={handleNeedMoreTime}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  backgroundColor: 'transparent',
+                  border: `2px solid ${colors.progress}`,
+                  color: colors.progress,
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                data-testid="button-need-more-time"
+              >
+                Need More Time
+              </button>
+            )}
             
             <button
               onClick={handleStuck}
