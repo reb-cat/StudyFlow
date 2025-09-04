@@ -1320,60 +1320,103 @@ export function GuidedDayView({
             width: '90%'
           }}>
             <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>
-              Assignment Complete!
+              Great work! 🎉
             </h3>
-            <p style={{ marginBottom: '20px', color: colors.textMuted }}>
-              Did you finish early and want to bank some time?
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button
-                onClick={() => {
-                  const totalMinutes = currentBlock.estimatedMinutes || 20;
-                  const timeSpentMinutes = Math.max(1, totalMinutes - Math.floor((timeRemaining || 0) / 60));
-                  const bankMinutes = Math.max(0, totalMinutes - timeSpentMinutes);
-                  completeBlock(timeSpentMinutes, bankMinutes > 0, bankMinutes);
-                }}
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  backgroundColor: colors.complete,
-                  color: 'white',
-                  border: 'none',
-                  fontSize: '16px',
-                  cursor: 'pointer'
-                }}
-              >
-                ✅ Yes, finished early! (Bank time)
-              </button>
-              <button
-                onClick={() => completeBlock()}
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  backgroundColor: 'transparent',
-                  border: `1px solid ${colors.textMuted}`,
-                  color: colors.textMuted,
-                  fontSize: '16px',
-                  cursor: 'pointer'
-                }}
-              >
-                ✅ Used full time
-              </button>
-              <button
-                onClick={() => setShowDoneDialog(false)}
-                style={{
-                  padding: '8px',
-                  borderRadius: '8px',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  color: colors.textMuted,
-                  fontSize: '14px',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
+            {(() => {
+              const totalMinutes = currentBlock.estimatedMinutes || 20;
+              const timeSpentMinutes = Math.max(1, totalMinutes - Math.floor((timeRemaining || 0) / 60));
+              const extraMinutes = Math.max(0, totalMinutes - timeSpentMinutes);
+              
+              if (extraMinutes > 0) {
+                return (
+                  <>
+                    <p style={{ marginBottom: '20px', color: colors.textMuted }}>
+                      You finished {extraMinutes} minutes early! What would you like to do?
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <button
+                        onClick={() => completeBlock(timeSpentMinutes, true, 0)}
+                        style={{
+                          padding: '12px',
+                          borderRadius: '8px',
+                          backgroundColor: colors.complete,
+                          color: 'white',
+                          border: 'none',
+                          fontSize: '16px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ➡️ Continue to Next Subject
+                      </button>
+                      <button
+                        onClick={() => {
+                          // Take a break - extend timer and let them have the extra time
+                          setTimeRemaining(extraMinutes * 60);
+                          setIsTimerRunning(false);
+                          setShowDoneDialog(false);
+                          toast({
+                            title: "Break Time! 🎈",
+                            description: `Enjoy your ${extraMinutes}-minute break!`,
+                            variant: "default"
+                          });
+                        }}
+                        style={{
+                          padding: '12px',
+                          borderRadius: '8px',
+                          backgroundColor: 'transparent',
+                          border: `2px solid ${colors.progress}`,
+                          color: colors.progress,
+                          fontSize: '16px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🎈 Take a {extraMinutes}-minute break
+                      </button>
+                    </div>
+                  </>
+                );
+              } else {
+                return (
+                  <>
+                    <p style={{ marginBottom: '20px', color: colors.textMuted }}>
+                      Perfect timing! Ready for the next subject?
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <button
+                        onClick={() => completeBlock()}
+                        style={{
+                          padding: '12px',
+                          borderRadius: '8px',
+                          backgroundColor: colors.complete,
+                          color: 'white',
+                          border: 'none',
+                          fontSize: '16px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ➡️ Continue to Next Subject
+                      </button>
+                    </div>
+                  </>
+                );
+              }
+            })()}
+            
+            <button
+              onClick={() => setShowDoneDialog(false)}
+              style={{
+                padding: '8px',
+                borderRadius: '8px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: colors.textMuted,
+                fontSize: '14px',
+                cursor: 'pointer',
+                marginTop: '12px'
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
@@ -1400,11 +1443,11 @@ export function GuidedDayView({
               Need More Time?
             </h3>
             <p style={{ marginBottom: '20px', color: colors.textMuted }}>
-              Why do you need more time for this assignment?
+              This assignment will be rescheduled intelligently based on its due date and priority.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <button
-                onClick={() => rescheduleAssignment('More complex than expected', 60)}
+                onClick={() => rescheduleAssignment('Need more time')}
                 style={{
                   padding: '12px',
                   borderRadius: '8px',
@@ -1412,41 +1455,10 @@ export function GuidedDayView({
                   color: 'white',
                   border: 'none',
                   fontSize: '16px',
-                  cursor: 'pointer',
-                  textAlign: 'left'
+                  cursor: 'pointer'
                 }}
               >
-                📚 More complex than expected (need 1hr)
-              </button>
-              <button
-                onClick={() => rescheduleAssignment('Need to research/review', 45)}
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  backgroundColor: colors.progress,
-                  color: 'white',
-                  border: 'none',
-                  fontSize: '16px',
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
-              >
-                🔍 Need to research/review (need 45min)
-              </button>
-              <button
-                onClick={() => rescheduleAssignment('Technical issues', 30)}
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  backgroundColor: colors.progress,
-                  color: 'white',
-                  border: 'none',
-                  fontSize: '16px',
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
-              >
-                💻 Technical issues (need 30min)
+                ⏰ Reschedule This Assignment
               </button>
               <button
                 onClick={() => setShowNeedTimeDialog(false)}
