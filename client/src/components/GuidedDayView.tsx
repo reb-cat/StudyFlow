@@ -403,61 +403,47 @@ export function GuidedDayView({
       : buildScheduleBlocks();
   }, [composedSchedule, scheduleTemplate, assignments, selectedDate, studentName]);
 
-  // Generate prep checklist based on ACTUAL Canvas assignments only
+  // Generate prep checklist based on co-op classes scheduled TODAY only
   const generatePrepChecklist = () => {
     const subjects = new Set<string>();
     const dueAssignments: Assignment[] = [];
     
-    // Helper function to check if subject happens at co-op
-    const isCoopSubject = (subject: string) => {
-      const subjectLower = subject.toLowerCase();
-      // Exclude subjects that DON'T happen at co-op
-      if (subjectLower.includes('forensic')) return false;
-      if (subjectLower.includes('science') && !subjectLower.includes('earth science')) return false;
-      if (subjectLower.includes('biology')) return false;
-      if (subjectLower.includes('chemistry')) return false;
-      // Only include subjects that DO happen at co-op
-      return (
-        subjectLower.includes('math') || 
-        subjectLower.includes('algebra') || 
-        subjectLower.includes('geometry') ||
-        subjectLower.includes('english') || 
-        subjectLower.includes('literature') || 
-        subjectLower.includes('writing') ||
-        subjectLower.includes('history') || 
-        subjectLower.includes('social studies') ||
-        subjectLower.includes('health') ||
-        subjectLower.includes('art') ||
-        subjectLower.includes('baking') || 
-        subjectLower.includes('cooking') ||
-        subjectLower.includes('photography')
-      );
-    };
-    
-    // ONLY collect subjects from actual Canvas assignments in schedule blocks
-    scheduleBlocks.forEach(block => {
-      if (block.type === 'assignment' && block.assignment) {
-        const subject = block.assignment.courseName || block.assignment.subject;
-        if (subject && isCoopSubject(subject)) {
-          subjects.add(subject);
-          dueAssignments.push(block.assignment);
+    // Get co-op subjects scheduled for THIS specific day
+    const todaysCoopSubjects = new Set<string>();
+    scheduleTemplate.forEach(block => {
+      if (block.blockType === 'Co-op' || block.blockType === 'co-op') {
+        const subject = block.subject?.toLowerCase();
+        if (subject && !subject.includes('study hall')) {
+          todaysCoopSubjects.add(subject);
         }
       }
     });
+    
+    // Helper function to check if assignment subject matches today's co-op classes
+    const matchesTodaysCoopClass = (assignmentSubject: string) => {
+      const subjectLower = assignmentSubject.toLowerCase();
+      for (const coopSubject of todaysCoopSubjects) {
+        // Flexible matching for subject names
+        if (subjectLower.includes('health') && coopSubject.includes('health')) return true;
+        if ((subjectLower.includes('art') || subjectLower.includes('bible')) && coopSubject.includes('art')) return true;
+        if ((subjectLower.includes('english') || subjectLower.includes('literature') || subjectLower.includes('writing')) && coopSubject.includes('english')) return true;
+        if ((subjectLower.includes('math') || subjectLower.includes('geometry') || subjectLower.includes('algebra')) && coopSubject.includes('math')) return true;
+        if ((subjectLower.includes('history') || subjectLower.includes('social studies')) && coopSubject.includes('history')) return true;
+      }
+      return false;
+    };
 
-    // Add Canvas assignments due today (even if not scheduled yet)
+    // Add Canvas assignments due TODAY for classes happening TODAY
     assignments.forEach(assignment => {
       if (assignment.dueDate && assignment.completionStatus === 'pending') {
-        const dueDate = new Date(assignment.dueDate);
-        const today = new Date(selectedDate);
-        // Only include assignments actually due TODAY and for co-op subjects
+        const dueDate = new Date(assignment.dueDate + 'T12:00:00'); // Timezone-safe
+        const today = new Date(selectedDate + 'T12:00:00');
+        // Only include assignments due TODAY for co-op classes scheduled TODAY
         if (dueDate.toDateString() === today.toDateString()) {
           const subject = assignment.courseName || assignment.subject;
-          if (subject && isCoopSubject(subject)) {
+          if (subject && matchesTodaysCoopClass(subject)) {
             subjects.add(subject);
-            if (!dueAssignments.find(a => a.id === assignment.id)) {
-              dueAssignments.push(assignment);
-            }
+            dueAssignments.push(assignment);
           }
         }
       }
