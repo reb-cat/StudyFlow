@@ -609,11 +609,33 @@ export function GuidedDayView({
     currentBlock.title?.toLowerCase().includes('prep') || 
     currentBlock.title?.toLowerCase().includes('load') ||
     currentBlock.blockType?.toLowerCase().includes('prep') ||
-    currentBlock.blockType?.toLowerCase().includes('load')
+    currentBlock.blockType?.toLowerCase().includes('load') ||
+    currentBlock.subject?.toLowerCase().includes('prep') ||
+    currentBlock.subject?.toLowerCase().includes('load')
   ) && (
     dayName === 'Monday' || dayName === 'Thursday'
   );
+  
   const prepChecklist = generatePrepChecklist();
+  
+  // DEBUG: Log checklist detection
+  if (process.env.NODE_ENV === 'development' && currentBlock) {
+    console.log('🔍 Prep/Load Detection:', {
+      blockTitle: currentBlock.title,
+      blockType: currentBlock.blockType,
+      subject: currentBlock.subject,
+      dayName,
+      isPrepLoadBlock,
+      checklistLength: prepChecklist.length,
+      conditions: {
+        hasCurrentBlock: !!currentBlock,
+        isCoopDay: dayName === 'Monday' || dayName === 'Thursday',
+        titleHasPrep: currentBlock.title?.toLowerCase().includes('prep'),
+        blockTypeHasPrep: currentBlock.blockType?.toLowerCase().includes('prep'),
+        subjectHasPrep: currentBlock.subject?.toLowerCase().includes('prep')
+      }
+    });
+  }
   const normalized = useMemo(() => {
     if (currentBlock?.type === 'assignment' && currentBlock.assignment) {
       return normalizeAssignment({
