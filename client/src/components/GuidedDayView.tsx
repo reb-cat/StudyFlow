@@ -440,8 +440,8 @@ export function GuidedDayView({
     const todayAssignments = assignments.filter(a => {
       if (!a.dueDate || a.completionStatus !== 'pending') return false;
       
-      // Handle both date formats: YYYY-MM-DD and MM/DD/YYYY  
-      const dueDate = new Date(a.dueDate + (a.dueDate.includes('-') ? 'T12:00:00' : ''));
+      // Handle ISO date strings from database (already proper Date objects)
+      const dueDate = new Date(a.dueDate);
       const isSameDate = dueDate.toDateString() === selectedDateObj.toDateString();
       
       if (process.env.NODE_ENV === 'development') {
@@ -497,13 +497,16 @@ export function GuidedDayView({
         checklist.push({ item: 'Camera and photography assignments', category: 'materials' });
       }
 
-      // Clean subject name for binder (remove term/grade info)
+      // Clean subject name for binder (remove ALL extraneous details)
       const cleanSubject = subject
         .replace(/\d{2}\/\d{2}\s+/g, '') // Remove dates like "25/26 "
         .replace(/T\d+\s+/g, '') // Remove codes like "T2 "
         .replace(/M\d+\s+/g, '') // Remove codes like "M5 "
         .replace(/\d+(th|st|nd|rd)\s*-?\s*\d*(th|st|nd|rd)?\s*(Gr|Grade)\s*/gi, '') // Remove grade ranges
-        .replace(/HS\s+/g, '') // Remove "HS "
+        .replace(/HS\s+/gi, '') // Remove "HS "
+        .replace(/\s*-\s*[a-z]\s+[a-z]+$/gi, '') // Remove teacher names like "- B Scolaro", "- J Welch"
+        .replace(/\s+&\s+the\s+bible/gi, '') // Simplify "Art & the Bible" to just "Art"
+        .replace(/fundamentals/gi, '') // Remove "Fundamentals" 
         .trim();
       
       if (cleanSubject) {
