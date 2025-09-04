@@ -1,0 +1,41 @@
+STOP. Do not modify any data. Complete Phase A and re-prove in PROD.
+
+Phase A — Router fix (must be live in production)
+	1.	Deploy the router change so unmatched /api/* returns JSON 404 (not HTML).
+	2.	Attach PROD evidence:
+	•	Screenshot of https://study-flow.replit.app/api/__nope__ showing HTTP 404 and Content-Type: application/json with a small JSON body.
+	•	One normal API (e.g., /api/debug or /api/schedule/Abigail/<today>) returning JSON to show the API layer is active.
+
+If this still returns HTML → DO NOT proceed.
+
+Phase B — Re-prove auth (quick recheck in PROD)
+	3.	Re-attach login response headers screenshot showing
+Set-Cookie: connect.sid=…; HttpOnly; Secure; SameSite=None; Path=/
+	4.	Screenshot of Application → Cookies → https://study-flow.replit.app showing the cookie present.
+	5.	Paste /api/me JSON showing authenticated: true.
+
+Phase C — Template parity (read-only)
+	6.	Re-pull PROD template for Abigail/Thursday:
+GET /api/schedule-template/Abigail/Thursday (raw JSON).
+	•	Paste count and the full list of blocks (startTime, endTime, subject, blockType).
+	•	Expectation: currently 3 “Assignment” placeholders (you already showed this).
+
+Phase D — One-time import plan (only after A & B pass)
+	7.	Prepare the import plan (do not execute yet):
+	•	Backup prod DB (timestamped snapshot).
+	•	Import exact 7 missing blocks so Prod = 10 blocks that match Dev by subject, type, and time.
+	•	No changes to assignments/sessions/logs.
+	•	Rollback plan if counts ≠ 10 or names/times don’t match.
+
+Phase E — Execute + acceptance (only after written approval)
+	8.	Execute the import. Then attach PROD evidence:
+	•	GET /api/schedule-template/Abigail/Thursday → count = 10 with the 10 expected subjects (Bible, Prep/Load, Travel, Co-op classes, Lunch, etc.).
+	•	Run planner: POST /api/schedule/Abigail/<today>/initialize then GET /api/schedule/Abigail/<today> → non-empty schedule mapped to real subjects (not generic “Assignment”).
+	•	HAR covering the two planner calls.
+	•	Single planner log line:
+tasks_total=…, due_today=…, filtered=…, scheduled=…, template_block_count=10, coop_day=false
+
+Decision rule:
+	•	If Phase A (router) still fails → STOP.
+	•	If A & B pass and Phase E shows 10 blocks + non-empty schedule → GO.
+	•	If E shows 10 blocks but schedule still empty → include the planner metrics line; do not revert data; we will investigate filtering/Co-op/UTC next.
