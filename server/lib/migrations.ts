@@ -109,7 +109,7 @@ async function rollbackMigration(migration: Migration): Promise<void> {
     });
 
     // Execute the rollback
-    await tx.execute(sql.raw(migration.down));
+    await tx.execute(sql.raw(migration.down!));
 
     // Remove migration record
     await tx.execute(sql`
@@ -132,6 +132,44 @@ SELECT 1;`,
       DROP INDEX IF EXISTS idx_assignments_student_name;
       DROP INDEX IF EXISTS idx_assignments_due_date;
       DROP INDEX IF EXISTS idx_daily_schedule_status_student_date;
+    `
+  },
+  {
+    id: '002_schedule_template_constraints_and_seed_tracking',
+    description: 'Add uniqueness constraints to schedule_template for safe upserts and seed tracking table',
+    timestamp: Date.now(),
+    up: `
+      -- Clean up any duplicate entries first (keeping only the first occurrence)
+      DELETE FROM schedule_template 
+      WHERE id IN (
+        SELECT id FROM (
+          SELECT id, ROW_NUMBER() OVER (
+            PARTITION BY student_name, weekday, start_time, end_time 
+            ORDER BY id
+          ) as rn
+          FROM schedule_template
+        ) ranked 
+        WHERE rn > 1
+      );
+
+      -- Add uniqueness constraint for schedule template blocks to enable safe upserts
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_schedule_template_unique_block 
+      ON schedule_template (student_name, weekday, start_time, end_time);
+
+      -- Create seed status tracking table for idempotent operations
+      CREATE TABLE IF NOT EXISTS seed_status (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        seed_name TEXT NOT NULL UNIQUE,
+        seed_version TEXT NOT NULL DEFAULT 'v1',
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        rows_inserted INTEGER DEFAULT 0,
+        rows_skipped INTEGER DEFAULT 0,
+        checksum TEXT NOT NULL
+      );
+    `,
+    down: `
+      DROP TABLE IF EXISTS seed_status;
+      DROP INDEX IF EXISTS idx_schedule_template_unique_block;
     `
   }
 ];

@@ -1,0 +1,68 @@
+Use Edit → production DB console (or whatever GUI they have for the live database) to perform a one-time, transactional import of Abigail’s Thursday template. No new endpoints, no Dev “sync.”
+
+Below is exactly what to ask the agent to do, plus the data to paste.
+
+⸻
+
+One-time Production Import (read this to the agent)
+
+Hard rules
+	•	Operate only on production DB.
+	•	Use a transaction; if any step fails, ROLLBACK.
+	•	Take a timestamped backup/snapshot first.
+	•	After import, provide the acceptance artifacts (listed at the end).
+
+Step 0 — Backup (must)
+	•	Create a snapshot of the prod DB (note snapshot id).
+
+Step 1 — Verify current prod state
+	•	SELECT * FROM schedule_template WHERE student_name='Abigail' AND weekday='Thursday' ORDER BY block_number;
+	•	Expect 3 placeholders (block_number 1,2,3; “Assignment”).
+
+Step 2 — Transactional replace (delete 3 placeholders, insert 10 real blocks)
+	•	Start a transaction.
+	•	DELETE the 3 existing Thursday rows for Abigail.
+	•	INSERT the 10 rows below (keep block_number in order; match your column names and time type exactly).
+
+Rows to insert (chronological / block_number 1–10):
+
+block_number	start	end	subject	block_type
+1	08:00	08:20	Bible	Bible
+2	08:20	08:30	Prep/Load	Prep/Load
+3	08:45	09:15	Travel to Co-op	Travel
+4	09:15	10:15	American Literature (Co-op)	Co-op
+5	10:20	11:20	Study Hall (Co-op)	Co-op
+6	11:25	12:25	Geometry (Co-op)	Co-op
+7	12:25	12:50	Lunch	Lunch
+8	12:55	13:55	Photography (Co-op)	Co-op
+9	14:00	15:00	Yearbook (Co-op)	Co-op
+10	15:00	15:30	Travel Home	Travel
+
+Notes:
+	•	Use whatever time format the table expects ('HH:MM' or SQL TIME).
+	•	Keep student_name='Abigail', weekday='Thursday'.
+	•	Generate new id values if required (DB default or UUID gen).
+	•	If your schema requires created_at, set to NOW() (or let default fill).
+
+	•	Commit the transaction.
+
+Step 3 — Post-insert integrity checks (still in prod)
+	•	Count = 10 for Abigail/Thursday.
+	•	block_number is 1..10 with no gaps.
+	•	No overlapping times (sanity check).
+
+Step 4 — Planner verification (prod)
+	•	Call POST /api/schedule/Abigail/<YYYY-MM-DD>/initialize, then GET /api/schedule/Abigail/<YYYY-MM-DD>.
+	•	Expect non-empty JSON where subjects map to the real blocks above (not “Assignment”).
+
+⸻
+
+What the agent must attach (acceptance pack)
+	1.	SQL outputs (screenshots or text) from Step 1 and Step 3 showing counts (3 → 10) for Abigail/Thursday.
+	2.	Raw JSON from GET /api/schedule-template/Abigail/Thursday showing the 10 blocks you inserted.
+	3.	HAR covering the POST /initialize + GET /schedule calls, with 200 JSON responses.
+	4.	Planner metrics log line for that request:
+tasks_total=…, due_today=…, filtered=…, scheduled=…, template_block_count=10, coop_day=false
+	5.	UI screenshot of /student/abigail showing “Today’s Schedule” populated with real block names.
+
+NO-GO if: any artifact is missing, template count ≠ 10, subjects don’t match, responses are HTML/401, or schedule still shows only “Assignment.”

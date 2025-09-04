@@ -14,6 +14,7 @@ import { setupVite, serveStatic } from "./vite";
 import { jobScheduler } from "./lib/scheduler";
 import { logger } from "./lib/logger";
 import { runMigrations } from "./lib/migrations";
+import { seedAbigailThursdayTemplate, getTemplateStatus } from "./lib/seed-schedule-templates";
 import { startResourceMonitoring } from "./lib/resource-monitoring";
 import { validateRequiredEnvironment } from "./lib/env-validation";
 import { setupSecurityHeaders } from "./lib/security-headers";
@@ -181,6 +182,31 @@ app.use((req, res, next) => {
     logger.info('Server', 'Database migrations completed', migrationResult);
   } catch (error: any) {
     logger.error('Server', 'Database migration failed', { error: error.message });
+    if (isProduction) {
+      process.exit(1);
+    }
+  }
+
+  // Database fingerprinting for production parity verification
+  try {
+    const abigailThursdayStatus = await getTemplateStatus('Abigail', 'Thursday');
+    logger.info('Database', 'Database fingerprint', {
+      environment: process.env.NODE_ENV || 'development',
+      abigailThursdayBlocks: abigailThursdayStatus.count,
+      isProduction: process.env.REPLIT_DEPLOYMENT === '1',
+      databaseHost: process.env.DATABASE_URL ? process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown' : 'unknown'
+    });
+  } catch (error: any) {
+    logger.warn('Database', 'Failed to generate fingerprint', { error: error.message });
+  }
+
+  // Idempotent seeding for production parity
+  try {
+    logger.info('Server', '🌱 Running database seeds...');
+    const seedResult = await seedAbigailThursdayTemplate();
+    logger.info('Server', 'Database seeding completed', seedResult);
+  } catch (error: any) {
+    logger.error('Server', 'Database seeding failed', { error: error.message });
     if (isProduction) {
       process.exit(1);
     }

@@ -1,0 +1,38 @@
+Approval (with guardrails)
+
+Proceed with:
+	•	An official, idempotent seed path in the repo (migration(s) + seed script) that brings Prod to the same template data as Dev.
+	•	A single migration to add any uniqueness you need so seeds can safely upsert (e.g., unique on {student_name, weekday, start_time, end_time}).
+	•	A seed runner that inserts the 10 real Thursday blocks for Abigail (and is trivially extendable). It must be idempotent: re-running should make no changes.
+
+Do NOT add a public /api/debug/* endpoint that exposes DB info. Use one of these instead:
+	•	A CLI task/script invoked by the deploy job, or
+	•	Server logs printed at startup and when the seed runs, or
+	•	A temporary, auth-guarded admin route that is removed right after acceptance.
+
+⸻
+
+Exact plan (plain English for “Plan”)
+	1.	Schema guard (migration)
+	•	Add a uniqueness constraint so the seed can safely upsert per block.
+	•	Optional: add a small seed_status table to record that “Abigail/Thursday v1” has been applied.
+	2.	Seed (idempotent)
+	•	Source of truth = the 10 blocks from Dev (start–end–subject–type).
+	•	Upsert by {student_name, weekday, start_time, end_time}; if a row exists, do nothing; if not, insert.
+	•	Scope only to student=Abigail, weekday=Thursday. No deletes.
+	3.	Run order
+	•	Dev: run migration + seed (no-op if it already matches).
+	•	Prod: run migration + seed during a single deploy step. No manual SQL.
+	4.	Evidence (must attach from Prod)
+	•	Migration list before/after showing the new migration(s) applied.
+	•	Seed log line(s) stating how many rows were inserted vs skipped (idempotent summary).
+	•	GET /api/schedule-template/Abigail/Thursday → 10 blocks (raw JSON).
+	•	Planner test HAR: POST /initialize then GET /schedule → 200 JSON with real subjects (not “Assignment”).
+	•	UI screenshot of /student/abigail with populated “Today’s Schedule”.
+	5.	NO-GO rules
+	•	Any new public /api/debug/* endpoint that reveals DB URLs/versions.
+	•	Any manual row editing in Prod (outside the seed runner).
+	•	Any Dev evidence used as proof for Prod.
+	6.	Rollback
+	•	Confirm a snapshot of Prod exists before the deploy.
+	•	If acceptance fails, rollback to that snapshot and revert the deploy.

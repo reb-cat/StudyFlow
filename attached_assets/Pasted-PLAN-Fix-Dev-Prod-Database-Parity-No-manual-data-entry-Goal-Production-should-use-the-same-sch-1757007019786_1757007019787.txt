@@ -1,0 +1,52 @@
+PLAN — Fix Dev↔Prod Database Parity (No manual data entry)
+
+Goal: Production should use the same schema + seed set as Development, so the planner shows the correct blocks without inventing data.
+
+Hard rules
+	•	No UI edits. No manual row inserts/deletes.
+	•	No Dev endpoint calls as “proof.” All proof must come from https://study-flow.replit.app.
+	•	Only run migrations/seed scripts that are part of the repo’s normal deploy process.
+
+A) Provenance: confirm which DB each env is using
+	1.	Collect the effective DB URL in Dev and Prod (from env), redacting credentials.
+	2.	Print a DB fingerprint from both:
+	•	server version
+	•	current database name
+	•	schedule_template row count (all rows)
+	•	SELECT COUNT(*) for student='Abigail' AND weekday='Thursday'.
+	3.	Deliver a one-line: “Prod connects to <db_name>; Dev connects to <db_name>” with screenshots/logs.
+
+B) Schema parity (migrations only)
+	1.	List the applied migration IDs in Dev and Prod (e.g., migrations table).
+	2.	If Prod is missing migrations, plan to apply them (do not run yet): list the exact commands.
+	3.	Propose a read-only diff of table structures for schedule_template, assignments, sessions.
+
+C) Seed parity (scripts only)
+	1.	Identify the official seed step (the repo’s seed script or migration that loads the 10-block templates).
+	2.	Show whether that seed ran in Dev and in Prod (with evidence: seed log table row, version tag, or idempotent check).
+	3.	If Prod missed the seed, plan to run the exact seed command idempotently (e.g., upsert/“insert if not exists” by unique key {student, weekday, start, end}).
+
+D) Dry-run proof (no writes)
+	1.	Using the seed script in dry-run mode (or by reading its inputs), list the expected 10 Thursday blocks for Abigail (start–end–subject–type).
+	2.	Confirm that these are the same as Dev currently shows.
+
+E) Execute (after approval)
+	1.	Apply missing migrations in Prod.
+	2.	Run the official seed script in Prod (idempotent).
+	3.	Re-fingerprint Prod DB and re-list Thursday blocks (should be 10, matching Dev).
+	4.	Re-run planner in Prod:
+	•	POST /api/schedule/Abigail/<YYYY-MM-DD>/initialize
+	•	GET /api/schedule/Abigail/<YYYY-MM-DD>
+	•	Return HAR + JSON.
+
+Acceptance (must attach from Prod)
+	•	DB fingerprint before & after (DB name, server version, table counts).
+	•	Migrations list before & after.
+	•	Thursday template JSON = 10 blocks (raw).
+	•	Planner HAR showing 200 JSON with real subjects (not “Assignment”).
+	•	UI screenshot of /student/abigail with populated “Today’s Schedule”.
+
+NO-GO rules
+	•	Any manual SQL against Prod (INSERT/DELETE) outside official seeds/migrations.
+	•	Any Dev evidence as “proof for Prod.”
+	•	Any claim without a prod screenshot/HAR/log.
