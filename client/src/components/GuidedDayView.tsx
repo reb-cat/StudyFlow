@@ -1230,7 +1230,13 @@ export function GuidedDayView({
                     className="w-4 h-4 rounded border-2 border-foreground/30"
                     data-testid={`checkbox-item-${index}`}
                   />
-                  <span className="text-sm text-foreground">{item.item}</span>
+                  <span className={`text-sm transition-all duration-200 ${
+                    checkedItems.has(`item-${index}`) 
+                      ? 'line-through text-muted-foreground opacity-75' 
+                      : 'text-foreground'
+                  }`}>
+                    {item.item}
+                  </span>
                 </label>
               ))}
             </div>
