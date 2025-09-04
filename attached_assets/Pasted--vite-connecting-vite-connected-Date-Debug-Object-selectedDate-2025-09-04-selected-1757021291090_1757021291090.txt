@@ -1,0 +1,29 @@
+[vite] connecting...
+[vite] connected.
+🗓️ Date Debug: 
+Object {selectedDate: "2025-09-04", selectedDateObj: "Thu Sep 04 2025 08:00:00 GMT-0400 (Eastern Daylight Time)", dayName: "Thursday", dateDisplay: "Thursday, September 4, 2025", today: "2025-09-04"}
+🗓️ Date Debug: 
+Object {selectedDate: "2025-09-04", selectedDateObj: "Thu Sep 04 2025 08:00:00 GMT-0400 (Eastern Daylight Time)", dayName: "Thursday", dateDisplay: "Thursday, September 4, 2025", today: "2025-09-04"}
+🗓️ Date Debug: 
+Object {selectedDate: "2025-09-04", selectedDateObj: "Thu Sep 04 2025 08:00:00 GMT-0400 (Eastern Daylight Time)", dayName: "Thursday", dateDisplay: "Thursday, September 4, 2025", today: "2025-09-04"}
+🗓️ Date Debug: 
+Object {selectedDate: "2025-09-04", selectedDateObj: "Thu Sep 04 2025 08:00:00 GMT-0400 (Eastern Daylight Time)", dayName: "Thursday", dateDisplay: "Thursday, September 4, 2025", today: "2025-09-04"}
+🗓️ Date Debug: 
+Object {selectedDate: "2025-09-04", selectedDateObj: "Thu Sep 04 2025 08:00:00 GMT-0400 (Eastern Daylight Time)", dayName: "Thursday", dateDisplay: "Thursday, September 4, 2025", today: "2025-09-04"}
+🔍 CHECKLIST DEBUG: 
+Object {todaysCoopSubjects: Array(3), totalAssignments: 18, todayAssignments: 0, dueAssignments: 0, selectedDate: "2025-09-04"}
+🔍 Block undefined (f2039db1-f2e8-4b63-bcf8-3235aba03145): status=complete, isComplete=true
+🔍 Block undefined (3209c5ef-0c53-47e1-ae1c-2e526800adf7): status=not-started, isComplete=false
+🎯 Guided sync: Moving to block 1 (first incomplete based on overview status)
+🔍 CHECKLIST DEBUG: 
+Object {todaysCoopSubjects: Array(3), totalAssignments: 18, todayAssignments: 0, dueAssignments: 0, selectedDate: "2025-09-04"}
+🔍 CHECKLIST DEBUG: 
+Object {todaysCoopSubjects: Array(3), totalAssignments: 18, todayAssignments: 0, dueAssignments: 0, selectedDate: "2025-09-04"}
+🔍 CHECKLIST DEBUG: 
+Object {todaysCoopSubjects: Array(3), totalAssignments: 18, todayAssignments: 0, dueAssignments: 0, selectedDate: "2025-09-04"}
+🔍 CHECKLIST DEBUG: 
+Object {todaysCoopSubjects: Array(3), totalAssignments: 18, todayAssignments: 0, dueAssignments: 0, selectedDate: "2025-09-04"}
+🔍 CHECKLIST DEBUG: 
+Object {todaysCoopSubjects: Array(3), totalAssignments: 18, todayAssignments: 0, dueAssignments: 0, selectedDate: "2025-09-04"}
+🔍 CHECKLIST DEBUG: 
+Object {todaysCoopSubjects: Array(3), totalAssignments: 18, todayAssignments: 0, dueAssignments: 0, selectedDate: "2025-09-04"}

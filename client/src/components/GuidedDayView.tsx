@@ -441,19 +441,7 @@ export function GuidedDayView({
       new Date(a.dueDate + 'T12:00:00').toDateString() === new Date(selectedDate + 'T12:00:00').toDateString()
     );
 
-    // DEBUG: Let's see what's happening
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 CHECKLIST DEBUG:', {
-        todaysCoopSubjects: Array.from(todaysCoopSubjects),
-        totalAssignments: assignments.length,
-        todayAssignments: todayAssignments.length,
-        dueAssignments: dueAssignments.length,
-        selectedDate
-      });
-      if (todayAssignments.length > 0) {
-        console.log('📅 Assignments due today:', todayAssignments.map(a => `${a.title} (${a.courseName}) - ${a.dueDate}`));
-      }
-    }
+    // DEBUG: Disabled for performance
 
     todayAssignments.forEach(assignment => {
       const subject = assignment.courseName || assignment.subject;
@@ -465,10 +453,7 @@ export function GuidedDayView({
 
     // DEBUG: Disabled for performance
 
-    // If no assignments due today for co-op classes, don't show the checklist
-    if (dueAssignments.length === 0) {
-      return [];
-    }
+    // If no assignments due today for co-op classes, still show basic co-op prep items
 
     const checklist: { item: string; category: 'books' | 'materials' | 'homework' | 'general' }[] = [];
 
@@ -526,13 +511,11 @@ export function GuidedDayView({
       }
     });
 
-    // General co-op items (removed Student ID and schedule printout - she doesn't have/bring those)
-    if (scheduleBlocks.length > 0) {
-      checklist.push(
-        { item: 'Lunch and water bottle', category: 'general' },
-        { item: 'Writing utensils (pens, pencils, highlighters)', category: 'general' },
-      );
-    }
+    // Always show basic co-op prep items during Prep/Load blocks on co-op days
+    checklist.push(
+      { item: 'Lunch and water bottle', category: 'general' },
+      { item: 'Writing utensils (pens, pencils, highlighters)', category: 'general' }
+    );
 
     // Remove duplicates
     return checklist.filter((item, index, arr) => 
