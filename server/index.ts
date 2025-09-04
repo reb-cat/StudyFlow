@@ -46,9 +46,27 @@ console.log('🔍 SESSION DEBUG:', {
   willUseSameSiteNone: isProduction
 });
 
+// Session store - PostgreSQL for production stability
+const PgStore = connectPg(session);
+let sessionStore;
+
+try {
+  // Try to connect to PostgreSQL session store
+  sessionStore = new PgStore({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: true,
+    tableName: 'sessions',
+    ttl: 24 * 60 * 60 // 24 hours
+  });
+  console.log('✅ CONNECTED TO POSTGRESQL SESSION STORE');
+} catch (error: any) {
+  console.warn('⚠️  PostgreSQL session store failed, using memory fallback:', error.message);
+  sessionStore = undefined; // Use default memory store
+}
+
 // Session middleware - MUST be before all other middleware and routes  
-// Temporarily using memory store for evidence demonstration
 app.use(session({
+  store: sessionStore,
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
@@ -63,7 +81,6 @@ app.use(session({
   }
 }));
 console.log('✅ SESSION MIDDLEWARE MOUNTED: One shared session system for login and all /api/* routes');
-console.log('✅ CONNECTED TO SESSION STORE: Using memory store (temp - will migrate to PostgreSQL)');
 
 // Security middleware for production
 if (isProduction) {

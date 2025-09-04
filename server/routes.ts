@@ -73,6 +73,12 @@ const setupFamilyAuth = (app: Express) => {
     });
   });
 
+  // Health check endpoints for deployment monitoring
+  app.get('/health', basicHealthCheck);
+  app.get('/health/ready', readinessCheck);  
+  app.get('/health/live', livenessCheck);
+  app.get('/metrics', metricsEndpoint);
+
   // Debug endpoint for production troubleshooting
   app.get('/api/debug', (req: Request, res: Response) => {
     res.json({

@@ -52,49 +52,90 @@ async function getAppliedMigrations(): Promise<string[]> {
   }
 }
 
-// Apply a single migration safely (with or without transactions based on driver support)
+// Apply a single migration safely with retry logic
 async function applyMigration(migration: Migration): Promise<void> {
   logger.info('Migrations', `Applying migration: ${migration.id}`, {
     description: migration.description
   });
 
-  try {
-    // Try with transaction first (for databases that support it)
-    await withTransaction(async (tx) => {
-      // Execute migration statements one by one
-      const statements = migration.up.split(';').map(s => s.trim()).filter(s => s.length > 0);
-      for (const statement of statements) {
-        await tx.execute(sql.raw(statement));
+  const maxRetries = 3;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Try with transaction first (for databases that support it)
+      await withTransaction(async (tx) => {
+        // Execute migration statements one by one
+        const statements = migration.up.split(';').map(s => s.trim()).filter(s => s.length > 0);
+        for (const statement of statements) {
+          if (statement.length > 0) {
+            await tx.execute(sql.raw(statement));
+          }
+        }
+        const checksum = calculateChecksum(migration);
+        await tx.execute(sql`
+          INSERT INTO __migrations (id, description, checksum)
+          VALUES (${migration.id}, ${migration.description}, ${checksum})
+        `);
+      });
+      break; // Success, exit retry loop
+    } catch (error: any) {
+      // If transaction fails due to driver limitation, fall back to non-transactional
+      if (error.message?.includes('No transactions support')) {
+        logger.warn('Migrations', 'Falling back to non-transactional migration', { migration: migration.id });
+        
+        try {
+          // Execute migration without transaction - split by statements
+          const statements = migration.up.split(';').map(s => s.trim()).filter(s => s.length > 0);
+          for (const statement of statements) {
+            if (statement.length > 0) {
+              await db.execute(sql.raw(statement));
+            }
+          }
+          
+          // Record the migration
+          const checksum = calculateChecksum(migration);
+          await db.execute(sql`
+            INSERT INTO __migrations (id, description, checksum)
+            VALUES (${migration.id}, ${migration.description}, ${checksum})
+          `);
+          break; // Success, exit retry loop
+        } catch (nonTxError: any) {
+          if (attempt === maxRetries || !isRetryableError(nonTxError)) {
+            throw nonTxError;
+          }
+          logger.warn('Migrations', `Migration attempt ${attempt} failed, retrying...`, { 
+            error: nonTxError.message 
+          });
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+      } else if (attempt === maxRetries || !isRetryableError(error)) {
+        throw error;
+      } else {
+        logger.warn('Migrations', `Migration attempt ${attempt} failed, retrying...`, { 
+          error: error.message 
+        });
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
-      const checksum = calculateChecksum(migration);
-      await tx.execute(sql`
-        INSERT INTO __migrations (id, description, checksum)
-        VALUES (${migration.id}, ${migration.description}, ${checksum})
-      `);
-    });
-  } catch (error: any) {
-    // If transaction fails due to driver limitation, fall back to non-transactional
-    if (error.message?.includes('No transactions support')) {
-      logger.warn('Migrations', 'Falling back to non-transactional migration', { migration: migration.id });
-      
-      // Execute migration without transaction - split by statements
-      const statements = migration.up.split(';').map(s => s.trim()).filter(s => s.length > 0);
-      for (const statement of statements) {
-        await db.execute(sql.raw(statement));
-      }
-      
-      // Record the migration
-      const checksum = calculateChecksum(migration);
-      await db.execute(sql`
-        INSERT INTO __migrations (id, description, checksum)
-        VALUES (${migration.id}, ${migration.description}, ${checksum})
-      `);
-    } else {
-      throw error;
     }
   }
 
   logger.info('Migrations', `Successfully applied migration: ${migration.id}`);
+}
+
+// Check if migration error is retryable
+function isRetryableError(error: any): boolean {
+  const retryableMessages = [
+    'connection terminated',
+    'server closed the connection', 
+    'connection reset',
+    'timeout',
+    'connection failed',
+    'network error'
+  ];
+  
+  return retryableMessages.some(msg => 
+    error.message?.toLowerCase().includes(msg)
+  );
 }
 
 // Rollback a single migration
@@ -217,7 +258,11 @@ SELECT 1;`,
       WHERE 
           LENGTH(start_time) > 5 OR LENGTH(end_time) > 5;
 
-      -- Now add unique constraint to enable UPSERT ON CONFLICT functionality
+      -- Now add unique constraint to enable UPSERT ON CONFLICT functionality (idempotent)
+      -- Check if constraint exists, if not add it
+      ALTER TABLE schedule_template 
+      DROP CONSTRAINT IF EXISTS schedule_template_upsert_key;
+      
       ALTER TABLE schedule_template 
       ADD CONSTRAINT schedule_template_upsert_key 
       UNIQUE (student_name, weekday, block_number);
