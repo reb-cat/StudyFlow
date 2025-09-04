@@ -432,7 +432,7 @@ export function GuidedDayView({
     // Helper function to check if assignment subject matches today's co-op classes
     const matchesTodaysCoopClass = (assignmentSubject: string) => {
       const subjectLower = assignmentSubject.toLowerCase();
-      for (const coopSubject of todaysCoopSubjects) {
+      for (const coopSubject of Array.from(todaysCoopSubjects)) {
         // Flexible matching for subject names
         if (subjectLower.includes('health') && coopSubject.includes('health')) return true;
         if ((subjectLower.includes('art') || subjectLower.includes('bible')) && coopSubject.includes('art')) return true;
@@ -472,7 +472,14 @@ export function GuidedDayView({
 
     todayAssignments.forEach(assignment => {
       const subject = assignment.courseName || assignment.subject;
-      if (subject && matchesTodaysCoopClass(subject)) {
+      const matches = matchesTodaysCoopClass(subject);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔍 Assignment "${assignment.title}": subject="${subject}", matches=${matches}`);
+        console.log(`📚 Today's co-op subjects:`, Array.from(todaysCoopSubjects));
+      }
+      
+      if (subject && matches) {
         subjects.add(subject);
         dueAssignments.push(assignment);
       }
@@ -494,7 +501,8 @@ export function GuidedDayView({
         .replace(/M\d+\s+/g, '') // Remove codes like "M5 "
         .replace(/\d+(th|st|nd|rd)\s*-?\s*\d*(th|st|nd|rd)?\s*(Gr|Grade)\s*/gi, '') // Remove grade ranges
         .replace(/HS\s+/gi, '') // Remove "HS "
-        .replace(/\s*-\s*[a-z]\s+[a-z]+$/gi, '') // Remove teacher names like "- B Scolaro", "- J Welch"
+        .replace(/\s*-\s*[a-z]\s+[a-z-]+$/gi, '') // Remove teacher names like "- B Scolaro", "- J Welch", "- L Cejas-brown"
+        .replace(/\(\d+x\s+Week\)\s*/gi, '') // Remove "(2x Week)" patterns
         .replace(/\s+&\s+the\s+bible/gi, '') // Simplify "Art & the Bible" to just "Art"
         .replace(/fundamentals/gi, '') // Remove "Fundamentals" 
         .trim().toLowerCase();
@@ -528,7 +536,8 @@ export function GuidedDayView({
           .replace(/M\d+\s+/g, '')
           .replace(/\d+(th|st|nd|rd)\s*-?\s*\d*(th|st|nd|rd)?\s*(Gr|Grade)\s*/gi, '')
           .replace(/HS\s+/gi, '')
-          .replace(/\s*-\s*[a-z]\s+[a-z]+$/gi, '')
+          .replace(/\s*-\s*[a-z]\s+[a-z-]+$/gi, '') // Updated to match teacher names with hyphens
+          .replace(/\(\d+x\s+Week\)\s*/gi, '') // Remove "(2x Week)" patterns
           .replace(/\s+&\s+the\s+bible/gi, '')
           .replace(/fundamentals/gi, '')
           .trim()
