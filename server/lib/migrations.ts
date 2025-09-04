@@ -3,7 +3,6 @@ import { logger } from './logger';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { withTransaction } from './db-utils';
-import { withDatabaseOperation, safeExecute } from './db-connection';
 
 interface Migration {
   id: string;
@@ -44,7 +43,7 @@ async function getAppliedMigrations(): Promise<string[]> {
     const result = await db.execute(sql`
       SELECT id FROM __migrations ORDER BY applied_at ASC
     `);
-    return result.rows.map((row: any) => String(row.id || '')).filter((id: string) => id && id !== 'null' && id !== 'undefined');
+    return result.rows.map(row => String(row.id || '')).filter(id => id && id !== 'null' && id !== 'undefined');
   } catch (error: any) {
     if (error.message?.includes('relation "__migrations" does not exist')) {
       return [];
@@ -218,9 +217,9 @@ SELECT 1;`,
       WHERE 
           LENGTH(start_time) > 5 OR LENGTH(end_time) > 5;
 
-      -- Now add unique constraint to enable UPSERT ON CONFLICT functionality (skip if exists)
+      -- Now add unique constraint to enable UPSERT ON CONFLICT functionality
       ALTER TABLE schedule_template 
-      ADD CONSTRAINT IF NOT EXISTS schedule_template_upsert_key 
+      ADD CONSTRAINT schedule_template_upsert_key 
       UNIQUE (student_name, weekday, block_number);
     `,
     down: `
@@ -232,37 +231,31 @@ SELECT 1;`,
 
 // Main migration function - safe for production
 export async function runMigrations(): Promise<{ applied: number; skipped: number }> {
-  const migrationResult = await withDatabaseOperation(
-    async () => {
-      await ensureMigrationsTable();
-      
-      const appliedMigrations = await getAppliedMigrations();
-      const pendingMigrations = MIGRATIONS.filter(m => !appliedMigrations.includes(m.id));
+  try {
+    await ensureMigrationsTable();
+    
+    const appliedMigrations = await getAppliedMigrations();
+    const pendingMigrations = MIGRATIONS.filter(m => !appliedMigrations.includes(m.id));
 
-      logger.info('Migrations', `Found ${appliedMigrations.length} applied, ${pendingMigrations.length} pending migrations`);
+    logger.info('Migrations', `Found ${appliedMigrations.length} applied, ${pendingMigrations.length} pending migrations`);
 
-      if (pendingMigrations.length === 0) {
-        logger.info('Migrations', 'No pending migrations to apply');
-        return { applied: 0, skipped: appliedMigrations.length };
-      }
+    if (pendingMigrations.length === 0) {
+      logger.info('Migrations', 'No pending migrations to apply');
+      return { applied: 0, skipped: appliedMigrations.length };
+    }
 
-      // Apply migrations one by one
-      for (const migration of pendingMigrations) {
-        await applyMigration(migration);
-      }
+    // Apply migrations one by one
+    for (const migration of pendingMigrations) {
+      await applyMigration(migration);
+    }
 
-      logger.info('Migrations', `Successfully applied ${pendingMigrations.length} migrations`);
-      return { applied: pendingMigrations.length, skipped: appliedMigrations.length };
-    },
-    { applied: 0, skipped: 0 },
-    'Run migrations'
-  );
+    logger.info('Migrations', `Successfully applied ${pendingMigrations.length} migrations`);
+    return { applied: pendingMigrations.length, skipped: appliedMigrations.length };
 
-  if (!migrationResult.success) {
-    throw new Error(`Migration failed: ${migrationResult.error}`);
+  } catch (error: any) {
+    logger.error('Migrations', 'Migration failed', { error: error.message });
+    throw new Error(`Migration failed: ${error.message}`);
   }
-
-  return migrationResult.data!;
 }
 
 // Rollback to specific migration (for emergency use)

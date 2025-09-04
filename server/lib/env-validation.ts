@@ -150,56 +150,19 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
-// Validate required environment variables on startup with production flexibility
-export function validateRequiredEnvironment(): { isValid: boolean; errors: string[]; canContinue: boolean } {
+// Validate required environment variables on startup
+export function validateRequiredEnvironment(): void {
   const validation = validateEnvironment();
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
   
   if (!validation.isValid) {
-    logger.error('Environment', 'Environment validation errors detected', {
-      errors: validation.errors,
-      isProduction
+    logger.error('Environment', 'Critical environment validation errors - server cannot start', {
+      errors: validation.errors
     });
     
-    // In production, check if errors are critical or can be bypassed
-    if (isProduction) {
-      const criticalErrors = validation.errors.filter(error => 
-        error.includes('DATABASE_URL') || 
-        error.includes('PORT') ||
-        error.includes('NODE_ENV')
-      );
-      
-      const nonCriticalErrors = validation.errors.filter(error => 
-        !criticalErrors.includes(error)
-      );
-      
-      if (criticalErrors.length > 0) {
-        logger.error('Environment', 'Critical environment errors - cannot continue', {
-          criticalErrors
-        });
-        console.error('❌ CRITICAL ENVIRONMENT VALIDATION FAILED:');
-        criticalErrors.forEach(error => console.error(`  - ${error}`));
-        console.error('\n💡 Please check your critical environment variables.');
-        
-        return { isValid: false, errors: criticalErrors, canContinue: false };
-      } else {
-        logger.warn('Environment', 'Non-critical environment issues detected - continuing startup', {
-          nonCriticalErrors
-        });
-        console.warn('⚠️  NON-CRITICAL ENVIRONMENT ISSUES (continuing startup):');
-        nonCriticalErrors.forEach(error => console.warn(`  - ${error}`));
-        
-        return { isValid: false, errors: nonCriticalErrors, canContinue: true };
-      }
-    } else {
-      // In development, log errors but don't exit
-      console.error('❌ ENVIRONMENT VALIDATION FAILED (development mode):');
-      validation.errors.forEach(error => console.error(`  - ${error}`));
-      console.error('\n💡 Please check your environment variables.');
-      
-      return { isValid: false, errors: validation.errors, canContinue: true };
-    }
+    console.error('❌ ENVIRONMENT VALIDATION FAILED:');
+    validation.errors.forEach(error => console.error(`  - ${error}`));
+    console.error('\n💡 Please check your environment variables and try again.');
+    
+    process.exit(1);
   }
-  
-  return { isValid: true, errors: [], canContinue: true };
 }

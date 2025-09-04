@@ -1,23 +1,13 @@
-// Database exports with connection manager integration
-import { databaseManager } from './lib/db-connection';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import * as schema from '@shared/schema';
 
-// Legacy database instance for backward compatibility
-// This will be initialized after the connection manager is ready
-export let db: any = null;
+// Use the built-in Replit database URL
+const connectionString = process.env.DATABASE_URL!;
 
-// Initialize legacy db export
-export async function initializeLegacyDatabase() {
-  try {
-    db = await databaseManager.getDatabase();
-  } catch (error) {
-    // If database is not available, provide a proxy that logs warnings
-    db = new Proxy({}, {
-      get() {
-        throw new Error('Database not available - ensure connection is initialized');
-      }
-    });
-  }
+if (!connectionString) {
+  throw new Error("DATABASE_URL is required");
 }
 
-// Modern exports with fallback support
-export { databaseManager, getDatabaseWithFallback } from './lib/db-connection';
+const client = neon(connectionString);
+export const db = drizzle(client, { schema });

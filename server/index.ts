@@ -17,7 +17,6 @@ import { runMigrations } from "./lib/migrations";
 import { seedAbigailThursdayTemplate, getTemplateStatus } from "./lib/seed-schedule-templates";
 import { startResourceMonitoring } from "./lib/resource-monitoring";
 import { validateRequiredEnvironment } from "./lib/env-validation";
-import { databaseManager, initializeLegacyDatabase } from "./db";
 import { setupSecurityHeaders } from "./lib/security-headers";
 
 const app = express();
@@ -165,87 +164,60 @@ app.use((req, res, next) => {
   });
 
   // Validate environment before starting services
-  const envValidation = validateRequiredEnvironment();
-  if (!envValidation.canContinue) {
-    logger.error('Server', 'Critical environment validation failed - server cannot start', { errors: envValidation.errors });
-    process.exit(1);
-  }
-  if (envValidation.isValid) {
+  try {
+    validateRequiredEnvironment();
     logger.info('Server', 'Environment validation passed');
-  } else {
-    logger.warn('Server', 'Environment validation completed with warnings', { errors: envValidation.errors });
-  }
-
-  // Initialize database connection with retry logic
-  logger.info('Server', '🔗 Initializing database connection...');
-  const dbInitResult = await databaseManager.initialize();
-  if (!dbInitResult.success) {
-    logger.error('Server', 'Database initialization failed', { error: dbInitResult.error });
+  } catch (error: any) {
+    logger.error('Server', 'Environment validation failed', { error: error.message });
+    // Don't exit in development for easier debugging
     if (isProduction) {
-      logger.error('Server', 'Unable to start in production without database');
       process.exit(1);
-    } else {
-      logger.warn('Server', 'Continuing in development mode without database');
-    }
-  } else {
-    logger.info('Server', 'Database connection established successfully');
-    
-    // Initialize legacy database export for backward compatibility
-    await initializeLegacyDatabase();
-    logger.info('Server', 'Legacy database interface initialized');
-    
-    // Run database migrations if connection is successful
-    try {
-      logger.info('Server', '🔄 Running database migrations...');
-      const migrationResult = await runMigrations();
-      logger.info('Server', 'Database migrations completed', migrationResult);
-    } catch (error: any) {
-      logger.error('Server', 'Database migration failed', { error: error.message });
-      if (isProduction) {
-        logger.error('Server', 'Migration failure in production - attempting graceful degradation');
-        // Don't exit immediately - attempt to continue with existing schema
-      }
     }
   }
 
-  // Database fingerprinting for production parity verification (if database is available)
-  if (dbInitResult.success) {
-    try {
-      const abigailThursdayStatus = await getTemplateStatus('Abigail', 'Thursday');
-      logger.info('Database', 'Database fingerprint', {
-        environment: process.env.NODE_ENV || 'development',
-        abigailThursdayBlocks: abigailThursdayStatus.count,
-        isProduction: process.env.REPLIT_DEPLOYMENT === '1',
-        databaseHost: process.env.DATABASE_URL ? process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown' : 'unknown'
-      });
-    } catch (error: any) {
-      logger.warn('Database', 'Failed to generate fingerprint', { error: error.message });
+  // Run database migrations before starting services
+  try {
+    logger.info('Server', '🔄 Running database migrations...');
+    const migrationResult = await runMigrations();
+    logger.info('Server', 'Database migrations completed', migrationResult);
+  } catch (error: any) {
+    logger.error('Server', 'Database migration failed', { error: error.message });
+    if (isProduction) {
+      process.exit(1);
     }
   }
 
-  // Idempotent seeding for production parity (if database is available)
-  if (dbInitResult.success) {
-    try {
-      logger.info('Server', '🌱 Running database seeds...');
-      
-      // Seed schedule templates
-      const scheduleResult = await seedAbigailThursdayTemplate();
-      logger.info('Server', 'Schedule template seeding completed', scheduleResult);
-      
-      // Seed Bible curriculum
-      const { seedBibleCurriculum } = await import('./lib/seed-bible-curriculum');
-      const curriculumResult = await seedBibleCurriculum();
-      logger.info('Server', 'Bible curriculum seeding completed', curriculumResult);
-      
-    } catch (error: any) {
-      logger.error('Server', 'Database seeding failed', { error: error.message });
-      if (isProduction) {
-        logger.warn('Server', 'Seeding failed in production - continuing with existing data');
-        // Don't exit - seeding failures shouldn't crash the application
-      }
+  // Database fingerprinting for production parity verification
+  try {
+    const abigailThursdayStatus = await getTemplateStatus('Abigail', 'Thursday');
+    logger.info('Database', 'Database fingerprint', {
+      environment: process.env.NODE_ENV || 'development',
+      abigailThursdayBlocks: abigailThursdayStatus.count,
+      isProduction: process.env.REPLIT_DEPLOYMENT === '1',
+      databaseHost: process.env.DATABASE_URL ? process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown' : 'unknown'
+    });
+  } catch (error: any) {
+    logger.warn('Database', 'Failed to generate fingerprint', { error: error.message });
+  }
+
+  // Idempotent seeding for production parity
+  try {
+    logger.info('Server', '🌱 Running database seeds...');
+    
+    // Seed schedule templates
+    const scheduleResult = await seedAbigailThursdayTemplate();
+    logger.info('Server', 'Schedule template seeding completed', scheduleResult);
+    
+    // Seed Bible curriculum
+    const { seedBibleCurriculum } = await import('./lib/seed-bible-curriculum');
+    const curriculumResult = await seedBibleCurriculum();
+    logger.info('Server', 'Bible curriculum seeding completed', curriculumResult);
+    
+  } catch (error: any) {
+    logger.error('Server', 'Database seeding failed', { error: error.message });
+    if (isProduction) {
+      process.exit(1);
     }
-  } else {
-    logger.warn('Server', 'Skipping database seeding - no database connection available');
   }
 
   // Start resource monitoring in production
