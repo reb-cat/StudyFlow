@@ -668,8 +668,21 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Updated schedule template for ${studentName} on ${weekday} with ${blocks.length} blocks`);
     } catch (error) {
-      console.error('Error updating schedule template:', error);
-      throw new Error('Failed to update schedule template');
+      console.error('Error updating schedule template:', {
+        message: error.message,
+        stack: error.stack,
+        studentName,
+        weekday,
+        blocksCount: blocks.length,
+        sampleBlock: blocks[0] ? {
+          studentName: blocks[0].studentName,
+          weekday: blocks[0].weekday,
+          blockNumber: blocks[0].blockNumber,
+          subject: blocks[0].subject,
+          blockType: blocks[0].blockType
+        } : 'No blocks'
+      });
+      throw new Error(`Failed to update schedule template: ${error.message}`);
     }
   }
 
