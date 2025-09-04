@@ -1661,6 +1661,39 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
+  app.get('/api/schedule-template/:studentName/:weekday', async (req, res) => {
+    try {
+      const { studentName, weekday } = req.params;
+      
+      const templateData = await storage.getScheduleTemplate(studentName, weekday);
+      res.json(templateData);
+    } catch (error) {
+      console.error('Error fetching schedule template:', error);
+      res.status(500).json({ message: 'Failed to fetch schedule template' });
+    }
+  });
+
+  app.put('/api/schedule-template/:studentName/:weekday', async (req, res) => {
+    try {
+      const { studentName, weekday } = req.params;
+      const { blocks } = req.body;
+      
+      console.log(`Updating schedule template for ${studentName} on ${weekday}`);
+      
+      await storage.updateScheduleTemplate(studentName, weekday, blocks);
+      
+      res.json({ 
+        message: 'Schedule template updated successfully',
+        studentName,
+        weekday,
+        blocksUpdated: blocks.length
+      });
+    } catch (error) {
+      console.error('Error updating schedule template:', error);
+      res.status(500).json({ message: 'Failed to update schedule template' });
+    }
+  });
+
   // Manual Canvas sync trigger (for testing)
   app.post('/api/sync-canvas', async (req, res) => {
     try {

@@ -65,7 +65,7 @@ const adminTiles: AdminTile[] = [
   {
     title: "Schedule Templates", 
     description: "Configure daily schedule blocks and time allocations",
-    href: "#schedule-templates",
+    href: "/schedule-templates",
     icon: Clock,
     color: "pink"
   },

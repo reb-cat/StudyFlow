@@ -561,6 +561,38 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async updateScheduleTemplate(studentName: string, weekday: string, blocks: ScheduleTemplate[]): Promise<void> {
+    try {
+      // Delete existing blocks for this student/weekday
+      await db.delete(scheduleTemplate).where(
+        and(
+          eq(scheduleTemplate.studentName, studentName),
+          eq(scheduleTemplate.weekday, weekday)
+        )
+      );
+
+      // Insert new blocks
+      if (blocks.length > 0) {
+        const insertBlocks = blocks.map(block => ({
+          studentName: block.studentName,
+          weekday: block.weekday,
+          blockNumber: block.blockNumber,
+          startTime: block.startTime,
+          endTime: block.endTime,
+          subject: block.subject,
+          blockType: block.blockType
+        }));
+        
+        await db.insert(scheduleTemplate).values(insertBlocks);
+      }
+      
+      console.log(`Updated schedule template for ${studentName} on ${weekday} with ${blocks.length} blocks`);
+    } catch (error) {
+      console.error('Error updating schedule template:', error);
+      throw new Error('Failed to update schedule template');
+    }
+  }
+
   // Bible curriculum operations
   async getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]> {
     try {
