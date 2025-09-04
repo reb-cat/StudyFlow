@@ -30,7 +30,7 @@ export interface IStorage {
   // Schedule template operations
   getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]>;
   createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate>;
-  updateScheduleTemplate(id: string, updates: Partial<ScheduleTemplate>): Promise<ScheduleTemplate | undefined>;
+  updateScheduleTemplate(studentName: string, weekday: string, blocks: ScheduleTemplate[]): Promise<void>;
   
   // Bible curriculum operations
   getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]>;
@@ -1537,10 +1537,15 @@ export class MemStorage implements IStorage {
       completionStatus: data.completionStatus || 'pending',
       blockType: data.blockType || 'assignment',
       isAssignmentBlock: data.isAssignmentBlock ?? true,
+      isPortable: data.isPortable ?? true,
+      portabilityReason: data.portabilityReason || null,
       priority: data.priority || 'B',
       difficulty: data.difficulty || 'medium',
       timeSpent: data.timeSpent || 0,
       notes: data.notes || null,
+      completedAt: data.completedAt || null,
+      gradingDelayDetectedAt: data.gradingDelayDetectedAt || null,
+      creationSource: data.creationSource || 'manual',
       canvasId: data.canvasId || null,
       canvasCourseId: data.canvasCourseId || null,
       canvasInstance: data.canvasInstance || null,
@@ -1554,10 +1559,14 @@ export class MemStorage implements IStorage {
       isRecurring: data.isRecurring || null,
       academicYear: data.academicYear || null,
       confidenceScore: data.confidenceScore || null,
-      needsPrinting: data.needsPrinting || null,
-      printStatus: data.printStatus || null,
+      needsPrinting: data.needsPrinting || false,
+      printStatus: data.printStatus || 'not_needed',
       printReason: data.printReason || null,
       printedAt: data.printedAt || null,
+      needsManualDueDate: data.needsManualDueDate || false,
+      suggestedDueDate: data.suggestedDueDate || null,
+      deletedAt: data.deletedAt || null,
+      canvasGradeStatus: data.canvasGradeStatus || null,
       createdAt: now,
       updatedAt: now
     };
