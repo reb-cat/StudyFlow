@@ -98,11 +98,12 @@ async function recordSeedApplication(
 // Main seeding function - idempotent and production-safe
 export async function seedBibleCurriculum(): Promise<{
   inserted: number;
+  updated: number;
   skipped: number;
   message: string;
 }> {
   const seedName = 'bible_curriculum_foundation';
-  const seedVersion = 'v2'; // Updated for proper existence checking
+  const seedVersion = 'v3'; // Updated for proper UPSERT functionality
   const checksum = calculateSeedChecksum(BIBLE_CURRICULUM_TEMPLATE);
 
   try {
@@ -111,12 +112,14 @@ export async function seedBibleCurriculum(): Promise<{
       logger.info('Seed', `Seed '${seedName}' v${seedVersion} already applied, skipping`);
       return {
         inserted: 0,
+        updated: 0,
         skipped: BIBLE_CURRICULUM_TEMPLATE.length,
         message: `Seed '${seedName}' already applied, skipped ${BIBLE_CURRICULUM_TEMPLATE.length} curriculum items`
       };
     }
 
     let insertedCount = 0;
+    let updatedCount = 0;
     let skippedCount = 0;
 
     try {
@@ -124,23 +127,22 @@ export async function seedBibleCurriculum(): Promise<{
       await withTransaction(async (tx) => {
         for (const item of BIBLE_CURRICULUM_TEMPLATE) {
           try {
-            // Check if this curriculum item already exists
-            const exists = await tx.execute(sql`
-              SELECT id FROM bible_curriculum 
-              WHERE week_number = ${item.weekNumber} 
-                AND day_of_week IS NOT DISTINCT FROM ${item.dayOfWeek}
-                AND reading_type = ${item.readingType}
+            // Use proper UPSERT with ON CONFLICT UPDATE to handle replacing incorrect rows
+            const result = await tx.execute(sql`
+              INSERT INTO bible_curriculum (week_number, day_of_week, reading_title, reading_type, completed)
+              VALUES (${item.weekNumber}, ${item.dayOfWeek}, ${item.readingTitle}, ${item.readingType}, false)
+              ON CONFLICT (week_number, day_of_week, reading_type) DO UPDATE SET
+                reading_title = EXCLUDED.reading_title,
+                completed = EXCLUDED.completed
+              RETURNING (xmax = 0) AS inserted
             `);
             
-            if (exists.rows.length === 0) {
-              await tx.execute(sql`
-                INSERT INTO bible_curriculum (week_number, day_of_week, reading_title, reading_type, completed)
-                VALUES (${item.weekNumber}, ${item.dayOfWeek}, ${item.readingTitle}, ${item.readingType}, false)
-              `);
+            // PostgreSQL returns (xmax = 0) as true for INSERT, false for UPDATE
+            if (result.rows[0] && result.rows[0].inserted) {
+              insertedCount++;
             } else {
-              throw new Error('Item already exists');
+              updatedCount++;
             }
-            insertedCount++;
           } catch (error: any) {
             logger.warn('Seed', 'Curriculum item already exists or conflict', { 
               week: item.weekNumber, 
@@ -166,25 +168,24 @@ export async function seedBibleCurriculum(): Promise<{
 
       for (const item of BIBLE_CURRICULUM_TEMPLATE) {
         try {
-          // Check if this curriculum item already exists
-          const exists = await db.execute(sql`
-            SELECT id FROM bible_curriculum 
-            WHERE week_number = ${item.weekNumber} 
-              AND day_of_week IS NOT DISTINCT FROM ${item.dayOfWeek}
-              AND reading_type = ${item.readingType}
+          // Use proper UPSERT with ON CONFLICT UPDATE to handle replacing incorrect rows (non-transactional)
+          const result = await db.execute(sql`
+            INSERT INTO bible_curriculum (week_number, day_of_week, reading_title, reading_type, completed)
+            VALUES (${item.weekNumber}, ${item.dayOfWeek}, ${item.readingTitle}, ${item.readingType}, false)
+            ON CONFLICT (week_number, day_of_week, reading_type) DO UPDATE SET
+              reading_title = EXCLUDED.reading_title,
+              completed = EXCLUDED.completed
+            RETURNING (xmax = 0) AS inserted
           `);
           
-          if (exists.rows.length === 0) {
-            await db.execute(sql`
-              INSERT INTO bible_curriculum (week_number, day_of_week, reading_title, reading_type, completed)
-              VALUES (${item.weekNumber}, ${item.dayOfWeek}, ${item.readingTitle}, ${item.readingType}, false)
-            `);
+          // PostgreSQL returns (xmax = 0) as true for INSERT, false for UPDATE
+          if (result.rows[0] && result.rows[0].inserted) {
             insertedCount++;
           } else {
-            skippedCount++;
+            updatedCount++;
           }
         } catch (error: any) {
-          logger.warn('Seed', 'Curriculum item already exists or conflict', { 
+          logger.warn('Seed', 'Curriculum item upsert failed', { 
             week: item.weekNumber, 
             day: item.dayOfWeek,
             type: item.readingType,
@@ -196,7 +197,7 @@ export async function seedBibleCurriculum(): Promise<{
     }
 
     // Record successful seed application
-    await recordSeedApplication(seedName, seedVersion, insertedCount, skippedCount, checksum);
+    await recordSeedApplication(seedName, seedVersion, insertedCount + updatedCount, skippedCount, checksum);
     
     logger.info('Seed', `Seed '${seedName}' applied: ${insertedCount} inserted, ${skippedCount} skipped`, {
       seedName,
@@ -208,8 +209,9 @@ export async function seedBibleCurriculum(): Promise<{
 
     return {
       inserted: insertedCount,
+      updated: updatedCount,
       skipped: skippedCount,
-      message: `Seed '${seedName}' applied: ${insertedCount} inserted, ${skippedCount} skipped`
+      message: `Seed '${seedName}' applied: ${insertedCount} inserted, ${updatedCount} updated, ${skippedCount} skipped`
     };
 
   } catch (error: any) {

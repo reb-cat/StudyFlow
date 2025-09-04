@@ -171,6 +171,61 @@ SELECT 1;`,
       DROP TABLE IF EXISTS seed_status;
       DROP INDEX IF EXISTS idx_schedule_template_unique_block;
     `
+  },
+  {
+    id: '003_schedule_template_upsert_constraint',
+    description: 'Add proper UPSERT constraint for schedule template blocks and normalize time format',
+    timestamp: Date.now(),
+    up: `
+      -- Clean up duplicate entries that would prevent unique constraint creation
+      -- Keep the block with a specific block_number over the null one, and prioritize HH:MM format
+      WITH ranked_blocks AS (
+        SELECT id, 
+               ROW_NUMBER() OVER (
+                 PARTITION BY student_name, weekday, block_number 
+                 ORDER BY 
+                   CASE WHEN block_number IS NOT NULL THEN 1 ELSE 2 END,
+                   CASE WHEN LENGTH(start_time) = 5 THEN 1 ELSE 2 END,
+                   id
+               ) as rn
+        FROM schedule_template 
+        WHERE student_name = 'Abigail' AND weekday = 'Thursday' AND block_number IS NOT NULL
+      )
+      DELETE FROM schedule_template 
+      WHERE id IN (
+        SELECT id FROM ranked_blocks WHERE rn > 1
+      );
+
+      -- Remove old null block_number entries that are duplicates of numbered ones  
+      DELETE FROM schedule_template 
+      WHERE student_name = 'Abigail' 
+        AND weekday = 'Thursday' 
+        AND block_number IS NULL
+        AND EXISTS (
+          SELECT 1 FROM schedule_template st2 
+          WHERE st2.student_name = 'Abigail' 
+            AND st2.weekday = 'Thursday'
+            AND st2.block_number IS NOT NULL
+            AND st2.subject = schedule_template.subject
+        );
+
+      -- Normalize existing time formats from HH:MM:SS to HH:MM
+      UPDATE schedule_template 
+      SET 
+          start_time = LEFT(start_time, 5),
+          end_time = LEFT(end_time, 5)
+      WHERE 
+          LENGTH(start_time) > 5 OR LENGTH(end_time) > 5;
+
+      -- Now add unique constraint to enable UPSERT ON CONFLICT functionality
+      ALTER TABLE schedule_template 
+      ADD CONSTRAINT schedule_template_upsert_key 
+      UNIQUE (student_name, weekday, block_number);
+    `,
+    down: `
+      ALTER TABLE schedule_template 
+      DROP CONSTRAINT IF EXISTS schedule_template_upsert_key;
+    `
   }
 ];
 

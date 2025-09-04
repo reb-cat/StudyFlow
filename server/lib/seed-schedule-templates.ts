@@ -8,11 +8,12 @@ import { withTransaction } from './db-utils';
 
 // Define the source of truth: Abigail's Thursday schedule (10 blocks)
 // Based on development environment analysis - NORMALIZED TO HH:MM FORMAT
+// NOW WITH BLOCK NUMBERS for proper UPSERT functionality
 export const ABIGAIL_THURSDAY_TEMPLATE = [
   {
     studentName: 'Abigail',
     weekday: 'Thursday',
-    blockNumber: null,
+    blockNumber: 1,
     startTime: '08:00',
     endTime: '08:20',
     subject: 'Bible',
@@ -21,7 +22,7 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
   {
     studentName: 'Abigail',
     weekday: 'Thursday',
-    blockNumber: null,
+    blockNumber: 2,
     startTime: '08:20',
     endTime: '08:30',
     subject: 'Prep/Load',
@@ -30,7 +31,7 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
   {
     studentName: 'Abigail',
     weekday: 'Thursday',
-    blockNumber: null,
+    blockNumber: 3,
     startTime: '08:45',
     endTime: '09:15',
     subject: 'Travel to Co-op',
@@ -39,7 +40,7 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
   {
     studentName: 'Abigail',
     weekday: 'Thursday',
-    blockNumber: null,
+    blockNumber: 4,
     startTime: '09:15',
     endTime: '10:15',
     subject: 'American Literature and Composition',
@@ -48,7 +49,7 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
   {
     studentName: 'Abigail',
     weekday: 'Thursday',
-    blockNumber: null,
+    blockNumber: 5,
     startTime: '10:20',
     endTime: '11:20',
     subject: 'Study Hall',
@@ -57,7 +58,7 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
   {
     studentName: 'Abigail',
     weekday: 'Thursday',
-    blockNumber: null,
+    blockNumber: 6,
     startTime: '11:25',
     endTime: '12:25',
     subject: 'Geometry (2x week) - L Cejas-Brown',
@@ -66,7 +67,7 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
   {
     studentName: 'Abigail',
     weekday: 'Thursday',
-    blockNumber: null,
+    blockNumber: 7,
     startTime: '12:25',
     endTime: '12:50',
     subject: 'Lunch',
@@ -75,7 +76,7 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
   {
     studentName: 'Abigail',
     weekday: 'Thursday',
-    blockNumber: null,
+    blockNumber: 8,
     startTime: '12:55',
     endTime: '13:55',
     subject: 'Photography - S Hughes',
@@ -84,7 +85,7 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
   {
     studentName: 'Abigail',
     weekday: 'Thursday',
-    blockNumber: null,
+    blockNumber: 9,
     startTime: '14:00',
     endTime: '15:00',
     subject: 'Yearbook - S Hughes',
@@ -93,7 +94,7 @@ export const ABIGAIL_THURSDAY_TEMPLATE = [
   {
     studentName: 'Abigail',
     weekday: 'Thursday',
-    blockNumber: null,
+    blockNumber: 10,
     startTime: '15:00',
     endTime: '15:30',
     subject: 'Travel Home',
@@ -153,11 +154,12 @@ async function recordSeedApplication(
 // Main seeding function - idempotent and production-safe
 export async function seedAbigailThursdayTemplate(): Promise<{
   inserted: number;
+  updated: number;
   skipped: number;
   message: string;
 }> {
   const seedName = 'abigail_thursday_template';
-  const seedVersion = 'v2'; // Updated for HH:MM time format normalization
+  const seedVersion = 'v3'; // Updated for proper UPSERT functionality
   const checksum = calculateSeedChecksum(ABIGAIL_THURSDAY_TEMPLATE);
 
   try {
@@ -166,12 +168,14 @@ export async function seedAbigailThursdayTemplate(): Promise<{
       logger.info('Seed', `Seed '${seedName}' v${seedVersion} already applied, skipping`);
       return {
         inserted: 0,
+        updated: 0,
         skipped: ABIGAIL_THURSDAY_TEMPLATE.length,
         message: `Seed '${seedName}' already applied, skipped ${ABIGAIL_THURSDAY_TEMPLATE.length} blocks`
       };
     }
 
     let insertedCount = 0;
+    let updatedCount = 0;
     let skippedCount = 0;
 
     try {
@@ -182,7 +186,7 @@ export async function seedAbigailThursdayTemplate(): Promise<{
           checksum
         });
 
-        // Insert each block with conflict resolution
+        // Use proper UPSERT with ON CONFLICT UPDATE to handle replacing incorrect rows
         for (const block of ABIGAIL_THURSDAY_TEMPLATE) {
           try {
             const result = await tx.execute(sql`
@@ -192,25 +196,42 @@ export async function seedAbigailThursdayTemplate(): Promise<{
                 ${block.studentName}, ${block.weekday}, ${block.blockNumber}, 
                 ${block.startTime}, ${block.endTime}, ${block.subject}, ${block.blockType}
               )
-              ON CONFLICT (student_name, weekday, start_time, end_time) DO NOTHING
+              ON CONFLICT (student_name, weekday, block_number) DO UPDATE SET
+                start_time = EXCLUDED.start_time,
+                end_time = EXCLUDED.end_time,
+                subject = EXCLUDED.subject,
+                block_type = EXCLUDED.block_type
+              RETURNING (xmax = 0) AS inserted
             `);
             
-            // Check if row was actually inserted (PostgreSQL specific)
-            if (result.rowCount && result.rowCount > 0) {
+            // PostgreSQL returns (xmax = 0) as true for INSERT, false for UPDATE
+            if (result.rows[0] && result.rows[0].inserted) {
               insertedCount++;
             } else {
-              skippedCount++;
+              updatedCount++;
             }
           } catch (error: any) {
-            logger.warn('Seed', `Failed to insert block ${block.subject} at ${block.startTime}`, {
+            logger.warn('Seed', `Failed to upsert block ${block.subject} at ${block.startTime}`, {
               error: error.message
             });
             skippedCount++;
           }
         }
+        
+        // Clean up old placeholder blocks that are outside the canonical 1-10 range
+        const cleanupResult = await tx.execute(sql`
+          DELETE FROM schedule_template 
+          WHERE student_name = 'Abigail' 
+            AND weekday = 'Thursday' 
+            AND (block_number IS NULL OR block_number NOT BETWEEN 1 AND 10)
+        `);
+        
+        if (cleanupResult.rowCount && cleanupResult.rowCount > 0) {
+          logger.info('Seed', `Cleaned up ${cleanupResult.rowCount} old placeholder blocks`);
+        }
 
         // Record the seed application
-        await recordSeedApplication(seedName, seedVersion, insertedCount, skippedCount, checksum);
+        await recordSeedApplication(seedName, seedVersion, insertedCount + updatedCount, skippedCount, checksum);
       });
     } catch (error: any) {
       // Fallback to non-transactional approach (for Neon HTTP driver)
@@ -225,7 +246,7 @@ export async function seedAbigailThursdayTemplate(): Promise<{
           checksum
         });
 
-        // Insert each block with conflict resolution (without transaction)
+        // Use proper UPSERT with ON CONFLICT UPDATE to handle replacing incorrect rows (without transaction)
         for (const block of ABIGAIL_THURSDAY_TEMPLATE) {
           try {
             const result = await db.execute(sql`
@@ -235,21 +256,38 @@ export async function seedAbigailThursdayTemplate(): Promise<{
                 ${block.studentName}, ${block.weekday}, ${block.blockNumber}, 
                 ${block.startTime}, ${block.endTime}, ${block.subject}, ${block.blockType}
               )
-              ON CONFLICT (student_name, weekday, start_time, end_time) DO NOTHING
+              ON CONFLICT (student_name, weekday, block_number) DO UPDATE SET
+                start_time = EXCLUDED.start_time,
+                end_time = EXCLUDED.end_time,
+                subject = EXCLUDED.subject,
+                block_type = EXCLUDED.block_type
+              RETURNING (xmax = 0) AS inserted
             `);
             
-            // Check if row was actually inserted (PostgreSQL specific)
-            if (result.rowCount && result.rowCount > 0) {
+            // PostgreSQL returns (xmax = 0) as true for INSERT, false for UPDATE
+            if (result.rows[0] && result.rows[0].inserted) {
               insertedCount++;
             } else {
-              skippedCount++;
+              updatedCount++;
             }
           } catch (error: any) {
-            logger.warn('Seed', `Failed to insert block ${block.subject} at ${block.startTime}`, {
+            logger.warn('Seed', `Failed to upsert block ${block.subject} at ${block.startTime}`, {
               error: error.message
             });
             skippedCount++;
           }
+        }
+        
+        // Clean up old placeholder blocks that are outside the canonical 1-10 range (without transaction)
+        const cleanupResult = await db.execute(sql`
+          DELETE FROM schedule_template 
+          WHERE student_name = 'Abigail' 
+            AND weekday = 'Thursday' 
+            AND (block_number IS NULL OR block_number NOT BETWEEN 1 AND 10)
+        `);
+        
+        if (cleanupResult.rowCount && cleanupResult.rowCount > 0) {
+          logger.info('Seed', `Cleaned up ${cleanupResult.rowCount} old placeholder blocks`);
         }
 
         // Record the seed application (without transaction)
@@ -268,17 +306,19 @@ export async function seedAbigailThursdayTemplate(): Promise<{
       }
     }
 
-    const message = `Seed '${seedName}' applied: ${insertedCount} inserted, ${skippedCount} skipped`;
+    const message = `Seed '${seedName}' applied: ${insertedCount} inserted, ${updatedCount} updated, ${skippedCount} skipped`;
     logger.info('Seed', message, {
       seedName,
       version: seedVersion,
       inserted: insertedCount,
+      updated: updatedCount,
       skipped: skippedCount,
       total: ABIGAIL_THURSDAY_TEMPLATE.length
     });
 
     return {
       inserted: insertedCount,
+      updated: updatedCount,
       skipped: skippedCount,
       message
     };

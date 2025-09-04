@@ -1,0 +1,32 @@
+Goal: Make seeds replace incorrect rows, not just insert. Stay repo-official (migration + seed). No ad-hoc SQL.
+
+Phase 1 — Make upsert actually update
+	1.	Add/confirm a unique key for schedule_template on
+{student_name, weekday, block_number} (not the times).
+	•	This lets us update a given slot (block 1..10) regardless of its current times/subject.
+	2.	Change the schedule seed to UPSERT with UPDATE:
+	•	Key: {student_name, weekday, block_number}
+	•	On conflict: update start_time, end_time, subject, block_type to the canonical values.
+	•	Log counts as inserted=__, updated=__, skipped=__ (separate numbers).
+	3.	Cleanup (scoped + transactional) for Abigail/Thursday only:
+	•	After the upsert, delete any rows where block_number NOT IN (1..10) to remove old emergency placeholders.
+	•	This is safe because the 10 canonical rows now exist.
+	4.	Normalize time strings to HH:MM in both seed and (if needed) a one-time migration that converts HH:MM:SS → HH:MM.
+
+Phase 2 — Bible curriculum seed that can update
+5) Pick a stable, natural key for Bible rows (e.g., {course_id, unit, lesson_no} or {curriculum_id, day_index}—use what your schema actually has).
+6) Implement seed as UPSERT with UPDATE on that key (not insert-only).
+	•	Again, log inserted / updated / skipped separately so we can tell what happened.
+
+Phase 3 — Prove it in Production (acceptance artifacts)
+Return PROD artifacts only (no dev):
+	•	Migrations list showing the new unique key migration applied.
+	•	Seed summaries (production):
+	•	Schedule: shows non-zero updated (and/or inserted) counts.
+	•	Bible: shows non-zero updated/inserted.
+	•	Template JSON: GET /api/schedule-template/Abigail/Thursday → 10 blocks with HH:MM times and real subjects.
+	•	Planner HAR: POST /initialize then GET /schedule → 200 JSON with real subjects (not “Assignment”).
+	•	Planner metrics: template_block_count=10, coop_day=false.
+	•	UI screenshot: /student/abigail shows Today’s Schedule populated.
+
+NO-GO if: seed logs don’t show updated counts, template still ≠ 10, planner still returns “Assignment”, or artifacts are from dev.
