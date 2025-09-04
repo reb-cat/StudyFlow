@@ -4,6 +4,10 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { jobScheduler } from "./lib/scheduler";
 import { logger } from "./lib/logger";
+import { runMigrations } from "./lib/migrations";
+import { startResourceMonitoring } from "./lib/resource-monitoring";
+import { validateRequiredEnvironment } from "./lib/env-validation";
+import { setupSecurityHeaders } from "./lib/security-headers";
 
 const app = express();
 
@@ -112,6 +116,36 @@ app.use((req, res, next) => {
     hasBaseUrl: !!process.env.CANVAS_BASE_URL,
     hasBaseUrl2: !!process.env.CANVAS_BASE_URL_2
   });
+
+  // Validate environment before starting services
+  try {
+    validateRequiredEnvironment();
+    logger.info('Server', 'Environment validation passed');
+  } catch (error: any) {
+    logger.error('Server', 'Environment validation failed', { error: error.message });
+    // Don't exit in development for easier debugging
+    if (isProduction) {
+      process.exit(1);
+    }
+  }
+
+  // Run database migrations before starting services
+  try {
+    logger.info('Server', '🔄 Running database migrations...');
+    const migrationResult = await runMigrations();
+    logger.info('Server', 'Database migrations completed', migrationResult);
+  } catch (error: any) {
+    logger.error('Server', 'Database migration failed', { error: error.message });
+    if (isProduction) {
+      process.exit(1);
+    }
+  }
+
+  // Start resource monitoring in production
+  if (isProduction) {
+    startResourceMonitoring(60000); // Monitor every minute
+    logger.info('Server', 'Resource monitoring started');
+  }
 
   // Start job scheduler
   logger.info('Server', '🚀 Starting job scheduler...');

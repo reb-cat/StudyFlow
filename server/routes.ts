@@ -1,6 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { logger } from "./lib/logger";
+import { basicHealthCheck, readinessCheck, livenessCheck, metricsEndpoint } from "./lib/health-checks";
+import { generalRateLimit, authRateLimit, apiRateLimit, strictRateLimit, uploadRateLimit } from "./lib/rate-limiting";
 
 // Family authentication middleware
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
@@ -67,6 +70,15 @@ const emailConfig = {
 import { jobScheduler } from "./lib/scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Health check endpoints for production monitoring
+  app.get('/health', basicHealthCheck);
+  app.get('/health/ready', readinessCheck);
+  app.get('/health/live', livenessCheck);
+  app.get('/metrics', strictRateLimit, metricsEndpoint);
+  
+  // Apply general rate limiting to all API routes
+  app.use('/api', generalRateLimit);
   
   // Setup family authentication
   setupFamilyAuth(app);
@@ -166,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`✅ Assignment ${id} updated successfully:`, assignment.title);
       res.json({ message: 'Assignment updated successfully', assignment });
     } catch (error) {
-      console.error('Error updating assignment:', error);
+      logger.error('API', 'Failed to update assignment', { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({ message: 'Failed to update assignment' });
     }
   });
@@ -527,7 +539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const assignment = await storage.createAssignment({ ...validatedAssignmentData, userId });
       res.status(201).json(assignment);
     } catch (error) {
-      console.error('Error creating assignment:', error);
+      logger.error('API', 'Failed to create assignment', { error: error instanceof Error ? error.message : String(error) });
       res.status(400).json({ message: 'Failed to create assignment' });
     }
   });
@@ -550,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(assignment);
     } catch (error) {
-      console.error('Error updating assignment:', error);
+      logger.error('API', 'Failed to update assignment', { error: error instanceof Error ? error.message : String(error) });
       res.status(400).json({ message: 'Failed to update assignment' });
     }
   });
@@ -567,7 +579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(204).send();
     } catch (error) {
-      console.error('Error deleting assignment:', error);
+      logger.error('API', 'Failed to delete assignment', { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({ message: 'Failed to delete assignment' });
     }
   });
