@@ -353,10 +353,22 @@ export class DatabaseStorage implements IStorage {
     assignments: Assignment[];
   }> {
     try {
+      console.log(`🔍 SCHEDULE PLANNER DEBUG: Starting for student=${studentName} date=${targetDate}`);
       const userId = `${studentName.toLowerCase()}-user`;
       
       // Get unscheduled assignments - EXCLUDE PARENT TASKS
-      const userAssignments = await this.getAssignments(userId);
+      const userAssignments = await this.getAssignments(userId, targetDate);
+      console.log(`📊 TOTAL TASKS: ${userAssignments.length} assignments found for ${studentName}`);
+      
+      // Count assignments due today
+      const targetDateOnly = targetDate.split('T')[0]; // Handle both date and datetime formats
+      const dueToday = userAssignments.filter(a => {
+        if (!a.dueDate) return false;
+        const dueDateOnly = typeof a.dueDate === 'string' ? a.dueDate.split('T')[0] : a.dueDate.toISOString().split('T')[0];
+        return dueDateOnly === targetDateOnly;
+      });
+      console.log(`📅 DUE TODAY: ${dueToday.length} assignments due on ${targetDate}`);
+      
       const unscheduledAssignments = userAssignments.filter(a => {
         // First filter: must be pending and not scheduled
         if (a.completionStatus !== 'pending' || (a.scheduledDate && a.scheduledBlock)) {
@@ -395,11 +407,60 @@ export class DatabaseStorage implements IStorage {
         return true;
       });
       
+      console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent/bible tasks`);
+      
       // Get schedule template blocks
       const targetDateObj = new Date(targetDate);
       const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const weekday = weekdays[targetDateObj.getDay()];
       const scheduleBlocks = await this.getScheduleTemplate(studentName, weekday);
+      
+      // Check for Co-op Day detection
+      const studyHallBlocks = scheduleBlocks.filter(block => block.blockType === 'Study Hall');
+      let assignmentBlocks = scheduleBlocks.filter(block => block.blockType === 'Assignment');
+      const isCoopDay = studyHallBlocks.length > 0;
+      console.log(`🏫 CO-OP DAY CHECK: ${isCoopDay ? 'YES' : 'NO'} - ${assignmentBlocks.length} home blocks + ${studyHallBlocks.length} study hall blocks on ${weekday}`);
+      
+      // PLANNER FIX: Create default Assignment blocks if none exist and assignments are due today
+      if (assignmentBlocks.length === 0 && dueToday.length > 0) {
+        console.log(`🔧 PLANNER FIX: No assignment blocks found but ${dueToday.length} assignments due today - creating default blocks`);
+        
+        const defaultBlocks = [
+          {
+            id: `temp-1-${studentName}-${weekday}`,
+            studentName: studentName,
+            weekday: weekday,
+            blockNumber: 1,
+            startTime: '09:00',
+            endTime: '10:00',
+            subject: 'Assignment',
+            blockType: 'Assignment' as const
+          },
+          {
+            id: `temp-2-${studentName}-${weekday}`,
+            studentName: studentName,
+            weekday: weekday,
+            blockNumber: 2,
+            startTime: '10:00',
+            endTime: '11:00',
+            subject: 'Assignment',
+            blockType: 'Assignment' as const
+          },
+          {
+            id: `temp-3-${studentName}-${weekday}`,
+            studentName: studentName,
+            weekday: weekday,
+            blockNumber: 3,
+            startTime: '11:00',
+            endTime: '12:00',
+            subject: 'Assignment',
+            blockType: 'Assignment' as const
+          }
+        ];
+        
+        assignmentBlocks = defaultBlocks;
+        console.log(`✅ Created ${defaultBlocks.length} temporary assignment blocks for scheduling`);
+      }
       
       // Use auto-scheduler
       const { autoScheduleAssignments } = await import('./lib/assignmentIntelligence');
@@ -416,7 +477,13 @@ export class DatabaseStorage implements IStorage {
         scheduledBlock: a.scheduledBlock
       }));
       
-      const scheduleBlocksFormatted = scheduleBlocks.map(b => ({
+      // Combine original schedule blocks with any created assignment blocks
+      const allScheduleBlocks = [
+        ...scheduleBlocks.filter(b => b.blockType !== 'Assignment'), // Keep non-assignment blocks
+        ...assignmentBlocks // Use potentially modified/created assignment blocks
+      ];
+      
+      const scheduleBlocksFormatted = allScheduleBlocks.map(b => ({
         id: b.id,
         studentName: b.studentName,
         weekday: b.weekday,
@@ -434,6 +501,8 @@ export class DatabaseStorage implements IStorage {
         targetDate,
         'America/New_York'
       );
+      
+      console.log(`📊 SCHEDULED: ${schedulingResults.size} assignments scheduled by the planner`);
       
       // Update assignments in database
       const updatedAssignments: Assignment[] = [];
@@ -951,6 +1020,7 @@ export class DatabaseStorage implements IStorage {
   // Allocate assignments to template blocks with sophisticated scoring
   async allocateAssignmentsToTemplate(studentName: string, date: string): Promise<void> {
     try {
+      console.log(`🔍 SCHEDULE PLANNER DEBUG: Starting for student=${studentName} date=${date}`);
       console.log(`🎯 Allocating assignments for ${studentName} on ${date}`);
       
       // Get current weekday
@@ -990,7 +1060,70 @@ export class DatabaseStorage implements IStorage {
 
       if (availableAssignmentBlocks.length === 0) {
         console.log(`📝 No available assignment blocks found for ${studentName} on ${weekdayName} (all completed or none exist)`);
-        return;
+        
+        // PLANNER FIX: Check if we should create default blocks for assignments due today
+        const userId = `${studentName.toLowerCase()}-user`;
+        const allAssignments = await this.getAssignments(userId);
+        const targetDateOnly = date.split('T')[0];
+        const dueToday = allAssignments.filter(a => {
+          if (!a.dueDate) return false;
+          const dueDateOnly = typeof a.dueDate === 'string' ? a.dueDate.split('T')[0] : a.dueDate.toISOString().split('T')[0];
+          return dueDateOnly === targetDateOnly;
+        });
+        
+        if (dueToday.length > 0) {
+          console.log(`🔧 PLANNER FIX: No assignment blocks found but ${dueToday.length} assignments due today - creating default blocks`);
+          
+          // Create temporary default schedule blocks in the database
+          const defaultBlocks = [
+            {
+              studentName: studentName,
+              weekday: weekdayName,
+              blockNumber: 1,
+              startTime: '09:00',
+              endTime: '10:00',
+              subject: 'Assignment',
+              blockType: 'Assignment' as const
+            },
+            {
+              studentName: studentName,
+              weekday: weekdayName,
+              blockNumber: 2,
+              startTime: '10:00',
+              endTime: '11:00',
+              subject: 'Assignment',
+              blockType: 'Assignment' as const
+            },
+            {
+              studentName: studentName,
+              weekday: weekdayName,
+              blockNumber: 3,
+              startTime: '11:00',
+              endTime: '12:00',
+              subject: 'Assignment',
+              blockType: 'Assignment' as const
+            }
+          ];
+          
+          // Insert the default blocks into the schedule template
+          const insertedBlocks = await db.insert(scheduleTemplate).values(defaultBlocks).returning();
+          console.log(`✅ Created ${insertedBlocks.length} temporary assignment blocks for scheduling`);
+          
+          // Update availableAssignmentBlocks to use the newly created blocks
+          availableAssignmentBlocks.push(...insertedBlocks);
+          
+          // Also create daily status records for the new blocks
+          const statusRecords = insertedBlocks.map(block => ({
+            studentName,
+            date,
+            templateBlockId: block.id,
+            status: 'not-started' as const,
+          }));
+          await db.insert(dailyScheduleStatus).values(statusRecords);
+          
+        } else {
+          return; // Still no assignments due today, so return early
+        }
       }
       
       // DEBUG LOGGING: Import debug utilities
@@ -1047,6 +1180,16 @@ export class DatabaseStorage implements IStorage {
       windowEnd.setDate(windowEnd.getDate() + 7);
       
       const allAssignments = await this.getAssignments(userId);
+      console.log(`📊 TOTAL TASKS: ${allAssignments.length} assignments found for ${studentName}`);
+      
+      // Count assignments due today
+      const targetDateOnly = date.split('T')[0]; // Handle both date and datetime formats
+      const dueToday = allAssignments.filter(a => {
+        if (!a.dueDate) return false;
+        const dueDateOnly = typeof a.dueDate === 'string' ? a.dueDate.split('T')[0] : a.dueDate.toISOString().split('T')[0];
+        return dueDateOnly === targetDateOnly;
+      });
+      console.log(`📅 DUE TODAY: ${dueToday.length} assignments due on ${date}`);
       const candidateAssignments = allAssignments.filter(assignment => {
         // Include assignments that are workable: pending, needs_more_time, stuck
         // EXCLUDE only truly completed assignments
@@ -1065,6 +1208,13 @@ export class DatabaseStorage implements IStorage {
         const dueDate = new Date(assignment.dueDate);
         return dueDate >= windowStart && dueDate <= windowEnd;
       });
+      
+      console.log(`🔍 FILTERED: ${candidateAssignments.length} assignments after filtering out completed/parent/bible tasks`);
+      
+      // Check for Co-op Day detection
+      const studyHallBlocks = templateBlocks.filter(block => block.blockType === 'Study Hall');
+      const isCoopDay = studyHallBlocks.length > 0;
+      console.log(`🏫 CO-OP DAY CHECK: ${isCoopDay ? 'YES' : 'NO'} - ${assignmentBlocks.length} home blocks + ${studyHallBlocks.length} study hall blocks on ${weekdayName}`);
       
       if (candidateAssignments.length === 0) {
         console.log(`📝 No candidate assignments found for allocation`);
