@@ -65,9 +65,9 @@ export const assignments = pgTable("assignments", {
   needsManualDueDate: boolean("needs_manual_due_date").default(false), // Flag for assignments missing Canvas dates
   suggestedDueDate: timestamp("suggested_due_date"), // AI-suggested due date from related assignments
   
-  // TODO: Add bidirectional Canvas sync fields after deployment
-  // deletedAt: timestamp("deleted_at"), // When assignment was removed from Canvas  
-  // canvasGradeStatus: text("canvas_grade_status"), // Canvas grading status for completion sync
+  // Bidirectional Canvas sync fields - ENABLED FOR PRODUCTION
+  deletedAt: timestamp("deleted_at"), // When assignment was removed from Canvas  
+  canvasGradeStatus: text("canvas_grade_status"), // Canvas grading status for completion sync
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -121,7 +121,7 @@ export const bibleCurriculum = pgTable("bible_curriculum", {
 // Progress tracking for executive function support
 export const progressSessions = pgTable("progress_sessions", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  studentName: text("student_name").notNull(), // Use student name instead of user ID
   assignmentId: uuid("assignment_id").references(() => assignments.id),
   sessionType: text("session_type", { 
     enum: ["focus", "break", "stuck_help", "continuation"] 
@@ -143,7 +143,9 @@ export const insertAssignmentSchema = createInsertSchema(assignments).omit({
   updatedAt: true,
 });
 
-export const updateAssignmentSchema = insertAssignmentSchema.partial();
+export const updateAssignmentSchema = insertAssignmentSchema.partial().extend({
+  updatedAt: z.date().optional(), // Allow updatedAt field in updates
+});
 
 // Schedule template schemas
 export const insertScheduleTemplateSchema = createInsertSchema(scheduleTemplate).omit({
@@ -204,6 +206,16 @@ export const studentStatus = pgTable("student_status", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Session management for family password authentication
+export const sessions = pgTable("sessions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id", { length: 128 }).unique().notNull(),
+  authenticated: boolean("authenticated").default(false),
+  familyName: text("family_name"), // Track which family is authenticated  
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
 // Bible curriculum schemas
 export const insertBibleCurriculumSchema = createInsertSchema(bibleCurriculum).omit({
   id: true,
@@ -224,10 +236,16 @@ export const insertStudentProfileSchema = createInsertSchema(studentProfiles).om
 
 export const updateStudentProfileSchema = insertStudentProfileSchema.partial();
 
+// Session schemas
+export const insertSessionSchema = createInsertSchema(sessions).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Progress session schemas
 export const insertProgressSessionSchema = createInsertSchema(progressSessions).omit({
   id: true,
-  userId: true,
+  studentName: true,
   createdAt: true,
 });
 
@@ -259,3 +277,6 @@ export type StudentProfile = typeof studentProfiles.$inferSelect;
 
 export type StudentStatus = typeof studentStatus.$inferSelect;
 export type InsertStudentStatus = typeof studentStatus.$inferInsert;
+
+export type Session = typeof sessions.$inferSelect;
+export type InsertSession = z.infer<typeof insertSessionSchema>;

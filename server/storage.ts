@@ -56,6 +56,11 @@ export interface IStorage {
   
   // Assignment allocation and scheduling helpers
   allocateAssignmentsToTemplate(studentName: string, date: string): Promise<void>;
+  autoScheduleAssignmentsForDate(studentName: string, targetDate: string): Promise<{
+    scheduled: number;
+    total: number;
+    assignments: Assignment[];
+  }>;
   rescheduleNeedMoreTime(assignmentId: string, date: string): Promise<void>;
   markStuckWithUndo(assignmentId: string): Promise<void>;
 }
@@ -508,6 +513,17 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error marking assignment as deleted:', error);
       return undefined;
+    }
+  }
+
+  async getDeletedAssignments(): Promise<Assignment[]> {
+    try {
+      // Get all assignments that have been soft deleted (deletedAt is not null)
+      const result = await db.select().from(assignments).where(isNotNull(assignments.deletedAt));
+      return result || [];
+    } catch (error) {
+      console.error('Error getting deleted assignments:', error);
+      return [];
     }
   }
 
