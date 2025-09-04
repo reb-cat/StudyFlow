@@ -419,6 +419,8 @@ export function GuidedDayView({
       }
     });
     
+    // DEBUG: Disabled for performance
+    
     // Helper function to check if assignment subject matches today's co-op classes
     const matchesTodaysCoopClass = (assignmentSubject: string) => {
       const subjectLower = assignmentSubject.toLowerCase();
@@ -434,20 +436,26 @@ export function GuidedDayView({
     };
 
     // Add Canvas assignments due TODAY for classes happening TODAY
-    assignments.forEach(assignment => {
-      if (assignment.dueDate && assignment.completionStatus === 'pending') {
-        const dueDate = new Date(assignment.dueDate + 'T12:00:00'); // Timezone-safe
-        const today = new Date(selectedDate + 'T12:00:00');
-        // Only include assignments due TODAY for co-op classes scheduled TODAY
-        if (dueDate.toDateString() === today.toDateString()) {
-          const subject = assignment.courseName || assignment.subject;
-          if (subject && matchesTodaysCoopClass(subject)) {
-            subjects.add(subject);
-            dueAssignments.push(assignment);
-          }
-        }
+    const todayAssignments = assignments.filter(a => 
+      a.dueDate && a.completionStatus === 'pending' && 
+      new Date(a.dueDate + 'T12:00:00').toDateString() === new Date(selectedDate + 'T12:00:00').toDateString()
+    );
+
+    // DEBUG: Disabled for performance
+    todayAssignments.forEach(assignment => {
+      const subject = assignment.courseName || assignment.subject;
+      if (subject && matchesTodaysCoopClass(subject)) {
+        subjects.add(subject);
+        dueAssignments.push(assignment);
       }
     });
+
+    // DEBUG: Disabled for performance
+
+    // If no assignments due today for co-op classes, don't show the checklist
+    if (dueAssignments.length === 0) {
+      return [];
+    }
 
     const checklist: { item: string; category: 'books' | 'materials' | 'homework' | 'general' }[] = [];
 
