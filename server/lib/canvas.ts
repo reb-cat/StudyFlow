@@ -1,4 +1,5 @@
 import { canvasConfig } from './config';
+import { logger } from './logger';
 
 export interface CanvasAssignment {
   id: number;
@@ -147,7 +148,11 @@ export class CanvasClient {
     }
   }
 
-  private async makeRequest<T>(endpoint: string): Promise<T> {
+  // Rate limiting: Track request timestamps
+  private lastRequestTime = 0;
+  private readonly REQUEST_DELAY_MS = 100; // 10 requests per second max
+
+  private async makeRequest<T>(endpoint: string, retries = 3): Promise<T> {
     // Ensure baseUrl starts with https:// and remove trailing slash
     let baseUrl = this.baseUrl;
     if (!baseUrl.startsWith('https://') && !baseUrl.startsWith('http://')) {
@@ -157,23 +162,80 @@ export class CanvasClient {
     baseUrl = baseUrl.replace(/\/$/, '');
     const url = `${baseUrl}/api/v1${endpoint}`;
     
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Canvas API error: ${response.status} ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Canvas API request failed:', { url, error });
-      throw error;
+    // Rate limiting: Ensure minimum delay between requests
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    if (timeSinceLastRequest < this.REQUEST_DELAY_MS) {
+      await new Promise(resolve => setTimeout(resolve, this.REQUEST_DELAY_MS - timeSinceLastRequest));
     }
+    this.lastRequestTime = Date.now();
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        // Create AbortController for request timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${this.token}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          // Rate limit handling: wait and retry for 429 status
+          if (response.status === 429 && attempt < retries) {
+            const retryAfter = response.headers.get('Retry-After');
+            const delayMs = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, attempt) * 1000;
+            logger.warn('Canvas', `API rate limited, retrying in ${delayMs}ms`, { attempt, retries, url });
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            continue;
+          }
+          
+          // Server error handling: retry with exponential backoff
+          if (response.status >= 500 && attempt < retries) {
+            const delayMs = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+            logger.warn('Canvas', `API server error ${response.status}, retrying in ${delayMs}ms`, { attempt, retries, url });
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            continue;
+          }
+
+          throw new Error(`Canvas API error: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+      } catch (error: any) {
+        // Handle timeout and network errors
+        if (error.name === 'AbortError') {
+          if (attempt < retries) {
+            logger.warn('Canvas', 'API timeout, retrying', { attempt, retries, url });
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+            continue;
+          }
+          throw new Error('Canvas API request timed out after 30 seconds');
+        }
+        
+        // Network error handling: retry with exponential backoff
+        if (attempt < retries && (error.code === 'ECONNRESET' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT')) {
+          const delayMs = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+          logger.warn('Canvas', `API network error, retrying in ${delayMs}ms`, { attempt, retries, url, error: error.message });
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          continue;
+        }
+        
+        // Final attempt or non-retryable error
+        if (attempt === retries) {
+          logger.error('Canvas', 'API request failed after all retries', { url, error: error.message });
+          throw error;
+        }
+      }
+    }
+    
+    throw new Error('Canvas API request failed: Max retries exceeded');
   }
 
   async getCourses(): Promise<CanvasCourse[]> {

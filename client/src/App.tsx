@@ -18,6 +18,7 @@ import ScheduleTemplates from "@/pages/schedule-templates";
 import UnlockPage from "@/pages/unlock";
 import AdminAuth from "@/components/AdminAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Auth context for global auth state management
 const AuthContext = createContext<{
@@ -110,7 +111,9 @@ function App() {
         <AuthProvider>
           <TooltipProvider>
             <Toaster />
-            <Router />
+            <ErrorBoundary>
+              <Router />
+            </ErrorBoundary>
           </TooltipProvider>
         </AuthProvider>
       </ThemeProvider>
