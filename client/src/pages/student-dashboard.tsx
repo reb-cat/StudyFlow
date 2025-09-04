@@ -404,7 +404,7 @@ export default function StudentDashboard() {
     // 🎯 FIX: Calculate estimatedMinutes for ALL blocks using same logic as Overview
     const estimatedMinutes = toMinutes(block.endTime) - toMinutes(block.startTime);
     
-    if (block.blockType === 'assignment') {
+    if (block.blockType === 'assignment' || block.blockType === 'Study Hall') {
       const pb = populatedAssignmentBlocks.find(pb => pb.id === block.id);
       const a = pb?.assignment;
       return {
@@ -414,6 +414,7 @@ export default function StudentDashboard() {
         estimatedMinutes: a?.estimatedMinutes ?? 30, // Use assignment-specific time for assignments
         assignmentId: a?.id ?? null,
         assignment: a, // 🎯 FIX: Pass full assignment object with instructions
+        blockType: block.blockType, // 🎯 NEW: Track original block type for Study Hall handling
       };
     }
     if (block.blockType === 'bible') {

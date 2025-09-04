@@ -1274,22 +1274,24 @@ export function GuidedDayView({
           </div>
         )}
 
-        {/* Timer */}
-        <div style={{ marginBottom: '32px' }}>
-          <CircularTimer
-            durationMinutes={currentBlock.estimatedMinutes || 20}
-            isRunning={isTimerRunning}
-            onComplete={() => setIsTimerRunning(false)}
-            onToggle={() => setIsTimerRunning(!isTimerRunning)}
-            onReset={() => {
-              setIsTimerRunning(false);
-              setTimeRemaining((currentBlock.estimatedMinutes || 20) * 60);
-            }}
-            hideControls={true}
-            externalTimeRemaining={timeRemaining}
-            onTimeUpdate={setTimeRemaining}
-          />
-        </div>
+        {/* Timer - Hidden for Co-op class blocks */}
+        {!(currentBlock.type === 'fixed' && currentBlock.title?.includes('Co-op')) && (
+          <div style={{ marginBottom: '32px' }}>
+            <CircularTimer
+              durationMinutes={currentBlock.estimatedMinutes || 20}
+              isRunning={isTimerRunning}
+              onComplete={() => setIsTimerRunning(false)}
+              onToggle={() => setIsTimerRunning(!isTimerRunning)}
+              onReset={() => {
+                setIsTimerRunning(false);
+                setTimeRemaining((currentBlock.estimatedMinutes || 20) * 60);
+              }}
+              hideControls={true}
+              externalTimeRemaining={timeRemaining}
+              onTimeUpdate={setTimeRemaining}
+            />
+          </div>
+        )}
 
         {/* Stuck Countdown Banner (if active) */}
         {stuckCountdown > 0 && stuckPendingKey && (
@@ -1327,70 +1329,98 @@ export function GuidedDayView({
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <button
-            onClick={handleBlockComplete}
-            style={{
-              width: '100%',
-              padding: '16px',
-              borderRadius: '12px',
-              backgroundColor: colors.complete,
-              color: 'white',
-              border: 'none',
-              fontSize: '18px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'transform 0.1s',
-              boxShadow: `0 4px 12px ${colors.complete}40`
-            }}
-            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            data-testid="button-done"
-          >
-            ✓ Done
-          </button>
+          {/* Simple Co-op Attendance Button */}
+          {currentBlock.type === 'fixed' && currentBlock.title?.includes('Co-op') ? (
+            <button
+              onClick={handleBlockComplete}
+              style={{
+                width: '100%',
+                padding: '16px',
+                borderRadius: '12px',
+                backgroundColor: colors.complete,
+                color: 'white',
+                border: 'none',
+                fontSize: '18px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'transform 0.1s',
+                boxShadow: `0 4px 12px ${colors.complete}40`
+              }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              data-testid="button-attended"
+            >
+              ✓ Attended
+            </button>
+          ) : (
+            <button
+              onClick={handleBlockComplete}
+              style={{
+                width: '100%',
+                padding: '16px',
+                borderRadius: '12px',
+                backgroundColor: colors.complete,
+                color: 'white',
+                border: 'none',
+                fontSize: '18px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'transform 0.1s',
+                boxShadow: `0 4px 12px ${colors.complete}40`
+              }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              data-testid="button-done"
+            >
+              ✓ Done
+            </button>
+          )}
           
-          <div style={{ display: 'flex', gap: '12px' }}>
-            {/* Show Need More Time button for assignment and Bible blocks */}
-            {(currentBlock?.assignment || currentBlock?.type === 'bible') && (
+          {/* Hide complex buttons for Co-op class blocks */}
+          {!(currentBlock.type === 'fixed' && currentBlock.title?.includes('Co-op')) && (
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {/* Show Need More Time button for assignment and Bible blocks */}
+              {(currentBlock?.assignment || currentBlock?.type === 'bible') && (
+                <button
+                  onClick={handleNeedMoreTime}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '12px',
+                    backgroundColor: 'transparent',
+                    border: `2px solid ${colors.progress}`,
+                    color: colors.progress,
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  data-testid="button-need-more-time"
+                >
+                  Need More Time
+                </button>
+              )}
+            
               <button
-                onClick={handleNeedMoreTime}
+                onClick={handleStuck}
                 style={{
                   flex: 1,
                   padding: '12px',
                   borderRadius: '12px',
                   backgroundColor: 'transparent',
-                  border: `2px solid ${colors.progress}`,
-                  color: colors.progress,
+                  border: `2px solid ${colors.support}`,
+                  color: colors.support,
                   fontSize: '16px',
                   fontWeight: '500',
                   cursor: 'pointer',
                   transition: 'all 0.2s'
                 }}
-                data-testid="button-need-more-time"
+                data-testid="button-stuck"
               >
-                Need More Time
+                Stuck
               </button>
-            )}
-            
-            <button
-              onClick={handleStuck}
-              style={{
-                flex: 1,
-                padding: '12px',
-                borderRadius: '12px',
-                backgroundColor: 'transparent',
-                border: `2px solid ${colors.support}`,
-                color: colors.support,
-                fontSize: '16px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              data-testid="button-stuck"
-            >
-              Stuck
-            </button>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Emergency Exit */}
