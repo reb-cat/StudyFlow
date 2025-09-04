@@ -201,7 +201,7 @@ app.use((req, res, next) => {
   }
 
   // Controlled seeding for production safety
-  const seedControl = process.env.RUN_SEEDS || 'on';
+  const seedControl = process.env.RUN_SEEDS || 'off'; // Default to off for production safety
   
   if (seedControl === 'off') {
     logger.info('Server', '🚫 Database seeding DISABLED (RUN_SEEDS=off)');

@@ -1,0 +1,52 @@
+0) Freeze mutations
+	•	Set RUN_SEEDS=off (so nothing keeps changing while you work).
+	•	Deploy once.
+
+1) Confirm you’re on the real PROD DB
+	•	In your DB console (Neon/psql) run:
+
+SELECT current_database(), version();
+
+(Just verify you’re on prod.)
+
+2) Schedule template — force parity via UPSERT (block_number key)
+
+Goal: Abigail/Thursday = 10 canonical blocks (HH:MM).
+
+A) Ensure constraint exists (or migrate it):
+
+-- Unique per slot so we can UPDATE by slot
+ALTER TABLE schedule_template
+  ADD CONSTRAINT schedule_template_upsert_key
+  UNIQUE (student_name, weekday, block_number);
+
+B) One-shot seed (UPSERT with UPDATE) — run your repo’s seed once (set RUN_SEEDS=once, deploy), then immediately RUN_SEEDS=off and redeploy.
+
+Pass criteria (from PROD logs & API):
+	•	Seed summary shows inserted + updated = 10 (no skips).
+	•	GET /api/schedule-template/Abigail/Thursday returns 10 real subjects with HH:MM times.
+	•	Planner: POST /api/schedule/Abigail/<today>/initialize then GET /api/schedule/Abigail/<today> → 200 JSON with real subjects (not “Assignment”).
+
+If seed “updates 0 / inserts 0”: fix one of these then re-run once:
+	•	Times must be HH:MM (not HH:MM:SS).
+	•	Keys must be exactly studentName='Abigail', weekday='Thursday'.
+	•	Constraint must be (student_name, weekday, block_number) (not time-based).
+
+3) Remove placeholder rows (only after 2 passes)
+
+DELETE FROM schedule_template
+WHERE student_name='Abigail' AND weekday='Thursday' AND subject='Assignment';
+
+(Your 10 canonical slots remain because of the unique key.)
+
+4) Bible curriculum — same pattern
+	•	Add a unique key on the natural identifier you actually use (e.g., (week_number, day_of_week, reading_type)).
+	•	Run Bible seed once (UPSERT with UPDATE).
+	•	Pass: ~24 rows present in PROD (counts + 3 sample rows), UI/API no longer blank.
+
+5) Final acceptance (PROD only; non-negotiable)
+	•	Template JSON: 10 blocks (HH:MM, real subjects).
+	•	Planner HAR: init + get → 200 JSON with real subjects.
+	•	Metrics: line shows template_block_count=10.
+	•	Bible: ~24 rows present (seed summary + sample rows).
+	•	UI screenshot: /student/abigail shows populated “Today’s Schedule”.
