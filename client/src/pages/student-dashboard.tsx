@@ -155,6 +155,14 @@ export default function StudentDashboard() {
     enabled: !isGuidedMode, // Only fetch when in Overview Mode
   });
 
+  // Get Bible curriculum for printable schedule
+  const { data: bibleResponse } = useQuery({
+    queryKey: ['/api/bible-curriculum/current', studentName],
+    enabled: !!studentName,
+  });
+  
+  const bibleData = bibleResponse?.curriculum;
+
   const handleAssignmentUpdate = () => {
     refetch();
     queryClient.invalidateQueries({ queryKey: ['/api/assignments', selectedDate, studentName] });
@@ -796,7 +804,10 @@ export default function StudentDashboard() {
                         }
                       } else if (block.blockType === 'bible') {
                         blockTitle = 'Bible';
-                        blockDetails = 'Genesis 1-2 (Daily Bible Reading)';
+                        // Use real Bible curriculum data instead of hardcoded Genesis
+                        blockDetails = bibleData?.dailyReading 
+                          ? `${bibleData.dailyReading.readingTitle} (Daily Bible Reading)`
+                          : 'Daily Bible Reading';
                       }
                       
                       return (
