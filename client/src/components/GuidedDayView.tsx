@@ -353,11 +353,27 @@ export function GuidedDayView({
         estimatedMinutes = block.estimatedMinutes || 30;
         
         // Find matching assignment for this block to get instructions
+        // Convert student name to user ID (Abigail -> abigail-user, Khalil -> khalil-user)
+        const userId = `${studentName.toLowerCase()}-user`;
+        
+        console.log(`🔍 Looking for assignment: userId="${userId}", date="${selectedDate}", block="${block.blockNumber}"`);
+        
         matchedAssignment = assignments.find(assignment => 
-          assignment.userId === studentName &&
+          assignment.userId === userId &&
           assignment.scheduledDate === selectedDate &&
           assignment.scheduledBlock === block.blockNumber
         );
+        
+        if (matchedAssignment) {
+          console.log(`✅ Found assignment: "${matchedAssignment.title}" with instructions: ${matchedAssignment.instructions ? 'YES' : 'NO'}`);
+        } else {
+          console.log(`❌ No assignment found for block ${block.blockNumber}`);
+          // Debug: show what assignments we have
+          const availableAssignments = assignments.slice(0, 3).map(a => 
+            `"${a.title}" (userId: ${a.userId}, date: ${a.scheduledDate}, block: ${a.scheduledBlock})`
+          );
+          console.log(`🔍 Available assignments: ${availableAssignments.join(', ')}`);
+        }
       } else {
         type = 'fixed';
         estimatedMinutes = 15; // Short fixed blocks
