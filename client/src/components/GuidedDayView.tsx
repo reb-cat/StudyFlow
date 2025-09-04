@@ -447,9 +447,10 @@ export function GuidedDayView({
 
     // Add Canvas assignments due today (even if not scheduled yet)
     assignments.forEach(assignment => {
-      if (assignment.dueDate) {
+      if (assignment.dueDate && assignment.completionStatus === 'pending') {
         const dueDate = new Date(assignment.dueDate);
         const today = new Date(selectedDate);
+        // Only include assignments actually due TODAY and for co-op subjects
         if (dueDate.toDateString() === today.toDateString()) {
           const subject = assignment.courseName || assignment.subject;
           if (subject && isCoopSubject(subject)) {
@@ -518,10 +519,9 @@ export function GuidedDayView({
       }
     });
 
-    // General co-op items
+    // General co-op items (removed Student ID and schedule printout - she doesn't have/bring those)
     if (scheduleBlocks.length > 0) {
       checklist.push(
-        { item: 'Student ID and schedule printout', category: 'general' },
         { item: 'Lunch and water bottle', category: 'general' },
         { item: 'Writing utensils (pens, pencils, highlighters)', category: 'general' },
         { item: 'Notebook paper and sticky notes', category: 'general' }
