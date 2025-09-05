@@ -474,7 +474,7 @@ export default function ScheduleTemplates() {
             {studentProfiles.map((student) => (
               <div key={student.id} className="flex items-center justify-between p-4 border border-muted rounded-lg bg-muted/30">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold" style={{borderRadius: '50%'}}>
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold" style={{borderRadius: '50%', width: '40px', height: '40px'}}>
                     {student.displayName?.charAt(0) || '?'}
                   </div>
                   <div>
