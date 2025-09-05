@@ -103,7 +103,6 @@ export default function FamilyDashboard() {
         </Link>
         
         <div className="flex items-center gap-3">
-          <ThemeToggle />
           <Link
             href="/rewards"
             className="px-5 py-2.5 bg-transparent border border-border rounded-lg text-foreground text-base cursor-pointer flex items-center gap-2 transition-all duration-200 no-underline hover:bg-secondary hover:border-primary"
@@ -118,6 +117,7 @@ export default function FamilyDashboard() {
             <Settings size={18} />
             Admin
           </Link>
+          <ThemeToggle />
         </div>
       </header>
 
