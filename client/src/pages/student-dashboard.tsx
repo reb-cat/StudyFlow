@@ -340,17 +340,34 @@ export default function StudentDashboard() {
     return assignmentBlocks.map((block, index) => {
       let selectedAssignment = null;
       
-      // First pass: try to find assignment from unused subject for diversity
+      // PRIORITY 1: Check if any assignment is specifically scheduled for this block
       for (let i = 0; i < availableAssignments.length; i++) {
         const assignment = availableAssignments[i];
-        const subject = assignment.subject || 'General';
-        
-        if (!usedSubjects.has(subject)) {
+        if (assignment.scheduledDate === selectedDate && assignment.scheduledBlock === block.blockNumber) {
           selectedAssignment = assignment;
           availableAssignments.splice(i, 1);
-          usedSubjects.add(subject);
+          // Don't add to usedSubjects yet - let diversity logic handle remaining assignments
           break;
         }
+      }
+      
+      // PRIORITY 2: If no specifically scheduled assignment, try subject diversity
+      if (!selectedAssignment) {
+        for (let i = 0; i < availableAssignments.length; i++) {
+          const assignment = availableAssignments[i];
+          const subject = assignment.subject || 'General';
+          
+          if (!usedSubjects.has(subject)) {
+            selectedAssignment = assignment;
+            availableAssignments.splice(i, 1);
+            usedSubjects.add(subject);
+            break;
+          }
+        }
+      } else {
+        // If we used a specifically scheduled assignment, still track its subject
+        const subject = selectedAssignment.subject || 'General';
+        usedSubjects.add(subject);
       }
       
       // Second pass: if no unused subject, take next available (but avoid similar titles)
