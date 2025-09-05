@@ -505,22 +505,21 @@ export default function ScheduleTemplates() {
                       ${saturdayMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                     `}
                     style={{
-                      width: '48px',
-                      height: '24px',
-                      borderRadius: '24px',
+                      width: '44px',
+                      height: '22px',
+                      borderRadius: '11px',
                       backgroundColor: student.allowSaturdayScheduling ? '#22c55e' : '#d1d5db',
-                      boxShadow: student.allowSaturdayScheduling ? '0 2px 4px rgba(34, 197, 94, 0.4)' : 'inset 0 1px 3px rgba(0, 0, 0, 0.1)'
+                      boxShadow: student.allowSaturdayScheduling ? '0 2px 4px rgba(34, 197, 94, 0.4)' : 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
+                      padding: '2px'
                     }}
                   >
                     <div 
-                      className="absolute bg-white rounded-full shadow-md transition-transform duration-300 ease-in-out"
+                      className="bg-white rounded-full shadow-sm transition-transform duration-300 ease-in-out"
                       style={{
-                        width: '20px',
-                        height: '20px',
-                        top: '2px',
-                        left: '2px',
-                        transform: student.allowSaturdayScheduling ? 'translateX(24px)' : 'translateX(0px)',
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
+                        width: '18px',
+                        height: '18px',
+                        transform: student.allowSaturdayScheduling ? 'translateX(20px)' : 'translateX(0px)',
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.2)'
                       }}
                     />
                   </button>
