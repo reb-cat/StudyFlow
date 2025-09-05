@@ -263,11 +263,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Calculate points based on your exact specifications
           const assignment = await storage.getAssignment(id);
           if (assignment) {
-            // Task completion points: High = +500, Medium = +300, Low = +100
-            let points = 100; // Default for Low priority
-            if (assignment.priority === 'A') points = 500; // High priority
-            else if (assignment.priority === 'B') points = 300; // Medium priority
-            else points = 100; // Low priority
+            // Task completion points: High = +150, Medium = +100, Low = +75
+            let points = 75; // Default for Low priority
+            if (assignment.priority === 'A') points = 150; // High priority
+            else if (assignment.priority === 'B') points = 100; // Medium priority
+            else points = 75; // Low priority
             
             // Check earning limits before awarding
             const settings = await storage.getRewardSettings('family');
@@ -1870,7 +1870,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         try {
           const rewardUserId = `${studentName.toLowerCase()}-user`;
           
-          // Session completion: +100 points per 5 minutes (≥15 min, ≤50% pause)
+          // Session completion: +25 points per 5 minutes (≥15 min, ≤50% pause)
           const template = updated.template;
           let points = 0;
           
@@ -1882,8 +1882,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
             
             // Only award points if session ≥ 15 minutes (anti-abuse)
             if (minutes >= 15) {
-              // +100 points per 5 minutes of session time  
-              points = Math.floor(minutes / 5) * 100;
+              // +25 points per 5 minutes of session time  
+              points = Math.floor(minutes / 5) * 25;
             }
           }
           
