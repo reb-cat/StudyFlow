@@ -14,6 +14,7 @@ import {
   Play,
   Grid3X3
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 // StudyFlow theme colors using updated CSS custom properties
 const colors = {
@@ -121,7 +122,7 @@ export default function FamilyDashboard() {
             </h1>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
             {/* Print Queue */}
             <button 
               onClick={() => window.location.href = '/print-queue'}
@@ -148,6 +149,9 @@ export default function FamilyDashboard() {
               <Settings size={18} />
               Admin
             </button>
+            
+            {/* Theme Toggle */}
+            <ThemeToggle />
           </div>
         </div>
       </header>

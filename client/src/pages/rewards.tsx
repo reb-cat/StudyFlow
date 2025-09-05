@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Trophy, Gift, Star, TrendingUp, Flame, Target, Clock, Award, ArrowLeft, GamepadIcon, Phone, Utensils, Monitor, Headphones, Palette, Calendar } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function RewardsPage() {
   const [selectedReward, setSelectedReward] = useState<any>(null);
@@ -203,8 +204,11 @@ export default function RewardsPage() {
                   </div>
                 </div>
               </div>
-              <div style={{ backgroundColor: 'hsl(var(--gold))', color: 'hsl(var(--gold-foreground))' }} className="px-4 py-2 rounded-lg font-bold">
-                Your Points: {profile.points}
+              <div className="flex items-center gap-3">
+                <div style={{ backgroundColor: 'hsl(var(--gold))', color: 'hsl(var(--gold-foreground))' }} className="px-4 py-2 rounded-lg font-bold">
+                  Your Points: {profile.points}
+                </div>
+                <ThemeToggle />
               </div>
             </div>
           </div>
@@ -284,13 +288,16 @@ export default function RewardsPage() {
               <h1 className="text-2xl font-bold text-foreground">Your Rewards</h1>
               <p className="text-muted-foreground">Keep studying to earn more points!</p>
             </div>
-            <Button 
-              onClick={() => setCurrentView('shop')}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 py-3"
-            >
-              <Gift className="w-4 h-4 mr-2" />
-              Shop
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={() => setCurrentView('shop')}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 py-3"
+              >
+                <Gift className="w-4 h-4 mr-2" />
+                Shop
+              </Button>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </div>
