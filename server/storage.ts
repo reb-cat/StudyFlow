@@ -539,7 +539,7 @@ export class DatabaseStorage implements IStorage {
       
       const unscheduledAssignments = userAssignments.filter(a => {
         // First filter: must be pending and not scheduled
-        if (a.completionStatus !== 'pending' || (a.scheduledDate && a.scheduledBlock)) {
+        if (a.completionStatus !== 'pending' || a.scheduledDate) {
           return false;
         }
         
