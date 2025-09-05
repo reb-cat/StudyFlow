@@ -501,7 +501,10 @@ export default function ScheduleTemplates() {
                       });
                     }}
                     disabled={saturdayMutation.isPending}
-                    className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input h-6 w-11 rounded-full relative"
+                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300 h-6 w-11 rounded-full relative transition-colors duration-200 ease-in-out shadow-inner border-0"
+                    style={{
+                      backgroundColor: student.allowSaturdayScheduling ? '#22c55e' : '#d1d5db'
+                    }}
                   />
                 </div>
               </div>
