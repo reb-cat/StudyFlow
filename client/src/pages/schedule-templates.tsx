@@ -194,16 +194,53 @@ export default function ScheduleTemplates() {
         const lines = csv.split('\n');
         const headers = lines[0].split(',').map(h => h.trim());
         
+        // Map CSV headers to expected database field names
+        const fieldMapping: Record<string, string> = {
+          'id': 'id',
+          'student_name': 'student_name',
+          'studentName': 'student_name',
+          'student': 'student_name',
+          'name': 'student_name',
+          'weekday': 'weekday',
+          'day': 'weekday',
+          'block_number': 'block_number',
+          'blockNumber': 'block_number',
+          'block': 'block_number',
+          'start_time': 'start_time',
+          'startTime': 'start_time',
+          'start': 'start_time',
+          'end_time': 'end_time',
+          'endTime': 'end_time',
+          'end': 'end_time',
+          'subject': 'subject',
+          'block_type': 'block_type',
+          'blockType': 'block_type',
+          'type': 'block_type'
+        };
+        
         const data = lines.slice(1)
           .filter(line => line.trim()) // Remove empty lines
           .map(line => {
             const values = line.split(',');
             const row: any = {};
             headers.forEach((header, index) => {
-              row[header] = values[index]?.trim() || null;
+              const value = values[index]?.trim();
+              if (value && value !== '') {
+                // Map header to the correct database field name
+                const fieldName = fieldMapping[header] || header;
+                if (fieldName) {
+                  row[fieldName] = value;
+                }
+              }
             });
-            return row;
-          });
+            
+            // Only include rows that have required fields
+            if (row.student_name && row.weekday) {
+              return row;
+            }
+            return null;
+          })
+          .filter(row => row !== null); // Remove null rows
         
         resolve(data);
       };
