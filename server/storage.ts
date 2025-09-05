@@ -521,6 +521,7 @@ export class DatabaseStorage implements IStorage {
     assignments: Assignment[];
   }> {
     try {
+      console.log(`🚨🚨🚨 TEST: CODE IS RUNNING FROM LINE 518`);
       console.log(`🔍 SCHEDULE PLANNER DEBUG: Starting for student=${studentName} date=${targetDate}`);
       const userId = `${studentName.toLowerCase()}-user`;
       
