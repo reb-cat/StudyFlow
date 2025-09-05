@@ -4,20 +4,20 @@
 @tailwind utilities;
 
 :root {
-  /* New Purple-Based Palette */
-  --primary: hsl(265, 49%, 53%);           /* #844FC1 - Rich purple */
-  --primary-light: hsl(260, 53%, 63%);     /* #9D6DD1 - Lighter purple */
-  --primary-dark: hsl(268, 42%, 45%);      /* #6B3FA0 - Deeper purple */
-  --primary-subtle: hsl(270, 100%, 97%);   /* #F3F0FF - Very light purple */
+  /* Gaming Theme from Lovable Project */
+  --primary: hsl(263, 70%, 50.4%);         /* Violet primary from gaming theme */
+  --primary-light: hsl(263, 70%, 60%);     /* Lighter violet */
+  --primary-dark: hsl(263, 70%, 40%);      /* Deeper violet */
+  --primary-subtle: hsl(263, 70%, 97%);    /* Very light violet */
   
-  --accent: hsl(104, 90%, 38%);            /* #21BF06 - Vibrant green */
-  --accent-light: hsl(142, 76%, 58%);      /* #4ADE80 - Lighter green */
-  --accent-subtle: hsl(120, 60%, 97%);     /* #F0FDF4 - Light green background */
+  --accent: hsl(142, 76%, 36%);            /* Emerald from gaming theme */
+  --accent-light: hsl(142, 76%, 46%);      /* Lighter emerald */
+  --accent-subtle: hsl(142, 76%, 97%);     /* Light emerald background */
   
-  /* Status System - Clean and Clear */
-  --status-complete: hsl(104, 90%, 38%);   /* #21BF06 - Vibrant green */
-  --status-progress: hsl(210, 58%, 54%);   /* #3B86D1 - Bright blue */
-  --status-blocked: hsl(222, 20%, 62%);    /* #6C7293 - Slate gray */
+  /* Status System - Gaming Theme */
+  --status-complete: hsl(142, 76%, 36%);   /* Emerald for completed */
+  --status-progress: hsl(213, 94%, 68%);   /* Gaming blue for progress */
+  --status-blocked: hsl(222, 20%, 62%);    /* Keep slate gray for blocked */
   
   /* Sophisticated Neutrals */
   --background: hsl(210, 16.67%, 97.65%);        /* #F8F9FA - Clean light gray */
@@ -34,7 +34,7 @@
   --border-medium: hsl(210, 14%, 83%);     /* #CED4DA - More defined border */
   --border-strong: hsl(210, 11%, 71%);     /* #ADB5BD - Strong borders */
   
-  /* Updated to use new purple theme */
+  /* Updated to use gaming theme */
   --card-foreground: hsl(210, 11%, 15%);
   --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(210, 11%, 15%);
@@ -43,23 +43,23 @@
   --secondary-foreground: hsl(210, 11%, 15%);
   --muted: hsl(210, 16%, 93%);
   --accent-foreground: hsl(0, 0%, 100%);
-  --destructive: hsl(230.77, 15.29%, 50%);
+  --destructive: hsl(0, 62%, 45%);          /* Warmer red for errors */
   --destructive-foreground: hsl(0, 0%, 100%);
   --input: hsl(210, 14.29%, 89.02%);
-  --ring: hsl(265, 49%, 53%);
-  --chart-1: hsl(264.92, 49.17%, 52.94%);
-  --chart-2: hsl(210, 61.98%, 52.55%);
-  --chart-3: hsl(104.14, 89.69%, 38.04%);
-  --chart-4: hsl(230.77, 15.29%, 50%);
-  --chart-5: hsl(37.69, 92.13%, 50.2%);
+  --ring: hsl(263, 70%, 50.4%);             /* Gaming violet for focus rings */
+  --chart-1: hsl(263, 70%, 50.4%);         /* Gaming violet */
+  --chart-2: hsl(213, 94%, 68%);           /* Gaming blue */
+  --chart-3: hsl(142, 76%, 36%);           /* Gaming emerald */
+  --chart-4: hsl(45, 93%, 58%);            /* Gaming gold */
+  --chart-5: hsl(37, 92%, 50%);            /* Keep orange for variety */
   --sidebar: hsl(0, 0%, 100%);
   --sidebar-foreground: hsl(222.2, 84%, 4.9%);
-  --sidebar-primary: hsl(221.2, 83.2%, 53.3%);
+  --sidebar-primary: hsl(263, 70%, 50.4%);      /* Gaming violet */
   --sidebar-primary-foreground: hsl(210, 40%, 98%);
   --sidebar-accent: hsl(210, 40%, 96%);
   --sidebar-accent-foreground: hsl(222.2, 84%, 4.9%);
   --sidebar-border: hsl(214.3, 31.8%, 91.4%);
-  --sidebar-ring: hsl(221.2, 83.2%, 53.3%);
+  --sidebar-ring: hsl(263, 70%, 50.4%);         /* Gaming violet */
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
@@ -123,25 +123,25 @@
   --input: hsl(220, 8%, 18%);                   /* #2a2b30 - Input background */
   --ring: hsl(260, 53%, 75%);                   /* #b691d8 - Focus ring (20% brighter purple) */
   
-  /* Status colors - brightened by ~20% for dark mode */
-  --primary: hsl(260, 53%, 75%);                /* #b691d8 - 20% brighter purple */
+  /* Status colors - gaming theme brightened by ~20% for dark mode */
+  --primary: hsl(263, 70%, 75%);                /* Gaming violet - 20% brighter */
   --primary-foreground: hsl(220, 10%, 14%);
-  --accent: hsl(104, 90%, 55%);                 /* #4de82d - 20% brighter green */
+  --accent: hsl(142, 76%, 55%);                 /* Gaming emerald - 20% brighter */
   --accent-foreground: hsl(220, 10%, 14%);
-  --status-complete: hsl(104, 90%, 55%);        /* #4de82d - 20% brighter green */
-  --status-progress: hsl(210, 63%, 70%);        /* #6bb1ea - 20% brighter blue */
+  --status-complete: hsl(142, 76%, 55%);        /* Gaming emerald - 20% brighter */
+  --status-progress: hsl(213, 94%, 78%);        /* Gaming blue - 20% brighter */
   --status-blocked: hsl(220, 15%, 65%);         /* #96a0b0 - 20% brighter gray */
   
   /* Destructive states - brightened for dark mode */
   --destructive: hsl(0, 70%, 60%);               /* #e85555 - 20% brighter red */
   --destructive-foreground: hsl(220, 10%, 14%);
   
-  /* Charts - 20% brighter for dark mode */
-  --chart-1: hsl(260, 53%, 75%);               /* Purple - 20% brighter */
-  --chart-2: hsl(210, 63%, 70%);               /* Blue - 20% brighter */
-  --chart-3: hsl(104, 90%, 55%);               /* Green - 20% brighter */
-  --chart-4: hsl(220, 15%, 65%);               /* Gray - 20% brighter */
-  --chart-5: hsl(37, 92%, 65%);                /* Orange - 20% brighter */
+  /* Charts - Gaming theme, 20% brighter for dark mode */
+  --chart-1: hsl(263, 70%, 75%);               /* Gaming violet - 20% brighter */
+  --chart-2: hsl(213, 94%, 78%);               /* Gaming blue - 20% brighter */
+  --chart-3: hsl(142, 76%, 55%);               /* Gaming emerald - 20% brighter */
+  --chart-4: hsl(45, 93%, 75%);                /* Gaming gold - 20% brighter */
+  --chart-5: hsl(37, 92%, 65%);                /* Keep orange for variety */
   
   /* Sidebar - consistent with new palette */
   --sidebar: hsl(220, 8%, 20%);
