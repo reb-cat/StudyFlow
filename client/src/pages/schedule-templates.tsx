@@ -475,17 +475,6 @@ export default function ScheduleTemplates() {
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  {student.allowSaturdayScheduling ? (
-                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      Enabled
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-                      Disabled
-                    </Badge>
-                  )}
-                  
                   <div className="flex items-center space-x-2">
                     <Label htmlFor={`saturday-${student.studentName}`} className="text-sm">
                       Allow Saturday
