@@ -98,10 +98,26 @@ export default function ScheduleTemplates() {
     },
   });
 
+  // Helper function to format time for HTML time inputs (requires HH:MM format)
+  const formatTimeForInput = (time: string): string => {
+    if (!time) return '';
+    // If time is already in HH:MM format, return as is
+    if (time.match(/^\d{2}:\d{2}/)) return time.substring(0, 5);
+    // If time is in H:MM format, pad the hour with zero
+    if (time.match(/^\d:\d{2}/)) return `0${time}`;
+    return time;
+  };
+
   // Initialize editing blocks when data changes and sort them chronologically
   useEffect(() => {
     if (scheduleBlocks && scheduleBlocks.length > 0) {
-      const sorted = [...scheduleBlocks].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+      const sorted = [...scheduleBlocks]
+        .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime))
+        .map(block => ({
+          ...block,
+          startTime: formatTimeForInput(block.startTime),
+          endTime: formatTimeForInput(block.endTime)
+        }));
       setEditingBlocks(sorted);
       setHasChanges(false);
     }
