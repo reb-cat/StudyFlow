@@ -718,7 +718,7 @@ export class DatabaseStorage implements IStorage {
         }));
 
         // Auto-generate block numbers only for block types that should have them
-        const blockTypesWithNumbers = ['Bible', 'Assignment', 'Co-op', 'Study Hall', 'Prep/Load'];
+        const blockTypesWithNumbers = ['Bible', 'Assignment', 'Co-op', 'Study Hall'];
         const blockNumberMap = new Map<string, number>(); // key: "studentName-weekday"
         
         insertBlocks.forEach(block => {
