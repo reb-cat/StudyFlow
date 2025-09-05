@@ -1,0 +1,47 @@
+LOCKDOWN FORENSIC MODE (DETERMINISTIC, READ-ONLY)
+
+Hard rules (must follow exactly):
+- NO CODE CHANGES. NO DB WRITES. NO SEEDS. NO “QUICK FIXES.” 
+- Return evidence only. If a mutation is attempted, STOP and report violation.
+- Use the exact scope: Student=Khalil, Date=2025-09-05 (Friday). Do not query other dates.
+- Print the code build hash and env toggles so results are comparable run-to-run.
+
+Preamble — print these identifiers first:
+1) CODE: repo commit SHA (or file checksums for server/lib/assignmentIntelligence.ts, server/storage.ts, client/student-dashboard.tsx).
+2) ENV SNAPSHOT: values of RUN_SEEDS, NODE_ENV/REPLIT_DEPLOYMENT, DATABASE_URL host (redact creds), TZ.
+3) DB SNAPSHOT: database name + server version.
+4) TIME BASIS: “Now” (UTC) and the date used for all queries (must be 2025-09-05).
+
+Phase A — DB truth (READ-ONLY, exact queries; include row counts):
+A1) Pending due ≤ 2025-09-08 23:59 for Khalil: title, subject, due_date.
+A2) Scheduled for 2025-09-05: title, subject, scheduled_block (NULL|number).
+A3) Pool needing blocks today: COUNT where scheduled_date='2025-09-05' AND scheduled_block IS NULL.
+Return CSV + totals. Do not modify.
+
+Phase B — API truth (READ-ONLY; include status + content-type):
+B1) GET /api/assignments?date=2025-09-05&studentName=Khalil  → list title,dueDate,scheduledDate,scheduledBlock.
+B2) GET /api/schedule/Khalil/2025-09-05 → blocks with titles.
+Attach raw JSON.
+
+Phase C — UI mapping (READ-ONLY):
+C1) Identify the render path (file:line). 
+C2) Log ONLY (console.info) a table the UI uses to draw: 
+   [{block, title, source: "dbScheduled"|"diversity"}].
+Paste the console output.
+
+Phase D — DIFF (authoritative):
+For blocks 2..N, show:
+  DB (scheduled_block) | API (scheduledBlock) | UI (title,source)
+Mark 🔴 where they differ and one-line reason (e.g., “scheduler returned NULL”, “UI re-ordered”).
+
+Phase E — Determinism check:
+- Re-run Phase A+B immediately (same session) and assert hashes of outputs match the first run.
+- If different, report EXACT field that changed and which layer changed (DB/API/UI), with timestamps.
+- Do NOT propose a fix; just state the minimal reproducible cause.
+
+Acceptance for this run:
+- Outputs include CODE+ENV+DB identifiers.
+- A, B, C attached verbatim, plus DIFF table.
+- Determinism check: A+B hashes identical across two runs (or a precise delta report).
+
+If any rule would be violated, STOP and return which rule prevented action.
