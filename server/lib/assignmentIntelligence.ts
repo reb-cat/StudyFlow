@@ -218,9 +218,10 @@ export async function getAvailableScheduleSlots(
       const availableMinutes = Math.floor(durationMs / (1000 * 60));
       
       // Get currently assigned assignments for this block
-      const assignedAssignments = await storage.getAssignmentsByBlock(
-        studentName, weekday, block.blockNumber
-      );
+      // For blocks with null blockNumber, no assignments can be scheduled using current system
+      const assignedAssignments = block.blockNumber !== null 
+        ? await storage.getAssignmentsByBlock(studentName, weekday, block.blockNumber)
+        : []; // Empty - null blockNumber blocks have full capacity available
       
       // Calculate used minutes
       const usedMinutes = assignedAssignments.reduce((total, assignment) => {
@@ -230,7 +231,7 @@ export async function getAvailableScheduleSlots(
       availableSlots.push({
         studentName,
         weekday,
-        blockNumber: block.blockNumber,
+        blockNumber: block.blockNumber || -999, // Use special marker for null blocks
         blockType: block.blockType,
         startTime: block.startTime,
         endTime: block.endTime,
@@ -402,7 +403,7 @@ async function placeAssignmentInOptimalSlot(
   return {
     success: true,
     scheduledDate: best.date,
-    scheduledBlock: best.slot.blockNumber,
+    scheduledBlock: best.slot.blockNumber === -999 ? null : best.slot.blockNumber, // Convert marker back to null
     blockStart: best.slot.startTime,
     blockEnd: best.slot.endTime,
     reason: 'Successfully scheduled'
