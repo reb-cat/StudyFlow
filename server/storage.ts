@@ -50,6 +50,8 @@ export interface IStorage {
   // Student profile operations
   getStudentProfile(studentName: string): Promise<StudentProfile | undefined>;
   upsertStudentProfile(profile: InsertStudentProfile): Promise<StudentProfile>;
+  getAllStudentProfiles(): Promise<StudentProfile[]>;
+  updateStudentSaturdayScheduling(studentName: string, allowSaturday: boolean): Promise<StudentProfile | undefined>;
   
   // Student status operations for family dashboard
   getStudentStatus(studentName: string): Promise<StudentStatus | undefined>;
@@ -1057,6 +1059,34 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getAllStudentProfiles(): Promise<StudentProfile[]> {
+    try {
+      const result = await db.select().from(studentProfiles);
+      return result;
+    } catch (error) {
+      console.error('Error getting all student profiles:', error);
+      return [];
+    }
+  }
+
+  async updateStudentSaturdayScheduling(studentName: string, allowSaturday: boolean): Promise<StudentProfile | undefined> {
+    try {
+      const [result] = await db
+        .update(studentProfiles)
+        .set({
+          allowSaturdayScheduling: allowSaturday,
+          updatedAt: new Date()
+        })
+        .where(eq(studentProfiles.studentName, studentName))
+        .returning();
+      
+      return result;
+    } catch (error) {
+      console.error('Error updating Saturday scheduling preference:', error);
+      return undefined;
+    }
+  }
+
   // Student status operations for family dashboard
   async getStudentStatus(studentName: string): Promise<StudentStatus | undefined> {
     try {
@@ -1324,12 +1354,23 @@ export class DatabaseStorage implements IStorage {
       const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const weekdayName = weekdayNames[weekday];
       
+      // Check if this is Saturday and if Saturday scheduling is enabled
+      if (weekday === 6) { // Saturday
+        const studentProfile = await this.getStudentProfile(studentName);
+        if (!studentProfile?.allowSaturdayScheduling) {
+          console.log(`🗓️ Saturday scheduling disabled for ${studentName} - skipping assignment allocation`);
+          return; // Skip Saturday scheduling entirely when disabled
+        }
+        console.log(`🗓️ Saturday scheduling enabled for ${studentName} - proceeding with assignment allocation`);
+      }
+      
       // Get all template blocks for validation
       const templateBlocks = await this.getScheduleTemplate(studentName, weekdayName);
       
-      // Safety check for template completeness
-      if (templateBlocks.length < 6) {
-        console.error(`❌ TEMPLATE ERROR: Template incomplete for ${studentName} on ${weekdayName} - only ${templateBlocks.length} blocks found`);
+      // Safety check for template completeness (reduced requirement for Saturday)
+      const minBlocks = weekday === 6 ? 3 : 6; // Saturday needs at least 3 blocks, weekdays need 6
+      if (templateBlocks.length < minBlocks) {
+        console.error(`❌ TEMPLATE ERROR: Template incomplete for ${studentName} on ${weekdayName} - only ${templateBlocks.length} blocks found (minimum ${minBlocks})`);
         throw new Error(JSON.stringify({
           error: {
             code: "TEMPLATE_INCOMPLETE", 

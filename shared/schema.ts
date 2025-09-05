@@ -183,6 +183,7 @@ export const studentProfiles = pgTable("student_profiles", {
   displayName: text("display_name").notNull(), // "Abigail", "Khalil"
   profileImageUrl: text("profile_image_url"), // URL to profile image in object storage
   themeColor: text("theme_color").default("#844FC1"), // Student's theme color
+  allowSaturdayScheduling: boolean("allow_saturday_scheduling").default(false), // Admin toggle for Saturday overflow
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

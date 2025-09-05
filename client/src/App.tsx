@@ -16,6 +16,7 @@ import AssignmentsPage from "@/pages/assignments";
 import PrintQueue from "@/pages/print-queue";
 import ScheduleTemplates from "@/pages/schedule-templates";
 import ChecklistManager from "@/pages/checklist-manager";
+import SaturdaySettings from "@/pages/saturday-settings";
 import RewardsPage from "@/pages/rewards";
 import UnlockPage from "@/pages/unlock";
 import AdminAuth from "@/components/AdminAuth";
@@ -67,6 +68,11 @@ function Router() {
       <Route path="/print-queue" component={PrintQueue} />
       <Route path="/schedule-templates" component={ScheduleTemplates} />
       <Route path="/checklist-manager" component={ChecklistManager} />
+      <Route path="/saturday-settings">
+        <AdminAuth>
+          <SaturdaySettings />
+        </AdminAuth>
+      </Route>
       <Route path="/rewards" component={RewardsPage} />
       <Route path="/student/:student" component={StudentDashboard} />
       <Route component={NotFound} />
