@@ -753,11 +753,6 @@ export default function AssignmentsPage() {
                           </p>
                         )}
 
-                        {assignment.canvasInstance && (
-                          <p className="text-sm text-muted-foreground/60">
-                            Assignment from Canvas
-                          </p>
-                        )}
 
                         {assignment.dueDate && (
                           <p className="text-sm text-muted-foreground">
