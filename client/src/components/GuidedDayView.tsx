@@ -111,7 +111,7 @@ type GuidedBlock = {
 const colors = {
   primary: 'hsl(var(--violet))',
   complete: 'hsl(var(--emerald))',
-  progress: 'hsl(var(--blue))',
+  progress: 'hsl(var(--status-progress))',
   support: 'hsl(var(--gold))',
   background: 'var(--background)',
   surface: 'var(--card)',
