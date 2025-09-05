@@ -461,7 +461,7 @@ export default function ScheduleTemplates() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {studentProfiles.map((student) => (
-              <div key={student.id} className="flex items-center justify-between p-4 border border-muted rounded-lg bg-muted/30">
+              <div key={student.id} className="p-4 border border-muted rounded-lg bg-muted/30 space-y-3">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 min-w-[2.5rem] min-h-[2.5rem] flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
                     {student.displayName?.charAt(0) || '?'}
@@ -475,30 +475,28 @@ export default function ScheduleTemplates() {
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2">
-                    <Label htmlFor={`saturday-${student.studentName}`} className="text-sm">
-                      Allow Saturday
-                    </Label>
-                    <button
-                      id={`saturday-${student.studentName}`}
-                      onClick={() => saturdayMutation.mutate({ 
-                        studentName: student.studentName, 
-                        allowSaturday: !student.allowSaturdayScheduling 
-                      })}
-                      disabled={saturdayMutation.isPending}
-                      className={`relative w-11 h-6 rounded-lg transition-colors duration-200 ${
-                        student.allowSaturdayScheduling 
-                          ? 'bg-blue-600' 
-                          : 'bg-gray-300 dark:bg-gray-600'
+                  <Label htmlFor={`saturday-${student.studentName}`} className="text-sm font-medium">
+                    Allow Saturday scheduling
+                  </Label>
+                  <button
+                    id={`saturday-${student.studentName}`}
+                    onClick={() => saturdayMutation.mutate({ 
+                      studentName: student.studentName, 
+                      allowSaturday: !student.allowSaturdayScheduling 
+                    })}
+                    disabled={saturdayMutation.isPending}
+                    className={`relative w-12 h-6 rounded-lg transition-colors duration-200 flex-shrink-0 ${
+                      student.allowSaturdayScheduling 
+                        ? 'bg-blue-600' 
+                        : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                  >
+                    <div 
+                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-sm shadow-lg transition-transform duration-200 ${
+                        student.allowSaturdayScheduling ? 'translate-x-6' : 'translate-x-0'
                       }`}
-                    >
-                      <div 
-                        className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-sm shadow-lg transition-transform duration-200 ${
-                          student.allowSaturdayScheduling ? 'translate-x-5' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
-                  </div>
+                    />
+                  </button>
                 </div>
               </div>
             ))}
