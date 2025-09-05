@@ -106,14 +106,15 @@ export default function StudentDashboard() {
   };
 
 
-  // Fetch assignments for today (get assignments due on or before this date)
+  // Fetch assignments for today (includes both due soon AND scheduled for today)
   const { data: assignments = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/assignments', selectedDate, studentName],
     queryFn: async () => {
-      // For scheduling purposes, show assignments due in the next few days
+      // FIXED: Fetch assignments due within a week to include all potentially scheduled assignments
+      // The frontend will filter to show only those scheduled for selectedDate
       const currentDate = new Date(selectedDate);
       const targetDate = new Date(currentDate);
-      targetDate.setDate(currentDate.getDate() + 2); // Show assignments due within 2 days
+      targetDate.setDate(currentDate.getDate() + 7); // Show assignments due within a week
       
       const params = new URLSearchParams({
         date: toNYDateString(targetDate),
