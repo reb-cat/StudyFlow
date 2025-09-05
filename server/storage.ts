@@ -2378,29 +2378,10 @@ export class MemStorage implements IStorage {
   }
 
   async getAllStudentProfiles(): Promise<StudentProfile[]> {
-    // Stub implementation - return only the 2 real students
-    return [
-      {
-        id: 'abigail-profile',
-        studentName: 'abigail',
-        displayName: 'Abigail',
-        profileImageUrl: null,
-        themeColor: '#844FC1',
-        allowSaturdayScheduling: false,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'khalil-profile',
-        studentName: 'khalil',
-        displayName: 'Khalil',
-        profileImageUrl: null,
-        themeColor: '#3B86D1',
-        allowSaturdayScheduling: false,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ];
+    // Stub implementation - return both profiles
+    const abigail = await this.getStudentProfile('abigail');
+    const khalil = await this.getStudentProfile('khalil');
+    return [abigail, khalil].filter(Boolean) as StudentProfile[];
   }
 
   async updateStudentSaturdayScheduling(studentName: string, allowSaturday: boolean): Promise<StudentProfile | undefined> {

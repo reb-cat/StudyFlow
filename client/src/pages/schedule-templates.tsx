@@ -350,6 +350,7 @@ export default function ScheduleTemplates() {
           <ThemeToggle />
         </div>
       </div>
+
       {/* Student and Weekday Selection */}
       <Card>
         <CardHeader>
@@ -388,6 +389,7 @@ export default function ScheduleTemplates() {
           </div>
         </CardContent>
       </Card>
+
       {/* CSV Upload Section */}
       <Card>
         <CardHeader>
@@ -443,6 +445,7 @@ export default function ScheduleTemplates() {
           </div>
         </CardContent>
       </Card>
+
       {/* Saturday Scheduling Settings */}
       <Card>
         <CardHeader>
@@ -458,9 +461,9 @@ export default function ScheduleTemplates() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {studentProfiles.map((student) => (
-              <div key={student.id} className="p-4 border border-muted rounded-lg bg-muted/30 space-y-3">
+              <div key={student.id} className="flex items-center justify-between p-4 border border-muted rounded-lg bg-muted/30">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 min-w-[2.5rem] min-h-[2.5rem] flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
                     {student.displayName?.charAt(0) || '?'}
                   </div>
                   <div>
@@ -472,34 +475,38 @@ export default function ScheduleTemplates() {
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  <Label htmlFor={`saturday-${student.studentName}`} className="text-sm font-medium">
-                    Allow Saturday scheduling
-                  </Label>
-                  <button
-                    id={`saturday-${student.studentName}`}
-                    onClick={() => saturdayMutation.mutate({ 
-                      studentName: student.studentName, 
-                      allowSaturday: !student.allowSaturdayScheduling 
-                    })}
-                    disabled={saturdayMutation.isPending}
-                    className={`relative w-14 h-[25px] rounded-full transition-colors duration-200 flex-shrink-0 ${
-                      student.allowSaturdayScheduling 
-                        ? 'bg-blue-600' 
-                        : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
-                  >
-                    <div 
-                      className={`absolute top-[1px] left-[1px] w-[23px] h-[23px] bg-white rounded-full shadow-lg transition-transform duration-200 ${
-                        student.allowSaturdayScheduling ? 'translate-x-[31px]' : 'translate-x-0'
-                      }`}
+                  {student.allowSaturdayScheduling ? (
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      Enabled
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                      Disabled
+                    </Badge>
+                  )}
+                  
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor={`saturday-${student.studentName}`} className="text-sm">
+                      Allow Saturday
+                    </Label>
+                    <Switch
+                      id={`saturday-${student.studentName}`}
+                      checked={student.allowSaturdayScheduling}
+                      onCheckedChange={(checked) => saturdayMutation.mutate({ 
+                        studentName: student.studentName, 
+                        allowSaturday: checked 
+                      })}
+                      disabled={saturdayMutation.isPending}
                     />
-                  </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+
       {/* Schedule Editor */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
