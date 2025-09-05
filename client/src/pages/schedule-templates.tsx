@@ -489,23 +489,34 @@ export default function ScheduleTemplates() {
                   <Label htmlFor={`saturday-${student.studentName}`} className="text-sm">
                     Allow Saturday
                   </Label>
-                  <Switch
+                  <button
                     key={`saturday-switch-${student.studentName}`}
                     id={`saturday-${student.studentName}`}
-                    checked={student.allowSaturdayScheduling}
-                    onCheckedChange={(checked) => {
-                      console.log(`Toggle clicked for ${student.studentName}: ${checked}`);
+                    onClick={() => {
+                      console.log(`Toggle clicked for ${student.studentName}: ${!student.allowSaturdayScheduling}`);
                       saturdayMutation.mutate({ 
                         studentName: student.studentName, 
-                        allowSaturday: checked 
+                        allowSaturday: !student.allowSaturdayScheduling 
                       });
                     }}
                     disabled={saturdayMutation.isPending}
-                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300 h-6 w-11 rounded-full relative transition-colors duration-200 ease-in-out shadow-inner border-0"
-                    style={{
-                      backgroundColor: student.allowSaturdayScheduling ? '#22c55e' : '#d1d5db'
-                    }}
-                  />
+                    className={`
+                      h-6 w-11 rounded-full relative transition-all duration-200 ease-in-out 
+                      ${student.allowSaturdayScheduling 
+                        ? 'bg-green-500 shadow-lg' 
+                        : 'bg-gray-300 shadow-inner'
+                      }
+                      ${saturdayMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50
+                    `}
+                  >
+                    <div 
+                      className={`
+                        absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out
+                        ${student.allowSaturdayScheduling ? 'translate-x-5' : 'translate-x-0.5'}
+                      `}
+                    />
+                  </button>
                 </div>
               </div>
             ))}
