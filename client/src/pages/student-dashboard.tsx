@@ -859,14 +859,9 @@ export default function StudentDashboard() {
                           blockDetails = '';
                         }
                       } else if (block.blockType === 'bible') {
-                        // Show Bible reading as the main title like Guided mode
-                        if (bibleData?.dailyReading) {
-                          blockTitle = bibleData.dailyReading.readingTitle;
-                          blockDetails = 'Daily Bible Reading';
-                        } else {
-                          blockTitle = 'Daily Bible Reading';
-                          blockDetails = 'Bible curriculum';
-                        }
+                        // Use the populated Bible reading from block.subject (e.g., "Job 40-42")
+                        blockTitle = block.subject || 'Daily Bible Reading';
+                        blockDetails = 'Daily Bible Reading';
                       } else if (block.blockType === 'co-op') {
                         // Show rich details for co-op classes
                         blockTitle = block.title;
