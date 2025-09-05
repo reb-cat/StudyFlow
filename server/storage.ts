@@ -521,7 +521,6 @@ export class DatabaseStorage implements IStorage {
     assignments: Assignment[];
   }> {
     try {
-      console.log(`🚨🚨🚨 TEST: CODE IS RUNNING FROM LINE 518`);
       console.log(`🔍 SCHEDULE PLANNER DEBUG: Starting for student=${studentName} date=${targetDate}`);
       const userId = `${studentName.toLowerCase()}-user`;
       
@@ -630,7 +629,6 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Use the NEW hybrid scheduler with student-specific intelligence
-      console.log(`🔍 DEBUG: Using statically imported hybridScheduleAssignmentsWithQuickWins`);
       
       // Prepare assignments for the hybrid scheduler
       const assignmentsToSchedule = unscheduledAssignments.map(a => ({
@@ -2395,32 +2393,29 @@ export class MemStorage implements IStorage {
     };
   }
 
-  // Daily schedule status operations (stub methods for MemStorage)
+  // Daily schedule status operations (not implemented in MemStorage)
   async getDailyScheduleStatus(studentName: string, date: string): Promise<Array<DailyScheduleStatus & { template: ScheduleTemplate }>> {
-    // Stub implementation - return empty array
     return [];
   }
 
   async updateBlockStatus(studentName: string, date: string, templateBlockId: string, status: string, flags?: object): Promise<DailyScheduleStatus | undefined> {
-    // Stub implementation - return undefined
     return undefined;
   }
 
   async initializeDailySchedule(studentName: string, date: string): Promise<void> {
-    // Stub implementation - do nothing
+    console.warn('MemStorage does not support daily schedule initialization');
   }
 
-  // Assignment allocation and scheduling helpers (stub implementations)
   async allocateAssignmentsToTemplate(studentName: string, date: string): Promise<void> {
-    // Stub implementation - do nothing
+    console.warn('MemStorage does not support assignment allocation');
   }
 
   async rescheduleNeedMoreTime(assignmentId: string, date: string): Promise<void> {
-    // Stub implementation - do nothing
+    console.warn('MemStorage does not support rescheduling');
   }
 
   async markStuckWithUndo(assignmentId: string): Promise<void> {
-    // Stub implementation - do nothing
+    console.warn('MemStorage does not support stuck marking');
   }
 
   async getAllAssignments(): Promise<Assignment[]> {

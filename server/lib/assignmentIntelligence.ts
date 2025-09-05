@@ -272,6 +272,9 @@ export async function hybridScheduleAssignments(
   console.log(`🚀 HYBRID SCHEDULER: Starting for ${request.studentName}, target week: ${request.targetWeek}`);
   console.log(`📝 HYBRID SCHEDULER: ${request.assignments.length} assignments to schedule`);
   
+  // Store the target week date for later use
+  const targetWeekDate = request.targetWeek;
+  
   const result: HybridSchedulingResult = {
     success: false,
     scheduledAssignments: [],
@@ -314,7 +317,8 @@ export async function hybridScheduleAssignments(
         assignment, 
         result.weeklySchedule, 
         request.studentName,
-        storage
+        storage,
+        request.targetWeek
       );
       
       if (placed.success) {
@@ -350,7 +354,8 @@ async function placeAssignmentInOptimalSlot(
   assignment: any,
   weeklySchedule: Record<string, ScheduleBlockSlot[]>,
   studentName: string,
-  storage: any
+  storage: any,
+  targetWeek: string
 ): Promise<{ success: boolean; scheduledDate?: string; scheduledBlock?: number; blockStart?: string; blockEnd?: string; reason: string }> {
   
   const assignmentMinutes = assignment.actualEstimatedMinutes || 30;
@@ -368,7 +373,7 @@ async function placeAssignmentInOptimalSlot(
   
   for (const weekday of weekdays) {
     const slots = weeklySchedule[weekday] || [];
-    const date = getDateForWeekday(weekday); // Helper function needed
+    const date = getDateForWeekday(weekday, targetWeek); // Pass target week date
     
     for (const slot of slots) {
       if (slot.remainingMinutes >= assignmentMinutes) {
@@ -431,26 +436,30 @@ async function placeAssignmentInOptimalSlot(
   };
 }
 
-// Helper function to convert weekday to actual date (implementation needed)
-function getDateForWeekday(weekday: string): string {
-  // This should calculate actual date based on current week
-  // For now, return a placeholder - this needs to be implemented based on target week
-  const today = new Date();
-  const currentWeekday = today.getDay(); // 0 = Sunday
+// Helper function to convert weekday to actual date based on target date
+function getDateForWeekday(weekday: string, targetDate?: string): string {
+  // Use provided target date or fall back to today
+  const baseDate = targetDate ? new Date(targetDate) : new Date();
+  
+  // Get the week's Monday
+  const dayOfWeek = baseDate.getDay();
+  const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(baseDate);
+  monday.setDate(baseDate.getDate() + daysToMonday);
+  
   const weekdayMap = {
-    'Monday': 1,
-    'Tuesday': 2, 
-    'Wednesday': 3,
-    'Thursday': 4,
-    'Friday': 5
+    'Monday': 0,
+    'Tuesday': 1, 
+    'Wednesday': 2,
+    'Thursday': 3,
+    'Friday': 4
   };
   
-  const targetWeekday = weekdayMap[weekday];
-  const daysDiff = targetWeekday - currentWeekday;
-  const targetDate = new Date(today);
-  targetDate.setDate(today.getDate() + daysDiff);
+  const daysFromMonday = weekdayMap[weekday] || 0;
+  const targetWeekDate = new Date(monday);
+  targetWeekDate.setDate(monday.getDate() + daysFromMonday);
   
-  return targetDate.toISOString().split('T')[0]; // YYYY-MM-DD
+  return targetWeekDate.toISOString().split('T')[0]; // YYYY-MM-DD
 }
 
 // QUICK WIN STRATEGIC PLACEMENT - Place short tasks between longer assignments
@@ -584,7 +593,7 @@ export async function hybridScheduleAssignmentsWithQuickWins(
     const course = assignment.courseName || assignment.subject || 'Other';
     
     // Double-check capacity (might have changed)
-    const date = getDateForWeekday(strategy.targetSlot.weekday);
+    const date = getDateForWeekday(strategy.targetSlot.weekday, request.targetWeek);
     const dailyUsage = await calculateDailyCapacityUsage(request.studentName, date, storage);
     const capacityCheck = canAddAssignmentToDay(dailyUsage, assignmentMinutes, course);
     
