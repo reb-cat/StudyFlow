@@ -501,7 +501,7 @@ export default function ScheduleTemplates() {
                       });
                     }}
                     disabled={saturdayMutation.isPending}
-                    className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input h-5"
+                    className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input h-5 w-10"
                   />
                 </div>
               </div>
