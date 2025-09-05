@@ -593,6 +593,42 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent/bible tasks`);
       
+      // REDISTRIBUTION LOGIC: Check for assignments due today that are scheduled for other days
+      // This helps balance workload when target day has available capacity
+      const assignmentsDueToday = userAssignments.filter(a => {
+        if (!a.dueDate || a.completionStatus !== 'pending') return false;
+        const dueDateOnly = typeof a.dueDate === 'string' ? a.dueDate.split('T')[0] : a.dueDate.toISOString().split('T')[0];
+        const targetDateOnly = targetDate.split('T')[0];
+        return dueDateOnly === targetDateOnly; // Due on target date (Monday)
+      });
+      
+      const assignmentsScheduledElsewhere = assignmentsDueToday.filter(a => {
+        return a.scheduledDate && a.scheduledDate !== targetDate; // Scheduled for different day
+      });
+      
+      if (assignmentsScheduledElsewhere.length > 0) {
+        console.log(`🔄 REDISTRIBUTION CHECK: Found ${assignmentsScheduledElsewhere.length} assignments due today but scheduled elsewhere:`);
+        assignmentsScheduledElsewhere.forEach(a => {
+          console.log(`   - "${a.title}" scheduled for ${a.scheduledDate} (due ${targetDate})`);
+        });
+        
+        // Add these assignments to unscheduled list for potential redistribution
+        // Only add if they pass the same exclusion filters
+        const redistributableAssignments = assignmentsScheduledElsewhere.filter(a => {
+          const title = a.title.toLowerCase();
+          const subject = (a.subject || '').toLowerCase();
+          const isParentTask = title.includes('fee') || title.includes('supply') || title.includes('permission') || 
+                              title.includes('form') || title.includes('waiver') || title.includes('registration') ||
+                              title.includes('syllabus') || title.includes('honor code');
+          const isBibleAssignment = title.includes('bible') || subject.includes('bible') ||
+                                   title.includes('scripture') || subject.includes('scripture');
+          return !isParentTask && !isBibleAssignment;
+        });
+        
+        console.log(`🔄 REDISTRIBUTION: Adding ${redistributableAssignments.length} assignments for potential redistribution`);
+        unscheduledAssignments.push(...redistributableAssignments);
+      }
+      
       // Get schedule template blocks
       const targetDateObj = new Date(targetDate);
       const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
