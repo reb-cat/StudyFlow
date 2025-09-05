@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, Save, RotateCcw, Home, Edit3, Users, Upload, FileText } from 'lucide-react';
+import { Clock, Save, RotateCcw, Home, Edit3, Users, Upload, FileText, Calendar, CheckCircle2 } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 
 interface ScheduleBlock {
@@ -20,6 +22,13 @@ interface ScheduleBlock {
   endTime: string;
   subject: string;
   blockType: 'Bible' | 'Assignment' | 'Travel' | 'Co-op' | 'Study Hall' | 'Prep/Load' | 'Movement' | 'Lunch';
+}
+
+interface StudentProfile {
+  id: string;
+  studentName: string;
+  displayName: string;
+  allowSaturdayScheduling: boolean;
 }
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -50,6 +59,11 @@ export default function ScheduleTemplates() {
   const { data: scheduleBlocks = [], isLoading } = useQuery<ScheduleBlock[]>({
     queryKey: ['/api/schedule-template', selectedStudent, selectedWeekday],
     enabled: !!selectedStudent && !!selectedWeekday,
+  });
+
+  // Get student profiles for Saturday scheduling toggles
+  const { data: studentProfiles = [] } = useQuery<StudentProfile[]>({
+    queryKey: ['/api/students/profiles/saturday-settings'],
   });
 
   const saveScheduleMutation = useMutation({
@@ -95,6 +109,30 @@ export default function ScheduleTemplates() {
         title: "Error", 
         description: error?.message || "Failed to upload CSV schedule template",
         variant: "destructive",
+      });
+    },
+  });
+
+  // Saturday scheduling mutation
+  const saturdayMutation = useMutation({
+    mutationFn: async ({ studentName, allowSaturday }: { studentName: string; allowSaturday: boolean }) => {
+      return apiRequest('PATCH', `/api/students/${studentName}/saturday-scheduling`, {
+        allowSaturdayScheduling: allowSaturday
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/students/profiles/saturday-settings'] });
+      toast({ 
+        title: "Success", 
+        description: "Saturday scheduling preference updated successfully."
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating Saturday settings:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to update Saturday scheduling settings.",
+        variant: "destructive"
       });
     },
   });
@@ -404,6 +442,67 @@ export default function ScheduleTemplates() {
           <div className="text-xs text-muted-foreground">
             <p><strong>Expected CSV format:</strong> id, student_name, weekday, block_number, start_time, end_time, subject, block_type</p>
             <p><strong>Supported block types:</strong> Bible, Assignment, Travel, Co-op, Study Hall, Prep/Load, Movement, Lunch</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Saturday Scheduling Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Saturday Scheduling Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Control when Saturday blocks are used for overflow assignments that don't fit in the regular Monday-Friday schedule.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {studentProfiles.map((student) => (
+              <div key={student.id} className="flex items-center justify-between p-4 border border-muted rounded-lg bg-muted/30">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                    {student.displayName.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-foreground">{student.displayName}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Saturday scheduling is {student.allowSaturdayScheduling ? 'enabled' : 'disabled'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  {student.allowSaturdayScheduling ? (
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      Enabled
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                      Disabled
+                    </Badge>
+                  )}
+                  
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor={`saturday-${student.studentName}`} className="text-sm">
+                      Allow Saturday
+                    </Label>
+                    <Switch
+                      id={`saturday-${student.studentName}`}
+                      checked={student.allowSaturdayScheduling}
+                      onCheckedChange={(checked) => saturdayMutation.mutate({ 
+                        studentName: student.studentName, 
+                        allowSaturday: checked 
+                      })}
+                      disabled={saturdayMutation.isPending}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
