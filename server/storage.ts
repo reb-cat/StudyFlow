@@ -724,14 +724,7 @@ export class DatabaseStorage implements IStorage {
         const batchSize = 50;
         for (let i = 0; i < insertBlocks.length; i += batchSize) {
           const batch = insertBlocks.slice(i, i + batchSize);
-          try {
-            await db.insert(scheduleTemplate).values(batch);
-            console.log(`✅ Batch ${Math.floor(i/batchSize) + 1}: Inserted ${batch.length} records (${i + 1}-${Math.min(i + batchSize, insertBlocks.length)})`);
-          } catch (batchError) {
-            console.error(`❌ Batch ${Math.floor(i/batchSize) + 1} FAILED:`, batchError);
-            console.error(`📄 Failed batch contents:`, batch.map(b => `${b.studentName}-${b.weekday}-${b.blockNumber}-${b.startTime}-${b.subject}`));
-            throw batchError;
-          }
+          await db.insert(scheduleTemplate).values(batch);
         }
       }
       
