@@ -51,20 +51,55 @@ app.get('/api/assignments/:studentName', async (req, res) => {
 });
 ```
 
-### 3. Family Dashboard Considerations
+### 3. CSV Upload Fix
 
-Since parents need to see all students' data, you have two options:
+**CRITICAL**: Your CSV upload process needs admin context to work:
 
-**Option A: Bypass RLS for Admin Queries**
-```sql
--- Create admin policies that allow access to all data
-CREATE POLICY "Admin can access all data" ON assignments
-  FOR ALL USING (current_student() = 'admin' OR current_student() = 'family');
+```typescript
+// In server/routes.ts - CSV upload endpoint
+app.post('/api/schedule-template/upload-csv', requireAuth, async (req, res) => {
+  try {
+    // Set admin context to bypass RLS for multi-student operations
+    await db.execute(sql`SELECT set_config('app.current_student', 'admin', true)`);
+    
+    // Now the CSV upload can delete ALL records and insert ALL records
+    const { csvData } = req.body;
+    
+    // Delete all existing records (works because of admin context)
+    await db.delete(scheduleTemplate);
+    
+    // Insert all new records from CSV (works for all students)
+    for (const record of csvData) {
+      await db.insert(scheduleTemplate).values(record);
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+
+### 4. Family Dashboard Implementation
+
+**Option A: Use Admin Context** (Recommended)
+```typescript
+// For family dashboard, use admin context to see all data
+app.get('/api/family-dashboard', requireAuth, async (req, res) => {
+  // Set admin context
+  await db.execute(sql`SELECT set_config('app.current_student', 'family', true)`);
+  
+  // Now all queries return data for all students
+  const allAssignments = await storage.getAllAssignments();
+  const allSchedules = await storage.getAllSchedules();
+  
+  res.json({ assignments: allAssignments, schedules: allSchedules });
+});
 ```
 
 **Option B: Query Each Student Separately**
 ```typescript
-// For family dashboard, query each student's data separately
+// Alternative: Query each student's data separately
 const getAllStudentsData = async () => {
   const students = ['abigail', 'khalil'];
   const allData = {};

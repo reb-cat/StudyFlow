@@ -31,10 +31,14 @@ DROP POLICY IF EXISTS "Students can only access their own assignments" ON assign
 CREATE POLICY "Students can only access their own assignments" ON assignments
   FOR ALL USING (user_id = current_student());
 
--- Schedule template (uses student_name)
+-- Schedule template (uses student_name) - WITH ADMIN BYPASS
 DROP POLICY IF EXISTS "Students can only access their own schedule" ON schedule_template;
 CREATE POLICY "Students can only access their own schedule" ON schedule_template
-  FOR ALL USING (student_name = current_student());
+  FOR ALL USING (
+    student_name = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
 
 -- Daily schedule status (uses student_name)
 DROP POLICY IF EXISTS "Students can only access their own daily status" ON daily_schedule_status;
@@ -91,7 +95,103 @@ DROP POLICY IF EXISTS "Students can only access their own reward settings" ON re
 CREATE POLICY "Students can only access their own reward settings" ON reward_settings
   FOR ALL USING (user_id = current_student());
 
--- 4. Grant necessary permissions to your application user
--- (Run this if your app connects with a specific database user)
--- GRANT USAGE ON SCHEMA public TO your_app_user;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO your_app_user;
+-- 4. Create admin bypass policies for all tables (needed for CSV uploads and family dashboard)
+-- Update all policies to allow admin/family access
+
+-- Update other policies to include admin bypass:
+DROP POLICY IF EXISTS "Students can only access their own assignments" ON assignments;
+CREATE POLICY "Students can only access their own assignments" ON assignments
+  FOR ALL USING (
+    user_id = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
+
+-- Apply admin bypass to all student-specific tables
+DROP POLICY IF EXISTS "Students can only access their own daily status" ON daily_schedule_status;
+CREATE POLICY "Students can only access their own daily status" ON daily_schedule_status
+  FOR ALL USING (
+    student_name = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
+
+DROP POLICY IF EXISTS "Students can only access their own bible progress" ON bible_curriculum_position;
+CREATE POLICY "Students can only access their own bible progress" ON bible_curriculum_position
+  FOR ALL USING (
+    student_name = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
+
+DROP POLICY IF EXISTS "Students can only access their own sessions" ON progress_sessions;
+CREATE POLICY "Students can only access their own sessions" ON progress_sessions
+  FOR ALL USING (
+    student_name = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
+
+DROP POLICY IF EXISTS "Students can only access their own profile" ON student_profiles;
+CREATE POLICY "Students can only access their own profile" ON student_profiles
+  FOR ALL USING (
+    student_name = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
+
+DROP POLICY IF EXISTS "Students can only access their own status" ON student_status;
+CREATE POLICY "Students can only access their own status" ON student_status
+  FOR ALL USING (
+    student_name = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
+
+DROP POLICY IF EXISTS "Students can only access their own checklist" ON checklist_items;
+CREATE POLICY "Students can only access their own checklist" ON checklist_items
+  FOR ALL USING (
+    student_name = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
+
+DROP POLICY IF EXISTS "Students can only access their own rewards" ON reward_profiles;
+CREATE POLICY "Students can only access their own rewards" ON reward_profiles
+  FOR ALL USING (
+    user_id = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
+
+DROP POLICY IF EXISTS "Students can only access their own quests" ON quests;
+CREATE POLICY "Students can only access their own quests" ON quests
+  FOR ALL USING (
+    user_id = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
+
+DROP POLICY IF EXISTS "Students can only access their own redemptions" ON redemption_requests;
+CREATE POLICY "Students can only access their own redemptions" ON redemption_requests
+  FOR ALL USING (
+    user_id = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
+
+DROP POLICY IF EXISTS "Students can only access their own earn events" ON earn_events;
+CREATE POLICY "Students can only access their own earn events" ON earn_events
+  FOR ALL USING (
+    user_id = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
+
+DROP POLICY IF EXISTS "Students can only access their own reward settings" ON reward_settings;
+CREATE POLICY "Students can only access their own reward settings" ON reward_settings
+  FOR ALL USING (
+    user_id = current_student() 
+    OR current_student() = 'admin' 
+    OR current_student() = 'family'
+  );
