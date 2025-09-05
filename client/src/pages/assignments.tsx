@@ -737,16 +737,6 @@ export default function AssignmentsPage() {
                             {(assignment.completionStatus || 'pending').replace('_', ' ')}
                           </Badge>
 
-                          {/* Creation Source Badge */}
-                          {assignment.creationSource && (
-                            <Badge variant="outline" className="text-xs">
-                              {assignment.creationSource === 'canvas_sync' ? 'Canvas' :
-                               assignment.creationSource === 'auto_split' ? 'Auto Split' :
-                               assignment.creationSource === 'student_need_more_time' ? 'Continued' :
-                               assignment.creationSource === 'manual' ? 'Manual' :
-                               assignment.creationSource}
-                            </Badge>
-                          )}
 
                           {/* Overdue Indicator */}
                           {isOverdue && assignment.completionStatus !== 'completed' && (
