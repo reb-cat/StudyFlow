@@ -1318,8 +1318,8 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`✅ Template validated: ${templateBlocks.length} blocks found for ${weekdayName}`);
       
-      // Use the sophisticated scheduling system instead of basic logic
-      console.log(`🚀 Delegating to sophisticated autoScheduleAssignments system...`);
+      // Use the sophisticated hybrid scheduler with student intelligence
+      console.log(`🚀 Delegating to sophisticated hybrid scheduler system...`);
       const result = await this.autoScheduleAssignmentsForDate(studentName, date);
       
       console.log(`✅ SOPHISTICATED SCHEDULER: Completed for ${studentName} - ${result.scheduled}/${result.total} assignments scheduled`);
