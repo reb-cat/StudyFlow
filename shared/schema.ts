@@ -69,6 +69,12 @@ export const assignments = pgTable("assignments", {
   deletedAt: timestamp("deleted_at"), // When assignment was removed from Canvas  
   canvasGradeStatus: text("canvas_grade_status"), // Canvas grading status for completion sync
   
+  // Canvas grading notification system - Executive function support
+  // TEMPORARY: Commented out until database migration completes
+  // canvasGradingDetected: boolean("canvas_grading_detected").default(false), // Canvas shows graded but StudyFlow still pending
+  // canvasGradingReason: text("canvas_grading_reason"), // Why Canvas shows it as graded (for transparency)
+  // canvasGradingDetectedAt: timestamp("canvas_grading_detected_at"), // When we detected the grading discrepancy
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

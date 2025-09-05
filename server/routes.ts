@@ -1003,25 +1003,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          if (isGraded) {
-            // CRITICAL FIX: DISABLE automatic completion from Canvas sync
-            // Canvas graded_submissions_exist can be true if ANY student has graded work,
-            // not necessarily THIS specific student, causing false completions.
-            // This was causing assignments to be marked completed when they weren't actually done.
-            console.log(`🔒 DISABLED: Would have marked "${dbAssignment.title}" as completed (${gradeReason}) - preserving StudyFlow status: ${dbAssignment.completionStatus}`);
+          if (isGraded && dbAssignment.completionStatus === 'pending') {
+            // EXECUTIVE FUNCTION SUPPORT: Create confirmation notification for graded assignments
+            // Instead of auto-completing, ask student if they forgot to mark it complete
+            console.log(`💡 Canvas shows "${dbAssignment.title}" is graded (${gradeReason}) but still pending in StudyFlow - creating confirmation notification`);
             
-            // StudyFlow completion status should ONLY be managed by:
-            // 1. Manual student/parent completion actions in StudyFlow UI
-            // 2. Admin manual status changes in Assignment Manager
-            // 
-            // Canvas sync is now limited to: imports, deletions, and metadata updates
+            // TEMPORARY: Update notes field until database migration completes
+            // TODO: Restore canvas grading notification fields once migration finishes
+            await storage.updateAssignment(dbAssignment.id, {
+              notes: `${dbAssignment.notes || ''}\nCANVAS GRADED: ${gradeReason} - did you forget to mark this complete?`.trim(),
+              updatedAt: new Date()
+            });
             
-            // DO NOT UPDATE COMPLETION STATUS - just log for transparency
             results.push({
               id: dbAssignment.id,
               title: dbAssignment.title,
-              action: 'no_auto_completion',
-              reason: `Canvas shows graded (${gradeReason}) but preserving StudyFlow status: ${dbAssignment.completionStatus}`
+              action: 'grading_notification_created',
+              reason: `Canvas shows graded (${gradeReason}) - notification created for student confirmation`
+            });
+          } else if (isGraded) {
+            // Already completed or other status - just log
+            console.log(`🔒 Canvas shows "${dbAssignment.title}" is graded (${gradeReason}) - already ${dbAssignment.completionStatus}`);
+            results.push({
+              id: dbAssignment.id,
+              title: dbAssignment.title,
+              action: 'already_handled',
+              reason: `Canvas shows graded (${gradeReason}) but already ${dbAssignment.completionStatus}`
             });
           } else {
             // Check for grading delay: student marked complete but still ungraded after 5+ days

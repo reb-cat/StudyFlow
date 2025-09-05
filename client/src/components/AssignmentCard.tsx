@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, AlertTriangle, PlayCircle, Zap, Star, Timer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { normalizeAssignment } from '@shared/normalize';
 import type { Assignment } from '@shared/schema';
 import { CelebrationAnimation } from './CelebrationAnimation';
@@ -17,6 +18,9 @@ interface AssignmentCardProps {
 export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: AssignmentCardProps) {
   const { toast } = useToast();
   const [showCelebration, setShowCelebration] = useState(false);
+  
+  // Check if Canvas shows this assignment as graded but it's still pending in StudyFlow
+  const hasCanvasGradingNotification = assignment.notes?.includes('CANVAS GRADED:') && assignment.completionStatus === 'pending';
   
   const normalized = normalizeAssignment({
     id: assignment.id,
@@ -252,6 +256,53 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
           )}
         </div>
 
+        {/* Canvas Grading Notification - Executive Function Support */}
+        {hasCanvasGradingNotification && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div className="flex-1 space-y-3">
+                <div>
+                  <h4 className="font-medium text-amber-800 dark:text-amber-200">Canvas shows this is graded!</h4>
+                  <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                    Did you forget to mark this assignment as complete? Canvas indicates it has been graded.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleStatusUpdate('completed')}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    data-testid={`mark-complete-${assignment.id}`}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Yes, Mark Complete
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      // Clear the Canvas grading notification from notes
+                      const updatedNotes = assignment.notes?.replace(/\nCANVAS GRADED:.*$/, '') || '';
+                      fetch('/api/assignments', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          id: assignment.id,
+                          notes: updatedNotes,
+                        })
+                      }).then(() => onUpdate?.());
+                    }}
+                    className="border-amber-300 dark:border-amber-700"
+                    data-testid={`dismiss-notification-${assignment.id}`}
+                  >
+                    No, Still Working
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {assignment.completionStatus !== 'completed' && (
           <div className="flex items-center gap-2 pt-2">
