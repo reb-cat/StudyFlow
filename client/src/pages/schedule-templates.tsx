@@ -498,6 +498,7 @@ export default function ScheduleTemplates() {
                         allowSaturday: checked 
                       })}
                       disabled={saturdayMutation.isPending}
+                      className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-muted-foreground/20"
                     />
                   </div>
                 </div>
