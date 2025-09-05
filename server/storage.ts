@@ -538,8 +538,24 @@ export class DatabaseStorage implements IStorage {
       console.log(`📅 DUE TODAY: ${dueToday.length} assignments due on ${targetDate}`);
       
       const unscheduledAssignments = userAssignments.filter(a => {
-        // First filter: must be pending and not scheduled
-        if (a.completionStatus !== 'pending' || a.scheduledDate) {
+        // First filter: must be pending
+        if (a.completionStatus !== 'pending') {
+          return false;
+        }
+        
+        // Include assignments that are:
+        // 1. Not scheduled at all (scheduledDate is null)
+        // 2. Scheduled for today but without a specific block (scheduledDate = targetDate && scheduledBlock is null)
+        const isScheduledForToday = a.scheduledDate === targetDate;
+        const hasSpecificBlock = a.scheduledBlock !== null;
+        
+        if (a.scheduledDate && !isScheduledForToday) {
+          // Scheduled for a different date - exclude
+          return false;
+        }
+        
+        if (isScheduledForToday && hasSpecificBlock) {
+          // Already scheduled to a specific block today - exclude
           return false;
         }
         
