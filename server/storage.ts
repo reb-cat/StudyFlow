@@ -705,7 +705,7 @@ export class DatabaseStorage implements IStorage {
       console.log(`🗂️ Cleared all existing schedule template records`);
       
       if (csvData.length > 0) {
-        // Transform CSV data to match database schema
+        // Transform CSV data to match database schema and auto-generate missing block numbers
         const insertBlocks = csvData.map(row => ({
           id: row.id || undefined, // Use CSV ID if provided, otherwise let DB generate
           studentName: row.student_name,
@@ -716,6 +716,25 @@ export class DatabaseStorage implements IStorage {
           subject: row.subject,
           blockType: row.block_type as 'Bible' | 'Assignment' | 'Travel' | 'Co-op' | 'Study Hall' | 'Prep/Load' | 'Movement' | 'Lunch'
         }));
+
+        // Auto-generate block numbers for rows missing them to avoid constraint violations
+        const blockNumberMap = new Map<string, number>(); // key: "studentName-weekday"
+        
+        insertBlocks.forEach(block => {
+          if (block.blockNumber === null) {
+            const key = `${block.studentName}-${block.weekday}`;
+            if (!blockNumberMap.has(key)) {
+              // Find the highest existing block number for this student/weekday
+              const maxExisting = Math.max(0, ...insertBlocks
+                .filter(b => b.studentName === block.studentName && b.weekday === block.weekday && b.blockNumber !== null)
+                .map(b => b.blockNumber || 0)
+              );
+              blockNumberMap.set(key, maxExisting + 1);
+            }
+            block.blockNumber = blockNumberMap.get(key)!;
+            blockNumberMap.set(key, blockNumberMap.get(key)! + 1);
+          }
+        });
         
         console.log(`📝 Inserting ${insertBlocks.length} new schedule template records`);
         console.log(`🔍 Sample records:`, insertBlocks.slice(0, 3));
