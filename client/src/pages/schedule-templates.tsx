@@ -464,10 +464,10 @@ export default function ScheduleTemplates() {
               <div key={student.id} className="flex items-center justify-between p-4 border border-muted rounded-lg bg-muted/30">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                    {student.displayName.charAt(0)}
+                    {student.displayName?.charAt(0) || '?'}
                   </div>
                   <div>
-                    <h3 className="font-medium text-foreground">{student.displayName}</h3>
+                    <h3 className="font-medium text-foreground">{student.displayName || 'Unknown'}</h3>
                     <p className="text-sm text-muted-foreground">
                       Saturday scheduling is {student.allowSaturdayScheduling ? 'enabled' : 'disabled'}
                     </p>
