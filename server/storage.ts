@@ -1471,49 +1471,56 @@ export class DatabaseStorage implements IStorage {
         return b.score - a.score;
       });
       
-      // INTELLIGENT SUBJECT DISTRIBUTION for optimal learning experience
+      // URGENCY-FIRST SUBJECT DISTRIBUTION - prioritize due dates while maintaining variety
       console.log(`🎨 Optimizing subject distribution across ${availableAssignmentBlocks.length} assignment blocks`);
       
-      // Group assignments by subject for better distribution
-      const assignmentsBySubject = new Map<string, typeof scoredAssignments>();
-      scoredAssignments.forEach(scoredAssignment => {
-        const subject = scoredAssignment.assignment.subject || 'General';
-        if (!assignmentsBySubject.has(subject)) {
-          assignmentsBySubject.set(subject, []);
-        }
-        assignmentsBySubject.get(subject)!.push(scoredAssignment);
-      });
-      
-      // Create optimized assignment sequence with subject distribution
+      // Take assignments in due date priority order, but avoid more than 2 consecutive from same subject
       const optimizedSequence: typeof scoredAssignments = [];
-      const subjectKeys = Array.from(assignmentsBySubject.keys());
-      let subjectIndex = 0;
+      const availableAssignments = [...scoredAssignments]; // Keep original due date order
+      let lastSubject = '';
+      let consecutiveCount = 0;
       
-      // Distribute assignments ensuring subject variety throughout the day
-      while (optimizedSequence.length < Math.min(scoredAssignments.length, availableAssignmentBlocks.length)) {
-        let assigned = false;
+      // Priority-first distribution with subject variety constraint
+      while (optimizedSequence.length < Math.min(availableAssignments.length, availableAssignmentBlocks.length) && availableAssignments.length > 0) {
+        let selectedIndex = -1;
         
-        // Try each subject starting from current index to distribute evenly
-        for (let i = 0; i < subjectKeys.length; i++) {
-          const currentSubjectIndex = (subjectIndex + i) % subjectKeys.length;
-          const subject = subjectKeys[currentSubjectIndex];
-          const subjectAssignments = assignmentsBySubject.get(subject)!;
+        // First, try to find next urgent assignment from different subject
+        for (let i = 0; i < availableAssignments.length; i++) {
+          const assignment = availableAssignments[i];
+          const subject = assignment.assignment.subject || 'General';
           
-          if (subjectAssignments.length > 0) {
-            const assignment = subjectAssignments.shift()!; // Take highest priority from this subject
-            optimizedSequence.push(assignment);
-            console.log(`📝 Block ${optimizedSequence.length}: ${subject} - ${assignment.assignment.title}`);
-            assigned = true;
-            subjectIndex = (currentSubjectIndex + 1) % subjectKeys.length; // Move to next subject
+          // Allow if it's a different subject OR we haven't hit the consecutive limit
+          if (subject !== lastSubject || consecutiveCount < 2) {
+            selectedIndex = i;
             break;
           }
         }
         
-        // Safety check to prevent infinite loop
-        if (!assigned) break;
+        // If no suitable assignment found (all remaining are from same overused subject), take the most urgent
+        if (selectedIndex === -1 && availableAssignments.length > 0) {
+          selectedIndex = 0; // Take most urgent regardless of subject
+        }
+        
+        if (selectedIndex >= 0) {
+          const selected = availableAssignments.splice(selectedIndex, 1)[0];
+          const subject = selected.assignment.subject || 'General';
+          
+          optimizedSequence.push(selected);
+          console.log(`📝 Block ${optimizedSequence.length}: ${subject} - ${selected.assignment.title}`);
+          
+          // Update subject tracking
+          if (subject === lastSubject) {
+            consecutiveCount++;
+          } else {
+            lastSubject = subject;
+            consecutiveCount = 1;
+          }
+        } else {
+          break; // Safety exit
+        }
       }
       
-      console.log(`✨ Subject distribution complete: ${optimizedSequence.length} assignments across ${subjectKeys.length} subjects`);
+      console.log(`✨ Urgency-first distribution complete: ${optimizedSequence.length} assignments scheduled`);
       
       // Smart assignment allocation: match assignment duration to block capacity
       const assignedAssignments: string[] = [];
