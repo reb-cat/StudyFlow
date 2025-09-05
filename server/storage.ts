@@ -1404,13 +1404,28 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignmentsByBlock(studentName: string, weekday: string, blockNumber: number): Promise<Assignment[]> {
     try {
-      const userId = `${studentName.toLowerCase()}-user`; // This needs to be improved to get actual user
+      const userId = `${studentName.toLowerCase()}-user`;
+      
+      // CRITICAL: We need to find assignments scheduled for this specific weekday
+      // Get the current week's date for this weekday
+      const today = new Date();
+      const currentWeekday = today.getDay(); // 0 = Sunday
+      const weekdayMap: Record<string, number> = {
+        'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+        'Thursday': 4, 'Friday': 5, 'Saturday': 6
+      };
+      const targetWeekday = weekdayMap[weekday];
+      const daysDiff = targetWeekday - currentWeekday;
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() + daysDiff);
+      const dateString = targetDate.toISOString().split('T')[0];
+      
       const result = await db.select()
         .from(assignments)
         .where(and(
           eq(assignments.userId, userId),
           eq(assignments.scheduledBlock, blockNumber),
-          isNotNull(assignments.scheduledDate)
+          eq(assignments.scheduledDate, dateString)
         ));
       
       return result || [];

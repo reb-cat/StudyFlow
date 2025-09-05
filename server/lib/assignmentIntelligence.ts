@@ -217,8 +217,14 @@ export async function getAvailableScheduleSlots(
     // Only Assignment and Study Hall blocks can receive assignments
     if (block.blockType === 'Assignment' || block.blockType === 'Study Hall') {
       // Calculate block duration in minutes
-      const startTime = new Date(`2000-01-01T${block.startTime}`);
-      const endTime = new Date(`2000-01-01T${block.endTime}`);
+      // Ensure times are in HH:mm format (pad with 0 if needed)
+      const formatTime = (time: string) => {
+        const [hours, minutes] = time.split(':');
+        return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+      };
+      
+      const startTime = new Date(`2000-01-01T${formatTime(block.startTime)}`);
+      const endTime = new Date(`2000-01-01T${formatTime(block.endTime)}`);
       const durationMs = endTime.getTime() - startTime.getTime();
       const availableMinutes = Math.floor(durationMs / (1000 * 60));
       
