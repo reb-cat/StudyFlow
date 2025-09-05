@@ -1867,7 +1867,7 @@ export class DatabaseStorage implements IStorage {
 
       const newPoints = profile.points + pointsToAdd;
       const newLifetimePoints = profile.lifetimePoints + pointsToAdd;
-      const newLevel = Math.floor(newLifetimePoints / 20000) + 1; // Level up every 20,000 lifetime points
+      const newLevel = Math.floor(newLifetimePoints / 5000) + 1; // Level up every 5,000 lifetime points
 
       const [updatedProfile] = await db.update(rewardProfiles)
         .set({ 
