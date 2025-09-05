@@ -274,7 +274,7 @@ export default function FamilyDashboard() {
                   <div className="h-2 bg-border rounded overflow-hidden">
                     <div 
                       className={`h-full transition-all duration-300 ${
-                        flagCount > 0 ? 'bg-muted-foreground' : 'bg-green-500'
+                        flagCount > 0 ? 'bg-gold' : 'bg-emerald'
                       }`}
                       style={{ width: `${progressPercent}%` }}
                     />

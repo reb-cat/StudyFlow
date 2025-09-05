@@ -187,7 +187,7 @@ export default function StudentDashboard() {
       },
       'complete': {
         variant: 'outline' as const,
-        color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50',
+        color: 'text-emerald bg-emerald/20 border-emerald/30',
         icon: CheckCircle,
         text: 'complete'
       },
@@ -199,7 +199,7 @@ export default function StudentDashboard() {
       },
       'overtime': {
         variant: 'outline' as const,
-        color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800/50',
+        color: 'text-violet bg-violet/20 border-violet/30',
         icon: SkipForward,
         text: 'overtime'
       }
@@ -563,7 +563,7 @@ export default function StudentDashboard() {
                   <span data-testid="date-display" className="text-base font-semibold">{dateDisplay}</span>
                 </div>
                 {isThursday && (
-                  <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800 rounded-full px-4 py-1.5 text-sm font-medium">
+                  <Badge variant="secondary" className="bg-emerald/20 text-emerald border-emerald/30 rounded-full px-4 py-1.5 text-sm font-medium">
                     Co-op Day
                   </Badge>
                 )}
@@ -688,7 +688,7 @@ export default function StudentDashboard() {
                       .map((block, index) => {
                         // Get appropriate icon component using cleaner mapping
                         const getBlockIcon = (blockType: string) => {
-                          const iconClass = "h-6 w-6 text-blue-600";
+                          const iconClass = "h-6 w-6 text-blue";
                           const IconComponent = iconFor(blockType.toLowerCase() as BlockKind);
                           return <IconComponent className={iconClass} />;
                         };
@@ -746,7 +746,7 @@ export default function StudentDashboard() {
                             key={block.id} 
                             className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 ${
                               isCurrentBlock 
-                                ? 'border-2 border-blue-300 bg-blue-50' 
+                                ? 'border-2 border-blue/30 bg-blue/20' 
                                 : 'bg-card hover:bg-accent/10'
                             } print-schedule-item`}
                           >
@@ -758,10 +758,10 @@ export default function StudentDashboard() {
 
                             {/* Status-colored Pill with Consistent White Icons */}
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              effectiveStatus === 'complete' ? 'bg-green-100 border border-green-300' :
-                              effectiveStatus === 'in-progress' ? 'bg-blue-100 border border-blue-300' :
-                              effectiveStatus === 'stuck' ? 'bg-orange-100 border border-orange-300' :
-                              'bg-gray-100 border border-gray-300'  // not-started
+                              effectiveStatus === 'complete' ? 'bg-emerald/20 border border-emerald/30' :
+                              effectiveStatus === 'in-progress' ? 'bg-blue/20 border border-blue/30' :
+                              effectiveStatus === 'stuck' ? 'bg-gold/20 border border-gold/30' :
+                              'bg-muted/50 border border-border'  // not-started
                             }`}>
                               {getBlockIcon(block.blockType)}
                             </div>

@@ -170,13 +170,13 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
                   </span>
                 )}
                 {isSplitAuto && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800 text-xs px-2 py-0.5">
+                  <Badge variant="outline" className="bg-blue/20 text-blue border-blue/30 text-xs px-2 py-0.5">
                     <Star className="h-3 w-3 mr-1" />
                     Auto Split
                   </Badge>
                 )}
                 {isContinued && (
-                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800 text-xs px-2 py-0.5">
+                  <Badge variant="outline" className="bg-violet/20 text-violet border-violet/30 text-xs px-2 py-0.5">
                     <Clock className="h-3 w-3 mr-1" />
                     Continued
                   </Badge>
@@ -219,12 +219,12 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
                 {normalized.displayTitle}
               </h3>
               {normalized.courseLabel && (
-                <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
+                <span className="inline-block px-2 py-1 text-xs font-medium bg-blue/20 text-blue rounded-full">
                   {normalized.courseLabel}
                 </span>
               )}
               {(isSplitAuto || isContinued) && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+                <Badge variant="outline" className="bg-blue/20 text-blue border-blue/30">
                   <Star className="h-3 w-3 mr-1" />
                   Split Task
                 </Badge>
@@ -258,7 +258,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
             <Button
               size="sm"
               onClick={() => handleStatusUpdate('completed')}
-              className="flex items-center gap-1 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white"
+              className="flex items-center gap-1 bg-emerald hover:bg-emerald/90 text-emerald-foreground"
               data-testid={`button-complete-${assignment.id}`}
             >
               <CheckCircle className="h-3 w-3" />
@@ -288,7 +288,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
         )}
 
         {assignment.completionStatus === 'completed' && (
-          <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm font-medium">
+          <div className="flex items-center gap-2 text-emerald text-sm font-medium">
             <CheckCircle className="h-4 w-4" />
             Completed! Great work! 🎉
           </div>
