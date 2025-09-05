@@ -143,8 +143,6 @@ export default function FamilyDashboard() {
               style={{ textDecoration: 'none' }}
             >
               <div
-                onMouseEnter={() => setHoveredStudent(student.id)}
-                onMouseLeave={() => setHoveredStudent(null)}
                 className={`bg-card rounded-3xl p-8 text-center cursor-pointer transition-all duration-300 border-2 ${
                   hoveredStudent === student.id 
                     ? '-translate-y-1 shadow-xl' 
@@ -159,7 +157,9 @@ export default function FamilyDashboard() {
               >
                 {/* Student Avatar */}
                 <div 
-                  className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 text-white text-4xl font-bold overflow-hidden relative"
+                  onMouseEnter={() => setHoveredStudent(student.id)}
+                  onMouseLeave={() => setHoveredStudent(null)}
+                  className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 text-white text-4xl font-bold overflow-hidden relative cursor-pointer"
                   style={{
                     backgroundColor: student.color,
                     boxShadow: `0 4px 12px ${student.color}30`
