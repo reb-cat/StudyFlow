@@ -1,0 +1,26 @@
+🗓️ Date Debug: {selectedDate: '2025-09-05', selectedDateObj: 'Fri Sep 05 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Friday', dateDisplay: 'Friday, September 5, 2025', today: '2025-09-05'}
+queryClient.ts:32  GET https://1feadff7-a94b-4906-80dd-854e04dccec4-00-2rkogv4kyzfm6.spock.replit.dev/api/bible-curriculum/current/Khalil 404 (Not Found)
+(anonymous) @ queryClient.ts:32
+fetchFn @ @tanstack_react-query.js?v=1460b2ad:840
+run @ @tanstack_react-query.js?v=1460b2ad:494
+start @ @tanstack_react-query.js?v=1460b2ad:536
+fetch @ @tanstack_react-query.js?v=1460b2ad:926
+executeFetch_fn @ @tanstack_react-query.js?v=1460b2ad:2211
+onSubscribe @ @tanstack_react-query.js?v=1460b2ad:1898
+subscribe @ @tanstack_react-query.js?v=1460b2ad:24
+(anonymous) @ @tanstack_react-query.js?v=1460b2ad:3022
+subscribeToStore @ chunk-WERSD76P.js?v=1460b2ad:11984
+commitHookEffectListMount @ chunk-WERSD76P.js?v=1460b2ad:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=1460b2ad:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=1460b2ad:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=1460b2ad:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=1460b2ad:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=1460b2ad:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=1460b2ad:19447
+(anonymous) @ chunk-WERSD76P.js?v=1460b2ad:19328
+workLoop @ chunk-WERSD76P.js?v=1460b2ad:197
+flushWork @ chunk-WERSD76P.js?v=1460b2ad:176
+performWorkUntilDeadline @ chunk-WERSD76P.js?v=1460b2ad:384Understand this error
+student-dashboard.tsx:266 🗓️ Date Debug: {selectedDate: '2025-09-05', selectedDateObj: 'Fri Sep 05 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Friday', dateDisplay: 'Friday, September 5, 2025', today: '2025-09-05'}
+student-dashboard.tsx:266 🗓️ Date Debug: {selectedDate: '2025-09-05', selectedDateObj: 'Fri Sep 05 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Friday', dateDisplay: 'Friday, September 5, 2025', today: '2025-09-05'}
+student-dashboard.tsx:266 🗓️ Date Debug: {selectedDate: '2025-09-05', selectedDateObj: 'Fri Sep 05 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Friday', dateDisplay: 'Friday, September 5, 2025', today: '2025-09-05'}
