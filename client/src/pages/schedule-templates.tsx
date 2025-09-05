@@ -479,16 +479,25 @@ export default function ScheduleTemplates() {
                     <Label htmlFor={`saturday-${student.studentName}`} className="text-sm">
                       Allow Saturday
                     </Label>
-                    <Switch
+                    <button
                       id={`saturday-${student.studentName}`}
-                      checked={student.allowSaturdayScheduling}
-                      onCheckedChange={(checked) => saturdayMutation.mutate({ 
+                      onClick={() => saturdayMutation.mutate({ 
                         studentName: student.studentName, 
-                        allowSaturday: checked 
+                        allowSaturday: !student.allowSaturdayScheduling 
                       })}
                       disabled={saturdayMutation.isPending}
-                      className="w-11 h-6 rounded-full data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-gray-600 [&>span]:w-5 [&>span]:h-5 [&>span]:rounded-full [&>span]:bg-white [&>span]:shadow-lg [&>span]:transition-transform [&>span:last-child]:translate-x-5"
-                    />
+                      className={`relative w-11 h-6 rounded-lg transition-colors duration-200 ${
+                        student.allowSaturdayScheduling 
+                          ? 'bg-blue-600' 
+                          : 'bg-gray-300 dark:bg-gray-600'
+                      }`}
+                    >
+                      <div 
+                        className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-sm shadow-lg transition-transform duration-200 ${
+                          student.allowSaturdayScheduling ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
               </div>
