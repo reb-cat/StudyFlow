@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, Save, RotateCcw, Home, Edit3, Users } from 'lucide-react';
+import { Clock, Save, RotateCcw, Home, Edit3, Users, Upload, FileText } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 
 interface ScheduleBlock {
@@ -42,6 +42,8 @@ export default function ScheduleTemplates() {
   const [selectedWeekday, setSelectedWeekday] = useState<string>('Thursday');
   const [editingBlocks, setEditingBlocks] = useState<ScheduleBlock[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const { data: scheduleBlocks = [], isLoading } = useQuery<ScheduleBlock[]>({
@@ -66,6 +68,31 @@ export default function ScheduleTemplates() {
       toast({
         title: "Error", 
         description: error?.message || "Failed to update schedule template",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const csvUploadMutation = useMutation({
+    mutationFn: async (csvData: any[]) => {
+      return apiRequest('POST', '/api/schedule-template/upload-csv', { csvData });
+    },
+    onSuccess: (response: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/schedule-template'] });
+      setCsvFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      toast({
+        title: "Success",
+        description: `Schedule template replaced successfully with ${response.recordsProcessed} records`,
+      });
+    },
+    onError: (error: any) => {
+      console.error('CSV upload error:', error);
+      toast({
+        title: "Error", 
+        description: error?.message || "Failed to upload CSV schedule template",
         variant: "destructive",
       });
     },
@@ -123,6 +150,65 @@ export default function ScheduleTemplates() {
     if (scheduleBlocks) {
       setEditingBlocks([...scheduleBlocks]);
       setHasChanges(false);
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'text/csv') {
+      setCsvFile(file);
+    } else {
+      toast({
+        title: "Invalid File",
+        description: "Please select a valid CSV file",
+        variant: "destructive",
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const parseCsvFile = (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const csv = event.target?.result as string;
+        const lines = csv.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim());
+        
+        const data = lines.slice(1)
+          .filter(line => line.trim()) // Remove empty lines
+          .map(line => {
+            const values = line.split(',');
+            const row: any = {};
+            headers.forEach((header, index) => {
+              row[header] = values[index]?.trim() || null;
+            });
+            return row;
+          });
+        
+        resolve(data);
+      };
+      reader.onerror = () => reject(new Error('Failed to read CSV file'));
+      reader.readAsText(file);
+    });
+  };
+
+  const handleCsvUpload = async () => {
+    if (!csvFile) return;
+    
+    try {
+      const csvData = await parseCsvFile(csvFile);
+      console.log('Parsed CSV data:', csvData.slice(0, 3)); // Log first 3 rows for debugging
+      csvUploadMutation.mutate(csvData);
+    } catch (error) {
+      console.error('CSV parsing error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to parse CSV file",
+        variant: "destructive",
+      });
     }
   };
 
@@ -204,6 +290,62 @@ export default function ScheduleTemplates() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* CSV Upload Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Upload className="h-5 w-5" />
+            Replace Schedule Template from CSV
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+            <div className="flex items-start gap-3">
+              <FileText className="h-5 w-5 text-yellow-600 mt-1 flex-shrink-0" />
+              <div className="space-y-2">
+                <p className="font-medium text-yellow-800 dark:text-yellow-200">⚠️ Complete Replacement</p>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  Uploading a CSV will <strong>completely replace</strong> the entire schedule template for both students across all weekdays. 
+                  This action cannot be undone. Ensure your CSV contains all required schedule data.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select CSV File</label>
+              <Input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleFileSelect}
+                data-testid="input-csv-file"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">
+                {csvFile ? `Selected: ${csvFile.name}` : 'No file selected'}
+              </div>
+            </div>
+            <Button 
+              onClick={handleCsvUpload}
+              disabled={!csvFile || csvUploadMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-upload-csv"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {csvUploadMutation.isPending ? 'Uploading...' : 'Replace All Templates'}
+            </Button>
+          </div>
+          
+          <div className="text-xs text-muted-foreground">
+            <p><strong>Expected CSV format:</strong> id, student_name, weekday, block_number, start_time, end_time, subject, block_type</p>
+            <p><strong>Supported block types:</strong> Bible, Assignment, Travel, Co-op, Study Hall, Prep/Load, Movement, Lunch</p>
           </div>
         </CardContent>
       </Card>

@@ -32,6 +32,7 @@ export interface IStorage {
   getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]>;
   createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate>;
   updateScheduleTemplate(studentName: string, weekday: string, blocks: ScheduleTemplate[], isAuthorizedAdmin?: boolean): Promise<void>;
+  replaceScheduleTemplateFromCSV(csvData: any[]): Promise<void>;
   
   // Bible curriculum operations
   getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]>;
@@ -691,6 +692,46 @@ export class DatabaseStorage implements IStorage {
         } : 'No blocks'
       });
       throw new Error(`Failed to update schedule template: ${error.message}`);
+    }
+  }
+
+  // Replace entire schedule template from CSV data
+  async replaceScheduleTemplateFromCSV(csvData: any[]): Promise<void> {
+    try {
+      console.log(`🔒 AUTHORIZED: Replacing entire schedule_template with ${csvData.length} CSV records`);
+      
+      // Delete all existing schedule template records
+      await db.delete(scheduleTemplate);
+      console.log(`🗂️ Cleared all existing schedule template records`);
+      
+      if (csvData.length > 0) {
+        // Transform CSV data to match database schema
+        const insertBlocks = csvData.map(row => ({
+          id: row.id || undefined, // Use CSV ID if provided, otherwise let DB generate
+          studentName: row.student_name,
+          weekday: row.weekday,
+          blockNumber: row.block_number ? parseInt(row.block_number) : null,
+          startTime: row.start_time,
+          endTime: row.end_time,
+          subject: row.subject,
+          blockType: row.block_type as 'Bible' | 'Assignment' | 'Travel' | 'Co-op' | 'Study Hall' | 'Prep/Load' | 'Movement' | 'Lunch'
+        }));
+        
+        console.log(`📝 Inserting ${insertBlocks.length} new schedule template records`);
+        console.log(`🔍 Sample records:`, insertBlocks.slice(0, 3));
+        
+        // Insert new records in batches to avoid query size limits
+        const batchSize = 50;
+        for (let i = 0; i < insertBlocks.length; i += batchSize) {
+          const batch = insertBlocks.slice(i, i + batchSize);
+          await db.insert(scheduleTemplate).values(batch);
+        }
+      }
+      
+      console.log(`✅ AUTHORIZED: Successfully replaced schedule template with ${csvData.length} records from CSV`);
+    } catch (error) {
+      console.error('Error replacing schedule template from CSV:', error);
+      throw new Error(`Failed to replace schedule template from CSV: ${error.message}`);
     }
   }
 

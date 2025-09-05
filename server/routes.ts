@@ -1913,6 +1913,30 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
+  // CSV Upload endpoint to replace entire schedule_template
+  app.post('/api/schedule-template/upload-csv', requireAuth, async (req, res) => {
+    try {
+      const { csvData } = req.body;
+      
+      console.log(`🔒 AUTHORIZED: Replacing entire schedule_template via CSV upload`);
+      
+      if (!csvData || !Array.isArray(csvData)) {
+        return res.status(400).json({ message: 'Invalid CSV data format' });
+      }
+      
+      // Replace entire schedule template with CSV data
+      await storage.replaceScheduleTemplateFromCSV(csvData);
+      
+      res.json({ 
+        message: 'Schedule template replaced successfully from CSV',
+        recordsProcessed: csvData.length
+      });
+    } catch (error) {
+      console.error('Error uploading CSV schedule template:', error);
+      res.status(500).json({ message: 'Failed to upload CSV schedule template' });
+    }
+  });
+
   // Manual Canvas sync trigger (for testing)
   app.post('/api/sync-canvas', async (req, res) => {
     try {
