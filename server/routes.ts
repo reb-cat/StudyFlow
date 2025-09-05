@@ -1004,20 +1004,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           if (isGraded) {
-            console.log(`✅ Updating "${dbAssignment.title}" to completed (${gradeReason})`);
+            // CRITICAL FIX: DISABLE automatic completion from Canvas sync
+            // Canvas graded_submissions_exist can be true if ANY student has graded work,
+            // not necessarily THIS specific student, causing false completions.
+            // This was causing assignments to be marked completed when they weren't actually done.
+            console.log(`🔒 DISABLED: Would have marked "${dbAssignment.title}" as completed (${gradeReason}) - preserving StudyFlow status: ${dbAssignment.completionStatus}`);
             
-            await storage.updateAssignment(dbAssignment.id, {
-              completionStatus: 'completed',
-              notes: `${dbAssignment.notes || ''}\nAuto-completed: ${gradeReason}`.trim(),
-              updatedAt: new Date()
-            });
+            // StudyFlow completion status should ONLY be managed by:
+            // 1. Manual student/parent completion actions in StudyFlow UI
+            // 2. Admin manual status changes in Assignment Manager
+            // 
+            // Canvas sync is now limited to: imports, deletions, and metadata updates
             
-            updatedCount++;
+            // DO NOT UPDATE COMPLETION STATUS - just log for transparency
             results.push({
               id: dbAssignment.id,
               title: dbAssignment.title,
-              action: 'completed',
-              reason: gradeReason
+              action: 'no_auto_completion',
+              reason: `Canvas shows graded (${gradeReason}) but preserving StudyFlow status: ${dbAssignment.completionStatus}`
             });
           } else {
             // Check for grading delay: student marked complete but still ungraded after 5+ days
@@ -1048,10 +1052,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      console.log(`✅ Canvas completion sync finished: ${updatedCount} assignments updated`);
+      console.log(`🔒 Canvas completion sync finished: Auto-completion DISABLED - checked ${results.length} assignments`);
       res.json({
-        message: `Canvas completion sync completed: ${updatedCount} assignments updated`,
-        updated: updatedCount,
+        message: `Canvas completion sync completed: Auto-completion DISABLED to prevent false completions`,
+        updated: 0, // Always 0 now that auto-completion is disabled
+        checked: results.length,
         total: existingAssignments.length,
         results,
         studentName
@@ -1092,14 +1097,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // Auto-complete ONLY if truly graded/submitted in Canvas
+          // CRITICAL FIX: DISABLE auto-completion during Canvas import
+          // Canvas graded_submissions_exist can be true if ANY student has graded work,
+          // not necessarily THIS specific student, causing false completions.
+          // All new assignments should import as 'pending' - completion status only managed manually.
           let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
           if (canvasAssignment.graded_submissions_exist && canvasAssignment.has_submitted_submissions) {
-            // Both graded AND submitted = truly completed
-            completionStatus = 'completed';
-            console.log(`✅ Auto-marking "${canvasAssignment.name}" as completed (graded + submitted in Canvas)`);
+            console.log(`🔒 DISABLED: Would have auto-marked "${canvasAssignment.name}" as completed (graded + submitted) - importing as pending instead`);
           } else if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
-            console.log(`⚠️ Partial completion for "${canvasAssignment.name}" - graded: ${canvasAssignment.graded_submissions_exist}, submitted: ${canvasAssignment.has_submitted_submissions}`);
+            console.log(`📊 Canvas shows partial completion for "${canvasAssignment.name}" - graded: ${canvasAssignment.graded_submissions_exist}, submitted: ${canvasAssignment.has_submitted_submissions} - importing as pending`);
           }
 
           // Use assignment normalizer for improved titles and due dates
@@ -1158,14 +1164,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // Auto-complete ONLY if truly graded/submitted in Canvas
+          // CRITICAL FIX: DISABLE auto-completion during Canvas import
+          // Canvas graded_submissions_exist can be true if ANY student has graded work,
+          // not necessarily THIS specific student, causing false completions.
+          // All new assignments should import as 'pending' - completion status only managed manually.
           let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
           if (canvasAssignment.graded_submissions_exist && canvasAssignment.has_submitted_submissions) {
-            // Both graded AND submitted = truly completed
-            completionStatus = 'completed';
-            console.log(`✅ Auto-marking "${canvasAssignment.name}" as completed (graded + submitted in Canvas)`);
+            console.log(`🔒 DISABLED: Would have auto-marked "${canvasAssignment.name}" as completed (graded + submitted) - importing as pending instead`);
           } else if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
-            console.log(`⚠️ Partial completion for "${canvasAssignment.name}" - graded: ${canvasAssignment.graded_submissions_exist}, submitted: ${canvasAssignment.has_submitted_submissions}`);
+            console.log(`📊 Canvas shows partial completion for "${canvasAssignment.name}" - graded: ${canvasAssignment.graded_submissions_exist}, submitted: ${canvasAssignment.has_submitted_submissions} - importing as pending`);
           }
 
           // Use assignment normalizer for improved titles and due dates

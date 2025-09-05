@@ -169,18 +169,17 @@ class JobScheduler {
                   }
                 );
                 
-                // Smart auto-completion: Only mark as completed if TRULY graded in Canvas
-                // This prevents false positives while respecting actual Canvas grades
+                // CRITICAL FIX: DISABLE auto-completion in scheduler to prevent false completions
+                // Canvas graded_submissions_exist can be true if ANY student has graded work,
+                // not necessarily THIS specific student, causing false completions.
+                // All assignments should import as 'pending' - completion status only managed manually.
                 let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
                 
-                // Check if Canvas shows this assignment as actually graded (not just submitted)
+                // Log Canvas grading data for transparency but don't auto-complete
                 if (canvasAssignment.graded_submissions_exist) {
-                  // Canvas has graded this assignment - it should be marked as completed
-                  completionStatus = 'completed';
-                  console.log(`✅ Canvas graded: Auto-marking "${canvasAssignment.name}" as completed`);
+                  console.log(`🔒 DISABLED: Would have auto-marked "${canvasAssignment.name}" as completed (Canvas graded) - importing as pending`);
                 } else if (canvasAssignment.has_submitted_submissions) {
-                  // Only submitted but not graded yet - keep as pending for now
-                  console.log(`📝 Canvas submitted (not graded): "${canvasAssignment.name}" remains pending`);
+                  console.log(`📊 Canvas shows submitted (not graded): "${canvasAssignment.name}" importing as pending`);
                 }
 
                 // ENHANCED DUE DATE EXTRACTION AND VALIDATION
@@ -371,14 +370,15 @@ class JobScheduler {
                   }
                 );
                 
-                // Auto-complete ONLY if truly graded/submitted in Canvas
+                // CRITICAL FIX: DISABLE auto-completion in Canvas Instance 2 to prevent false completions
+                // Canvas graded_submissions_exist can be true if ANY student has graded work,
+                // not necessarily THIS specific student, causing false completions.
+                // All assignments should import as 'pending' - completion status only managed manually.
                 let completionStatus: 'pending' | 'completed' | 'needs_more_time' | 'stuck' = 'pending';
                 if (canvasAssignment.graded_submissions_exist && canvasAssignment.has_submitted_submissions) {
-                  // Both graded AND submitted = truly completed
-                  completionStatus = 'completed';
-                  console.log(`✅ Auto-marking "${title}" as completed (graded + submitted in Canvas)`);
+                  console.log(`🔒 DISABLED: Would have auto-marked "${title}" as completed (graded + submitted) - importing as pending`);
                 } else if (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions) {
-                  console.log(`⚠️ Partial completion for "${title}" - graded: ${canvasAssignment.graded_submissions_exist}, submitted: ${canvasAssignment.has_submitted_submissions}`);
+                  console.log(`📊 Canvas shows partial completion for "${title}" - graded: ${canvasAssignment.graded_submissions_exist}, submitted: ${canvasAssignment.has_submitted_submissions} - importing as pending`);
                 }
 
                 // ENHANCED DUE DATE EXTRACTION AND VALIDATION for Canvas Instance 2
