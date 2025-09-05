@@ -72,6 +72,27 @@
   --shadow-2xl: 0 25px 50px rgba(33, 37, 41, 0.15);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+
+  /* Gaming/Reward themed colors from your study-gems design */
+  --gold: 45 93% 58%;
+  --gold-foreground: 240 10% 3.9%;
+  --emerald: 142 76% 36%;
+  --emerald-foreground: 0 0% 98%;
+  --violet: 263 70% 50.4%;
+  --violet-foreground: 0 0% 98%;
+  --blue: 213 94% 68%;
+  --blue-foreground: 0 0% 98%;
+
+  /* Subtle Gradients for ADHD-friendly design */
+  --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)/80) 100%);
+  --gradient-gold: linear-gradient(135deg, hsl(var(--gold)) 0%, hsl(var(--gold)/80) 100%);
+  --gradient-emerald: linear-gradient(135deg, hsl(var(--emerald)) 0%, hsl(var(--emerald)/80) 100%);
+  --gradient-card: hsl(var(--card));
+
+  /* Subtle Shadows for gaming elements */
+  --shadow-glow: 0 2px 8px hsl(var(--primary) / 0.15);
+  --shadow-gold: 0 2px 8px hsl(var(--gold) / 0.15);
+  --shadow-emerald: 0 2px 8px hsl(var(--emerald) / 0.15);
 }
 
 .dark {

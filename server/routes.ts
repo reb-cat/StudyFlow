@@ -260,22 +260,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const studentName = req.params.userId; // Extract student from userId
           const rewardUserId = `${studentName.toLowerCase()}-user`;
           
-          // Calculate points based on assignment difficulty and estimated time
+          // Calculate points based on your exact specifications
           const assignment = await storage.getAssignment(id);
           if (assignment) {
-            let points = 15; // Base completion points
-            
-            // Time bonus: +1 point per 10 minutes of estimated work
-            if (assignment.actualEstimatedMinutes) {
-              points += Math.floor(assignment.actualEstimatedMinutes / 10);
-            }
-            
-            // Difficulty bonus
-            if (assignment.difficulty === 'hard') points += 10;
-            else if (assignment.difficulty === 'medium') points += 5;
-            
-            // Priority bonus for overdue assignments
-            if (assignment.priority === 'A') points += 5;
+            // Task completion points: High = +5, Medium = +3, Low = +1
+            let points = 1; // Default for Low priority
+            if (assignment.priority === 'A') points = 5; // High priority
+            else if (assignment.priority === 'B') points = 3; // Medium priority
+            else points = 1; // Low priority
             
             // Check earning limits before awarding
             const settings = await storage.getRewardSettings('family');
@@ -1878,23 +1870,22 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         try {
           const rewardUserId = `${studentName.toLowerCase()}-user`;
           
-          // Get block duration from template
+          // Session completion: +1 point per 5 minutes (≥15 min, ≤50% pause)
           const template = updated.template;
-          let points = 10; // Base session completion points
+          let points = 0;
           
-          // Calculate duration-based bonus
+          // Calculate session points based on your exact specifications
           if (template?.startTime && template?.endTime) {
             const startTime = new Date(`2000-01-01T${template.startTime}`);
             const endTime = new Date(`2000-01-01T${template.endTime}`);
             const minutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
             
-            // +1 point per 15 minutes of focused work
-            points += Math.floor(minutes / 15);
+            // Only award points if session ≥ 15 minutes (anti-abuse)
+            if (minutes >= 15) {
+              // +1 point per 5 minutes of session time  
+              points = Math.floor(minutes / 5);
+            }
           }
-          
-          // Block type bonuses
-          if (template?.blockType === 'Assignment') points += 5; // Homework completion bonus
-          else if (template?.blockType === 'Bible') points += 3; // Spiritual growth bonus
           
           // Check earning limits
           const settings = await storage.getRewardSettings('family');

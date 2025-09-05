@@ -1,0 +1,58 @@
+🎁 Reward Catalog Items (with Point Costs)
+
+For Both (shared themes):
+	•	🎮 30 min Video Game Time — 30 points
+	•	📱 20 min Phone Time — 20 points
+	•	🍦 One Treat (ice cream, special snack) — 15 points
+	•	📺 Pick the Family Movie — 25 points
+	•	🎧 Choose Dinner Music — 10 points
+	•	🎲 Family Game Night Leader (choose game/rules) — 20 points
+
+For Abigail (motivators you’ve mentioned):
+	•	🛍️ Small Etsy/Target Item — 60 points
+	•	💅 DIY Mani-Pedi Time with Mom — 40 points
+	•	🎨 Art Supplies Refill — 50 points
+	•	📖 Pick New Book (under $10) — 50 points
+
+For Khalil (motivators you’ve mentioned):
+	•	🏃 Extra 20 min Running/Outside Time — 15 points
+	•	🎮 Double Game Session (60 min) — 50 points
+	•	🐶 Extra Dog Time (walk Maisie or Gryff) — 20 points
+	•	🍔 Pick Dinner (family votes on his choice) — 40 points
+
+⸻
+
+🎯 Quest Types & Descriptions
+
+Daily Rotating Quests:
+	•	“Focus for 45 minutes today” (Minutes=45, +10 pts)
+	•	“Complete 2 tasks today” (+8 pts)
+	•	“Keep your streak 3 days” (+12 pts)
+
+Extended Quests (weekly stretch goals):
+	•	“Earn 100 points this week” (+20 pts)
+	•	“No missed sessions for 5 days” (+15 pts)
+	•	“Finish 5 tasks this week” (+12 pts)
+
+Fun/Themed Quests (to keep it playful):
+	•	“Defeat the Homework Dragon (finish 3 assignments)” (+15 pts)
+	•	“Build Your Streak Shield (study 4 days in a row)” (+12 pts)
+	•	“Power Up! (reach 60 minutes focus in a single day)” (+20 pts)
+
+⸻
+
+📊 Point Earning Amounts (tweaked for motivation balance)
+	•	Sessions: +1 point per 5 minutes (≥15 min, ≤50% pause)
+	•	Tasks: High = +5, Medium = +3, Low = +1 (same as spec)
+	•	Streak Checkpoint (7 days): +15 (slightly higher than spec for extra pull)
+	•	Quest Rewards: 8–20 pts depending on difficulty
+	•	Bonus Idea: “Integrity Bonus” +2 for finishing without pause abuse (light encouragement, not penalty-focused)
+
+⸻
+
+🗂 Reward Categories / Themes
+	•	Screen Time (game, phone, TV)
+	•	Food Treats (snack, dinner pick, special dessert)
+	•	Autonomy & Control (choose activity, movie, family game, music)
+	•	Creative & Personal (art supplies, book, self-care)
+	•	Physical & Outdoor (extra playtime, dog walk, sports)

@@ -138,57 +138,46 @@ export default function RewardsPage() {
   return (
     <div className="space-y-6" data-testid="rewards-page">
       
-      {/* Header Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card data-testid="points-card">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <Coins className="h-8 w-8 text-yellow-600" />
-              <div>
-                <p className="text-2xl font-bold" data-testid="current-points">{profile.points}</p>
-                <p className="text-sm text-muted-foreground">Available Points</p>
-              </div>
-            </div>
-          </CardContent>
+      {/* Stats Overview - Gaming Theme */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-4 bg-card border border-border shadow-gold animate-fade-in" data-testid="points-card">
+          <div className="text-center">
+            <Trophy className="w-8 h-8 text-gold mx-auto mb-2" />
+            <p className="text-2xl font-bold text-gold mb-1" data-testid="current-points">
+              {profile.points}
+            </p>
+            <p className="text-xs text-muted-foreground">Points</p>
+          </div>
         </Card>
 
-        <Card data-testid="level-card">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <Trophy className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-2xl font-bold" data-testid="current-level">Level {profile.level}</p>
-                <Progress value={levelProgress} className="mt-2 h-2" data-testid="level-progress" />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {Math.floor(levelProgress)}% to Level {profile.level + 1}
-                </p>
-              </div>
+        <Card className="p-4 bg-card border border-border animate-fade-in" data-testid="level-card">
+          <div className="text-center">
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mx-auto mb-2">
+              <span className="text-sm font-bold text-primary-foreground">{profile.level}</span>
             </div>
-          </CardContent>
+            <p className="text-xs text-muted-foreground">Level {profile.level}</p>
+            <Progress value={levelProgress} className="mt-2 h-2" data-testid="level-progress" />
+          </div>
         </Card>
 
-        <Card data-testid="lifetime-card">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-8 w-8 text-green-600" />
-              <div>
-                <p className="text-2xl font-bold" data-testid="lifetime-points">{profile.lifetimePoints}</p>
-                <p className="text-sm text-muted-foreground">Lifetime Points</p>
-              </div>
-            </div>
-          </CardContent>
+        <Card className="p-4 bg-card border border-border shadow-emerald animate-fade-in" data-testid="lifetime-card">
+          <div className="text-center">
+            <TrendingUp className="w-8 h-8 text-violet mx-auto mb-2" />
+            <p className="text-2xl font-bold text-violet mb-1" data-testid="lifetime-points">
+              {profile.lifetimePoints}
+            </p>
+            <p className="text-xs text-muted-foreground">Total Earned</p>
+          </div>
         </Card>
 
-        <Card data-testid="streak-card">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <Zap className="h-8 w-8 text-orange-600" />
-              <div>
-                <p className="text-2xl font-bold" data-testid="streak-days">{profile.streakDays}</p>
-                <p className="text-sm text-muted-foreground">Day Streak</p>
-              </div>
-            </div>
-          </CardContent>
+        <Card className="p-4 bg-card border border-border shadow-emerald animate-fade-in" data-testid="streak-card">
+          <div className="text-center">
+            <Zap className="w-8 h-8 text-emerald mx-auto mb-2" />
+            <p className="text-2xl font-bold text-emerald mb-1" data-testid="streak-days">
+              {profile.streakDays}
+            </p>
+            <p className="text-xs text-muted-foreground">Day Streak</p>
+          </div>
         </Card>
       </div>
 
@@ -217,38 +206,68 @@ export default function RewardsPage() {
                 <div className="text-center py-4">Loading rewards...</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="reward-catalog">
-                  {Array.isArray(catalog) && catalog.map((item: any) => (
-                    <Card key={item.id} className="relative" data-testid={`reward-item-${item.id}`}>
-                      <CardHeader>
-                        <CardTitle className="text-lg">{item.title}</CardTitle>
-                        <CardDescription className="text-sm">{item.description}</CardDescription>
-                        <div className="flex items-center justify-between">
-                          <Badge variant="secondary" className="flex items-center gap-1">
-                            <Coins className="h-3 w-3" />
-                            {item.costPoints} points
-                          </Badge>
-                          {item.timesRedeemed > 0 && (
-                            <Badge variant="outline" className="text-xs">
-                              Redeemed {item.timesRedeemed}x
-                            </Badge>
+                  {Array.isArray(catalog) && catalog.map((item: any) => {
+                    const affordable = profile.points >= item.costPoints;
+                    // Extract emoji from title
+                    const emojiMatch = item.title.match(/^([^\w\s]+)/);
+                    const emoji = emojiMatch ? emojiMatch[1] : '🎁';
+                    const title = item.title.replace(/^[^\w\s]+\s*/, '');
+
+                    return (
+                      <Card
+                        key={item.id}
+                        className={`p-4 bg-card border border-border transition-all animate-scale-in ${
+                          affordable ? 'hover:border-primary/50 hover:shadow-glow cursor-pointer' : 'opacity-60'
+                        }`}
+                        data-testid={`reward-item-${item.id}`}
+                      >
+                        <div className="text-center space-y-3">
+                          {/* Emoji Icon */}
+                          <div className="w-12 h-12 mx-auto bg-primary/10 rounded-xl flex items-center justify-center text-2xl">
+                            {emoji}
+                          </div>
+
+                          {/* Title */}
+                          <h3 className="font-semibold text-sm leading-tight">{title}</h3>
+
+                          {/* Description */}
+                          {item.description && (
+                            <p className="text-xs text-muted-foreground">{item.description}</p>
                           )}
+
+                          {/* Cost Badge */}
+                          <div className="flex items-center justify-center gap-2">
+                            <Badge
+                              className={`text-sm px-2 py-1 ${
+                                affordable
+                                  ? 'bg-gold/20 text-gold border-gold/30'
+                                  : 'bg-muted text-muted-foreground'
+                              }`}
+                              variant="outline"
+                            >
+                              <Star className="w-3 h-3 mr-1" />
+                              {item.costPoints}
+                            </Badge>
+                          </div>
+
+                          {/* Redeem Button */}
+                          <Button
+                            onClick={() => handleRedeemClick(item)}
+                            disabled={!affordable || redeemMutation.isPending}
+                            size="sm"
+                            className={`w-full ${
+                              affordable
+                                ? 'bg-primary hover:bg-primary/90'
+                                : 'bg-muted text-muted-foreground cursor-not-allowed'
+                            }`}
+                            data-testid={`redeem-button-${item.id}`}
+                          >
+                            {affordable ? 'Request' : 'Need More Points'}
+                          </Button>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <Button 
-                          onClick={() => handleRedeemClick(item)}
-                          disabled={profile.points < item.costPoints || redeemMutation.isPending}
-                          className="w-full"
-                          data-testid={`redeem-button-${item.id}`}
-                        >
-                          {profile.points < item.costPoints ? 
-                            `Need ${item.costPoints - profile.points} more points` : 
-                            'Request Redemption'
-                          }
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      </Card>
+                    );
+                  })}
                   {(!catalog || !Array.isArray(catalog) || catalog.length === 0) && (
                     <div className="col-span-full text-center py-8 text-muted-foreground">
                       No rewards available yet. Check back soon!
@@ -273,28 +292,36 @@ export default function RewardsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4" data-testid="quest-list">
+              <div className="space-y-3" data-testid="quest-list">
                 {Array.isArray(quests) && quests.map((quest: any) => (
-                  <Card key={quest.id} className="p-4" data-testid={`quest-${quest.id}`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold">{quest.title}</h4>
-                        <p className="text-sm text-muted-foreground">{quest.description}</p>
+                  <Card 
+                    key={quest.id} 
+                    className="p-4 bg-gradient-card border-border/50 animate-fade-in hover:border-emerald/50 transition-all" 
+                    data-testid={`quest-${quest.id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center flex-shrink-0">
+                        <Target className="w-5 h-5 text-primary-foreground" />
                       </div>
-                      <Badge className="flex items-center gap-1">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm">{quest.title}</h4>
+                        <p className="text-xs text-muted-foreground">{quest.description}</p>
+                        
+                        <div className="mt-2">
+                          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                            <span>{quest.currentProgress}/{quest.targetValue}</span>
+                            <span>Expires: {new Date(quest.expiresAt).toLocaleDateString()}</span>
+                          </div>
+                          <Progress 
+                            value={Math.min((quest.currentProgress / quest.targetValue) * 100, 100)}
+                            className="h-2"
+                          />
+                        </div>
+                      </div>
+                      <Badge className="bg-emerald/20 text-emerald border-emerald/30 flex items-center gap-1">
                         <Star className="h-3 w-3" />
-                        {quest.rewardPoints} pts
+                        {quest.rewardPoints}
                       </Badge>
-                    </div>
-                    <div className="mt-3">
-                      <div className="flex justify-between text-sm text-muted-foreground mb-1">
-                        <span>Progress: {quest.currentProgress}/{quest.targetValue}</span>
-                        <span>Expires: {new Date(quest.expiresAt).toLocaleDateString()}</span>
-                      </div>
-                      <Progress 
-                        value={(quest.currentProgress / quest.targetValue) * 100}
-                        className="h-2"
-                      />
                     </div>
                   </Card>
                 ))}
@@ -324,33 +351,27 @@ export default function RewardsPage() {
               {historyLoading ? (
                 <div className="text-center py-4">Loading history...</div>
               ) : (
-                <div className="space-y-2" data-testid="earning-history">
+                <div className="space-y-3" data-testid="earning-history">
                   {Array.isArray(history) && history.map((event: any) => (
-                    <div key={event.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50" data-testid={`history-${event.id}`}>
+                    <Card key={event.id} className="p-4 bg-gradient-card border-border/50 animate-fade-in" data-testid={`history-${event.id}`}>
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${
-                          event.type === 'Assignment' ? 'bg-blue-100 text-blue-600' :
-                          event.type === 'Session' ? 'bg-green-100 text-green-600' :
-                          event.type === 'Quest' ? 'bg-purple-100 text-purple-600' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>
-                          {event.type === 'Assignment' ? <Award className="h-4 w-4" /> :
-                           event.type === 'Session' ? <Clock className="h-4 w-4" /> :
-                           event.type === 'Quest' ? <Target className="h-4 w-4" /> :
-                           <Coins className="h-4 w-4" />}
+                        <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center flex-shrink-0">
+                          {event.type === 'Assignment' ? <Award className="w-5 h-5 text-primary-foreground" /> :
+                           event.type === 'Session' ? <Clock className="h-5 w-5 text-primary-foreground" /> :
+                           event.type === 'Quest' ? <Target className="h-5 w-5 text-primary-foreground" /> :
+                           <Trophy className="h-5 w-5 text-primary-foreground" />}
                         </div>
-                        <div>
-                          <p className="font-medium">{event.sourceDetails}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{event.sourceDetails}</p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(event.createdAt).toLocaleDateString()} at {new Date(event.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
+                        <Badge className="bg-gold text-gold-foreground text-xs">
+                          +{event.amount} points
+                        </Badge>
                       </div>
-                      <Badge variant={event.amount > 0 ? "default" : "destructive"} className="flex items-center gap-1">
-                        {event.amount > 0 ? '+' : ''}{event.amount}
-                        <Coins className="h-3 w-3" />
-                      </Badge>
-                    </div>
+                    </Card>
                   ))}
                   {(!history || !Array.isArray(history) || history.length === 0) && (
                     <div className="text-center py-8 text-muted-foreground">
