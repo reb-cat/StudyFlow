@@ -181,7 +181,7 @@ export default function StudentDashboard() {
       },
       'in-progress': {
         variant: 'outline' as const,
-        color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50',
+        color: 'text-blue bg-blue/20 border-blue/30',
         icon: Play,
         text: 'in progress'
       },

@@ -99,15 +99,15 @@ export default function RewardsPage() {
           </p>
           <div className="bg-muted/50 rounded-lg p-6 space-y-2 text-sm">
             <div className="flex items-center gap-2">
-              <Award className="h-4 w-4 text-yellow-600" />
+              <Award className="h-4 w-4 text-gold" />
               Complete assignments: <strong>15+ points</strong>
             </div>
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-600" />
+              <Clock className="h-4 w-4 text-blue" />
               Finish study sessions: <strong>10+ points</strong>
             </div>
             <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-green-600" />
+              <Target className="h-4 w-4 text-emerald" />
               Complete quests: <strong>Bonus points</strong>
             </div>
           </div>

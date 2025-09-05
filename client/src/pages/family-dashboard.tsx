@@ -15,12 +15,12 @@ import {
   Grid3X3
 } from 'lucide-react';
 
-// Theme colors using CSS custom properties
+// Gaming theme colors using CSS custom properties
 const colors = {
-  primary: 'var(--primary)',
-  complete: 'var(--success)',
-  progress: 'var(--accent)',
-  support: 'var(--muted-foreground)',
+  primary: 'hsl(var(--violet))',
+  complete: 'hsl(var(--emerald))',
+  progress: 'hsl(var(--blue))',
+  support: 'hsl(var(--gold))',
   background: 'var(--background)',
   surface: 'var(--card)',
   text: 'var(--foreground)',
@@ -291,7 +291,7 @@ export default function FamilyDashboard() {
                       </span>
                     )}
                     {student.flags.overtimeOnTask && (
-                      <span className="px-2 py-1 bg-yellow-50 text-yellow-600 dark:bg-yellow-950 dark:text-yellow-400 rounded text-xs font-medium">
+                      <span className="px-2 py-1 bg-gold/20 text-gold rounded text-xs font-medium">
                         Overtime
                       </span>
                     )}

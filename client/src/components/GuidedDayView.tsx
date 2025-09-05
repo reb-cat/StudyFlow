@@ -107,12 +107,12 @@ type GuidedBlock = {
   assignmentId?: string | null;
 };
 
-// StudyFlow color system
+// Gaming color system
 const colors = {
-  primary: 'var(--primary)',
-  complete: 'var(--status-complete)',
-  progress: 'var(--status-progress)',
-  support: 'var(--status-blocked)',
+  primary: 'hsl(var(--violet))',
+  complete: 'hsl(var(--emerald))',
+  progress: 'hsl(var(--blue))',
+  support: 'hsl(var(--gold))',
   background: 'var(--background)',
   surface: 'var(--card)',
   text: 'var(--foreground)',
@@ -1198,7 +1198,7 @@ export function GuidedDayView({
             {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
               <button
                 onClick={() => setShowInstructions(!showInstructions)}
-                className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-xs text-blue hover:bg-blue/20 rounded transition-colors"
                 data-testid="button-toggle-instructions"
               >
                 Instructions {showInstructions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -1223,7 +1223,7 @@ export function GuidedDayView({
                         speak(`Assignment instructions: ${stripHtml(currentBlock.assignment.instructions)}`);
                       }
                     }}
-                    className="ml-auto w-7 h-7 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors"
+                    className="ml-auto w-7 h-7 rounded-full bg-blue hover:bg-blue/90 flex items-center justify-center text-blue-foreground transition-colors"
                     title={isPlaying ? "Stop reading" : "Read instructions aloud"}
                     data-testid="button-speak-instructions"
                   >
@@ -1307,7 +1307,7 @@ export function GuidedDayView({
 
         {/* Stuck Countdown Banner (if active) */}
         {stuckCountdown > 0 && stuckPendingKey && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-400 dark:border-yellow-600" style={{
+          <div className="bg-gold/20 border border-gold/30" style={{
             borderRadius: '8px',
             padding: '12px',
             marginBottom: '16px',

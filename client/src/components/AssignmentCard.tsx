@@ -30,22 +30,22 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
   const isSplitAuto = assignment.title.includes('(Split Auto)');
   const isContinued = assignment.title.includes('(Continued)');
   
-  // Enhanced priority badge configuration
+  // Enhanced priority badge configuration - Gaming Theme
   const getPriorityBadge = () => {
     if (!assignment.priority || assignment.priority === 'B') return null;
     
     const priorityConfig = {
       'A': { 
         label: 'High Priority', 
-        color: 'bg-red-100 text-red-800 border-red-200', 
+        color: 'bg-emerald/20 text-emerald border-emerald/30', 
         icon: Zap,
-        darkColor: 'dark:bg-red-950/20 dark:text-red-400 dark:border-red-800/30'
+        darkColor: 'dark:bg-emerald/10 dark:text-emerald dark:border-emerald/20'
       },
       'C': { 
         label: 'Low Priority', 
-        color: 'bg-gray-100 text-gray-600 border-gray-200', 
+        color: 'bg-muted text-muted-foreground border-border', 
         icon: Timer,
-        darkColor: 'dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-600/30'
+        darkColor: 'dark:bg-muted dark:text-muted-foreground dark:border-border'
       }
     };
     
@@ -72,21 +72,21 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
     
     if (daysDiff < 0) {
       return (
-        <Badge className="bg-red-600 dark:bg-red-500 text-white border-red-700 dark:border-red-400">
+        <Badge className="bg-destructive text-destructive-foreground border-destructive">
           <AlertTriangle className="h-3 w-3 mr-1" />
           Overdue
         </Badge>
       );
     } else if (daysDiff === 0) {
       return (
-        <Badge className="bg-orange-500 dark:bg-orange-400 text-white border-orange-600 dark:border-orange-300">
+        <Badge className="bg-gold text-gold-foreground border-gold">
           <Clock className="h-3 w-3 mr-1" />
           Due Today
         </Badge>
       );
     } else if (daysDiff === 1) {
       return (
-        <Badge className="bg-yellow-500 dark:bg-yellow-400 text-white border-yellow-600 dark:border-yellow-300">
+        <Badge className="bg-blue text-blue-foreground border-blue">
           <Timer className="h-3 w-3 mr-1" />
           Due Tomorrow
         </Badge>
@@ -98,11 +98,11 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
 
   const statusConfig = {
     pending: { label: 'Not Started', color: 'bg-muted text-muted-foreground', icon: PlayCircle },
-    in_progress: { label: 'In Progress', color: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200', icon: Clock },
-    completed: { label: 'Completed', color: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200', icon: CheckCircle },
-    stuck: { label: 'Stuck - Need Help', color: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200', icon: AlertTriangle },
-    needs_more_time: { label: 'Need More Time', color: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200', icon: Clock },
-    grading_delay: { label: 'Grading Delay', color: 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200', icon: Clock }
+    in_progress: { label: 'In Progress', color: 'bg-blue/20 text-blue border-blue/30', icon: Clock },
+    completed: { label: 'Completed', color: 'bg-emerald/20 text-emerald border-emerald/30', icon: CheckCircle },
+    stuck: { label: 'Stuck - Need Help', color: 'bg-destructive/20 text-destructive border-destructive/30', icon: AlertTriangle },
+    needs_more_time: { label: 'Need More Time', color: 'bg-gold/20 text-gold border-gold/30', icon: Clock },
+    grading_delay: { label: 'Grading Delay', color: 'bg-violet/20 text-violet border-violet/30', icon: Clock }
   };
 
   const status = statusConfig[assignment.completionStatus || 'pending'];

@@ -14,11 +14,11 @@ export function OverviewBlock({ assignment, onUpdate }: OverviewBlockProps) {
   const { toast } = useToast();
 
   const statusConfig = {
-    pending: { label: 'Not Started', color: 'bg-gray-100 text-gray-800', icon: Clock },
-    in_progress: { label: 'In Progress', color: 'bg-blue-100 text-blue-800', icon: Clock },
-    completed: { label: 'Completed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
-    stuck: { label: 'Need Help', color: 'bg-red-100 text-red-800', icon: AlertTriangle },
-    needs_more_time: { label: 'Need More Time', color: 'bg-yellow-100 text-yellow-800', icon: Clock }
+    pending: { label: 'Not Started', color: 'bg-muted text-muted-foreground', icon: Clock },
+    in_progress: { label: 'In Progress', color: 'bg-blue/20 text-blue border-blue/30', icon: Clock },
+    completed: { label: 'Completed', color: 'bg-emerald/20 text-emerald border-emerald/30', icon: CheckCircle },
+    stuck: { label: 'Need Help', color: 'bg-destructive/20 text-destructive border-destructive/30', icon: AlertTriangle },
+    needs_more_time: { label: 'Need More Time', color: 'bg-gold/20 text-gold border-gold/30', icon: Clock }
   };
 
   const status = statusConfig[assignment.completionStatus || 'pending'];
@@ -103,7 +103,7 @@ export function OverviewBlock({ assignment, onUpdate }: OverviewBlockProps) {
             <Button
               size="sm"
               onClick={() => handleStatusUpdate('completed')}
-              className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+              className="flex items-center gap-1 bg-emerald hover:bg-emerald/90 text-emerald-foreground"
               data-testid={`button-complete-${assignment.id}`}
             >
               <CheckCircle className="h-3 w-3" />
@@ -133,7 +133,7 @@ export function OverviewBlock({ assignment, onUpdate }: OverviewBlockProps) {
         )}
 
         {assignment.completionStatus === 'completed' && (
-          <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+          <div className="flex items-center gap-2 text-emerald text-sm font-medium">
             <CheckCircle className="h-4 w-4" />
             Completed! Great work! 🎉
           </div>
