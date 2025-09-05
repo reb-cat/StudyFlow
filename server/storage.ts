@@ -1504,9 +1504,13 @@ export class DatabaseStorage implements IStorage {
       // Insert status records (ignore conflicts for existing records)
       await db.insert(dailyScheduleStatus)
         .values(statusRecords)
-        .onConflictDoNothing({
-          target: [dailyScheduleStatus.studentName, dailyScheduleStatus.date, dailyScheduleStatus.templateBlockId]
-        });
+        .onConflictDoNothing();
+      
+      console.log(`✅ Daily schedule status initialized for ${studentName} on ${weekdayName}`);
+      
+      // Now populate assignments into the schedule blocks using hybrid scheduler
+      console.log(`🚀 Populating assignments into schedule blocks...`);
+      await this.allocateAssignmentsToTemplate(studentName, date);
       
       console.log(`✅ Initialized daily schedule for ${studentName} on ${date} with ${templateBlocks.length} blocks`);
       
