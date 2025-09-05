@@ -604,7 +604,48 @@ export function autoScheduleAssignments(
     }
   }
   
-  // 4. Sort assignments by priority and due date
+  // Helper function to extract numbers from assignment titles for proper sequencing
+  const extractSequenceNumbers = (title: string): number[] => {
+    // Match patterns like "Unit 2", "Module 3", "Chapter 1", "Page 5", etc.
+    const patterns = [
+      /(?:unit|module|chapter|lesson|section|part|page|step|week|day)\s*(\d+)/gi,
+      /(\d+)\s*(?:unit|module|chapter|lesson|section|part|page|step|week|day)/gi,
+      /(\d+)/g // Fall back to any numbers
+    ];
+    
+    for (const pattern of patterns) {
+      const matches = [...title.matchAll(pattern)];
+      if (matches.length > 0) {
+        return matches.map(match => parseInt(match[1], 10)).filter(n => !isNaN(n));
+      }
+    }
+    
+    return [];
+  };
+
+  // Smart title comparison that handles numerical sequences
+  const compareAssignmentTitles = (titleA: string, titleB: string): number => {
+    const numbersA = extractSequenceNumbers(titleA);
+    const numbersB = extractSequenceNumbers(titleB);
+    
+    // If both have numbers, compare numerically
+    if (numbersA.length > 0 && numbersB.length > 0) {
+      // Compare each number in sequence
+      const maxLength = Math.max(numbersA.length, numbersB.length);
+      for (let i = 0; i < maxLength; i++) {
+        const numA = numbersA[i] || 0;
+        const numB = numbersB[i] || 0;
+        if (numA !== numB) {
+          return numA - numB;
+        }
+      }
+    }
+    
+    // Fall back to alphabetical comparison
+    return titleA.localeCompare(titleB);
+  };
+
+  // 4. Sort assignments by priority, due date, and sequence
   const sortedAssignments = unscheduledAssignments.sort((a, b) => {
     // Priority: A > B > C
     const priorityOrder = { 'A': 3, 'B': 2, 'C': 1 };
@@ -614,12 +655,18 @@ export function autoScheduleAssignments(
     
     // Within same priority, sort by due date (overdue/today first)
     if (a.dueDate && b.dueDate) {
-      return a.dueDate.getTime() - b.dueDate.getTime();
+      const dateComparison = a.dueDate.getTime() - b.dueDate.getTime();
+      if (dateComparison !== 0) {
+        return dateComparison;
+      }
+      // Same due date - sort by numerical sequence (Unit 2 before Unit 3)
+      return compareAssignmentTitles(a.title, b.title);
     }
     if (a.dueDate && !b.dueDate) return -1;
     if (!a.dueDate && b.dueDate) return 1;
     
-    return 0;
+    // If neither has due date, sort by sequence
+    return compareAssignmentTitles(a.title, b.title);
   });
   
   // 5. Track effort levels for alternation

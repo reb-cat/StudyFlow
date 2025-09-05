@@ -33,6 +33,47 @@ function isParentTask(title: string, courseName?: string | null): boolean {
   );
 }
 
+// Helper function to extract numbers from assignment titles for proper sequencing
+function extractSequenceNumbers(title: string): number[] {
+  // Match patterns like "Unit 2", "Module 3", "Chapter 1", "Page 5", etc.
+  const patterns = [
+    /(?:unit|module|chapter|lesson|section|part|page|step|week|day)\s*(\d+)/gi,
+    /(\d+)\s*(?:unit|module|chapter|lesson|section|part|page|step|week|day)/gi,
+    /(\d+)/g // Fall back to any numbers
+  ];
+  
+  for (const pattern of patterns) {
+    const matches = [...title.matchAll(pattern)];
+    if (matches.length > 0) {
+      return matches.map(match => parseInt(match[1], 10)).filter(n => !isNaN(n));
+    }
+  }
+  
+  return [];
+}
+
+// Smart title comparison that handles numerical sequences
+function compareAssignmentTitles(titleA: string, titleB: string): number {
+  const numbersA = extractSequenceNumbers(titleA);
+  const numbersB = extractSequenceNumbers(titleB);
+  
+  // If both have numbers, compare numerically
+  if (numbersA.length > 0 && numbersB.length > 0) {
+    // Compare each number in sequence
+    const maxLength = Math.max(numbersA.length, numbersB.length);
+    for (let i = 0; i < maxLength; i++) {
+      const numA = numbersA[i] || 0;
+      const numB = numbersB[i] || 0;
+      if (numA !== numB) {
+        return numA - numB;
+      }
+    }
+  }
+  
+  // Fall back to alphabetical comparison
+  return titleA.localeCompare(titleB);
+}
+
 export default function AssignmentsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -395,17 +436,22 @@ export default function AssignmentsPage() {
     const aDate = a.dueDate ? new Date(a.dueDate) : null;
     const bDate = b.dueDate ? new Date(b.dueDate) : null;
     
-    // If both have due dates, sort by date (earliest first)
+    // If both have due dates, sort by date (earliest first), then by sequence
     if (aDate && bDate) {
-      return aDate.getTime() - bDate.getTime();
+      const dateComparison = aDate.getTime() - bDate.getTime();
+      if (dateComparison !== 0) {
+        return dateComparison;
+      }
+      // Same due date - sort by numerical sequence (Unit 2 before Unit 3)
+      return compareAssignmentTitles(a.title, b.title);
     }
     
     // If only one has a due date, prioritize it
     if (aDate && !bDate) return -1;
     if (!aDate && bDate) return 1;
     
-    // If neither has due date, sort by title alphabetically
-    return a.title.localeCompare(b.title);
+    // If neither has due date, sort by title with smart numerical ordering
+    return compareAssignmentTitles(a.title, b.title);
   });
 
   const handleBulkOperation = () => {
