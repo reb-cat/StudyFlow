@@ -1,0 +1,11 @@
+Student	Day	Block	Subject	Type	Start	End
+Abigail	Tuesday	1	Bible	fixed_class	9:00:00 AM	9:20:00 AM
+Abigail	Tuesday	2	Assignment	Assignment_capable	9:20:00 AM	10:00:00 AM
+Abigail	Tuesday		Movement	Fixed_nonclass	10:00:00 AM	10:10:00 AM
+Abigail	Tuesday	3	Assignment	Assignment_capable	10:10:00 AM	10:45:00 AM
+Abigail	Tuesday	4	Assignment	Assignment_capable	10:45:00 AM	11:20:00 AM
+Abigail	Tuesday		Movement	Fixed_nonclass	11:20:00 AM	11:30:00 AM
+Abigail	Tuesday	5	Assignment	Assignment_capable	11:30:00 AM	12:05:00 PM
+Abigail	Tuesday		Lunch	fixed_nonclass	12:05:00 PM	12:35:00 PM
+Abigail	Tuesday	6	Assignment	Assignment_capable	12:35:00 PM	1:15:00 PM
+Abigail	Tuesday	7	Assignment	Assignment_capable	1:15:00 PM	1:50:00 PM

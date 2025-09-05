@@ -278,6 +278,9 @@ export async function hybridScheduleAssignments(
   console.log(`🚀 HYBRID SCHEDULER: Starting for ${request.studentName}, target week: ${request.targetWeek}`);
   console.log(`📝 HYBRID SCHEDULER: ${request.assignments.length} assignments to schedule`);
   
+  // Reset block tracking for new scheduling session
+  currentSessionAssignedBlocks.clear();
+  
   // Store the target week date for later use
   const targetWeekDate = request.targetWeek;
   
@@ -355,6 +358,9 @@ export async function hybridScheduleAssignments(
   return result;
 }
 
+// Track assigned blocks during current scheduling session
+let currentSessionAssignedBlocks: Set<number> = new Set();
+
 // Find optimal slot for assignment considering capacity, sequence, and quick wins
 async function placeAssignmentInOptimalSlot(
   assignment: any,
@@ -429,16 +435,20 @@ async function placeAssignmentInOptimalSlot(
   best.slot.assignments.push(assignment);
   
   // SURGICAL FIX: For null blocks (-999), assign sequential numbers starting from 4
-  // Block 2 and 3 are already assigned, so start from 4
+  // Track blocks assigned in current session to ensure sequential distribution
   let assignedBlockNumber = best.slot.blockNumber;
   if (best.slot.blockNumber === -999) {
     // Calculate next available block number for null blocks
     const existingBlocks = [2, 3]; // Weather Forecast=2, Unit 2=3
     let nextBlock = 4;
-    while (existingBlocks.includes(nextBlock)) {
+    
+    // Skip blocks that are already assigned (in DB or current session)
+    while (existingBlocks.includes(nextBlock) || currentSessionAssignedBlocks.has(nextBlock)) {
       nextBlock++;
     }
+    
     assignedBlockNumber = nextBlock;
+    currentSessionAssignedBlocks.add(nextBlock); // Track for subsequent assignments
     console.log(`🔧 SURGICAL FIX: Converting null block (-999) to block ${assignedBlockNumber} for assignment ${assignment.title}`);
   }
 
