@@ -3177,6 +3177,260 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
+  // REWARDBANK API ENDPOINTS
+  // Gamification and rewards system for student engagement
+
+  // Get student reward profile with points, level, streak
+  app.get('/api/rewards/profile/:studentName', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { studentName } = req.params;
+      const userId = `${studentName.toLowerCase()}-user`;
+      
+      const profile = await storage.getRewardProfile(userId);
+      const quests = await storage.getActiveQuests(userId);
+      const settings = await storage.getRewardSettings('family'); // Parent settings
+      
+      res.json({
+        profile,
+        quests,
+        settings: {
+          dailyEarnCapPoints: settings?.dailyEarnCapPoints || 100,
+          weeklyEarnCapPoints: settings?.weeklyEarnCapPoints || 400,
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching reward profile:', error);
+      res.status(500).json({ message: 'Failed to fetch reward profile' });
+    }
+  });
+
+  // Award points for completing activities (internal API - used by hooks)
+  app.post('/api/rewards/earn', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { userId, type, amount, sourceId, sourceDetails } = req.body;
+      
+      // Check daily/weekly caps
+      const settings = await storage.getRewardSettings('family');
+      const canEarn = await storage.checkEarningLimits(userId, amount, settings);
+      
+      if (!canEarn.allowed) {
+        return res.status(429).json({ 
+          message: canEarn.reason,
+          cappedAt: canEarn.limitType 
+        });
+      }
+      
+      // Award points and update profile
+      const earnEvent = await storage.createEarnEvent({
+        userId,
+        type,
+        amount,
+        sourceId: sourceId || null,
+        sourceDetails: sourceDetails || null
+      });
+      
+      const updatedProfile = await storage.updateRewardProfile(userId, amount);
+      
+      res.json({
+        success: true,
+        pointsEarned: amount,
+        profile: updatedProfile,
+        earnEvent
+      });
+    } catch (error) {
+      console.error('Error awarding points:', error);
+      res.status(500).json({ message: 'Failed to award points' });
+    }
+  });
+
+  // Get reward catalog (active rewards students can redeem)
+  app.get('/api/rewards/catalog', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const catalog = await storage.getRewardCatalog(true); // Active only
+      res.json(catalog);
+    } catch (error) {
+      console.error('Error fetching reward catalog:', error);
+      res.status(500).json({ message: 'Failed to fetch reward catalog' });
+    }
+  });
+
+  // Student requests reward redemption
+  app.post('/api/rewards/redeem', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { studentName, catalogItemId } = req.body;
+      const userId = `${studentName.toLowerCase()}-user`;
+      
+      // Get reward details and check if student has enough points
+      const catalogItem = await storage.getRewardCatalogItem(catalogItemId);
+      const profile = await storage.getRewardProfile(userId);
+      
+      if (!catalogItem || !catalogItem.isActive) {
+        return res.status(404).json({ message: 'Reward not found or inactive' });
+      }
+      
+      if (!profile || profile.points < catalogItem.costPoints) {
+        return res.status(400).json({ message: 'Not enough points' });
+      }
+      
+      // Check cooldown
+      const settings = await storage.getRewardSettings('family');
+      const lastApproved = await storage.getLastApprovedRedemption(userId);
+      const cooldownMinutes = settings?.redemptionCooldownMinutes || 60;
+      
+      if (lastApproved) {
+        const timeSinceApproval = Date.now() - lastApproved.getTime();
+        const cooldownMs = cooldownMinutes * 60 * 1000;
+        if (timeSinceApproval < cooldownMs) {
+          const remainingMinutes = Math.ceil((cooldownMs - timeSinceApproval) / (60 * 1000));
+          return res.status(429).json({ 
+            message: `Please wait ${remainingMinutes} more minutes before redeeming again` 
+          });
+        }
+      }
+      
+      // Create pending redemption request
+      const request = await storage.createRedemptionRequest({
+        userId,
+        catalogItemId,
+        pointsSpent: catalogItem.costPoints,
+        status: 'Pending'
+      });
+      
+      res.json({
+        message: 'Redemption requested - waiting for parent approval',
+        request,
+        catalogItem
+      });
+    } catch (error) {
+      console.error('Error requesting redemption:', error);
+      res.status(500).json({ message: 'Failed to request redemption' });
+    }
+  });
+
+  // Parent management endpoints - Reward catalog CRUD
+  app.get('/api/rewards/admin/catalog', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const catalog = await storage.getRewardCatalog(); // All items including inactive
+      res.json(catalog);
+    } catch (error) {
+      console.error('Error fetching admin catalog:', error);
+      res.status(500).json({ message: 'Failed to fetch catalog' });
+    }
+  });
+
+  app.post('/api/rewards/admin/catalog', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const item = await storage.createRewardCatalogItem({
+        ownerId: 'family',
+        ...req.body
+      });
+      res.json(item);
+    } catch (error) {
+      console.error('Error creating catalog item:', error);
+      res.status(500).json({ message: 'Failed to create catalog item' });
+    }
+  });
+
+  app.put('/api/rewards/admin/catalog/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const item = await storage.updateRewardCatalogItem(req.params.id, req.body);
+      res.json(item);
+    } catch (error) {
+      console.error('Error updating catalog item:', error);
+      res.status(500).json({ message: 'Failed to update catalog item' });
+    }
+  });
+
+  // Parent approval/denial of redemption requests
+  app.get('/api/rewards/admin/requests', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const requests = await storage.getPendingRedemptionRequests();
+      res.json(requests);
+    } catch (error) {
+      console.error('Error fetching redemption requests:', error);
+      res.status(500).json({ message: 'Failed to fetch requests' });
+    }
+  });
+
+  app.post('/api/rewards/admin/requests/:id/decide', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { decision, notes } = req.body; // 'Approved' or 'Denied'
+      
+      const result = await storage.decideRedemptionRequest(id, decision, 'family', notes);
+      
+      res.json({
+        message: `Redemption ${decision.toLowerCase()} successfully`,
+        request: result.request,
+        pointsDeducted: result.pointsDeducted
+      });
+    } catch (error) {
+      console.error('Error deciding redemption request:', error);
+      res.status(500).json({ message: 'Failed to process decision' });
+    }
+  });
+
+  // Parent settings management
+  app.get('/api/rewards/admin/settings', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const settings = await storage.getRewardSettings('family');
+      res.json(settings || {
+        userId: 'family',
+        dailyEarnCapPoints: 100,
+        weeklyEarnCapPoints: 400,
+        redemptionCooldownMinutes: 60,
+        sessionMinimumMinutes: 15,
+        sessionPauseThreshold: 50
+      });
+    } catch (error) {
+      console.error('Error fetching reward settings:', error);
+      res.status(500).json({ message: 'Failed to fetch settings' });
+    }
+  });
+
+  app.put('/api/rewards/admin/settings', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const settings = await storage.updateRewardSettings('family', req.body);
+      res.json(settings);
+    } catch (error) {
+      console.error('Error updating reward settings:', error);
+      res.status(500).json({ message: 'Failed to update settings' });
+    }
+  });
+
+  // Get earning history for transparency
+  app.get('/api/rewards/history/:studentName', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { studentName } = req.params;
+      const userId = `${studentName.toLowerCase()}-user`;
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      const history = await storage.getEarnHistory(userId, limit);
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching earn history:', error);
+      res.status(500).json({ message: 'Failed to fetch history' });
+    }
+  });
+
+  // Quest management - complete quest and award bonus points
+  app.post('/api/rewards/quests/:questId/complete', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { questId } = req.params;
+      const result = await storage.completeQuest(questId);
+      
+      res.json({
+        success: true,
+        quest: result.quest,
+        pointsEarned: result.pointsEarned,
+        profile: result.updatedProfile
+      });
+    } catch (error) {
+      console.error('Error completing quest:', error);
+      res.status(500).json({ message: 'Failed to complete quest' });
+    }
+  });
+
   // PHASE A FIX: API 404 handler - must be LAST API route to catch unmatched /api/* paths
   app.use('/api/*', (req: Request, res: Response) => {
     res.status(404).json({ 

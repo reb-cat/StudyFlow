@@ -6,7 +6,14 @@ import {
   type StudentStatus, type InsertStudentStatus,
   type DailyScheduleStatus, type InsertDailyScheduleStatus,
   type ChecklistItem, type InsertChecklistItem, type UpdateChecklistItem,
-  assignments, scheduleTemplate, bibleCurriculum, studentProfiles, studentStatus, dailyScheduleStatus, checklistItems
+  type RewardProfile, type InsertRewardProfile,
+  type Quest, type InsertQuest,
+  type RewardCatalogItem, type InsertRewardCatalogItem,
+  type RedemptionRequest, type InsertRedemptionRequest,
+  type EarnEvent, type InsertEarnEvent,
+  type RewardSettings, type InsertRewardSettings,
+  assignments, scheduleTemplate, bibleCurriculum, studentProfiles, studentStatus, dailyScheduleStatus, checklistItems,
+  rewardProfiles, quests, rewardCatalog, redemptionRequests, earnEvents, rewardSettings
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -72,6 +79,27 @@ export interface IStorage {
   createChecklistItem(item: InsertChecklistItem): Promise<ChecklistItem>;
   updateChecklistItem(id: string, updates: UpdateChecklistItem): Promise<ChecklistItem | undefined>;
   deleteChecklistItem(id: string): Promise<boolean>;
+  
+  // RewardBank operations - gamification system
+  getRewardProfile(userId: string): Promise<RewardProfile | undefined>;
+  createRewardProfile(profile: InsertRewardProfile): Promise<RewardProfile>;
+  updateRewardProfile(userId: string, pointsToAdd: number): Promise<RewardProfile>;
+  getActiveQuests(userId: string): Promise<Quest[]>;
+  createQuest(quest: InsertQuest): Promise<Quest>;
+  completeQuest(questId: string): Promise<{ quest: Quest; pointsEarned: number; updatedProfile: RewardProfile }>;
+  getRewardSettings(userId: string): Promise<RewardSettings | undefined>;
+  updateRewardSettings(userId: string, settings: Partial<InsertRewardSettings>): Promise<RewardSettings>;
+  checkEarningLimits(userId: string, pointsToAdd: number, settings: RewardSettings | null): Promise<{ allowed: boolean; reason?: string; limitType?: string }>;
+  createEarnEvent(event: InsertEarnEvent): Promise<EarnEvent>;
+  getEarnHistory(userId: string, limit?: number): Promise<EarnEvent[]>;
+  getRewardCatalog(activeOnly?: boolean): Promise<RewardCatalogItem[]>;
+  getRewardCatalogItem(id: string): Promise<RewardCatalogItem | undefined>;
+  createRewardCatalogItem(item: InsertRewardCatalogItem): Promise<RewardCatalogItem>;
+  updateRewardCatalogItem(id: string, updates: Partial<InsertRewardCatalogItem>): Promise<RewardCatalogItem | undefined>;
+  createRedemptionRequest(request: InsertRedemptionRequest): Promise<RedemptionRequest>;
+  getPendingRedemptionRequests(): Promise<Array<RedemptionRequest & { catalogItem: RewardCatalogItem }>>;
+  getLastApprovedRedemption(userId: string): Promise<Date | undefined>;
+  decideRedemptionRequest(id: string, decision: string, decidedBy: string, notes?: string): Promise<{ request: RedemptionRequest; pointsDeducted?: number }>;
 }
 
 // Database storage implementation using local Replit database
@@ -1797,6 +1825,396 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('❌ Error deleting checklist item:', error);
       return false;
+    }
+  }
+
+  // REWARDBANK STORAGE IMPLEMENTATIONS
+  // Gamification and rewards system methods
+
+  async getRewardProfile(userId: string): Promise<RewardProfile | undefined> {
+    try {
+      const [profile] = await db.select().from(rewardProfiles).where(eq(rewardProfiles.userId, userId));
+      return profile;
+    } catch (error) {
+      console.error('❌ Error getting reward profile:', error);
+      return undefined;
+    }
+  }
+
+  async createRewardProfile(profile: InsertRewardProfile): Promise<RewardProfile> {
+    try {
+      const [newProfile] = await db.insert(rewardProfiles).values(profile).returning();
+      return newProfile;
+    } catch (error) {
+      console.error('❌ Error creating reward profile:', error);
+      throw error;
+    }
+  }
+
+  async updateRewardProfile(userId: string, pointsToAdd: number): Promise<RewardProfile> {
+    try {
+      // Get current profile or create one
+      let profile = await this.getRewardProfile(userId);
+      if (!profile) {
+        profile = await this.createRewardProfile({ 
+          userId, 
+          points: 0, 
+          lifetimePoints: 0, 
+          level: 1, 
+          streakDays: 0 
+        });
+      }
+
+      const newPoints = profile.points + pointsToAdd;
+      const newLifetimePoints = profile.lifetimePoints + pointsToAdd;
+      const newLevel = Math.floor(newLifetimePoints / 200) + 1; // Level up every 200 lifetime points
+
+      const [updatedProfile] = await db.update(rewardProfiles)
+        .set({ 
+          points: newPoints, 
+          lifetimePoints: newLifetimePoints,
+          level: newLevel,
+          updatedAt: new Date() 
+        })
+        .where(eq(rewardProfiles.userId, userId))
+        .returning();
+
+      return updatedProfile;
+    } catch (error) {
+      console.error('❌ Error updating reward profile:', error);
+      throw error;
+    }
+  }
+
+  async getActiveQuests(userId: string): Promise<Quest[]> {
+    try {
+      const result = await db.select().from(quests)
+        .where(and(
+          eq(quests.userId, userId),
+          eq(quests.isCompleted, false)
+        ))
+        .orderBy(quests.expiresAt);
+      return result;
+    } catch (error) {
+      console.error('❌ Error getting active quests:', error);
+      return [];
+    }
+  }
+
+  async createQuest(quest: InsertQuest): Promise<Quest> {
+    try {
+      const [newQuest] = await db.insert(quests).values(quest).returning();
+      return newQuest;
+    } catch (error) {
+      console.error('❌ Error creating quest:', error);
+      throw error;
+    }
+  }
+
+  async completeQuest(questId: string): Promise<{ quest: Quest; pointsEarned: number; updatedProfile: RewardProfile }> {
+    try {
+      // Get quest details
+      const [quest] = await db.select().from(quests).where(eq(quests.id, questId));
+      if (!quest || quest.isCompleted) {
+        throw new Error('Quest not found or already completed');
+      }
+
+      // Mark quest as completed
+      const [completedQuest] = await db.update(quests)
+        .set({ isCompleted: true, completedAt: new Date() })
+        .where(eq(quests.id, questId))
+        .returning();
+
+      // Award points
+      const updatedProfile = await this.updateRewardProfile(quest.userId, quest.rewardPoints);
+
+      // Create earn event
+      await this.createEarnEvent({
+        userId: quest.userId,
+        type: 'Quest',
+        amount: quest.rewardPoints,
+        sourceId: questId,
+        sourceDetails: quest.title
+      });
+
+      return { quest: completedQuest, pointsEarned: quest.rewardPoints, updatedProfile };
+    } catch (error) {
+      console.error('❌ Error completing quest:', error);
+      throw error;
+    }
+  }
+
+  async getRewardSettings(userId: string): Promise<RewardSettings | undefined> {
+    try {
+      const [settings] = await db.select().from(rewardSettings).where(eq(rewardSettings.userId, userId));
+      return settings;
+    } catch (error) {
+      console.error('❌ Error getting reward settings:', error);
+      return undefined;
+    }
+  }
+
+  async updateRewardSettings(userId: string, settingsUpdate: Partial<InsertRewardSettings>): Promise<RewardSettings> {
+    try {
+      const existing = await this.getRewardSettings(userId);
+      
+      if (existing) {
+        const [updated] = await db.update(rewardSettings)
+          .set({ ...settingsUpdate, updatedAt: new Date() })
+          .where(eq(rewardSettings.userId, userId))
+          .returning();
+        return updated;
+      } else {
+        const [created] = await db.insert(rewardSettings)
+          .values({ userId, ...settingsUpdate })
+          .returning();
+        return created;
+      }
+    } catch (error) {
+      console.error('❌ Error updating reward settings:', error);
+      throw error;
+    }
+  }
+
+  async checkEarningLimits(userId: string, pointsToAdd: number, settings: RewardSettings | null): Promise<{ allowed: boolean; reason?: string; limitType?: string }> {
+    try {
+      const dailyCap = settings?.dailyEarnCapPoints || 100;
+      const weeklyCap = settings?.weeklyEarnCapPoints || 400;
+
+      // Get today's earnings
+      const today = new Date().toISOString().split('T')[0];
+      const todayStart = new Date(`${today}T00:00:00Z`);
+      const todayEnd = new Date(`${today}T23:59:59Z`);
+      
+      const todayEarnings = await db.select().from(earnEvents)
+        .where(and(
+          eq(earnEvents.userId, userId),
+          sql`${earnEvents.createdAt} >= ${todayStart}`,
+          sql`${earnEvents.createdAt} <= ${todayEnd}`
+        ));
+
+      const todayTotal = todayEarnings.reduce((sum, event) => sum + event.amount, 0);
+
+      if (todayTotal + pointsToAdd > dailyCap) {
+        return {
+          allowed: false,
+          reason: `You've hit today's point limit of ${dailyCap}`,
+          limitType: 'daily'
+        };
+      }
+
+      // Check weekly limit
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      const weekEarnings = await db.select().from(earnEvents)
+        .where(and(
+          eq(earnEvents.userId, userId),
+          sql`${earnEvents.createdAt} >= ${weekStart}`,
+          sql`${earnEvents.createdAt} <= ${weekEnd}`
+        ));
+
+      const weekTotal = weekEarnings.reduce((sum, event) => sum + event.amount, 0);
+
+      if (weekTotal + pointsToAdd > weeklyCap) {
+        return {
+          allowed: false,
+          reason: `You've hit this week's point limit of ${weeklyCap}`,
+          limitType: 'weekly'
+        };
+      }
+
+      return { allowed: true };
+    } catch (error) {
+      console.error('❌ Error checking earning limits:', error);
+      return { allowed: false, reason: 'Error checking limits' };
+    }
+  }
+
+  async createEarnEvent(event: InsertEarnEvent): Promise<EarnEvent> {
+    try {
+      const [newEvent] = await db.insert(earnEvents).values(event).returning();
+      return newEvent;
+    } catch (error) {
+      console.error('❌ Error creating earn event:', error);
+      throw error;
+    }
+  }
+
+  async getEarnHistory(userId: string, limit: number = 50): Promise<EarnEvent[]> {
+    try {
+      const result = await db.select().from(earnEvents)
+        .where(eq(earnEvents.userId, userId))
+        .orderBy(desc(earnEvents.createdAt))
+        .limit(limit);
+      return result;
+    } catch (error) {
+      console.error('❌ Error getting earn history:', error);
+      return [];
+    }
+  }
+
+  async getRewardCatalog(activeOnly?: boolean): Promise<RewardCatalogItem[]> {
+    try {
+      let whereCondition = activeOnly ? eq(rewardCatalog.isActive, true) : sql`1=1`;
+      
+      const result = await db.select().from(rewardCatalog)
+        .where(whereCondition)
+        .orderBy(rewardCatalog.costPoints, rewardCatalog.title);
+      return result;
+    } catch (error) {
+      console.error('❌ Error getting reward catalog:', error);
+      return [];
+    }
+  }
+
+  async getRewardCatalogItem(id: string): Promise<RewardCatalogItem | undefined> {
+    try {
+      const [item] = await db.select().from(rewardCatalog).where(eq(rewardCatalog.id, id));
+      return item;
+    } catch (error) {
+      console.error('❌ Error getting reward catalog item:', error);
+      return undefined;
+    }
+  }
+
+  async createRewardCatalogItem(item: InsertRewardCatalogItem): Promise<RewardCatalogItem> {
+    try {
+      const [newItem] = await db.insert(rewardCatalog).values(item).returning();
+      return newItem;
+    } catch (error) {
+      console.error('❌ Error creating reward catalog item:', error);
+      throw error;
+    }
+  }
+
+  async updateRewardCatalogItem(id: string, updates: Partial<InsertRewardCatalogItem>): Promise<RewardCatalogItem | undefined> {
+    try {
+      const [updated] = await db.update(rewardCatalog)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(rewardCatalog.id, id))
+        .returning();
+      return updated;
+    } catch (error) {
+      console.error('❌ Error updating reward catalog item:', error);
+      return undefined;
+    }
+  }
+
+  async createRedemptionRequest(request: InsertRedemptionRequest): Promise<RedemptionRequest> {
+    try {
+      const [newRequest] = await db.insert(redemptionRequests).values(request).returning();
+      return newRequest;
+    } catch (error) {
+      console.error('❌ Error creating redemption request:', error);
+      throw error;
+    }
+  }
+
+  async getPendingRedemptionRequests(): Promise<Array<RedemptionRequest & { catalogItem: RewardCatalogItem }>> {
+    try {
+      const result = await db.select({
+        id: redemptionRequests.id,
+        userId: redemptionRequests.userId,
+        catalogItemId: redemptionRequests.catalogItemId,
+        pointsSpent: redemptionRequests.pointsSpent,
+        status: redemptionRequests.status,
+        requestedAt: redemptionRequests.requestedAt,
+        decidedAt: redemptionRequests.decidedAt,
+        decidedBy: redemptionRequests.decidedBy,
+        parentNotes: redemptionRequests.parentNotes,
+        createdAt: redemptionRequests.createdAt,
+        catalogItem: rewardCatalog
+      })
+      .from(redemptionRequests)
+      .innerJoin(rewardCatalog, eq(redemptionRequests.catalogItemId, rewardCatalog.id))
+      .where(eq(redemptionRequests.status, 'Pending'))
+      .orderBy(redemptionRequests.requestedAt);
+
+      return result as Array<RedemptionRequest & { catalogItem: RewardCatalogItem }>;
+    } catch (error) {
+      console.error('❌ Error getting pending redemption requests:', error);
+      return [];
+    }
+  }
+
+  async getLastApprovedRedemption(userId: string): Promise<Date | undefined> {
+    try {
+      const [result] = await db.select({ decidedAt: redemptionRequests.decidedAt })
+        .from(redemptionRequests)
+        .where(and(
+          eq(redemptionRequests.userId, userId),
+          eq(redemptionRequests.status, 'Approved')
+        ))
+        .orderBy(desc(redemptionRequests.decidedAt))
+        .limit(1);
+      
+      return result?.decidedAt || undefined;
+    } catch (error) {
+      console.error('❌ Error getting last approved redemption:', error);
+      return undefined;
+    }
+  }
+
+  async decideRedemptionRequest(id: string, decision: string, decidedBy: string, notes?: string): Promise<{ request: RedemptionRequest; pointsDeducted?: number }> {
+    try {
+      // Get the request details
+      const [request] = await db.select().from(redemptionRequests).where(eq(redemptionRequests.id, id));
+      if (!request || request.status !== 'Pending') {
+        throw new Error('Request not found or already processed');
+      }
+
+      // Update the request
+      const [updatedRequest] = await db.update(redemptionRequests)
+        .set({
+          status: decision as 'Approved' | 'Denied',
+          decidedAt: new Date(),
+          decidedBy,
+          parentNotes: notes || null
+        })
+        .where(eq(redemptionRequests.id, id))
+        .returning();
+
+      let pointsDeducted = 0;
+
+      // If approved, deduct points from student's profile
+      if (decision === 'Approved') {
+        const [profile] = await db.update(rewardProfiles)
+          .set({
+            points: sql`${rewardProfiles.points} - ${request.pointsSpent}`,
+            updatedAt: new Date()
+          })
+          .where(eq(rewardProfiles.userId, request.userId))
+          .returning();
+
+        pointsDeducted = request.pointsSpent;
+
+        // Create negative earn event for the redemption
+        await this.createEarnEvent({
+          userId: request.userId,
+          type: 'Manual', // Redemption type
+          amount: -request.pointsSpent,
+          sourceId: id,
+          sourceDetails: `Redeemed reward: ${request.catalogItemId}`
+        });
+
+        // Update catalog item usage counter
+        await db.update(rewardCatalog)
+          .set({
+            timesRedeemed: sql`${rewardCatalog.timesRedeemed} + 1`,
+            updatedAt: new Date()
+          })
+          .where(eq(rewardCatalog.id, request.catalogItemId));
+      }
+
+      return { request: updatedRequest, pointsDeducted };
+    } catch (error) {
+      console.error('❌ Error deciding redemption request:', error);
+      throw error;
     }
   }
 }
