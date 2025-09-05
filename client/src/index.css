@@ -11,6 +11,54 @@ body {
   line-height: 1.5; /* Better line spacing for readability */
 }
 
+/* --- Toggle (pill track + centered knob) --- */
+.toggle{display:inline-flex;align-items:center;gap:.75rem;cursor:pointer}
+.toggle .t-label{user-select:none}
+
+/* Size & layout vars */
+.switch{
+  --track-w:44px;           /* width of the pill */
+  --track-h:22px;           /* height of the pill (2:1 ratio) */
+  --p:2px;                  /* inner padding */
+  --knob-d:calc(var(--track-h) - 2*var(--p));
+  position:relative; display:inline-block;
+  width:var(--track-w); height:var(--track-h); padding:var(--p);
+  border-radius:calc(var(--track-h)/2);           /* perfect pill */
+  background:#6b7280;                              /* "off" color - gray */
+  box-shadow:0 0 0 0 rgba(0,0,0,0), 0 6px 14px rgba(0,0,0,.25);
+  overflow:visible;                                 /* don't clip knob shadow */
+}
+
+/* "On" state background */
+.toggle > input:checked + .switch{
+  background:#22c55e;                              /* "on" color - green */
+}
+
+/* Invisible native input drives state */
+.toggle > input{position:absolute;opacity:0;pointer-events:none}
+
+/* Knob */
+.knob{
+  width:var(--knob-d); height:var(--knob-d);
+  border-radius:999px; background:#fff;
+  display:block; transform:translateX(0);
+  box-shadow:0 1px 2px rgba(0,0,0,.25), 0 0 0 1px rgba(0,0,0,.04);
+  transition:transform .18s ease;
+}
+
+/* Move knob exactly inside left→right padding */
+.toggle > input:checked + .switch .knob{
+  transform:translateX(calc(var(--track-w) - var(--knob-d) - 2*var(--p)));
+}
+
+/* Accessibility niceties */
+.toggle > input:focus-visible + .switch{
+  outline:2px solid #7d4cc2; outline-offset:3px;
+}
+@media (prefers-reduced-motion:reduce){
+  .knob{transition:none}
+}
+
 /* Premium button styling */
 .btn {
   @apply px-6 py-3 text-base font-semibold rounded-lg transition-all duration-200;

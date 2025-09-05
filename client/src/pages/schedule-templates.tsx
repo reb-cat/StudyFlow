@@ -485,48 +485,25 @@ export default function ScheduleTemplates() {
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor={`saturday-${student.studentName}`} className="text-sm">
-                    Allow Saturday
-                  </Label>
-                  <button
-                    key={`saturday-switch-${student.studentName}`}
+                <label className="toggle">
+                  <input 
                     id={`saturday-${student.studentName}`}
-                    onClick={() => {
+                    type="checkbox" 
+                    checked={student.allowSaturdayScheduling}
+                    disabled={saturdayMutation.isPending}
+                    onChange={() => {
                       console.log(`Toggle clicked for ${student.studentName}: ${!student.allowSaturdayScheduling}`);
                       saturdayMutation.mutate({ 
                         studentName: student.studentName, 
                         allowSaturday: !student.allowSaturdayScheduling 
                       });
                     }}
-                    disabled={saturdayMutation.isPending}
-                    className={`
-                      relative transition-all duration-300 ease-in-out focus:outline-none
-                      ${saturdayMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                    `}
-                    style={{
-                      display: 'inline-block',
-                      width: '44px',
-                      height: '22px',
-                      borderRadius: '11px',
-                      backgroundColor: student.allowSaturdayScheduling ? '#22c55e' : '#d1d5db',
-                      padding: '2px',
-                      margin: '2px' // Space for shadow to prevent clipping
-                    }}
-                  >
-                    <div 
-                      className="bg-white rounded-full transition-transform duration-300 ease-in-out"
-                      style={{
-                        width: '18px',
-                        height: '18px',
-                        // Available space: 44px - 4px padding = 40px internal width
-                        // Travel distance: 40px - 18px knob = 22px
-                        transform: student.allowSaturdayScheduling ? 'translateX(22px)' : 'translateX(0px)',
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.25)'
-                      }}
-                    />
-                  </button>
-                </div>
+                  />
+                  <span className="switch" aria-hidden="true">
+                    <span className="knob"></span>
+                  </span>
+                  <span className="t-label">Allow Saturday</span>
+                </label>
               </div>
             ))}
           </div>
