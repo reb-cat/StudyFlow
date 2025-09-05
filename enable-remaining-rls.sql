@@ -1,0 +1,14 @@
+-- Enable RLS on the 11 remaining tables
+-- These already have policies but RLS is disabled
+
+ALTER TABLE bible_curriculum_position ENABLE ROW LEVEL SECURITY;
+ALTER TABLE checklist_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_schedule_status ENABLE ROW LEVEL SECURITY;
+ALTER TABLE earn_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE progress_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE redemption_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reward_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE schedule_template ENABLE ROW LEVEL SECURITY;
+ALTER TABLE student_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE student_status ENABLE ROW LEVEL SECURITY;

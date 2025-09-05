@@ -1,0 +1,93 @@
+[
+  {
+    "schemaname": "public",
+    "tablename": "assignments",
+    "rls_enabled": true,
+    "policy_count": "1",
+    "status": "✅ PROTECTED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "reward_settings",
+    "rls_enabled": true,
+    "policy_count": "1",
+    "status": "✅ PROTECTED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "bible_curriculum_position",
+    "rls_enabled": false,
+    "policy_count": "1",
+    "status": "❌ RLS DISABLED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "checklist_items",
+    "rls_enabled": false,
+    "policy_count": "1",
+    "status": "❌ RLS DISABLED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "daily_schedule_status",
+    "rls_enabled": false,
+    "policy_count": "1",
+    "status": "❌ RLS DISABLED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "earn_events",
+    "rls_enabled": false,
+    "policy_count": "1",
+    "status": "❌ RLS DISABLED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "progress_sessions",
+    "rls_enabled": false,
+    "policy_count": "1",
+    "status": "❌ RLS DISABLED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "quests",
+    "rls_enabled": false,
+    "policy_count": "1",
+    "status": "❌ RLS DISABLED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "redemption_requests",
+    "rls_enabled": false,
+    "policy_count": "1",
+    "status": "❌ RLS DISABLED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "reward_profiles",
+    "rls_enabled": false,
+    "policy_count": "1",
+    "status": "❌ RLS DISABLED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "schedule_template",
+    "rls_enabled": false,
+    "policy_count": "1",
+    "status": "❌ RLS DISABLED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "student_profiles",
+    "rls_enabled": false,
+    "policy_count": "1",
+    "status": "❌ RLS DISABLED"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "student_status",
+    "rls_enabled": false,
+    "policy_count": "1",
+    "status": "❌ RLS DISABLED"
+  }
+]
