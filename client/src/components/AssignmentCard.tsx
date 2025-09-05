@@ -54,8 +54,8 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
     
     const PriorityIcon = config.icon;
     return (
-      <Badge variant="outline" className={`${config.color} ${config.darkColor} font-medium`}>
-        <PriorityIcon className="h-3 w-3 mr-1" />
+      <Badge variant="outline" className={`${config.color} ${config.darkColor} font-medium px-3 py-1`}>
+        <PriorityIcon className="h-4 w-4 mr-1" />
         {config.label}
       </Badge>
     );

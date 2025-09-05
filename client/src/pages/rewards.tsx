@@ -90,24 +90,24 @@ export default function RewardsPage() {
 
   if (!profile) {
     return (
-      <div className="max-w-2xl mx-auto text-center space-y-6">
-        <div className="p-8">
-          <Trophy className="h-16 w-16 mx-auto text-primary mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Welcome to RewardBank!</h1>
-          <p className="text-muted-foreground mb-6">
+      <div className="max-w-3xl mx-auto text-center space-y-8">
+        <div className="p-12">
+          <Trophy className="h-20 w-20 mx-auto text-primary mb-6" />
+          <h1 className="text-4xl font-bold mb-4">Welcome to RewardBank!</h1>
+          <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
             Complete assignments and study sessions to earn points, level up, and redeem awesome rewards!
           </p>
-          <div className="bg-muted/50 rounded-lg p-6 space-y-2 text-sm">
+          <div className="bg-muted/50 rounded-lg p-8 space-y-4 text-base">
             <div className="flex items-center gap-2">
-              <Award className="h-4 w-4 text-gold" />
+              <Award className="h-6 w-6 text-gold" />
               Complete assignments: <strong>100-500 points</strong>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue" />
+            <div className="flex items-center gap-3">
+              <Clock className="h-6 w-6 text-blue" />
               Finish study sessions: <strong>300+ points</strong>
             </div>
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-emerald" />
+            <div className="flex items-center gap-3">
+              <Target className="h-6 w-6 text-emerald" />
               Complete quests: <strong>500+ bonus points</strong>
             </div>
           </div>
@@ -123,10 +123,10 @@ export default function RewardsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card">
-        <div className="container mx-auto px-6 py-6">
+        <div className="container mx-auto px-8 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold mb-1">Your Rewards</h1>
+              <h1 className="text-3xl font-bold mb-2">Your Rewards</h1>
               <p className="text-muted-foreground text-sm">
                 Keep studying to earn more points!
               </p>
