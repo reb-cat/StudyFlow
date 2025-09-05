@@ -74,6 +74,10 @@ export interface IStorage {
   rescheduleNeedMoreTime(assignmentId: string, date: string): Promise<void>;
   markStuckWithUndo(assignmentId: string): Promise<void>;
   
+  // Hybrid scheduler support methods
+  getAssignmentsByStudentAndDate(studentName: string, date: string): Promise<Assignment[]>;
+  getAssignmentsByBlock(studentName: string, weekday: string, blockNumber: number): Promise<Assignment[]>;
+  
   // Checklist item operations
   getChecklistItems(studentName: string, subject?: string): Promise<ChecklistItem[]>;
   createChecklistItem(item: InsertChecklistItem): Promise<ChecklistItem>;
@@ -623,45 +627,53 @@ export class DatabaseStorage implements IStorage {
         console.log(`✅ Created ${defaultBlocks.length} temporary assignment blocks for scheduling`);
       }
       
-      // Use auto-scheduler
-      const { autoScheduleAssignments } = await import('./lib/assignmentIntelligence');
+      // Use the NEW hybrid scheduler with student-specific intelligence
+      const { hybridScheduleAssignmentsWithQuickWins } = await import('./lib/assignmentIntelligence');
       
+      // Prepare assignments for the hybrid scheduler
       const assignmentsToSchedule = unscheduledAssignments.map(a => ({
         id: a.id,
         title: a.title,
         priority: a.priority as 'A' | 'B' | 'C',
         dueDate: a.dueDate ? new Date(a.dueDate) : null,
         difficulty: a.difficulty as 'easy' | 'medium' | 'hard',
-        actualEstimatedMinutes: a.actualEstimatedMinutes || 60,
+        actualEstimatedMinutes: a.actualEstimatedMinutes || 30,
         completionStatus: a.completionStatus || 'pending',
         scheduledDate: a.scheduledDate,
-        scheduledBlock: a.scheduledBlock
+        scheduledBlock: a.scheduledBlock,
+        courseName: a.courseName,
+        subject: a.subject
       }));
       
-      // Combine original schedule blocks with any created assignment blocks
-      const allScheduleBlocks = [
-        ...scheduleBlocks.filter(b => b.blockType !== 'Assignment'), // Keep non-assignment blocks
-        ...assignmentBlocks // Use potentially modified/created assignment blocks
-      ];
+      console.log(`🚀 Using HYBRID SCHEDULER with student intelligence for ${studentName}`);
+      console.log(`📚 Assignments to schedule: ${assignmentsToSchedule.length}`);
+      console.log(`🏫 Available blocks: ${assignmentBlocks.length} Assignment + ${studyHallBlocks.length} Study Hall`);
       
-      const scheduleBlocksFormatted = allScheduleBlocks.map(b => ({
-        id: b.id,
-        studentName: b.studentName,
-        weekday: b.weekday,
-        blockNumber: b.blockNumber,
-        startTime: b.startTime,
-        endTime: b.endTime,
-        subject: b.subject,
-        blockType: b.blockType
-      }));
-      
-      const schedulingResults = autoScheduleAssignments(
-        assignmentsToSchedule,
-        scheduleBlocksFormatted,
+      // Create hybrid scheduling request
+      const schedulingRequest = {
         studentName,
-        targetDate,
-        'America/New_York'
-      );
+        targetWeek: targetDate, // Monday of the target week
+        assignments: assignmentsToSchedule,
+        preserveExisting: true
+      };
+      
+      const hybridResult = await hybridScheduleAssignmentsWithQuickWins(schedulingRequest, this);
+      
+      console.log(`🎯 HYBRID RESULT: ${hybridResult.scheduledAssignments.length}/${assignmentsToSchedule.length} scheduled`);
+      if (hybridResult.warnings.length > 0) {
+        console.log(`⚠️ Warnings: ${hybridResult.warnings.join(', ')}`);
+      }
+      
+      // Convert hybrid results to old format for database updates
+      const schedulingResults = new Map();
+      for (const scheduledAssignment of hybridResult.scheduledAssignments) {
+        schedulingResults.set(scheduledAssignment.id, {
+          scheduledDate: scheduledAssignment.scheduledDate,
+          scheduledBlock: scheduledAssignment.scheduledBlock,
+          blockStart: scheduledAssignment.blockStart,
+          blockEnd: scheduledAssignment.blockEnd
+        });
+      }
       
       console.log(`📊 SCHEDULED: ${schedulingResults.size} assignments scheduled by the planner`);
       
@@ -1369,6 +1381,35 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error marking assignment as stuck:', error);
       throw error;
+    }
+  }
+
+  // Support methods for hybrid scheduler
+  async getAssignmentsByStudentAndDate(studentName: string, date: string): Promise<Assignment[]> {
+    try {
+      const userId = `${studentName.toLowerCase()}-user`;
+      return await this.getAssignments(userId, date);
+    } catch (error) {
+      console.error('Error getting assignments by student and date:', error);
+      return [];
+    }
+  }
+
+  async getAssignmentsByBlock(studentName: string, weekday: string, blockNumber: number): Promise<Assignment[]> {
+    try {
+      const userId = `${studentName.toLowerCase()}-user`; // This needs to be improved to get actual user
+      const result = await db.select()
+        .from(assignments)
+        .where(and(
+          eq(assignments.userId, userId),
+          eq(assignments.scheduledBlock, blockNumber),
+          isNotNull(assignments.scheduledDate)
+        ));
+      
+      return result || [];
+    } catch (error) {
+      console.error('Error getting assignments by block:', error);
+      return [];
     }
   }
 
