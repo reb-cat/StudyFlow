@@ -15,12 +15,12 @@ import {
   Grid3X3
 } from 'lucide-react';
 
-// Gaming theme colors using CSS custom properties
+// StudyFlow theme colors using updated CSS custom properties
 const colors = {
-  primary: 'hsl(var(--violet))',
-  complete: 'hsl(var(--emerald))',
-  progress: 'hsl(var(--blue))',
-  support: 'hsl(var(--gold))',
+  primary: 'hsl(263, 71%, 50%)',        /* Deep violet #6d28d8 */
+  complete: 'hsl(142, 100%, 32%)',      /* Forest green #00a348 */
+  progress: 'hsl(213, 94%, 60%)',       /* Bright blue #3b82f6 */
+  support: 'hsl(45, 86%, 57%)',         /* Golden amber #f0ca33 */
   background: 'var(--background)',
   surface: 'var(--card)',
   text: 'var(--foreground)',
@@ -224,9 +224,9 @@ export default function FamilyDashboard() {
                       </h3>
                       <div className="flex items-center gap-2">
                         {student.currentMode === 'guided' ? (
-                          <Play size={16} color={colors.progress} />
+                          <Play size={16} style={{ color: colors.progress }} />
                         ) : (
-                          <Grid3X3 size={16} className="text-accent" />
+                          <Grid3X3 size={16} style={{ color: colors.complete }} />
                         )}
                         <span className="text-muted-foreground text-sm">
                           {student.currentMode === 'guided' ? 'Guided Mode' : 'Overview Mode'}
