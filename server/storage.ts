@@ -1062,7 +1062,11 @@ export class DatabaseStorage implements IStorage {
   async getAllStudentProfiles(): Promise<StudentProfile[]> {
     try {
       const result = await db.select().from(studentProfiles);
-      return result;
+      // Only return the 2 real students with proper displayNames
+      return result.filter(profile => 
+        profile.displayName && 
+        (profile.studentName === 'abigail' || profile.studentName === 'khalil')
+      );
     } catch (error) {
       console.error('Error getting all student profiles:', error);
       return [];
