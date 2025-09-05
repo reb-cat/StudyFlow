@@ -489,8 +489,8 @@ export default function ScheduleTemplates() {
                     }`}
                   >
                     <div 
-                      className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-lg transition-transform duration-200 ${
-                        student.allowSaturdayScheduling ? 'translate-x-6' : 'translate-x-0'
+                      className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-lg transition-transform duration-200 ${
+                        student.allowSaturdayScheduling ? 'translate-x-7' : 'translate-x-0'
                       }`}
                     />
                   </button>
