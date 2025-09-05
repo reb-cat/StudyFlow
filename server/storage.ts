@@ -393,14 +393,12 @@ export class DatabaseStorage implements IStorage {
                             title.includes('waiver') ||
                             title.includes('registration') ||
                             title.includes('syllabus') ||
-                            title.includes('honor code') ||
-                            a.priority === 'parent';
+                            title.includes('honor code');
         
         const isBibleAssignment = title.includes('bible') || 
                                  subject.includes('bible') ||
                                  title.includes('scripture') ||
-                                 subject.includes('scripture') ||
-                                 a.creationSource === 'bible_curriculum';
+                                 subject.includes('scripture');
         
         if (isParentTask) {
           console.log(`🚫 Excluding parent task from student scheduling: ${a.title}`);
@@ -677,9 +675,10 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`✅ AUTHORIZED: Updated schedule template for ${studentName} on ${weekday} with ${blocks.length} blocks`);
     } catch (error) {
+      const errorObj = error as Error;
       console.error('Error updating schedule template:', {
-        message: error.message,
-        stack: error.stack,
+        message: errorObj.message,
+        stack: errorObj.stack,
         studentName,
         weekday,
         blocksCount: blocks.length,
@@ -691,7 +690,7 @@ export class DatabaseStorage implements IStorage {
           blockType: blocks[0].blockType
         } : 'No blocks'
       });
-      throw new Error(`Failed to update schedule template: ${error.message}`);
+      throw new Error(`Failed to update schedule template: ${errorObj.message}`);
     }
   }
 
@@ -765,8 +764,9 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`✅ AUTHORIZED: Successfully replaced schedule template with ${csvData.length} records from CSV`);
     } catch (error) {
+      const errorObj = error as Error;
       console.error('Error replacing schedule template from CSV:', error);
-      throw new Error(`Failed to replace schedule template from CSV: ${error.message}`);
+      throw new Error(`Failed to replace schedule template from CSV: ${errorObj.message}`);
     }
   }
 
