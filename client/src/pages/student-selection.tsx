@@ -124,7 +124,7 @@ export default function FamilyDashboard() {
       {/* Main Content */}
       <main className="flex-1 px-10 py-15 flex flex-col items-center gap-12">
         {/* Date and Greeting Card */}
-        <div className="bg-card border border-border rounded-2xl px-12 py-8 text-center max-w-4xl w-full shadow-lg">
+        <div className="bg-card border border-border rounded-2xl px-12 py-8 text-center max-w-4xl w-full shadow-lg mt-8">
           <div className="text-muted-foreground text-sm font-medium mb-3 flex items-center justify-center gap-2">
             <Calendar size={16} />
             {dateDisplay.toUpperCase()}
