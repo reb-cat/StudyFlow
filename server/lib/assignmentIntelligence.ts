@@ -207,7 +207,7 @@ export async function getAvailableScheduleSlots(
   const templateBlocks = await storage.getScheduleTemplate(studentName, weekday);
   
   console.log(`🔍 TEMPLATE DEBUG: Found ${templateBlocks.length} template blocks for ${studentName} on ${weekday}:`);
-  templateBlocks.forEach((block, index) => {
+  templateBlocks.forEach((block: any, index: number) => {
     console.log(`   ${index + 1}. ${block.blockType} Block ${block.blockNumber} (${block.startTime}-${block.endTime})`);
   });
   
@@ -229,14 +229,14 @@ export async function getAvailableScheduleSlots(
         : []; // Empty - null blockNumber blocks have full capacity available
       
       // Calculate used minutes
-      const usedMinutes = assignedAssignments.reduce((total, assignment) => {
+      const usedMinutes = assignedAssignments.reduce((total: number, assignment: any) => {
         return total + (assignment.actualEstimatedMinutes || 30);
       }, 0);
       
       // Debug what assignments are currently in this block
       if (assignedAssignments.length > 0) {
         console.log(`   🚨 Block ${block.blockNumber} (${block.blockType}) already has ${assignedAssignments.length} assignments:`);
-        assignedAssignments.forEach(a => {
+        assignedAssignments.forEach((a: any) => {
           console.log(`      - ${a.title} (due: ${a.dueDate}, ${a.actualEstimatedMinutes || 30}min)`);
         });
       }
@@ -257,7 +257,7 @@ export async function getAvailableScheduleSlots(
   }
   
   console.log(`🔍 SLOT DEBUG: Found ${availableSlots.length} available slots for ${studentName} on ${weekday}:`);
-  availableSlots.forEach((slot, index) => {
+  availableSlots.forEach((slot: ScheduleBlockSlot, index: number) => {
     console.log(`   ${index + 1}. ${slot.blockType} Block ${slot.blockNumber} (${slot.startTime}-${slot.endTime}): ${slot.remainingMinutes}/${slot.availableMinutes} minutes available`);
   });
   
