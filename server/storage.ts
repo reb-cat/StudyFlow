@@ -696,43 +696,58 @@ export class DatabaseStorage implements IStorage {
         subject: a.subject
       }));
       
-      console.log(`🚀 Using HYBRID SCHEDULER with student intelligence for ${studentName}`);
+      console.log(`🎯 Using SINGLE-DAY SCHEDULER (Generic for ANY day) for ${studentName}`);
       console.log(`📚 Assignments to schedule: ${assignmentsToSchedule.length}`);
       console.log(`🏫 Available blocks: ${assignmentBlocks.length} Assignment + ${studyHallBlocks.length} Study Hall`);
       
-      // Create hybrid scheduling request
-      // CRITICAL FIX: Calculate Monday of the target week for hybrid scheduler
-      const dayOfWeek = targetDateObj.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const daysToMonday = dayOfWeek === 0 ? -6 : -(dayOfWeek - 1); // Calculate days back to Monday
-      const mondayOfTargetWeek = new Date(targetDateObj);
-      mondayOfTargetWeek.setDate(targetDateObj.getDate() + daysToMonday);
-      const targetWeekMonday = mondayOfTargetWeek.toISOString().split('T')[0];
-      
-      console.log(`📅 DATE CALCULATION: targetDate=${targetDate} (${weekday}) -> Monday of week=${targetWeekMonday}`);
-      
-      const schedulingRequest = {
-        studentName,
-        targetWeek: targetWeekMonday, // Monday of the target week (FIXED)
-        assignments: assignmentsToSchedule,
-        preserveExisting: true
-      };
-      
-      const hybridResult = await hybridScheduleAssignmentsWithQuickWins(schedulingRequest, this);
-      
-      console.log(`🎯 HYBRID RESULT: ${hybridResult.scheduledAssignments.length}/${assignmentsToSchedule.length} scheduled`);
-      if (hybridResult.warnings.length > 0) {
-        console.log(`⚠️ Warnings: ${hybridResult.warnings.join(', ')}`);
-      }
-      
-      // Convert hybrid results to old format for database updates
-      const schedulingResults = new Map();
-      for (const scheduledAssignment of hybridResult.scheduledAssignments) {
-        schedulingResults.set(scheduledAssignment.id, {
-          scheduledDate: scheduledAssignment.scheduledDate,
-          scheduledBlock: scheduledAssignment.scheduledBlock,
-          blockStart: scheduledAssignment.blockStart,
-          blockEnd: scheduledAssignment.blockEnd
+      // CORE PRINCIPLE: Work generically for ANY target date, no day-of-week dependencies
+      // Simply fill available blocks on THIS specific date with prioritized assignments
+      const allAvailableBlocks = [...assignmentBlocks, ...studyHallBlocks]
+        .sort((a, b) => {
+          // Sort blocks by start time 
+          const timeA = a.startTime || '00:00';
+          const timeB = b.startTime || '00:00';
+          return timeA.localeCompare(timeB);
         });
+      
+      console.log(`📅 GENERIC SCHEDULING: Filling ${allAvailableBlocks.length} blocks on ${targetDate}`);
+      
+      // Apply assignment prioritization logic (same for any day)
+      const prioritizedAssignments = assignmentsToSchedule.sort((a, b) => {
+        // Priority 1: Overdue assignments first
+        const aOverdue = a.dueDate && new Date(a.dueDate) < new Date(targetDate);
+        const bOverdue = b.dueDate && new Date(b.dueDate) < new Date(targetDate);
+        if (aOverdue && !bOverdue) return -1;
+        if (!aOverdue && bOverdue) return 1;
+        
+        // Priority 2: Due date (earliest first)
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        }
+        if (a.dueDate && !b.dueDate) return -1;
+        if (!a.dueDate && b.dueDate) return 1;
+        
+        // Priority 3: Title alphabetical
+        return (a.title || '').localeCompare(b.title || '');
+      });
+      
+      // Fill blocks with prioritized assignments (generic algorithm)
+      const schedulingResults = new Map();
+      let assignmentIndex = 0;
+      
+      for (const block of allAvailableBlocks) {
+        if (assignmentIndex >= prioritizedAssignments.length) break;
+        
+        const assignment = prioritizedAssignments[assignmentIndex];
+        schedulingResults.set(assignment.id, {
+          scheduledDate: targetDate,
+          scheduledBlock: block.blockNumber,
+          blockStart: block.startTime,
+          blockEnd: block.endTime
+        });
+        
+        console.log(`📍 SCHEDULED: "${assignment.title}" → Block ${block.blockNumber} (${block.startTime}-${block.endTime})`);
+        assignmentIndex++;
       }
       
       console.log(`📊 SCHEDULED: ${schedulingResults.size} assignments scheduled by the planner`);
