@@ -668,6 +668,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       console.log(`✅ AUTHORIZED: Updated schedule template for ${studentName} on ${weekday} with ${blocks.length} blocks`);
+      console.log('📊 DEBUG: Insert data preview:', insertBlocks.slice(0, 3));
     } catch (error) {
       console.error('Error updating schedule template:', {
         message: error.message,
