@@ -2130,6 +2130,11 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       // Process assignments and detect print needs
       const printQueue: any[] = [];
       for (const assignment of filteredAssignments) {
+        // Skip completed assignments - they don't need printing anymore
+        if (assignment.completionStatus === 'completed') {
+          continue;
+        }
+        
         const printDetection = detectPrintNeeds({
           title: assignment.title,
           instructions: assignment.instructions,
