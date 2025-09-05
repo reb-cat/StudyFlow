@@ -206,6 +206,11 @@ export async function getAvailableScheduleSlots(
   // Get schedule template blocks for this student/day that can accept assignments
   const templateBlocks = await storage.getScheduleTemplate(studentName, weekday);
   
+  console.log(`🔍 TEMPLATE DEBUG: Found ${templateBlocks.length} template blocks for ${studentName} on ${weekday}:`);
+  templateBlocks.forEach((block, index) => {
+    console.log(`   ${index + 1}. ${block.blockType} Block ${block.blockNumber} (${block.startTime}-${block.endTime})`);
+  });
+  
   const availableSlots: ScheduleBlockSlot[] = [];
   
   for (const block of templateBlocks) {
@@ -242,6 +247,11 @@ export async function getAvailableScheduleSlots(
       });
     }
   }
+  
+  console.log(`🔍 SLOT DEBUG: Found ${availableSlots.length} available slots for ${studentName} on ${weekday}:`);
+  availableSlots.forEach((slot, index) => {
+    console.log(`   ${index + 1}. ${slot.blockType} Block ${slot.blockNumber} (${slot.startTime}-${slot.endTime}): ${slot.remainingMinutes}/${slot.availableMinutes} minutes available`);
+  });
   
   return availableSlots;
 }
