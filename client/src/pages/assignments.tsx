@@ -702,7 +702,7 @@ export default function AssignmentsPage() {
                       }
                       setSelectedAssignments(newSelected);
                     }}
-                    className="flex-shrink-0"
+                    className="flex-shrink-0 w-4 h-4 min-w-4 min-h-4 max-w-4 max-h-4"
                     data-testid={`checkbox-${assignment.id}`}
                   />
                   
