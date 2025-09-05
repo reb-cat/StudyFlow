@@ -71,23 +71,13 @@ export default function ScheduleTemplates() {
     },
   });
 
-  // Initialize editing blocks when data changes or student/weekday selection changes
+  // Initialize editing blocks when data changes
   useEffect(() => {
     if (scheduleBlocks && scheduleBlocks.length > 0) {
-      // Ensure all blocks have the correct student name and weekday
-      const correctedBlocks = scheduleBlocks.map(block => ({
-        ...block,
-        studentName: selectedStudent,
-        weekday: selectedWeekday
-      }));
-      setEditingBlocks(correctedBlocks);
-      setHasChanges(false);
-    } else if (selectedStudent && selectedWeekday) {
-      // Clear editing blocks when switching to empty schedule
-      setEditingBlocks([]);
+      setEditingBlocks([...scheduleBlocks]);
       setHasChanges(false);
     }
-  }, [scheduleBlocks, selectedStudent, selectedWeekday]);
+  }, [scheduleBlocks]);
 
   const updateBlock = (index: number, field: keyof ScheduleBlock, value: any) => {
     const newBlocks = [...editingBlocks];
@@ -118,10 +108,14 @@ export default function ScheduleTemplates() {
   };
 
   const saveChanges = () => {
-    // Sort blocks by start time before saving
-    const sortedBlocks = [...editingBlocks].sort((a, b) => 
-      timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
-    );
+    // Sort blocks by start time and ensure correct student/weekday before saving
+    const sortedBlocks = [...editingBlocks]
+      .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime))
+      .map(block => ({
+        ...block,
+        studentName: selectedStudent,
+        weekday: selectedWeekday
+      }));
     saveScheduleMutation.mutate(sortedBlocks);
   };
 
