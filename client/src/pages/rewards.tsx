@@ -316,7 +316,10 @@ export default function RewardsPage() {
                   <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mx-auto mb-3">
                     <span className="text-sm font-bold text-primary-foreground">{profile.level}</span>
                   </div>
-                  <p className="text-muted-foreground text-sm">Level {profile.level}</p>
+                  <p className="text-3xl font-bold mb-1 text-primary" data-testid="level-number">
+                    {profile.level}
+                  </p>
+                  <p className="text-muted-foreground text-sm">Level</p>
                 </div>
               </Card>
 
