@@ -501,7 +501,7 @@ export default function ScheduleTemplates() {
                     }}
                     disabled={saturdayMutation.isPending}
                     className={`
-                      h-6 w-9 rounded-full relative transition-all duration-200 ease-in-out inline-block
+                      h-5 w-10 rounded-full relative transition-all duration-200 ease-in-out inline-block
                       ${student.allowSaturdayScheduling 
                         ? 'bg-green-500 shadow-lg' 
                         : 'bg-gray-300 shadow-inner'
@@ -512,8 +512,8 @@ export default function ScheduleTemplates() {
                   >
                     <div 
                       className={`
-                        absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out
-                        ${student.allowSaturdayScheduling ? 'translate-x-3' : 'translate-x-0'}
+                        absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out
+                        ${student.allowSaturdayScheduling ? 'translate-x-5' : 'translate-x-0'}
                       `}
                     />
                   </button>
