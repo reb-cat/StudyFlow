@@ -428,10 +428,24 @@ async function placeAssignmentInOptimalSlot(
   best.slot.remainingMinutes -= assignmentMinutes;
   best.slot.assignments.push(assignment);
   
+  // SURGICAL FIX: For null blocks (-999), assign sequential numbers starting from 4
+  // Block 2 and 3 are already assigned, so start from 4
+  let assignedBlockNumber = best.slot.blockNumber;
+  if (best.slot.blockNumber === -999) {
+    // Calculate next available block number for null blocks
+    const existingBlocks = [2, 3]; // Weather Forecast=2, Unit 2=3
+    let nextBlock = 4;
+    while (existingBlocks.includes(nextBlock)) {
+      nextBlock++;
+    }
+    assignedBlockNumber = nextBlock;
+    console.log(`🔧 SURGICAL FIX: Converting null block (-999) to block ${assignedBlockNumber} for assignment ${assignment.title}`);
+  }
+
   return {
     success: true,
     scheduledDate: best.date,
-    scheduledBlock: best.slot.blockNumber === -999 ? null : best.slot.blockNumber as number, // Convert marker back to null
+    scheduledBlock: assignedBlockNumber,
     blockStart: best.slot.startTime,
     blockEnd: best.slot.endTime,
     reason: 'Successfully scheduled'
