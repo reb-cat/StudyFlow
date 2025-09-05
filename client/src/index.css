@@ -29,19 +29,19 @@ button {
 }
 
 :root {
-  /* Gaming Theme from Lovable Project */
-  --primary: hsl(263, 70%, 50.4%);         /* Violet primary from gaming theme */
-  --primary-light: hsl(263, 70%, 60%);     /* Lighter violet */
-  --primary-dark: hsl(263, 70%, 40%);      /* Deeper violet */
-  --primary-subtle: hsl(263, 70%, 97%);    /* Very light violet */
+  /* StudyFlow Brand Colors - Updated Palette */
+  --primary: hsl(263, 71%, 50%);           /* Deep violet #6d28d8 */
+  --primary-light: hsl(263, 71%, 60%);     /* Lighter violet */
+  --primary-dark: hsl(263, 71%, 40%);      /* Deeper violet */
+  --primary-subtle: hsl(263, 71%, 97%);    /* Very light violet */
   
-  --accent: hsl(142, 76%, 36%);            /* Emerald from gaming theme */
-  --accent-light: hsl(142, 76%, 46%);      /* Lighter emerald */
-  --accent-subtle: hsl(142, 76%, 97%);     /* Light emerald background */
+  --accent: hsl(142, 100%, 32%);           /* Forest green #00a348 */
+  --accent-light: hsl(142, 100%, 42%);     /* Lighter forest green */
+  --accent-subtle: hsl(142, 100%, 97%);    /* Light green background */
   
-  /* Status System - Gaming Theme */
-  --status-complete: hsl(142, 76%, 36%);   /* Emerald for completed */
-  --status-progress: hsl(213, 94%, 68%);   /* Gaming blue for progress */
+  /* Status System - Updated Colors */
+  --status-complete: hsl(142, 100%, 32%);  /* Forest green for completed */
+  --status-progress: hsl(213, 94%, 60%);   /* Bright blue #3b82f6 for progress */
   --status-blocked: hsl(222, 20%, 62%);    /* Keep slate gray for blocked */
   
   /* Sophisticated Neutrals */
@@ -71,20 +71,20 @@ button {
   --destructive: hsl(0, 62%, 45%);          /* Warmer red for errors */
   --destructive-foreground: hsl(0, 0%, 100%);
   --input: hsl(210, 14.29%, 89.02%);
-  --ring: hsl(263, 70%, 50.4%);             /* Gaming violet for focus rings */
-  --chart-1: hsl(263, 70%, 50.4%);         /* Gaming violet */
-  --chart-2: hsl(213, 94%, 68%);           /* Gaming blue */
-  --chart-3: hsl(142, 76%, 36%);           /* Gaming emerald */
-  --chart-4: hsl(45, 93%, 58%);            /* Gaming gold */
+  --ring: hsl(263, 71%, 50%);               /* Deep violet for focus rings */
+  --chart-1: hsl(263, 71%, 50%);           /* Deep violet */
+  --chart-2: hsl(213, 94%, 60%);           /* Bright blue */
+  --chart-3: hsl(142, 100%, 32%);          /* Forest green */
+  --chart-4: hsl(45, 86%, 57%);            /* Golden amber */
   --chart-5: hsl(37, 92%, 50%);            /* Keep orange for variety */
   --sidebar: hsl(0, 0%, 100%);
   --sidebar-foreground: hsl(222.2, 84%, 4.9%);
-  --sidebar-primary: hsl(263, 70%, 50.4%);      /* Gaming violet */
+  --sidebar-primary: hsl(263, 71%, 50%);        /* Deep violet */
   --sidebar-primary-foreground: hsl(210, 40%, 98%);
   --sidebar-accent: hsl(210, 40%, 96%);
   --sidebar-accent-foreground: hsl(222.2, 84%, 4.9%);
   --sidebar-border: hsl(214.3, 31.8%, 91.4%);
-  --sidebar-ring: hsl(263, 70%, 50.4%);         /* Gaming violet */
+  --sidebar-ring: hsl(263, 71%, 50%);           /* Deep violet */
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
@@ -98,14 +98,14 @@ button {
   --tracking-normal: 0em;
   --spacing: 0.375rem; /* 50% more spacing */
 
-  /* Gaming/Reward themed colors from your study-gems design */
-  --gold: 45 93% 58%;
+  /* StudyFlow Color Palette - HSL Values */
+  --gold: 45 86% 57%;                      /* Golden amber #f0ca33 */
   --gold-foreground: 240 10% 3.9%;
-  --emerald: 142 76% 36%;
+  --emerald: 142 100% 32%;                 /* Forest green #00a348 */
   --emerald-foreground: 0 0% 98%;
-  --violet: 263 70% 50.4%;
+  --violet: 263 71% 50%;                   /* Deep violet #6d28d8 */
   --violet-foreground: 0 0% 98%;
-  --blue: 213 94% 68%;
+  --blue: 213 94% 60%;                     /* Bright blue #3b82f6 */
   --blue-foreground: 0 0% 98%;
 
   /* Subtle Gradients for ADHD-friendly design */
@@ -150,7 +150,7 @@ button {
 }
 
 .dark {
-  /* StudyFlow Dark Mode Palette - Eye strain reduction focused */
+  /* StudyFlow Dark Mode Palette - Updated Colors */
   
   /* Backgrounds - warmer, softer dark tones */
   --background: hsl(220, 10%, 14%);             /* #202125 - Main background - slightly lighter */
@@ -161,7 +161,7 @@ button {
   /* Text - softer contrast hierarchy */
   --foreground: hsl(210, 15%, 85%);             /* #d1d5db - Primary text - softer than pure white */
   --card-foreground: hsl(210, 15%, 85%);        
-  --muted-foreground: hsl(210, 12%, 65%);       /* #9ca3af - Secondary text - better contrast */
+  --muted-foreground: hsl(220, 9%, 64%);        /* #9ca3af - Secondary text - updated gray */
   --text-disabled: hsl(211, 10%, 53%);          /* #6c757f - Disabled text */
   --text-critical: hsl(210, 15%, 85%);          /* #d1d5db - Timer/critical text - no pure white */
   
@@ -175,7 +175,7 @@ button {
   /* Borders - better visibility */
   --border: hsl(220, 7%, 28%);                  /* #434550 - Default borders - more visible */
   --input: hsl(220, 8%, 18%);                   /* #2a2b30 - Input background */
-  --ring: hsl(260, 53%, 75%);                   /* #b691d8 - Focus ring (20% brighter purple) */
+  --ring: hsl(263, 89%, 66%);                   /* #8b5cf6 - Updated focus ring */
   
   /* Status colors - gaming theme brightened by ~20% for dark mode */
   --primary: hsl(263, 70%, 75%);                /* Gaming violet - 20% brighter */
