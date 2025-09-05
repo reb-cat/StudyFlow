@@ -540,26 +540,23 @@ export class DatabaseStorage implements IStorage {
       console.log(`📅 DUE TODAY: ${dueToday.length} assignments due on ${targetDate}`);
       
       const unscheduledAssignments = userAssignments.filter(a => {
-        // First filter: must be pending
+        // CRITICAL FIX: Only exclude completed assignments from TODAY
+        // All other pending assignments should be available for rescheduling on refresh!
+        
+        // First filter: must be pending (never reschedule completed assignments)
         if (a.completionStatus !== 'pending') {
           return false;
         }
         
-        // Include assignments that are:
-        // 1. Not scheduled at all (scheduledDate is null)
-        // 2. Scheduled for today but without a specific block (scheduledDate = targetDate && scheduledBlock is null)
-        const isScheduledForToday = a.scheduledDate === targetDate;
-        const hasSpecificBlock = a.scheduledBlock !== null;
-        
-        if (a.scheduledDate && !isScheduledForToday) {
-          // Scheduled for a different date - exclude
+        // Second filter: NEVER reschedule assignments completed TODAY
+        if (a.completionStatus === 'completed' && a.scheduledDate === targetDate) {
+          console.log(`🔒 Preserving completed assignment from today: ${a.title}`);
           return false;
         }
         
-        if (isScheduledForToday && hasSpecificBlock) {
-          // Already scheduled to a specific block today - exclude
-          return false;
-        }
+        // OTHERWISE: ALL pending assignments are eligible for rescheduling
+        // This includes assignments scheduled for other days, other blocks, etc.
+        // The scheduler should redistribute workload dynamically on every refresh!
         
         // CRITICAL: Exclude parent/administrative assignments AND Bible assignments from student scheduling
         const title = a.title.toLowerCase();
