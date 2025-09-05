@@ -68,7 +68,7 @@ export default function FamilyDashboard() {
       id: 'khalil', 
       name: 'Khalil', 
       initial: 'K', 
-      color: colors.progress,
+      color: colors.complete,
       message: "Ready for another great learning day!",
       profileImage: profiles.khalil?.profileImageUrl
     }
