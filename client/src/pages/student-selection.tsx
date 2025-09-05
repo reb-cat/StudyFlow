@@ -6,12 +6,12 @@ import { ObjectUploader } from '@/components/ObjectUploader';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 
-// Your color system - matching the guided view
+// StudyFlow theme colors - updated to match new design
 const colors = {
-  primary: '#844FC1',
-  complete: '#21BF06',
-  progress: '#3B86D1',
-  support: '#6C7293',
+  primary: '#6d28d8',        /* Deep violet */
+  complete: '#00a348',       /* Forest green */
+  progress: '#3b82f6',       /* Bright blue */
+  support: '#f0ca33',        /* Golden amber */
   background: '#F8F9FA',
   surface: '#FFFFFF',
   text: '#212529',
