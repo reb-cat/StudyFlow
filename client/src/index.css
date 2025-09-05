@@ -4,9 +4,7 @@
 @tailwind utilities;
 
 /* Premium Scaling - Make everything feel more substantial */
-* {
-  font-size: 110%; /* Scale up base font size by 10% for more impact */
-}
+/* Base styles removed - keeping original font sizes */
 
 body {
   letter-spacing: -0.01em; /* Tighter letter spacing for cleaner look */

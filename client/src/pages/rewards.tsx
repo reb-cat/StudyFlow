@@ -93,8 +93,8 @@ export default function RewardsPage() {
       <div className="max-w-3xl mx-auto text-center space-y-8">
         <div className="p-12">
           <Trophy className="h-20 w-20 mx-auto text-primary mb-6" />
-          <h1 className="text-4xl font-bold mb-4">Welcome to RewardBank!</h1>
-          <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+          <h1 className="text-2xl font-bold mb-4">Welcome to RewardBank!</h1>
+          <p className="text-base text-muted-foreground mb-8 leading-relaxed">
             Complete assignments and study sessions to earn points, level up, and redeem awesome rewards!
           </p>
           <div className="bg-muted/50 rounded-lg p-8 space-y-4 text-base">
@@ -126,7 +126,7 @@ export default function RewardsPage() {
         <div className="container mx-auto px-8 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Your Rewards</h1>
+              <h1 className="text-xl font-bold mb-2">Your Rewards</h1>
               <p className="text-muted-foreground text-sm">
                 Keep studying to earn more points!
               </p>
@@ -150,7 +150,7 @@ export default function RewardsPage() {
             <Card className="p-4 bg-card border border-border" data-testid="points-card">
               <div className="text-center">
                 <Trophy className="w-8 h-8 text-gold mx-auto mb-2" />
-                <p className="text-2xl font-bold text-gold mb-1" data-testid="current-points">
+                <p className="text-lg font-bold text-gold mb-1" data-testid="current-points">
                   {profile.points}
                 </p>
                 <p className="text-xs text-muted-foreground">Points</p>
@@ -171,7 +171,7 @@ export default function RewardsPage() {
             <Card className="p-4 bg-card border border-border" data-testid="streak-card">
               <div className="text-center">
                 <Flame className="w-8 h-8 text-emerald mx-auto mb-2" />
-                <p className="text-2xl font-bold text-emerald mb-1" data-testid="streak-days">
+                <p className="text-lg font-bold text-emerald mb-1" data-testid="streak-days">
                   {profile.streakDays}
                 </p>
                 <p className="text-xs text-muted-foreground">Day Streak</p>
@@ -182,7 +182,7 @@ export default function RewardsPage() {
             <Card className="p-4 bg-card border border-border" data-testid="lifetime-card">
               <div className="text-center">
                 <TrendingUp className="w-8 h-8 text-violet mx-auto mb-2" />
-                <p className="text-2xl font-bold text-violet mb-1" data-testid="lifetime-points">
+                <p className="text-lg font-bold text-violet mb-1" data-testid="lifetime-points">
                   {profile.lifetimePoints}
                 </p>
                 <p className="text-xs text-muted-foreground">Total Earned</p>
@@ -222,7 +222,7 @@ export default function RewardsPage() {
                       data-testid={`reward-item-${item.id}`}
                     >
                       <div className="text-center space-y-3">
-                        <div className="w-12 h-12 mx-auto bg-primary/10 rounded-xl flex items-center justify-center text-2xl">
+                        <div className="w-10 h-10 mx-auto bg-primary/10 rounded-xl flex items-center justify-center text-lg">
                           {emoji}
                         </div>
                         <h3 className="font-semibold text-sm leading-tight">{title}</h3>
@@ -278,7 +278,7 @@ export default function RewardsPage() {
           {selectedReward && (
             <div className="space-y-4">
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-xl flex items-center justify-center text-3xl mb-2">
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-xl flex items-center justify-center text-xl mb-2">
                   {selectedReward.title.match(/^([^\w\s]+)/)?.[1] || '🎁'}
                 </div>
                 <h3 className="font-semibold">{selectedReward.title.replace(/^[^\w\s]+\s*/, '')}</h3>
