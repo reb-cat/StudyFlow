@@ -1,0 +1,302 @@
+Got it—no auto-chunking. Each assignment gets a single scheduled block, and “Need More Time” (NMT) creates the follow-up. I also baked in slower, student-specific time estimates (esp. dyslexia/writing-heavy).
+
+Here’s a tight, drop-in TypeScript refactor.
+
+// === Types ===
+type Assignment = {
+  id: string;
+  title: string;
+  course: string;
+  module?: string;
+  dueAt: string;                 // ISO
+  pages?: number;                // reading pages
+  problems?: number;             // problem count
+  words?: number;                // expected writing length
+  estimatedMinutes?: number;     // optional explicit
+  importance?: number;           // 0..1
+  prereqIds?: string[];
+  isExam?: boolean;
+  isReading?: boolean;
+  isWriting?: boolean;
+  isProject?: boolean;
+  studentId: string;
+};
+
+type FixedEvent = { startISO: string; endISO: string; title: string };
+
+type StudentProfile = {
+  id: string;
+  name: string;
+  // Baselines deliberately conservative for EF + dyslexia profiles
+  readMinPerPage: number;      // e.g., 4–6+ for dense text
+  problemsMin: number;         // per problem
+  writeMinPer100Words: number; // drafting + planning + review
+  globalMultiplier: number;    // catches “takes longer to understand”
+  readingMultiplier: number;   // dyslexia emphasis
+  writingMultiplier: number;   // writing is very laborious
+  maxFocusMinutesPerDay: number; // personal cap (e.g., 120–180)
+  maxPerCoursePerDay: number;    // e.g., 60–90
+};
+
+type SchedulerOptions = {
+  dayStart: string;                // "09:00"
+  finishBufferDays: number;        // try to be done N days early
+};
+
+type DayPlan = {
+  date: string; // YYYY-MM-DD
+  totalMinutes: number;
+  perCourseMinutes: Record<string, number>;
+  blocks: Array<{
+    assignmentId: string;
+    title: string;
+    startISO: string;
+    endISO: string;
+    minutes: number;
+    flags: string[];              // e.g., ["long-read","likely-overtime"]
+  }>;
+};
+
+type PlanResult = { days: Record<string, DayPlan>, unscheduled: Assignment[] };
+
+// === Helpers ===
+const toDateKey = (iso: string) => iso.slice(0, 10);
+const addDaysISO = (iso: string, d: number) =>
+  new Date(new Date(iso).getTime() + d * 86400000).toISOString();
+const minutesBetween = (a: Date, b: Date) => Math.round((b.getTime() - a.getTime()) / 60000);
+
+// === Estimation (single block per assignment) ===
+function estimateMinutes(a: Assignment, student: StudentProfile): { minutes: number, flags: string[] } {
+  if (a.estimatedMinutes) {
+    const m = Math.round(a.estimatedMinutes * student.globalMultiplier);
+    return { minutes: Math.max(10, m), flags: [] };
+  }
+
+  const flags: string[] = [];
+  let base = 0;
+
+  if (a.isWriting || a.words) {
+    const words = a.words ?? 200; // safe default
+    base = (words / 100) * student.writeMinPer100Words;
+    base *= student.writingMultiplier;
+    flags.push("writing");
+  } else if (a.isReading || a.pages) {
+    const pages = a.pages ?? 5;
+    base = pages * student.readMinPerPage;
+    base *= student.readingMultiplier;
+    flags.push("reading");
+  } else if (a.problems) {
+    base = a.problems * student.problemsMin;
+    flags.push("problems");
+  } else {
+    base = 45; // default “unknown” task
+  }
+
+  base *= student.globalMultiplier;
+
+  // Bound but generous
+  const m = Math.max(15, Math.min(240, Math.round(base)));
+  if (flags.includes("reading") && m >= 60) flags.push("long-read");
+  if (flags.includes("writing") && m >= 60) flags.push("long-write");
+  return { minutes: m, flags };
+}
+
+// === Priority (urgency × impact × risk) ===
+function scorePriority(a: Assignment, todayISO: string, minutes: number): number {
+  const now = new Date(todayISO);
+  const due = new Date(a.dueAt);
+  const dtd = Math.max(0, Math.ceil((due.getTime() - now.getTime()) / 86400000));
+  const urgency = 1 / (1 + dtd);                         // closer due → higher
+  const sizeBias = Math.max(0.5, Math.min(1.3, minutes / 60));
+  const importance = 0.5 + 0.5 * (a.importance ?? 0.6);  // default a bit high
+  const risk = a.isExam ? 1.3 : a.isProject ? 1.15 : 1.0;
+  const lateness = due < now ? 1.6 : 1.0;
+  return 100 * urgency * importance * risk * sizeBias * lateness;
+}
+
+// === Main scheduler (no pre-chunking) ===
+export function scheduleAssignmentsSingleBlock(
+  assignments: Assignment[],
+  fixedEventsByDate: Record<string, FixedEvent[]>,
+  students: Record<string, StudentProfile>,
+  opts: SchedulerOptions,
+  todayISO: string,
+  planHorizonDays = 21
+): PlanResult {
+
+  // Build day frames (capacity derived from student profile per day)
+  const days: Record<string, DayPlan> = {};
+  for (let i = 0; i < planHorizonDays; i++) {
+    const dateKey = toDateKey(addDaysISO(todayISO, i));
+    days[dateKey] = { date: dateKey, totalMinutes: 0, perCourseMinutes: {}, blocks: [] };
+  }
+
+  // Compute per-assignment estimate & priority
+  const enriched = assignments.map(a => {
+    const student = students[a.studentId];
+    const { minutes, flags } = estimateMinutes(a, student);
+    const priority = scorePriority(a, todayISO, minutes);
+    return { a, minutes, flags, priority };
+  });
+
+  // Stable sort: priority desc, earlier due first, then shorter tasks
+  enriched.sort((x, y) => {
+    if (y.priority !== x.priority) return y.priority - x.priority;
+    const ad = new Date(x.a.dueAt).getTime(), bd = new Date(y.a.dueAt).getTime();
+    if (ad !== bd) return ad - bd;
+    if (x.minutes !== y.minutes) return x.minutes - y.minutes;
+    return (x.a.course + x.a.id).localeCompare(y.a.course + y.a.id);
+  });
+
+  const unscheduled: Assignment[] = [];
+  const prereqs = new Map<string, Set<string>>();
+  assignments.forEach(a => a.prereqIds?.length && prereqs.set(a.id, new Set(a.prereqIds)));
+  const placed = new Set<string>();
+
+  // Place each assignment as ONE block
+  for (const item of enriched) {
+    const { a, minutes, flags } = item;
+    const student = students[a.studentId];
+    // Hold until any prereq has at least one scheduled block
+    const need = prereqs.get(a.id);
+    if (need && Array.from(need).some(pid => !placed.has(pid))) {
+      unscheduled.push(a);
+      continue;
+    }
+
+    const targetDeadline = addDaysISO(a.dueAt, -opts.finishBufferDays);
+    let placedOk = false;
+
+    for (let i = 0; i < planHorizonDays; i++) {
+      const dateKey = toDateKey(addDaysISO(todayISO, i));
+      const dayISO = `${dateKey}T${opts.dayStart}:00.000Z`;
+
+      // stay before (due - buffer), unless already late
+      if (new Date(dayISO) > new Date(targetDeadline) && new Date(a.dueAt) >= new Date(todayISO)) break;
+
+      const dp = days[dateKey];
+      const dayCap = student.maxFocusMinutesPerDay;
+      const perCourseCap = student.maxPerCoursePerDay;
+
+      const nextTotal = dp.totalMinutes + minutes;
+      const nextPerCourse = (dp.perCourseMinutes[a.course] ?? 0) + minutes;
+      if (nextTotal > dayCap || nextPerCourse > perCourseCap) continue;
+
+      // Place block at the end of the day’s timeline
+      const start = new Date(`${dateKey}T${opts.dayStart}:00.000Z`);
+      const blockStart = new Date(start.getTime() + dp.totalMinutes * 60000);
+      const blockEnd = new Date(blockStart.getTime() + minutes * 60000);
+
+      const f = [...flags];
+      if (minutes > 90) f.push("likely-overtime"); // UI hint for EF pacing
+
+      dp.blocks.push({
+        assignmentId: a.id,
+        title: a.title,
+        startISO: blockStart.toISOString(),
+        endISO: blockEnd.toISOString(),
+        minutes,
+        flags: f
+      });
+      dp.totalMinutes = nextTotal;
+      dp.perCourseMinutes[a.course] = nextPerCourse;
+
+      placed.add(a.id);
+      placedOk = true;
+      break;
+    }
+
+    if (!placedOk) {
+      // fallback: try any day (even inside buffer) before due, else mark unscheduled
+      let fb = false;
+      for (let i = 0; i < planHorizonDays; i++) {
+        const dateKey = toDateKey(addDaysISO(todayISO, i));
+        const dp = days[dateKey];
+        const dayCap = students[a.studentId].maxFocusMinutesPerDay;
+        if (dp.totalMinutes + minutes <= dayCap) {
+          const start = new Date(`${dateKey}T${opts.dayStart}:00.000Z`);
+          const blockStart = new Date(start.getTime() + dp.totalMinutes * 60000);
+          const blockEnd = new Date(blockStart.getTime() + minutes * 60000);
+          dp.blocks.push({
+            assignmentId: a.id,
+            title: a.title,
+            startISO: blockStart.toISOString(),
+            endISO: blockEnd.toISOString(),
+            minutes,
+            flags: [...flags, "buffer-overrun"]
+          });
+          dp.totalMinutes += minutes;
+          dp.perCourseMinutes[a.course] = (dp.perCourseMinutes[a.course] ?? 0) + minutes;
+          placed.add(a.id);
+          fb = true;
+          break;
+        }
+      }
+      if (!fb) unscheduled.push(a);
+    }
+  }
+
+  return { days, unscheduled };
+}
+
+// === “Need More Time” flow (single follow-up block) ===
+// Called when a student worked X minutes but didn’t finish.
+export function registerNeedMoreTime(
+  a: Assignment,
+  minutesWorked: number,
+  students: Record<string, StudentProfile>,
+  todayISO: string
+): { continuationEstimateMinutes: number; flags: string[] } {
+  const student = students[a.studentId];
+
+  // Recompute baseline
+  const { minutes: baseline, flags } = estimateMinutes(a, student);
+
+  // If they worked less than baseline, assume remaining = baseline - worked, stretched.
+  // Stretch factor accounts for “the last 20% takes 50%” reality.
+  const remainingRaw = Math.max(10, baseline - minutesWorked);
+  const stretch = remainingRaw < 30 ? 1.6 : remainingRaw < 60 ? 1.35 : 1.2;
+  const continuation = Math.min(180, Math.round(remainingRaw * stretch));
+
+  return { continuationEstimateMinutes: continuation, flags: [...flags, "nmt"] };
+}
+
+What changed (and why)
+	•	Single block per assignment: no pre-chunking; simpler mental model and UI.
+	•	Student-specific estimates: conservative defaults for dyslexia and writing load; separate multipliers for reading vs. writing vs. global comprehension.
+	•	EF guardrails: personal daily caps and per-course caps; “likely-overtime” and “long-read/long-write” flags for UI pacing hints.
+	•	Prereqs: an assignment won’t schedule until its prerequisites have been placed.
+	•	NMT flow: when a student taps “Need More Time,” we compute a stretched remainder (to reflect fatigue/context reload) and schedule one continuation block next time—still one block at a time.
+
+Sensible default student profiles (edit to taste)
+
+const students: Record<string, StudentProfile> = {
+  abigail: {
+    id: "abigail", name: "Abigail",
+    readMinPerPage: 5.5,
+    problemsMin: 6.0,
+    writeMinPer100Words: 18,
+    globalMultiplier: 1.25,     // takes longer to internalize
+    readingMultiplier: 1.35,    // dyslexia emphasis
+    writingMultiplier: 1.6,     // writing very laborious
+    maxFocusMinutesPerDay: 150,
+    maxPerCoursePerDay: 75
+  },
+  khalil: {
+    id: "khalil", name: "Khalil",
+    readMinPerPage: 4.5,
+    problemsMin: 5.0,
+    writeMinPer100Words: 14,
+    globalMultiplier: 1.2,
+    readingMultiplier: 1.15,
+    writingMultiplier: 1.35,
+    maxFocusMinutesPerDay: 150,
+    maxPerCoursePerDay: 75
+  }
+};
+
+UI notes
+	•	Show Badges on blocks: “Long Read,” “Long Write,” “Likely Overtime,” and “Buffer Overrun.”
+	•	The NMT button: after completion attempt, call registerNeedMoreTime, then create a new assignment record like a.id + "-cont-1" with the returned estimate and same due window; schedule that single follow-up with the same algorithm.
+
+One question: do you want me to lock in those default profiles for Abigail and Khalil, or supply different rates for each?

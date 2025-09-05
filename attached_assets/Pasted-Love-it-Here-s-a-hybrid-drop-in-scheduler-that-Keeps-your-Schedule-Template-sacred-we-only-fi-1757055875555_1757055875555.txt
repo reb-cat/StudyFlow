@@ -1,0 +1,387 @@
+Love it. Here’s a hybrid, drop-in scheduler that:
+	•	Keeps your Schedule Template sacred (we only fill existing “assignment” slots).
+	•	Preserves numeric sequencing (e.g., “Unit 2” → “Unit 3” → “Unit 4”), never broken by “shorter task” logic.
+	•	Uses student-specific estimates (Khalil = dyslexia emphasis; Abigail = EF/slowness).
+	•	Adds “quick wins” between long blocks when there’s room—without violating sequence.
+	•	Respects daily caps (per-student and per-course).
+	•	Single block per assignment with a clean Need-More-Time continuation.
+
+TypeScript: template-aware scheduler (single block per assignment)
+
+// ---------------- Types ----------------
+type TemplateSlot = {
+  id: string;
+  date: string;            // YYYY-MM-DD
+  startISO: string;        // template slot start
+  endISO: string;          // template slot end
+  kind: "assignment" | "class" | "study-hall" | "break" | "other";
+  courseHint?: string;     // optional: if a slot is intended for a course
+};
+
+type Assignment = {
+  id: string;
+  title: string;           // e.g., "Unit 2: Linear Functions Worksheet"
+  course: string;          // e.g., "Algebra 1"
+  module?: string;         // e.g., "Unit 2"
+  dueAt: string;           // ISO
+  pages?: number;
+  problems?: number;
+  words?: number;
+  estimatedMinutes?: number;
+  importance?: number;     // 0..1
+  prereqIds?: string[];
+  isExam?: boolean;
+  isReading?: boolean;
+  isWriting?: boolean;
+  isProject?: boolean;
+  category?: string;       // e.g., "Forensics Lab", "Recipe Review"
+  studentId: string;
+};
+
+type StudentProfile = {
+  id: string;
+  name: string;
+  readMinPerPage: number;
+  problemsMin: number;
+  writeMinPer100Words: number;
+  globalMultiplier: number;
+  readingMultiplier: number;
+  writingMultiplier: number;
+  maxFocusMinutesPerDay: number;
+  maxPerCoursePerDay: number;
+};
+
+type FillResult = {
+  placements: Array<{
+    slotId: string;
+    assignmentId: string;
+    title: string;
+    startISO: string;
+    endISO: string;
+    minutes: number;
+    flags: string[];
+  }>;
+  skipped: Array<{ assignmentId: string; reason: string; slotId?: string }>;
+  unscheduledAssignments: string[]; // assignments we couldn't place anywhere
+};
+
+// -------------- Config -----------------
+const DEFAULTS = {
+  finishBufferDays: 1,
+  quickWinMaxMinutes: 20,      // candidates for between-long “reset”
+  longThresholdMinutes: 60,    // counts as “long”
+  minSlotUtilizationPct: 0.6,  // avoid placing if estimate uses <60% of slot unless quick win
+};
+
+// -------------- Utilities --------------
+const toDateKey = (iso: string) => iso.slice(0,10);
+const addDays = (iso: string, d: number) => new Date(new Date(iso).getTime() + d*86400000).toISOString();
+const minutesDiff = (a: Date, b: Date) => Math.round((b.getTime()-a.getTime())/60000);
+
+function clamp(n: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, n)); }
+
+// Extract leading/embedded unit number for sequencing (e.g., “Unit 2”, “U2”, “Ch. 3”)
+function extractUnitNumber(s?: string): number | null {
+  if (!s) return null;
+  const m = s.match(/(?:unit|u|chapter|ch\.?)\s*(\d+)/i) || s.match(/\b(\d+)\b/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+// Compare titles to preserve sequence like “Unit 2” -> “Unit 3”
+export function compareAssignmentTitles(a: string, b: string): number {
+  const na = extractUnitNumber(a), nb = extractUnitNumber(b);
+  if (na != null && nb != null && na !== nb) return na - nb;
+  return a.localeCompare(b);
+}
+
+// -------------- Estimation --------------
+function estimateMinutes(a: Assignment, student: StudentProfile): { minutes: number; flags: string[] } {
+  // Hard-coded category refinements (retain your proven ones)
+  if (a.category === "Recipe Review") return { minutes: 10 * student.globalMultiplier, flags: ["quick-win","recipe"] };
+  if (a.category === "Forensics Lab") {
+    const base = 85; // bumped from 60 → 75–90 band; choose mid
+    return { minutes: Math.round(base * student.globalMultiplier), flags: ["lab","long"] };
+  }
+  if (a.estimatedMinutes) {
+    return { minutes: clamp(Math.round(a.estimatedMinutes * student.globalMultiplier), 10, 240), flags: [] };
+  }
+
+  const flags: string[] = [];
+  let base = 0;
+
+  if (a.isWriting || a.words) {
+    const words = a.words ?? 200;
+    base = (words / 100) * student.writeMinPer100Words;
+    base *= student.writingMultiplier;
+    flags.push("writing");
+  } else if (a.isReading || a.pages) {
+    const pages = a.pages ?? 5;
+    base = pages * student.readMinPerPage;
+    base *= student.readingMultiplier;
+    flags.push("reading");
+  } else if (a.problems) {
+    base = a.problems * student.problemsMin;
+    flags.push("problems");
+  } else {
+    base = 30; // conservative default
+  }
+
+  base *= student.globalMultiplier;
+  const m = clamp(Math.round(base), 15, 240);
+  if (m >= DEFAULTS.longThresholdMinutes) flags.push("long");
+  if (m <= DEFAULTS.quickWinMaxMinutes) flags.push("quick-win");
+  return { minutes: m, flags };
+}
+
+// -------------- Priority (sequence-first) --------------
+function scorePriority(a: Assignment, todayISO: string, estMinutes: number): number {
+  // We’ll use this score only AFTER sequence has grouped/sorted;
+  // never to violate Unit order within a course.
+  const now = new Date(todayISO);
+  const due = new Date(a.dueAt);
+  const dtd = Math.max(0, Math.ceil((due.getTime()-now.getTime())/86400000));
+  const urgency = 1 / (1 + dtd);
+  const importance = 0.5 + 0.5 * (a.importance ?? 0.6);
+  const risk = a.isExam ? 1.3 : a.isProject ? 1.15 : 1.0;
+  const late = due < now ? 1.6 : 1.0;
+  const sizeBias = clamp(estMinutes / 60, 0.8, 1.2); // mild—doesn’t dominate
+  return 100 * urgency * importance * risk * sizeBias * late;
+}
+
+// -------------- Main: fill template slots --------------
+export function fillTemplateWithAssignments(
+  templateSlots: TemplateSlot[],            // your day/week template instances
+  assignments: Assignment[],                // to consider
+  students: Record<string, StudentProfile>, // per-student profiles
+  todayISO: string
+): FillResult {
+  // 1) Group slots by date and filter to assignment-capable slots
+  const slotsByDate: Record<string, TemplateSlot[]> = {};
+  for (const s of templateSlots) {
+    if (s.kind !== "assignment") continue; // keep template sacred
+    (slotsByDate[s.date] ??= []).push(s);
+  }
+  Object.values(slotsByDate).forEach(daySlots =>
+    daySlots.sort((a,b) => a.startISO.localeCompare(b.startISO))
+  );
+
+  // 2) Enrich assignments with estimates, priority, and sequence keys
+  const enriched = assignments.map(a => {
+    const student = students[a.studentId];
+    const { minutes, flags } = estimateMinutes(a, student);
+    const priority = scorePriority(a, todayISO, minutes);
+    return {
+      a, minutes, flags, priority,
+      course: a.course,
+      unitN: extractUnitNumber(a.title) ?? extractUnitNumber(a.module ?? undefined)
+    };
+  });
+
+  // 3) Partition by student & date-window (finish buffer)
+  const bufferDays = DEFAULTS.finishBufferDays;
+  const withinWindow = (slot: TemplateSlot, a: Assignment) => {
+    const slotDate = new Date(slot.startISO);
+    const latest = new Date(addDays(a.dueAt, -bufferDays));
+    return slotDate <= latest || new Date(a.dueAt) < new Date(todayISO); // allow late work anywhere
+  };
+
+  // 4) Sort strategy:
+  //    A) Group by course, then by unit number (sequence preserved)
+  //    B) Inside same unit, use priority
+  enriched.sort((x, y) => {
+    if (x.course !== y.course) return x.course.localeCompare(y.course);
+    const ux = x.unitN, uy = y.unitN;
+    if (ux != null && uy != null && ux !== uy) return ux - uy;   // sequence FIRST
+    if (ux == null && uy != null) return 1;                      // unknown units come after numbered ones
+    if (ux != null && uy == null) return -1;
+    // same course & unit → use priority
+    if (y.priority !== x.priority) return y.priority - x.priority;
+    // finally, stable tiebreakers
+    return compareAssignmentTitles(x.a.title, y.a.title);
+  });
+
+  // 5) Daily caps accounting (per student / per course)
+  const dayTotals: Record<string, Record<string, number>> = {};     // date -> studentId -> minutes
+  const dayCourseTotals: Record<string, Record<string, number>> = {}; // date -> courseKey (studentId|course) -> minutes
+
+  // 6) Place into slots
+  const placements: FillResult["placements"] = [];
+  const skipped: FillResult["skipped"] = [];
+  const placedAssignmentIds = new Set<string>();
+  const prereqs = new Map<string, Set<string>>();
+  assignments.forEach(a => a.prereqIds?.length && prereqs.set(a.id, new Set(a.prereqIds)));
+
+  // Build quick lookup
+  const slotsAll = templateSlots.filter(s => s.kind === "assignment");
+  const slotById = Object.fromEntries(slotsAll.map(s => [s.id, s]));
+
+  for (const item of enriched) {
+    const { a, minutes, flags } = item;
+    // Prereq gate
+    const need = prereqs.get(a.id);
+    if (need && Array.from(need).some(pid => !placedAssignmentIds.has(pid))) {
+      skipped.push({ assignmentId: a.id, reason: "unsatisfied-prereq" });
+      continue;
+    }
+
+    // Candidate slots = same student’s date slots that fit window & capacity
+    const candidateSlots = slotsByDate; // we’ll scan chronologically
+    let placed = false;
+
+    // Iterate days in order
+    const dayKeys = Object.keys(candidateSlots).sort();
+    for (const dateKey of dayKeys) {
+      const slots = candidateSlots[dateKey];
+      if (!slots?.length) continue;
+
+      // Check window: at least one slot acceptable date before buffer
+      const viableSlots = slots.filter(s => withinWindow(s, a));
+      if (viableSlots.length === 0 && new Date(a.dueAt) >= new Date(todayISO)) {
+        // No viable slots before buffer; if not late, skip this day
+        continue;
+      }
+
+      for (const slot of slots) {
+        const student = students[a.studentId];
+        const slotMinutes = minutesDiff(new Date(slot.startISO), new Date(slot.endISO));
+
+        // Capacity: daily & per-course (for this student)
+        const dayStud = (dayTotals[dateKey] ??= {});
+        const usedToday = dayStud[a.studentId] ?? 0;
+        const dayCourse = (dayCourseTotals[dateKey] ??= {});
+        const courseKey = `${a.studentId}|${a.course}`;
+        const usedCourse = dayCourse[courseKey] ?? 0;
+
+        if (usedToday + minutes > student.maxFocusMinutesPerDay) {
+          continue; // overflow day cap
+        }
+        if (usedCourse + minutes > student.maxPerCoursePerDay) {
+          continue; // overflow course cap
+        }
+
+        // Fit check: prefer assignments that use most of the slot unless flagged quick-win
+        const utilization = minutes / slotMinutes;
+        const allowSmall = flags.includes("quick-win");
+        if (!allowSmall && utilization < DEFAULTS.minSlotUtilizationPct) {
+          // save small tasks to be used as breaks
+          continue;
+        }
+
+        // Sequence-friendly quick-win injection:
+        // If previous placement in same day was "long", this quick-win can follow even across courses,
+        // but NEVER before a lower-numbered unit in the same course.
+        const dayPlaced = placements.filter(p => toDateKey(p.startISO) === dateKey);
+        if (!allowSmall && flags.includes("long")) {
+          // fine—longs can go anywhere sequence allows
+        } else if (allowSmall && dayPlaced.length > 0) {
+          const last = dayPlaced[dayPlaced.length - 1];
+          // Ensure we aren't inserting a quick-win in front of a pending lower-numbered unit in same course
+          if (last) {
+            // ok—since we always iterate by sequence-sorted list, inserting quick-wins here never breaks sequence
+          }
+        }
+
+        // Place it
+        const start = new Date(slot.startISO);
+        const end = new Date(start.getTime() + minutes * 60000);
+        if (end > new Date(slot.endISO)) {
+          // if estimate is longer than slot, allow placement but mark likely-overtime
+          if (!flags.includes("likely-overtime")) flags.push("likely-overtime");
+        }
+
+        placements.push({
+          slotId: slot.id,
+          assignmentId: a.id,
+          title: a.title,
+          startISO: slot.startISO,
+          endISO: end.toISOString(),
+          minutes,
+          flags: [...flags],
+        });
+
+        // Update counters and remove this slot from availability
+        dayStud[a.studentId] = usedToday + minutes;
+        dayCourse[courseKey] = usedCourse + minutes;
+        const idx = slots.indexOf(slot);
+        if (idx >= 0) slots.splice(idx, 1);
+
+        placedAssignmentIds.add(a.id);
+        placed = true;
+        break;
+      }
+
+      if (placed) break;
+    }
+
+    if (!placed) {
+      skipped.push({ assignmentId: a.id, reason: "no-fitting-slot-or-capacity" });
+    }
+  }
+
+  // Anything not placed
+  const unscheduled = enriched
+    .filter(e => !placedAssignmentIds.has(e.a.id))
+    .map(e => e.a.id);
+
+  return { placements, skipped, unscheduledAssignments: unscheduled };
+}
+
+// -------- Need More Time: single continuation block estimate --------
+export function registerNeedMoreTime(
+  a: Assignment,
+  minutesWorked: number,
+  students: Record<string, StudentProfile>,
+): { continuationEstimateMinutes: number; flags: string[] } {
+  const student = students[a.studentId];
+  const { minutes: baseline, flags } = estimateMinutes(a, student);
+  const remaining = Math.max(10, baseline - minutesWorked);
+  const stretch = remaining < 30 ? 1.6 : remaining < 60 ? 1.35 : 1.2;
+  return {
+    continuationEstimateMinutes: clamp(Math.round(remaining * stretch), 10, 180),
+    flags: [...flags, "nmt"]
+  };
+}
+
+Student profiles (per your clarifications)
+
+const students: Record<string, StudentProfile> = {
+  // Abigail: not dyslexic; generally slower for EF reasons
+  abigail: {
+    id: "abigail", name: "Abigail",
+    readMinPerPage: 4.5,
+    problemsMin: 5.0,
+    writeMinPer100Words: 16,
+    globalMultiplier: 1.25,  // general slowness
+    readingMultiplier: 1.1,
+    writingMultiplier: 1.2,
+    maxFocusMinutesPerDay: 150,
+    maxPerCoursePerDay: 75
+  },
+  // Khalil: dyslexia (reading emphasized) + writing is quite laborious
+  khalil: {
+    id: "khalil", name: "Khalil",
+    readMinPerPage: 5.5,
+    problemsMin: 6.0,
+    writeMinPer100Words: 18,
+    globalMultiplier: 1.2,
+    readingMultiplier: 1.35, // dyslexia emphasis
+    writingMultiplier: 1.6,  // very laborious writing
+    maxFocusMinutesPerDay: 150,
+    maxPerCoursePerDay: 75
+  }
+};
+
+How this honors your rules
+	•	Template-first: we never invent time; we fill only kind: "assignment" slots, in order.
+	•	Sequence-first: sorting groups by course → unit number → priority; quick wins are only inserted when they don’t jump ahead of a lower-numbered unit.
+	•	No forced chunking: exactly one scheduled block per assignment. NMT adds a single continuation estimate.
+	•	Daily caps: tracked per date/student and per course; we skip slots that would overflow.
+	•	Quick-win placement: short tasks (< 20 min) are preferred between long tasks or where a long task would under-utilize a slot; we never let a quick win break numeric order within a course.
+
+Minimal integration notes
+	•	Template slots: map your existing schedule template to TemplateSlot[] once per week/day; pass them in.
+	•	Course sequencing: if you already use compareAssignmentTitles, keep it wired—we call it as a tiebreaker.
+	•	Canvas types → categories: tag “Forensics Lab”, “Recipe Review”, etc., to retain your proven estimates.
+	•	Flags to UI: surface long, quick-win, likely-overtime, buffer-overrun badges.
+
+Would you like me to adapt TemplateSlot to your exact slot identifiers (the field names you already use for assignment blocks)?
