@@ -1388,7 +1388,14 @@ export class DatabaseStorage implements IStorage {
   async getAssignmentsByStudentAndDate(studentName: string, date: string): Promise<Assignment[]> {
     try {
       const userId = `${studentName.toLowerCase()}-user`;
-      return await this.getAssignments(userId, date);
+      // CRITICAL: Get only assignments scheduled for THIS SPECIFIC DATE
+      const result = await db.select()
+        .from(assignments)
+        .where(and(
+          eq(assignments.userId, userId),
+          eq(assignments.scheduledDate, date)
+        ));
+      return result || [];
     } catch (error) {
       console.error('Error getting assignments by student and date:', error);
       return [];
