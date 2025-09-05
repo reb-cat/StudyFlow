@@ -903,8 +903,9 @@ export default function AssignmentsPage() {
                           Edit
                         </Button>
                         <Button
-                          variant="destructive"
+                          variant="outline"
                           size="sm"
+                          className="border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-white dark:border-violet-300 dark:text-violet-300 dark:hover:bg-violet-500"
                           onClick={() => {
                             if (confirm(`Are you sure you want to delete "${assignment.title}"?`)) {
                               deleteAssignmentMutation.mutate(assignment.id);
