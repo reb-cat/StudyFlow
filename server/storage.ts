@@ -241,20 +241,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Helper method to determine smart time estimates based on assignment type
-  private getSmartTimeEstimate(title: string): number {
+  private getSmartTimeEstimate(title: string, studentName?: string): number {
     const lowerTitle = title.toLowerCase();
     
-    // Forensics labs need substantial time - 60 minutes
-    if (lowerTitle.includes('forensics lab') || lowerTitle.includes('forensic lab')) {
-      return 60;
+    // Get base category estimate first
+    let baseMinutes = this.getCategoryTimeEstimate(lowerTitle);
+    
+    // Apply student-specific multipliers if student is provided
+    if (studentName) {
+      baseMinutes = this.applyStudentMultipliers(baseMinutes, lowerTitle, studentName);
     }
     
-    // Recipe reviews are quick - 10 minutes max
+    return Math.round(baseMinutes);
+  }
+
+  // Category-specific base time estimates (proven from current system)
+  private getCategoryTimeEstimate(lowerTitle: string): number {
+    // Forensics labs - bumped from 60 to 85 minutes (user feedback)
+    if (lowerTitle.includes('forensics lab') || lowerTitle.includes('forensic lab')) {
+      return 85;
+    }
+    
+    // Recipe reviews are quick - 10 minutes (proven)
     if (lowerTitle.includes('review recipe') || lowerTitle.includes('recipe review')) {
       return 10;
     }
     
-    // Other quick tasks
+    // Enhanced assignment type detection
     if (lowerTitle.includes('quiz') && !lowerTitle.includes('practice')) {
       return 15;
     }
@@ -263,8 +276,115 @@ export class DatabaseStorage implements IStorage {
       return 20;
     }
     
+    // Reading assignments - estimate by content type
+    if (this.isReadingAssignment(lowerTitle)) {
+      const estimatedPages = this.estimatePages(lowerTitle);
+      return estimatedPages * 4; // Base: 4 min/page
+    }
+    
+    // Writing assignments - estimate by word count/type
+    if (this.isWritingAssignment(lowerTitle)) {
+      const estimatedWords = this.estimateWords(lowerTitle);
+      return (estimatedWords / 100) * 14; // Base: 14 min/100 words
+    }
+    
+    // Math/problem assignments
+    if (this.isMathAssignment(lowerTitle)) {
+      const estimatedProblems = this.estimateProblems(lowerTitle);
+      return estimatedProblems * 5; // Base: 5 min/problem
+    }
+    
     // Default for everything else
     return 30;
+  }
+
+  // Apply student-specific learning multipliers
+  private applyStudentMultipliers(baseMinutes: number, lowerTitle: string, studentName: string): number {
+    const studentKey = studentName.toLowerCase();
+    
+    // Student profiles based on user guidance:
+    // - Khalil: Dyslexia (reading 1.35x), writing challenges
+    // - Abigail: EF slowness (global 1.25x), not dyslexia
+    
+    let multiplier = 1.0;
+    
+    if (studentKey === 'khalil') {
+      // Khalil has dyslexia - stronger reading impact, general learning challenges
+      multiplier = 1.2; // Global base
+      
+      if (this.isReadingAssignment(lowerTitle)) {
+        multiplier = 1.35; // Dyslexia reading multiplier
+      } else if (this.isWritingAssignment(lowerTitle)) {
+        multiplier = 1.35; // Writing also challenging
+      }
+      
+    } else if (studentKey === 'abigail') {
+      // Abigail has EF challenges - general slowness but not dyslexia
+      multiplier = 1.25; // EF global multiplier
+      
+      if (this.isWritingAssignment(lowerTitle)) {
+        multiplier = 1.4; // Writing particularly challenging for EF
+      }
+    }
+    
+    return baseMinutes * multiplier;
+  }
+
+  // Assignment type detection helpers
+  private isReadingAssignment(lowerTitle: string): boolean {
+    const readingPatterns = [
+      'read chapter', 'reading assignment', 'textbook reading', 'article reading',
+      'study guide', 'reading', 'chapter', 'pages'
+    ];
+    return readingPatterns.some(pattern => lowerTitle.includes(pattern));
+  }
+
+  private isWritingAssignment(lowerTitle: string): boolean {
+    const writingPatterns = [
+      'essay', 'writing prompt', 'journal entry', 'written assignment',
+      'composition', 'report', 'paper', 'write'
+    ];
+    return writingPatterns.some(pattern => lowerTitle.includes(pattern));
+  }
+
+  private isMathAssignment(lowerTitle: string): boolean {
+    const mathPatterns = [
+      'math problems', 'practice problems', 'solve equations', 'calculations',
+      'word problems', 'homework', 'worksheet'
+    ];
+    return mathPatterns.some(pattern => lowerTitle.includes(pattern));
+  }
+
+  // Smart content estimation
+  private estimatePages(lowerTitle: string): number {
+    // Look for explicit page mentions
+    const pageMatch = lowerTitle.match(/(\d+)\s*pages?/);
+    if (pageMatch) return parseInt(pageMatch[1]);
+    
+    const chapterMatch = lowerTitle.match(/chapter\s*(\d+)/);
+    if (chapterMatch) return 12; // Average chapter length
+    
+    return 5; // Conservative default
+  }
+
+  private estimateWords(lowerTitle: string): number {
+    if (lowerTitle.includes('essay') || lowerTitle.includes('report')) {
+      return 300; // Standard essay
+    }
+    if (lowerTitle.includes('journal')) {
+      return 150; // Journal entry
+    }
+    return 200; // Default writing task
+  }
+
+  private estimateProblems(lowerTitle: string): number {
+    const problemMatch = lowerTitle.match(/(\d+)\s*problems?/);
+    if (problemMatch) return parseInt(problemMatch[1]);
+    
+    if (lowerTitle.includes('worksheet')) return 15;
+    if (lowerTitle.includes('homework')) return 10;
+    
+    return 8; // Default problem set
   }
 
   async createAssignment(data: InsertAssignment & { userId: string }): Promise<Assignment> {
@@ -292,7 +412,7 @@ export class DatabaseStorage implements IStorage {
         scheduledBlock: data.scheduledBlock || null,
         blockStart: data.blockStart || null,
         blockEnd: data.blockEnd || null,
-        actualEstimatedMinutes: data.actualEstimatedMinutes || this.getSmartTimeEstimate(data.title),
+        actualEstimatedMinutes: data.actualEstimatedMinutes || this.getSmartTimeEstimate(data.title, data.userId),
         completionStatus: data.completionStatus || 'pending',
         blockType: data.blockType || 'assignment',
         isAssignmentBlock: data.isAssignmentBlock !== undefined ? data.isAssignmentBlock : true,

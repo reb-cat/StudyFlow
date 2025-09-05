@@ -3,6 +3,597 @@
  * Handles smart text parsing and categorization of assignments
  */
 
+// SEQUENCE SORTING UTILITIES - Export for use across the system
+// Extract leading/embedded unit number for sequencing (e.g., "Unit 2", "U2", "Ch. 3")
+export function extractUnitNumber(title?: string): number | null {
+  if (!title) return null;
+  const match = title.match(/(?:unit|u|chapter|ch\.?|module|mod\.?|lesson|section)\s*(\d+)/i) || title.match(/\b(\d+)\b/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+// Extract all numbers from assignment titles for comprehensive sequencing
+export function extractSequenceNumbers(title: string): number[] {
+  // Match patterns like "Unit 2", "Module 3", "Chapter 1", "Page 5", etc.
+  const patterns = [
+    /(?:unit|module|chapter|lesson|section|part|page|step|week|day)\s*(\d+)/gi,
+    /(\d+)\s*(?:unit|module|chapter|lesson|section|part|page|step|week|day)/gi,
+    /(\d+)/g // Fall back to any numbers
+  ];
+  
+  for (const pattern of patterns) {
+    const matches = [...title.matchAll(pattern)];
+    if (matches.length > 0) {
+      return matches.map(match => parseInt(match[1], 10)).filter(n => !isNaN(n));
+    }
+  }
+  
+  return [];
+}
+
+// Smart title comparison that handles numerical sequences - PRESERVES Unit 2 → Unit 3 order
+export function compareAssignmentTitles(titleA: string, titleB: string): number {
+  const numbersA = extractSequenceNumbers(titleA);
+  const numbersB = extractSequenceNumbers(titleB);
+  
+  // If both have numbers, compare numerically (Unit 2 before Unit 3)
+  if (numbersA.length > 0 && numbersB.length > 0) {
+    // Compare each number in sequence
+    const maxLength = Math.max(numbersA.length, numbersB.length);
+    for (let i = 0; i < maxLength; i++) {
+      const numA = numbersA[i] || 0;
+      const numB = numbersB[i] || 0;
+      if (numA !== numB) {
+        return numA - numB;
+      }
+    }
+  }
+  
+  // Fall back to alphabetical comparison
+  return titleA.localeCompare(titleB);
+}
+
+// CAPACITY TRACKING - Daily and per-course limits for EF support
+export interface StudentCapacityProfile {
+  studentName: string;
+  maxFocusMinutesPerDay: number;      // Total daily capacity (e.g., 150 min = 2.5 hours)
+  maxPerCoursePerDay: number;         // Per-subject daily limit (e.g., 75 min = 1.25 hours)
+  preferredWorkloadDistribution: 'even' | 'front-loaded' | 'light-end'; // How to distribute across week
+}
+
+export interface DailyCapacityUsage {
+  date: string; // YYYY-MM-DD
+  studentName: string;
+  totalMinutesUsed: number;
+  courseMinutes: Record<string, number>; // course -> minutes used
+  assignmentCount: number;
+  canAddMore: boolean;
+}
+
+// Default student capacity profiles based on user guidance
+export function getStudentCapacityProfile(studentName: string): StudentCapacityProfile {
+  const student = studentName.toLowerCase();
+  
+  if (student === 'khalil') {
+    return {
+      studentName: 'khalil',
+      maxFocusMinutesPerDay: 150,        // 2.5 hours max with dyslexia considerations
+      maxPerCoursePerDay: 75,            // 1.25 hours per subject max
+      preferredWorkloadDistribution: 'even'
+    };
+  } else if (student === 'abigail') {
+    return {
+      studentName: 'abigail', 
+      maxFocusMinutesPerDay: 150,        // 2.5 hours max with EF considerations
+      maxPerCoursePerDay: 75,            // 1.25 hours per subject max
+      preferredWorkloadDistribution: 'even'
+    };
+  }
+  
+  // Default for other students
+  return {
+    studentName: studentName,
+    maxFocusMinutesPerDay: 180,         // 3 hours default
+    maxPerCoursePerDay: 90,             // 1.5 hours per subject
+    preferredWorkloadDistribution: 'even'
+  };
+}
+
+// Calculate current capacity usage for a day
+export async function calculateDailyCapacityUsage(
+  studentName: string, 
+  date: string, 
+  storage: any
+): Promise<DailyCapacityUsage> {
+  // Get all scheduled assignments for this student on this date
+  const assignments = await storage.getAssignmentsByStudentAndDate(studentName, date);
+  
+  let totalMinutesUsed = 0;
+  const courseMinutes: Record<string, number> = {};
+  let assignmentCount = 0;
+  
+  for (const assignment of assignments) {
+    if (assignment.completionStatus !== 'completed') {
+      const minutes = assignment.actualEstimatedMinutes || 30;
+      totalMinutesUsed += minutes;
+      assignmentCount++;
+      
+      const course = assignment.courseName || assignment.subject || 'Other';
+      courseMinutes[course] = (courseMinutes[course] || 0) + minutes;
+    }
+  }
+  
+  const profile = getStudentCapacityProfile(studentName);
+  const canAddMore = totalMinutesUsed < profile.maxFocusMinutesPerDay;
+  
+  return {
+    date,
+    studentName,
+    totalMinutesUsed,
+    courseMinutes,
+    assignmentCount,
+    canAddMore
+  };
+}
+
+// Check if a new assignment can be added to a day without exceeding capacity
+export function canAddAssignmentToDay(
+  currentUsage: DailyCapacityUsage,
+  newAssignmentMinutes: number,
+  newAssignmentCourse: string
+): { canAdd: boolean; reason: string } {
+  const profile = getStudentCapacityProfile(currentUsage.studentName);
+  
+  // Check total daily capacity
+  if (currentUsage.totalMinutesUsed + newAssignmentMinutes > profile.maxFocusMinutesPerDay) {
+    const remaining = profile.maxFocusMinutesPerDay - currentUsage.totalMinutesUsed;
+    return {
+      canAdd: false,
+      reason: `Daily capacity exceeded. Only ${remaining} minutes remaining (${newAssignmentMinutes} needed)`
+    };
+  }
+  
+  // Check per-course capacity
+  const currentCourseMinutes = currentUsage.courseMinutes[newAssignmentCourse] || 0;
+  if (currentCourseMinutes + newAssignmentMinutes > profile.maxPerCoursePerDay) {
+    const remaining = profile.maxPerCoursePerDay - currentCourseMinutes;
+    return {
+      canAdd: false,
+      reason: `Course capacity exceeded for ${newAssignmentCourse}. Only ${remaining} minutes remaining`
+    };
+  }
+  
+  return {
+    canAdd: true,
+    reason: 'Within capacity limits'
+  };
+}
+
+// HYBRID TEMPLATE-AWARE SCHEDULER - Builds ON the sacred schedule template
+export interface ScheduleBlockSlot {
+  studentName: string;
+  weekday: string;
+  blockNumber: number;
+  blockType: string;
+  startTime: string;
+  endTime: string;
+  availableMinutes: number;  // Total capacity of this block
+  usedMinutes: number;       // Currently assigned minutes
+  remainingMinutes: number;  // Available for new assignments
+  assignments: any[];        // Currently assigned assignments
+}
+
+export interface HybridSchedulingRequest {
+  studentName: string;
+  targetWeek: string;       // YYYY-MM-DD format for Monday of week
+  assignments: any[];       // Unscheduled assignments to place
+  preserveExisting: boolean; // Keep existing scheduled assignments
+}
+
+export interface HybridSchedulingResult {
+  success: boolean;
+  scheduledAssignments: any[];
+  unscheduledAssignments: any[];
+  weeklySchedule: Record<string, ScheduleBlockSlot[]>; // weekday -> slots
+  warnings: string[];
+}
+
+// Get available Assignment and Study Hall blocks from schedule template
+export async function getAvailableScheduleSlots(
+  studentName: string,
+  weekday: string,
+  storage: any
+): Promise<ScheduleBlockSlot[]> {
+  // Get schedule template blocks for this student/day that can accept assignments
+  const templateBlocks = await storage.getScheduleTemplate(studentName, weekday);
+  
+  const availableSlots: ScheduleBlockSlot[] = [];
+  
+  for (const block of templateBlocks) {
+    // Only Assignment and Study Hall blocks can receive assignments
+    if (block.blockType === 'Assignment' || block.blockType === 'Study Hall') {
+      // Calculate block duration in minutes
+      const startTime = new Date(`2000-01-01T${block.startTime}`);
+      const endTime = new Date(`2000-01-01T${block.endTime}`);
+      const durationMs = endTime.getTime() - startTime.getTime();
+      const availableMinutes = Math.floor(durationMs / (1000 * 60));
+      
+      // Get currently assigned assignments for this block
+      const assignedAssignments = await storage.getAssignmentsByBlock(
+        studentName, weekday, block.blockNumber
+      );
+      
+      // Calculate used minutes
+      const usedMinutes = assignedAssignments.reduce((total, assignment) => {
+        return total + (assignment.actualEstimatedMinutes || 30);
+      }, 0);
+      
+      availableSlots.push({
+        studentName,
+        weekday,
+        blockNumber: block.blockNumber,
+        blockType: block.blockType,
+        startTime: block.startTime,
+        endTime: block.endTime,
+        availableMinutes,
+        usedMinutes,
+        remainingMinutes: Math.max(0, availableMinutes - usedMinutes),
+        assignments: assignedAssignments
+      });
+    }
+  }
+  
+  return availableSlots;
+}
+
+// Hybrid scheduler that respects template structure + adds intelligent assignment placement
+export async function hybridScheduleAssignments(
+  request: HybridSchedulingRequest,
+  storage: any
+): Promise<HybridSchedulingResult> {
+  const result: HybridSchedulingResult = {
+    success: false,
+    scheduledAssignments: [],
+    unscheduledAssignments: [...request.assignments],
+    weeklySchedule: {},
+    warnings: []
+  };
+  
+  const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  
+  try {
+    // Step 1: Get all available slots for the week
+    for (const weekday of weekdays) {
+      const slots = await getAvailableScheduleSlots(request.studentName, weekday, storage);
+      result.weeklySchedule[weekday] = slots;
+    }
+    
+    // Step 2: Sort assignments by priority (overdue first, then sequence, then due date)
+    const sortedAssignments = [...request.assignments].sort((a, b) => {
+      // Priority A (overdue) first
+      if (a.priority === 'A' && b.priority !== 'A') return -1;
+      if (b.priority === 'A' && a.priority !== 'A') return 1;
+      
+      // Within same priority, use sequence sorting to preserve Unit 2 → Unit 3
+      if (a.priority === b.priority) {
+        return compareAssignmentTitles(a.title, b.title);
+      }
+      
+      // Fall back to due date
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      
+      return 0;
+    });
+    
+    // Step 3: Place assignments strategically
+    for (const assignment of sortedAssignments) {
+      const placed = await placeAssignmentInOptimalSlot(
+        assignment, 
+        result.weeklySchedule, 
+        request.studentName,
+        storage
+      );
+      
+      if (placed.success) {
+        result.scheduledAssignments.push({
+          ...assignment,
+          scheduledDate: placed.scheduledDate,
+          scheduledBlock: placed.scheduledBlock,
+          blockStart: placed.blockStart,
+          blockEnd: placed.blockEnd
+        });
+        
+        // Remove from unscheduled list
+        const index = result.unscheduledAssignments.findIndex(a => a.id === assignment.id);
+        if (index >= 0) {
+          result.unscheduledAssignments.splice(index, 1);
+        }
+      } else {
+        result.warnings.push(`Could not schedule "${assignment.title}": ${placed.reason}`);
+      }
+    }
+    
+    result.success = result.scheduledAssignments.length > 0;
+    
+  } catch (error) {
+    result.warnings.push(`Scheduling error: ${error.message}`);
+  }
+  
+  return result;
+}
+
+// Find optimal slot for assignment considering capacity, sequence, and quick wins
+async function placeAssignmentInOptimalSlot(
+  assignment: any,
+  weeklySchedule: Record<string, ScheduleBlockSlot[]>,
+  studentName: string,
+  storage: any
+): Promise<{ success: boolean; scheduledDate?: string; scheduledBlock?: number; blockStart?: string; blockEnd?: string; reason: string }> {
+  
+  const assignmentMinutes = assignment.actualEstimatedMinutes || 30;
+  const course = assignment.courseName || assignment.subject || 'Other';
+  
+  // Generate candidate slots (earliest days first, but consider quick wins)
+  const candidates: Array<{
+    weekday: string;
+    slot: ScheduleBlockSlot;
+    date: string;
+    priority: number;
+  }> = [];
+  
+  const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  
+  for (const weekday of weekdays) {
+    const slots = weeklySchedule[weekday] || [];
+    const date = getDateForWeekday(weekday); // Helper function needed
+    
+    for (const slot of slots) {
+      if (slot.remainingMinutes >= assignmentMinutes) {
+        // Check capacity constraints
+        const dailyUsage = await calculateDailyCapacityUsage(studentName, date, storage);
+        const capacityCheck = canAddAssignmentToDay(dailyUsage, assignmentMinutes, course);
+        
+        if (capacityCheck.canAdd) {
+          let priority = 0;
+          
+          // Prefer earlier in week
+          priority += weekdays.indexOf(weekday) * 10;
+          
+          // Quick wins (< 20 min) can be placed strategically between longer tasks
+          if (assignmentMinutes < 20) {
+            priority -= 5; // Boost quick wins
+          }
+          
+          // Prefer Study Hall over Assignment blocks for flexibility
+          if (slot.blockType === 'Study Hall') {
+            priority -= 2;
+          }
+          
+          candidates.push({
+            weekday,
+            slot,
+            date,
+            priority
+          });
+        }
+      }
+    }
+  }
+  
+  // Sort by priority (lower is better)
+  candidates.sort((a, b) => a.priority - b.priority);
+  
+  if (candidates.length === 0) {
+    return {
+      success: false,
+      reason: `No available slots with sufficient capacity (${assignmentMinutes} minutes needed)`
+    };
+  }
+  
+  // Use the best candidate
+  const best = candidates[0];
+  
+  // Update the slot usage
+  best.slot.usedMinutes += assignmentMinutes;
+  best.slot.remainingMinutes -= assignmentMinutes;
+  best.slot.assignments.push(assignment);
+  
+  return {
+    success: true,
+    scheduledDate: best.date,
+    scheduledBlock: best.slot.blockNumber,
+    blockStart: best.slot.startTime,
+    blockEnd: best.slot.endTime,
+    reason: 'Successfully scheduled'
+  };
+}
+
+// Helper function to convert weekday to actual date (implementation needed)
+function getDateForWeekday(weekday: string): string {
+  // This should calculate actual date based on current week
+  // For now, return a placeholder - this needs to be implemented based on target week
+  const today = new Date();
+  const currentWeekday = today.getDay(); // 0 = Sunday
+  const weekdayMap = {
+    'Monday': 1,
+    'Tuesday': 2, 
+    'Wednesday': 3,
+    'Thursday': 4,
+    'Friday': 5
+  };
+  
+  const targetWeekday = weekdayMap[weekday];
+  const daysDiff = targetWeekday - currentWeekday;
+  const targetDate = new Date(today);
+  targetDate.setDate(today.getDate() + daysDiff);
+  
+  return targetDate.toISOString().split('T')[0]; // YYYY-MM-DD
+}
+
+// QUICK WIN STRATEGIC PLACEMENT - Place short tasks between longer assignments
+export interface QuickWinStrategy {
+  assignment: any;
+  targetSlot: ScheduleBlockSlot;
+  placementReason: 'break_between_long' | 'fill_gap' | 'momentum_builder' | 'optimal_fit';
+  confidenceScore: number; // 0-100, higher = better placement
+}
+
+// Identify quick win opportunities (assignments under 20 minutes)
+export function identifyQuickWins(assignments: any[]): { quickWins: any[]; longerTasks: any[] } {
+  const quickWins: any[] = [];
+  const longerTasks: any[] = [];
+  
+  for (const assignment of assignments) {
+    const minutes = assignment.actualEstimatedMinutes || 30;
+    if (minutes <= 20) {
+      quickWins.push(assignment);
+    } else {
+      longerTasks.push(assignment);
+    }
+  }
+  
+  return { quickWins, longerTasks };
+}
+
+// Strategic placement of quick wins between longer assignments
+export function generateQuickWinStrategies(
+  quickWins: any[],
+  weeklySchedule: Record<string, ScheduleBlockSlot[]>,
+  studentName: string
+): QuickWinStrategy[] {
+  
+  const strategies: QuickWinStrategy[] = [];
+  
+  for (const quickWin of quickWins) {
+    const quickWinMinutes = quickWin.actualEstimatedMinutes || 30;
+    
+    // Look for optimal placement opportunities
+    for (const [weekday, slots] of Object.entries(weeklySchedule)) {
+      for (const slot of slots) {
+        
+        if (slot.remainingMinutes >= quickWinMinutes) {
+          let confidenceScore = 50; // Base score
+          let placementReason: QuickWinStrategy['placementReason'] = 'optimal_fit';
+          
+          // Strategy 1: Break between long assignments
+          const longAssignments = slot.assignments.filter(a => (a.actualEstimatedMinutes || 30) > 45);
+          if (longAssignments.length >= 1) {
+            confidenceScore += 25;
+            placementReason = 'break_between_long';
+          }
+          
+          // Strategy 2: Fill small gaps perfectly  
+          if (slot.remainingMinutes >= quickWinMinutes && slot.remainingMinutes <= quickWinMinutes + 10) {
+            confidenceScore += 30;
+            placementReason = 'fill_gap';
+          }
+          
+          // Strategy 3: Momentum builder at start of day
+          if (slot.assignments.length === 0 && quickWinMinutes <= 15) {
+            confidenceScore += 20;
+            placementReason = 'momentum_builder';
+          }
+          
+          // Strategy 4: Account for course diversity
+          const slotCourses = new Set(slot.assignments.map(a => a.courseName || a.subject));
+          const quickWinCourse = quickWin.courseName || quickWin.subject;
+          if (!slotCourses.has(quickWinCourse)) {
+            confidenceScore += 15; // Bonus for course diversity
+          }
+          
+          // Earlier in week gets preference for non-urgent tasks
+          const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+          const dayIndex = weekdays.indexOf(weekday);
+          if (dayIndex <= 2) { // Monday-Wednesday
+            confidenceScore += 10;
+          }
+          
+          strategies.push({
+            assignment: quickWin,
+            targetSlot: slot,
+            placementReason,
+            confidenceScore
+          });
+        }
+      }
+    }
+  }
+  
+  // Sort by confidence score (highest first)
+  return strategies.sort((a, b) => b.confidenceScore - a.confidenceScore);
+}
+
+// Enhanced hybrid scheduler with quick win integration
+export async function hybridScheduleAssignmentsWithQuickWins(
+  request: HybridSchedulingRequest,
+  storage: any
+): Promise<HybridSchedulingResult> {
+  
+  // First, separate quick wins from longer tasks
+  const { quickWins, longerTasks } = identifyQuickWins(request.assignments);
+  
+  // Schedule longer tasks first to establish the foundation
+  const longerTasksRequest = {
+    ...request,
+    assignments: longerTasks
+  };
+  
+  const initialResult = await hybridScheduleAssignments(longerTasksRequest, storage);
+  
+  if (!initialResult.success && longerTasks.length > 0) {
+    return initialResult; // If we can't place longer tasks, no point in quick wins
+  }
+  
+  // Now strategically place quick wins
+  const quickWinStrategies = generateQuickWinStrategies(
+    quickWins, 
+    initialResult.weeklySchedule, 
+    request.studentName
+  );
+  
+  // Apply quick win strategies in order of confidence
+  for (const strategy of quickWinStrategies) {
+    const assignment = strategy.assignment;
+    const assignmentMinutes = assignment.actualEstimatedMinutes || 30;
+    const course = assignment.courseName || assignment.subject || 'Other';
+    
+    // Double-check capacity (might have changed)
+    const date = getDateForWeekday(strategy.targetSlot.weekday);
+    const dailyUsage = await calculateDailyCapacityUsage(request.studentName, date, storage);
+    const capacityCheck = canAddAssignmentToDay(dailyUsage, assignmentMinutes, course);
+    
+    if (capacityCheck.canAdd && strategy.targetSlot.remainingMinutes >= assignmentMinutes) {
+      // Place the quick win
+      initialResult.scheduledAssignments.push({
+        ...assignment,
+        scheduledDate: date,
+        scheduledBlock: strategy.targetSlot.blockNumber,
+        blockStart: strategy.targetSlot.startTime,
+        blockEnd: strategy.targetSlot.endTime,
+        quickWinStrategy: strategy.placementReason
+      });
+      
+      // Update slot capacity
+      strategy.targetSlot.usedMinutes += assignmentMinutes;
+      strategy.targetSlot.remainingMinutes -= assignmentMinutes;
+      strategy.targetSlot.assignments.push(assignment);
+      
+      // Remove from unscheduled
+      const index = initialResult.unscheduledAssignments.findIndex(a => a.id === assignment.id);
+      if (index >= 0) {
+        initialResult.unscheduledAssignments.splice(index, 1);
+      }
+    } else {
+      initialResult.warnings.push(
+        `Quick win "${assignment.title}" could not be placed: ${capacityCheck.reason || 'insufficient slot capacity'}`
+      );
+    }
+  }
+  
+  return initialResult;
+}
+
 // Assignment portability detection for co-op study hall workflow
 export interface PortabilityAnalysis {
   isPortable: boolean;
