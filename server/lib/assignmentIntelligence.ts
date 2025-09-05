@@ -551,9 +551,12 @@ export async function hybridScheduleAssignmentsWithQuickWins(
   request: HybridSchedulingRequest,
   storage: any
 ): Promise<HybridSchedulingResult> {
+  console.log(`🎯 QUICK WINS SCHEDULER: Starting for ${request.studentName}, target: ${request.targetWeek}`);
+  console.log(`📚 QUICK WINS SCHEDULER: ${request.assignments.length} assignments to schedule`);
   
   // First, separate quick wins from longer tasks
   const { quickWins, longerTasks } = identifyQuickWins(request.assignments);
+  console.log(`⚡ QUICK WINS: ${quickWins.length} quick wins, ${longerTasks.length} longer tasks`);
   
   // Schedule longer tasks first to establish the foundation
   const longerTasksRequest = {
