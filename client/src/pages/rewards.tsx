@@ -138,10 +138,10 @@ export default function RewardsPage() {
 
   if (profileLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
-          <p className="mt-2 text-gray-400">Loading your rewards...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading your rewards...</p>
         </div>
       </div>
     );
@@ -149,28 +149,28 @@ export default function RewardsPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="max-w-md text-center space-y-6 p-8">
-          <Trophy className="h-20 w-20 mx-auto text-purple-500 mb-6" />
-          <h1 className="text-2xl font-bold text-white mb-4">Welcome to RewardBank!</h1>
-          <p className="text-gray-400 mb-8 leading-relaxed">
+          <Trophy className="h-20 w-20 mx-auto text-primary mb-6" />
+          <h1 className="text-2xl font-bold text-foreground mb-4">Welcome to RewardBank!</h1>
+          <p className="text-muted-foreground mb-8 leading-relaxed">
             Complete assignments and study sessions to earn points, level up, and redeem awesome rewards!
           </p>
-          <div className="bg-gray-800 rounded-lg p-6 space-y-4">
-            <div className="flex items-center gap-3 text-gray-300">
-              <Award className="h-5 w-5 text-yellow-400" />
-              Complete assignments: <strong className="text-white">100-500 points</strong>
+          <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Award className="h-5 w-5" style={{ color: 'hsl(var(--gold))' }} />
+              Complete assignments: <strong className="text-foreground">100-500 points</strong>
             </div>
-            <div className="flex items-center gap-3 text-gray-300">
-              <Clock className="h-5 w-5 text-blue-400" />
-              Finish study sessions: <strong className="text-white">300+ points</strong>
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Clock className="h-5 w-5" style={{ color: 'hsl(var(--blue))' }} />
+              Finish study sessions: <strong className="text-foreground">300+ points</strong>
             </div>
-            <div className="flex items-center gap-3 text-gray-300">
-              <Target className="h-5 w-5 text-green-400" />
-              Complete quests: <strong className="text-white">500+ bonus points</strong>
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Target className="h-5 w-5" style={{ color: 'hsl(var(--emerald))' }} />
+              Complete quests: <strong className="text-foreground">500+ bonus points</strong>
             </div>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Your profile will be created automatically when you earn your first points!
           </p>
         </div>
@@ -181,29 +181,29 @@ export default function RewardsPage() {
   // Reward Shop View
   if (currentView === 'shop') {
     return (
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-background text-foreground">
         {/* Shop Header */}
-        <div className="border-b border-gray-800 bg-gray-900">
+        <div className="border-b border-border bg-card">
           <div className="container mx-auto px-6 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
                   onClick={() => setCurrentView('main')}
-                  className="text-white hover:bg-gray-800"
+                  className="text-foreground hover:bg-accent"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
                 </Button>
                 <div className="flex items-center gap-2">
-                  <Gift className="w-6 h-6 text-purple-500" />
+                  <Gift className="w-6 h-6 text-primary" />
                   <div>
-                    <h1 className="text-xl font-bold">Reward Shop</h1>
-                    <p className="text-sm text-gray-400">Spend your points on rewards</p>
+                    <h1 className="text-xl font-bold text-foreground">Reward Shop</h1>
+                    <p className="text-sm text-muted-foreground">Spend your points on rewards</p>
                   </div>
                 </div>
               </div>
-              <div className="bg-yellow-600 text-black px-4 py-2 rounded-lg font-bold">
+              <div style={{ backgroundColor: 'hsl(var(--gold))', color: 'hsl(var(--gold-foreground))' }} className="px-4 py-2 rounded-lg font-bold">
                 Your Points: {profile.points}
               </div>
             </div>
@@ -214,7 +214,7 @@ export default function RewardsPage() {
         <div className="container mx-auto px-6 py-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {catalogLoading ? (
-              <div className="col-span-full text-center py-8 text-gray-400">Loading rewards...</div>
+              <div className="col-span-full text-center py-8 text-muted-foreground">Loading rewards...</div>
             ) : (
               Array.isArray(catalog) && catalog.map((item: any) => {
                 const affordable = profile.points >= item.costPoints;
@@ -235,17 +235,17 @@ export default function RewardsPage() {
                 return (
                   <Card
                     key={item.id}
-                    className="bg-gray-800 border-gray-700 p-6 hover:border-gray-600 transition-all"
+                    className="bg-card border-border p-6 hover:border-primary/50 hover:shadow-lg transition-all"
                     data-testid={`reward-item-${item.id}`}
                   >
                     <div className="text-center space-y-4">
-                      <div className="w-16 h-16 mx-auto bg-gray-700 rounded-2xl flex items-center justify-center text-gray-300">
+                      <div className="w-16 h-16 mx-auto bg-muted rounded-2xl flex items-center justify-center text-muted-foreground">
                         {getRewardIcon(item.title)}
                       </div>
-                      <h3 className="font-bold text-white text-lg">{item.title}</h3>
-                      <p className="text-gray-400 text-sm">{item.description}</p>
+                      <h3 className="font-bold text-foreground text-lg">{item.title}</h3>
+                      <p className="text-muted-foreground text-sm">{item.description}</p>
                       <div className="flex items-center justify-center">
-                        <Badge className="bg-yellow-600 text-black px-3 py-1 font-bold">
+                        <Badge style={{ backgroundColor: 'hsl(var(--gold))', color: 'hsl(var(--gold-foreground))' }} className="px-3 py-1 font-bold">
                           <Star className="w-3 h-3 mr-1" />
                           {item.costPoints}
                         </Badge>
@@ -255,8 +255,8 @@ export default function RewardsPage() {
                         disabled={!affordable || redeemMutation.isPending}
                         className={`w-full py-3 font-bold ${
                           affordable
-                            ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                            : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                            ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                            : 'bg-muted text-muted-foreground cursor-not-allowed'
                         }`}
                         data-testid={`redeem-button-${item.id}`}
                       >
@@ -275,18 +275,18 @@ export default function RewardsPage() {
 
   // Main Rewards View
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <div className="border-b border-gray-800 bg-gray-900">
+      <div className="border-b border-border bg-card">
         <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-white">Your Rewards</h1>
-              <p className="text-gray-400">Keep studying to earn more points!</p>
+              <h1 className="text-2xl font-bold text-foreground">Your Rewards</h1>
+              <p className="text-muted-foreground">Keep studying to earn more points!</p>
             </div>
             <Button 
               onClick={() => setCurrentView('shop')}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 py-3"
             >
               <Gift className="w-4 h-4 mr-2" />
               Shop
@@ -301,42 +301,42 @@ export default function RewardsPage() {
           <div className="lg:col-span-2 space-y-8">
             {/* Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-gray-800 border-gray-700 p-6" data-testid="points-card">
+              <Card className="bg-card border-border p-6" data-testid="points-card">
                 <div className="text-center">
-                  <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
-                  <p className="text-3xl font-bold text-yellow-400 mb-1" data-testid="current-points">
+                  <Trophy className="w-8 h-8 mx-auto mb-3" style={{ color: 'hsl(var(--gold))' }} />
+                  <p className="text-3xl font-bold mb-1" style={{ color: 'hsl(var(--gold))' }} data-testid="current-points">
                     {profile.points}
                   </p>
-                  <p className="text-gray-400 text-sm">Points</p>
+                  <p className="text-muted-foreground text-sm">Points</p>
                 </div>
               </Card>
 
-              <Card className="bg-gray-800 border-gray-700 p-6" data-testid="level-card">
+              <Card className="bg-card border-border p-6" data-testid="level-card">
                 <div className="text-center">
-                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span className="text-sm font-bold text-white">{profile.level}</span>
+                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="text-sm font-bold text-primary-foreground">{profile.level}</span>
                   </div>
-                  <p className="text-gray-400 text-sm">Level {profile.level}</p>
+                  <p className="text-muted-foreground text-sm">Level {profile.level}</p>
                 </div>
               </Card>
 
-              <Card className="bg-gray-800 border-gray-700 p-6" data-testid="streak-card">
+              <Card className="bg-card border-border p-6" data-testid="streak-card">
                 <div className="text-center">
-                  <Flame className="w-8 h-8 text-green-400 mx-auto mb-3" />
-                  <p className="text-3xl font-bold text-green-400 mb-1" data-testid="streak-days">
+                  <Flame className="w-8 h-8 mx-auto mb-3" style={{ color: 'hsl(var(--emerald))' }} />
+                  <p className="text-3xl font-bold mb-1" style={{ color: 'hsl(var(--emerald))' }} data-testid="streak-days">
                     {profile.streakDays}
                   </p>
-                  <p className="text-gray-400 text-sm">Day Streak</p>
+                  <p className="text-muted-foreground text-sm">Day Streak</p>
                 </div>
               </Card>
 
-              <Card className="bg-gray-800 border-gray-700 p-6" data-testid="lifetime-card">
+              <Card className="bg-card border-border p-6" data-testid="lifetime-card">
                 <div className="text-center">
-                  <TrendingUp className="w-8 h-8 text-purple-400 mx-auto mb-3" />
-                  <p className="text-3xl font-bold text-purple-400 mb-1" data-testid="lifetime-points">
+                  <TrendingUp className="w-8 h-8 mx-auto mb-3" style={{ color: 'hsl(var(--violet))' }} />
+                  <p className="text-3xl font-bold mb-1" style={{ color: 'hsl(var(--violet))' }} data-testid="lifetime-points">
                     {profile.lifetimePoints}
                   </p>
-                  <p className="text-gray-400 text-sm">Total Earned</p>
+                  <p className="text-muted-foreground text-sm">Total Earned</p>
                 </div>
               </Card>
             </div>
@@ -344,12 +344,12 @@ export default function RewardsPage() {
             {/* Daily Quests */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Daily Quests</h2>
-                <Badge className="bg-purple-600 text-white px-3 py-1">3 active</Badge>
+                <h2 className="text-xl font-bold text-foreground">Daily Quests</h2>
+                <Badge className="bg-primary text-primary-foreground px-3 py-1">3 active</Badge>
               </div>
               <div className="space-y-4">
                 {sampleQuests.map((quest) => (
-                  <Card key={quest.id} className="bg-gray-800 border-gray-700 p-6">
+                  <Card key={quest.id} className="bg-card border-border p-6">
                     <div className="flex items-center gap-4">
                       {/* Progress Circle */}
                       <div className="relative w-16 h-16 flex-shrink-0">
@@ -361,7 +361,7 @@ export default function RewardsPage() {
                             stroke="currentColor"
                             strokeWidth="4"
                             fill="none"
-                            className="text-gray-700"
+                            className="text-border"
                           />
                           <circle
                             cx="32"
@@ -375,20 +375,20 @@ export default function RewardsPage() {
                           />
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <Clock className="w-6 h-6 text-gray-400" />
+                          <Clock className="w-6 h-6 text-muted-foreground" />
                         </div>
                       </div>
                       
                       {/* Quest Info */}
                       <div className="flex-1">
-                        <h3 className="font-bold text-white mb-1">{quest.title}</h3>
-                        <p className="text-gray-400 text-sm mb-2">{quest.description}</p>
-                        <p className="text-gray-500 text-sm">{quest.progress}/{quest.target} tasks</p>
+                        <h3 className="font-bold text-foreground mb-1">{quest.title}</h3>
+                        <p className="text-muted-foreground text-sm mb-2">{quest.description}</p>
+                        <p className="text-muted-foreground text-sm">{quest.progress}/{quest.target} tasks</p>
                       </div>
                       
                       {/* Reward */}
                       <div className="text-right">
-                        <div className="bg-gray-700 text-white px-3 py-1 rounded-lg font-bold text-sm">
+                        <div className="bg-muted text-foreground px-3 py-1 rounded-lg font-bold text-sm">
                           {quest.reward}
                         </div>
                       </div>
@@ -398,8 +398,8 @@ export default function RewardsPage() {
               </div>
               
               {/* New Quests Unlock Notice */}
-              <Card className="bg-gray-800 border-gray-700 border-dashed p-6">
-                <div className="text-center text-gray-400">
+              <Card className="bg-card border-border border-dashed p-6">
+                <div className="text-center text-muted-foreground">
                   <Calendar className="w-8 h-8 mx-auto mb-2" />
                   <p className="text-sm">New quests unlock daily at midnight</p>
                 </div>
@@ -410,19 +410,19 @@ export default function RewardsPage() {
           {/* Right Column - Recent Activity */}
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white mb-4">Recent Activity</h2>
+              <h2 className="text-xl font-bold text-foreground mb-4">Recent Activity</h2>
               <div className="space-y-4">
                 {sampleActivity.map((activity) => (
-                  <Card key={activity.id} className="bg-gray-800 border-gray-700 p-4">
+                  <Card key={activity.id} className="bg-card border-border p-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                        <activity.icon className="w-5 h-5 text-white" />
+                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+                        <activity.icon className="w-5 h-5 text-primary-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium text-sm">{activity.title}</p>
-                        <p className="text-gray-400 text-xs">{activity.date}</p>
+                        <p className="text-foreground font-medium text-sm">{activity.title}</p>
+                        <p className="text-muted-foreground text-xs">{activity.date}</p>
                       </div>
-                      <Badge className="bg-yellow-600 text-black text-xs font-bold">
+                      <Badge style={{ backgroundColor: 'hsl(var(--gold))', color: 'hsl(var(--gold-foreground))' }} className="text-xs font-bold">
                         {activity.points}
                       </Badge>
                     </div>
@@ -432,11 +432,11 @@ export default function RewardsPage() {
             </div>
 
             {/* Motivational Card */}
-            <Card className="bg-gradient-to-br from-purple-800 to-purple-900 border-purple-600 p-6">
+            <Card className="bg-gradient-to-br from-primary/20 to-primary/10 border-primary/30 p-6">
               <div className="text-center">
-                <Trophy className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-                <h3 className="font-bold text-white mb-2">Keep up the great work!</h3>
-                <p className="text-purple-200 text-sm">
+                <Trophy className="w-12 h-12 mx-auto mb-4" style={{ color: 'hsl(var(--gold))' }} />
+                <h3 className="font-bold text-foreground mb-2">Keep up the great work!</h3>
+                <p className="text-muted-foreground text-sm">
                   Complete more study sessions and tasks to earn points and level up.
                 </p>
               </div>
@@ -447,10 +447,10 @@ export default function RewardsPage() {
 
       {/* Redeem Dialog */}
       <Dialog open={showRedeemDialog} onOpenChange={setShowRedeemDialog}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className="text-white">Confirm Redemption</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-foreground">Confirm Redemption</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Request parent approval to redeem this reward?
             </DialogDescription>
           </DialogHeader>
@@ -458,16 +458,16 @@ export default function RewardsPage() {
           {selectedReward && (
             <div className="space-y-4">
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto bg-gray-700 rounded-2xl flex items-center justify-center mb-4">
-                  <Gift className="w-8 h-8 text-gray-300" />
+                <div className="w-16 h-16 mx-auto bg-muted rounded-2xl flex items-center justify-center mb-4">
+                  <Gift className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h3 className="font-bold text-white text-lg">{selectedReward.title}</h3>
-                <p className="text-gray-400">{selectedReward.description}</p>
+                <h3 className="font-bold text-foreground text-lg">{selectedReward.title}</h3>
+                <p className="text-muted-foreground">{selectedReward.description}</p>
               </div>
               
-              <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                <span className="text-gray-300">Cost:</span>
-                <Badge className="bg-yellow-600 text-black font-bold">
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <span className="text-muted-foreground">Cost:</span>
+                <Badge style={{ backgroundColor: 'hsl(var(--gold))', color: 'hsl(var(--gold-foreground))' }} className="font-bold">
                   <Star className="w-3 h-3 mr-1" />
                   {selectedReward.costPoints} points
                 </Badge>
@@ -479,14 +479,14 @@ export default function RewardsPage() {
             <Button 
               variant="outline" 
               onClick={() => setShowRedeemDialog(false)}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="border-border text-muted-foreground hover:bg-accent"
             >
               Cancel
             </Button>
             <Button 
               onClick={handleRedeemConfirm}
               disabled={redeemMutation.isPending}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {redeemMutation.isPending ? "Requesting..." : "Request Approval"}
             </Button>
