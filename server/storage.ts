@@ -1867,7 +1867,7 @@ export class DatabaseStorage implements IStorage {
 
       const newPoints = profile.points + pointsToAdd;
       const newLifetimePoints = profile.lifetimePoints + pointsToAdd;
-      const newLevel = Math.floor(newLifetimePoints / 200) + 1; // Level up every 200 lifetime points
+      const newLevel = Math.floor(newLifetimePoints / 20000) + 1; // Level up every 20,000 lifetime points
 
       const [updatedProfile] = await db.update(rewardProfiles)
         .set({ 
@@ -1978,8 +1978,8 @@ export class DatabaseStorage implements IStorage {
 
   async checkEarningLimits(userId: string, pointsToAdd: number, settings: RewardSettings | null): Promise<{ allowed: boolean; reason?: string; limitType?: string }> {
     try {
-      const dailyCap = settings?.dailyEarnCapPoints || 100;
-      const weeklyCap = settings?.weeklyEarnCapPoints || 400;
+      const dailyCap = settings?.dailyEarnCapPoints || 10000;
+      const weeklyCap = settings?.weeklyEarnCapPoints || 40000;
 
       // Get today's earnings
       const today = new Date().toISOString().split('T')[0];
