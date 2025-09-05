@@ -2346,6 +2346,7 @@ export class MemStorage implements IStorage {
         displayName: 'Abigail',
         profileImageUrl: null,
         themeColor: '#844FC1',
+        allowSaturdayScheduling: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -2355,6 +2356,7 @@ export class MemStorage implements IStorage {
         displayName: 'Khalil',
         profileImageUrl: null,
         themeColor: '#3B86D1',
+        allowSaturdayScheduling: false,
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -2369,7 +2371,27 @@ export class MemStorage implements IStorage {
       ...profile,
       profileImageUrl: profile.profileImageUrl || null,
       themeColor: profile.themeColor || null,
+      allowSaturdayScheduling: profile.allowSaturdayScheduling || false,
       createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  async getAllStudentProfiles(): Promise<StudentProfile[]> {
+    // Stub implementation - return both profiles
+    const abigail = await this.getStudentProfile('abigail');
+    const khalil = await this.getStudentProfile('khalil');
+    return [abigail, khalil].filter(Boolean) as StudentProfile[];
+  }
+
+  async updateStudentSaturdayScheduling(studentName: string, allowSaturday: boolean): Promise<StudentProfile | undefined> {
+    // Stub implementation - just return updated profile
+    const profile = await this.getStudentProfile(studentName);
+    if (!profile) return undefined;
+    
+    return {
+      ...profile,
+      allowSaturdayScheduling: allowSaturday,
       updatedAt: new Date()
     };
   }

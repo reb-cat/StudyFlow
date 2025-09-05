@@ -751,56 +751,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Saturday Scheduling Settings API endpoints
-  
-  // GET /api/students/profiles/saturday-settings - Get all student profiles with Saturday settings
-  app.get('/api/students/profiles/saturday-settings', async (req, res) => {
-    try {
-      const profiles = await storage.getAllStudentProfiles();
-      
-      // Map to include Saturday settings and format for admin interface
-      const settingsProfiles = profiles.map(profile => ({
-        id: profile.id,
-        studentName: profile.studentName,
-        displayName: profile.displayName,
-        allowSaturdayScheduling: profile.allowSaturdayScheduling || false
-      }));
-      
-      console.log(`🗓️ Retrieved Saturday settings for ${settingsProfiles.length} students`);
-      res.json(settingsProfiles);
-    } catch (error) {
-      console.error('Error fetching Saturday settings:', error);
-      res.status(500).json({ message: 'Failed to fetch Saturday scheduling settings' });
-    }
-  });
-
-  // PATCH /api/students/:studentName/saturday-scheduling - Update Saturday scheduling preference
-  app.patch('/api/students/:studentName/saturday-scheduling', async (req, res) => {
-    try {
-      const { studentName } = req.params;
-      const { allowSaturdayScheduling } = req.body;
-
-      if (typeof allowSaturdayScheduling !== 'boolean') {
-        return res.status(400).json({ message: 'allowSaturdayScheduling must be a boolean' });
-      }
-
-      const updatedProfile = await storage.updateStudentSaturdayScheduling(studentName, allowSaturdayScheduling);
-      
-      if (!updatedProfile) {
-        return res.status(404).json({ message: 'Student profile not found' });
-      }
-
-      console.log(`🗓️ Updated Saturday scheduling for ${studentName}: ${allowSaturdayScheduling ? 'enabled' : 'disabled'}`);
-      res.json({ 
-        success: true, 
-        studentName,
-        allowSaturdayScheduling: updatedProfile.allowSaturdayScheduling
-      });
-    } catch (error) {
-      console.error('Error updating Saturday scheduling:', error);
-      res.status(500).json({ message: 'Failed to update Saturday scheduling preference' });
-    }
-  });
 
   // Checklist Item Management API endpoints
   

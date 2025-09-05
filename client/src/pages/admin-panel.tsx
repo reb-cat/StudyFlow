@@ -95,14 +95,6 @@ const adminTiles: AdminTile[] = [
     color: "violet"
   },
   {
-    title: "Saturday Scheduling",
-    description: "Control weekend overflow assignment scheduling", 
-    href: "/saturday-settings",
-    icon: Settings,
-    color: "orange",
-    badge: "Toggle"
-  },
-  {
     title: "System Settings",
     description: "Configure global settings and preferences", 
     href: "#system-settings",
