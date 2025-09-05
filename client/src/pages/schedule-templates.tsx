@@ -350,7 +350,6 @@ export default function ScheduleTemplates() {
           <ThemeToggle />
         </div>
       </div>
-
       {/* Student and Weekday Selection */}
       <Card>
         <CardHeader>
@@ -389,7 +388,6 @@ export default function ScheduleTemplates() {
           </div>
         </CardContent>
       </Card>
-
       {/* CSV Upload Section */}
       <Card>
         <CardHeader>
@@ -445,7 +443,6 @@ export default function ScheduleTemplates() {
           </div>
         </CardContent>
       </Card>
-
       {/* Saturday Scheduling Settings */}
       <Card>
         <CardHeader>
@@ -485,11 +482,7 @@ export default function ScheduleTemplates() {
                       allowSaturday: !student.allowSaturdayScheduling 
                     })}
                     disabled={saturdayMutation.isPending}
-                    className={`relative w-12 h-6 rounded-lg transition-colors duration-200 flex-shrink-0 ${
-                      student.allowSaturdayScheduling 
-                        ? 'bg-blue-600' 
-                        : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
+                    className="relative w-12 h-6 rounded-lg transition-colors duration-200 flex-shrink-0 bg-gray-300 dark:bg-gray-600 ml-[0px] mr-[0px]"
                   >
                     <div 
                       className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-sm shadow-lg transition-transform duration-200 ${
@@ -503,7 +496,6 @@ export default function ScheduleTemplates() {
           </div>
         </CardContent>
       </Card>
-
       {/* Schedule Editor */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
