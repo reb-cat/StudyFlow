@@ -382,35 +382,31 @@ async function placeAssignmentInOptimalSlot(
     const date = getDateForWeekday(weekday, targetWeek); // Pass target week date
     
     for (const slot of slots) {
-      if (slot.remainingMinutes >= assignmentMinutes) {
-        // Check capacity constraints
-        const dailyUsage = await calculateDailyCapacityUsage(studentName, date, storage);
-        const capacityCheck = canAddAssignmentToDay(dailyUsage, assignmentMinutes, course);
-        
-        if (capacityCheck.canAdd) {
-          let priority = 0;
-          
-          // Prefer earlier in week
-          priority += weekdays.indexOf(weekday) * 10;
-          
-          // Quick wins (< 20 min) can be placed strategically between longer tasks
-          if (assignmentMinutes < 20) {
-            priority -= 5; // Boost quick wins
-          }
-          
-          // Prefer Study Hall over Assignment blocks for flexibility
-          if (slot.blockType === 'Study Hall') {
-            priority -= 2;
-          }
-          
-          candidates.push({
-            weekday,
-            slot,
-            date,
-            priority
-          });
-        }
+      // SCHEDULE EVERYTHING - Remove time/capacity restrictions
+      let priority = 0;
+      
+      // Prefer earlier in week
+      priority += weekdays.indexOf(weekday) * 10;
+      
+      // Quick wins (< 20 min) can be placed strategically between longer tasks
+      if (assignmentMinutes < 20) {
+        priority -= 5; // Boost quick wins
       }
+      
+      // Prefer Study Hall over Assignment blocks for flexibility  
+      if (slot.blockType === 'Study Hall') {
+        priority -= 2;
+      }
+      
+      // Prefer earlier blocks within the day (harder items first)
+      priority += slot.blockNumber * 2;
+      
+      candidates.push({
+        weekday,
+        slot,
+        date,
+        priority
+      });
     }
   }
   
@@ -420,7 +416,7 @@ async function placeAssignmentInOptimalSlot(
   if (candidates.length === 0) {
     return {
       success: false,
-      reason: `No available slots with sufficient capacity (${assignmentMinutes} minutes needed)`
+      reason: `No available assignment slots found for scheduling`
     };
   }
   
