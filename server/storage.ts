@@ -737,14 +737,28 @@ export class DatabaseStorage implements IStorage {
           }
           // Leave block.blockNumber as null for Travel, Movement, Lunch, etc.
         });
+
+        // Deduplicate records to prevent constraint violations
+        const uniqueBlocks = new Map();
+        const deduplicatedBlocks = [];
         
-        console.log(`📝 Inserting ${insertBlocks.length} new schedule template records`);
-        console.log(`🔍 Sample records:`, insertBlocks.slice(0, 3));
+        for (const block of insertBlocks) {
+          const key = `${block.studentName}-${block.weekday}-${block.blockNumber}`;
+          if (!uniqueBlocks.has(key)) {
+            uniqueBlocks.set(key, true);
+            deduplicatedBlocks.push(block);
+          } else {
+            console.log(`🚫 DUPLICATE REMOVED: ${block.studentName} ${block.weekday} Block ${block.blockNumber} (${block.subject})`);
+          }
+        }
+        
+        console.log(`📝 Inserting ${deduplicatedBlocks.length} deduplicated records (${insertBlocks.length - deduplicatedBlocks.length} duplicates removed)`);
+        console.log(`🔍 Sample records:`, deduplicatedBlocks.slice(0, 3));
         
         // Insert new records in batches to avoid query size limits
         const batchSize = 50;
-        for (let i = 0; i < insertBlocks.length; i += batchSize) {
-          const batch = insertBlocks.slice(i, i + batchSize);
+        for (let i = 0; i < deduplicatedBlocks.length; i += batchSize) {
+          const batch = deduplicatedBlocks.slice(i, i + batchSize);
           await db.insert(scheduleTemplate).values(batch);
         }
       }
