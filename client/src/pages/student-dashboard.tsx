@@ -308,8 +308,14 @@ export default function StudentDashboard() {
 
   // INTELLIGENT ASSIGNMENT SCHEDULING with subject distribution and deduplication
   const populatedAssignmentBlocks = (() => {
-    // Create a copy of assignments for scheduling
-    const availableAssignments = [...assignments];
+    // CRITICAL: Only consider assignments scheduled for TODAY or unscheduled
+    // This ensures we only work with urgent Monday assignments that should appear today
+    const todaysAssignments = assignments.filter(a => 
+      !a.scheduledDate || a.scheduledDate === selectedDate
+    );
+    
+    // Create a copy of today's assignments for scheduling
+    const availableAssignments = [...todaysAssignments];
     const usedSubjects = new Set<string>();
     const scheduledAssignments: any[] = [];
     
@@ -334,28 +340,16 @@ export default function StudentDashboard() {
     return assignmentBlocks.map((block, index) => {
       let selectedAssignment = null;
       
-      // PRIORITY 1: Check if any assignment is specifically scheduled for this block
+      // First pass: try to find assignment from unused subject for diversity
       for (let i = 0; i < availableAssignments.length; i++) {
         const assignment = availableAssignments[i];
-        if (assignment.scheduledDate === selectedDate && assignment.scheduledBlock === block.blockNumber) {
+        const subject = assignment.subject || 'General';
+        
+        if (!usedSubjects.has(subject)) {
           selectedAssignment = assignment;
           availableAssignments.splice(i, 1);
+          usedSubjects.add(subject);
           break;
-        }
-      }
-      
-      // PRIORITY 2: If no specifically scheduled assignment, try to find assignment from unused subject
-      if (!selectedAssignment) {
-        for (let i = 0; i < availableAssignments.length; i++) {
-          const assignment = availableAssignments[i];
-          const subject = assignment.subject || 'General';
-          
-          if (!usedSubjects.has(subject)) {
-            selectedAssignment = assignment;
-            availableAssignments.splice(i, 1);
-            usedSubjects.add(subject);
-            break;
-          }
         }
       }
       
