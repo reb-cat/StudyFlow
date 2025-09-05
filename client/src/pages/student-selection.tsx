@@ -21,6 +21,7 @@ const colors = {
 
 export default function FamilyDashboard() {
   const [hoveredStudent, setHoveredStudent] = useState<string | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
   const queryClient = useQueryClient();
   
@@ -143,14 +144,16 @@ export default function FamilyDashboard() {
               style={{ textDecoration: 'none' }}
             >
               <div
+                onMouseEnter={() => setHoveredCard(student.id)}
+                onMouseLeave={() => setHoveredCard(null)}
                 className={`bg-card rounded-3xl p-8 text-center cursor-pointer transition-all duration-300 border-2 ${
-                  hoveredStudent === student.id 
+                  (hoveredStudent === student.id || hoveredCard === student.id)
                     ? '-translate-y-1 shadow-xl' 
                     : 'shadow-sm'
                 }`}
                 style={{
-                  borderColor: hoveredStudent === student.id ? student.color : 'var(--border)',
-                  boxShadow: hoveredStudent === student.id 
+                  borderColor: (hoveredStudent === student.id || hoveredCard === student.id) ? student.color : 'var(--border)',
+                  boxShadow: (hoveredStudent === student.id || hoveredCard === student.id)
                     ? `0 12px 32px ${student.color}20` 
                     : undefined
                 }}
@@ -220,9 +223,9 @@ export default function FamilyDashboard() {
                   data-testid={`button-select-${student.id}`}
                   className="w-full py-3.5 px-6 rounded-xl text-lg font-semibold cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 border-2"
                   style={{
-                    backgroundColor: hoveredStudent === student.id ? student.color : 'var(--background)',
+                    backgroundColor: (hoveredStudent === student.id || hoveredCard === student.id) ? student.color : 'var(--background)',
                     borderColor: student.color,
-                    color: hoveredStudent === student.id ? 'white' : student.color
+                    color: (hoveredStudent === student.id || hoveredCard === student.id) ? 'white' : student.color
                   }}
                 >
                   Let's Go!
