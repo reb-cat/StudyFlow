@@ -15,7 +15,7 @@ export function OverviewBlock({ assignment, onUpdate }: OverviewBlockProps) {
 
   const statusConfig = {
     pending: { label: 'Not Started', color: 'bg-muted text-muted-foreground', icon: Clock },
-    in_progress: { label: 'In Progress', color: 'bg-blue/20 text-blue border-blue/30', icon: Clock },
+    in_progress: { label: 'In Progress', color: 'bg-[hsl(var(--status-progress)_/_0.2)] text-[hsl(var(--status-progress))] border-[hsl(var(--status-progress)_/_0.3)]', icon: Clock },
     completed: { label: 'Completed', color: 'bg-emerald/20 text-emerald border-emerald/30', icon: CheckCircle },
     stuck: { label: 'Need Help', color: 'bg-destructive/20 text-destructive border-destructive/30', icon: AlertTriangle },
     needs_more_time: { label: 'Need More Time', color: 'bg-gold/20 text-gold border-gold/30', icon: Clock }

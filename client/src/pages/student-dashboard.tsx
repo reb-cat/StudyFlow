@@ -181,7 +181,7 @@ export default function StudentDashboard() {
       },
       'in-progress': {
         variant: 'outline' as const,
-        color: 'text-blue bg-blue/20 border-blue/30',
+        color: 'text-[hsl(var(--status-progress))] bg-[hsl(var(--status-progress)_/_0.2)] border-[hsl(var(--status-progress)_/_0.3)]',
         icon: Play,
         text: 'in progress'
       },
@@ -746,7 +746,7 @@ export default function StudentDashboard() {
                             key={block.id} 
                             className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 ${
                               isCurrentBlock 
-                                ? 'border-2 border-blue/30 bg-blue/20' 
+                                ? 'border-2 border-[hsl(var(--status-progress)_/_0.3)] bg-[hsl(var(--status-progress)_/_0.2)]' 
                                 : 'bg-card hover:bg-accent/10'
                             } print-schedule-item`}
                           >
@@ -759,7 +759,7 @@ export default function StudentDashboard() {
                             {/* Status-colored Pill with Consistent White Icons */}
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                               effectiveStatus === 'complete' ? 'bg-emerald/20 border border-emerald/30' :
-                              effectiveStatus === 'in-progress' ? 'bg-blue/20 border border-blue/30' :
+                              effectiveStatus === 'in-progress' ? 'bg-[hsl(var(--status-progress)_/_0.2)] border border-[hsl(var(--status-progress)_/_0.3)]' :
                               effectiveStatus === 'stuck' ? 'bg-gold/20 border border-gold/30' :
                               'bg-muted/50 border border-border'  // not-started
                             }`}>

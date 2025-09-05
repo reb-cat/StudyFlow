@@ -86,7 +86,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
       );
     } else if (daysDiff === 1) {
       return (
-        <Badge className="bg-blue text-blue-foreground border-blue">
+        <Badge className="bg-[hsl(var(--status-progress))] text-[hsl(var(--background))] border-[hsl(var(--status-progress))]">
           <Timer className="h-3 w-3 mr-1" />
           Due Tomorrow
         </Badge>
@@ -98,7 +98,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
 
   const statusConfig = {
     pending: { label: 'Not Started', color: 'bg-muted text-muted-foreground', icon: PlayCircle },
-    in_progress: { label: 'In Progress', color: 'bg-blue/20 text-blue border-blue/30', icon: Clock },
+    in_progress: { label: 'In Progress', color: 'bg-[hsl(var(--status-progress)_/_0.2)] text-[hsl(var(--status-progress))] border-[hsl(var(--status-progress)_/_0.3)]', icon: Clock },
     completed: { label: 'Completed', color: 'bg-emerald/20 text-emerald border-emerald/30', icon: CheckCircle },
     stuck: { label: 'Stuck - Need Help', color: 'bg-destructive/20 text-destructive border-destructive/30', icon: AlertTriangle },
     needs_more_time: { label: 'Need More Time', color: 'bg-gold/20 text-gold border-gold/30', icon: Clock },
@@ -170,7 +170,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
                   </span>
                 )}
                 {isSplitAuto && (
-                  <Badge variant="outline" className="bg-blue/20 text-blue border-blue/30 text-xs px-2 py-0.5">
+                  <Badge variant="outline" className="bg-[hsl(var(--status-progress)_/_0.2)] text-[hsl(var(--status-progress))] border-[hsl(var(--status-progress)_/_0.3)] text-xs px-2 py-0.5">
                     <Star className="h-3 w-3 mr-1" />
                     Auto Split
                   </Badge>
@@ -219,12 +219,12 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
                 {normalized.displayTitle}
               </h3>
               {normalized.courseLabel && (
-                <span className="inline-block px-2 py-1 text-xs font-medium bg-blue/20 text-blue rounded-full">
+                <span className="inline-block px-2 py-1 text-xs font-medium bg-[hsl(var(--status-progress)_/_0.2)] text-[hsl(var(--status-progress))] rounded-full">
                   {normalized.courseLabel}
                 </span>
               )}
               {(isSplitAuto || isContinued) && (
-                <Badge variant="outline" className="bg-blue/20 text-blue border-blue/30">
+                <Badge variant="outline" className="bg-[hsl(var(--status-progress)_/_0.2)] text-[hsl(var(--status-progress))] border-[hsl(var(--status-progress)_/_0.3)]">
                   <Star className="h-3 w-3 mr-1" />
                   Split Task
                 </Badge>
