@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { logger } from "./lib/logger";
 import { basicHealthCheck, readinessCheck, livenessCheck, metricsEndpoint } from "./lib/health-checks";
 import { generalRateLimit, authRateLimit, apiRateLimit, strictRateLimit, uploadRateLimit } from "./lib/rate-limiting";
+import { sql } from "drizzle-orm";
+import { db } from "./db";
 
 // Family authentication middleware - reads the same field set during login
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
@@ -1228,6 +1230,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { studentName, date } = req.params;
       
+      // Set student context for RLS to access their own schedule
+      await db.execute(sql`SELECT set_config('app.current_student', ${studentName.toLowerCase()}, true)`);
+      
       // Convert date to weekday name
       const dateObj = new Date(date);
       const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1829,6 +1834,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     try {
       const { studentName, date } = req.params;
       
+      // Set student context for RLS to access their own schedule status
+      await db.execute(sql`SELECT set_config('app.current_student', ${studentName.toLowerCase()}, true)`);
+      
       console.log(`Fetching daily schedule status for ${studentName} on ${date}`);
       
       const statusData = await storage.getDailyScheduleStatus(studentName, date);
@@ -1846,6 +1854,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     try {
       const { studentName, date, templateBlockId } = req.params;
       const { status, flags } = req.body;
+      
+      // Set student context for RLS to update their own schedule block
+      await db.execute(sql`SELECT set_config('app.current_student', ${studentName.toLowerCase()}, true)`);
       
       if (!status) {
         return res.status(400).json({ message: 'Status is required' });
@@ -1922,6 +1933,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     try {
       const { studentName, date } = req.params;
       
+      // Set student context for RLS to initialize their own schedule
+      await db.execute(sql`SELECT set_config('app.current_student', ${studentName.toLowerCase()}, true)`);
+      
       console.log(`Initializing daily schedule for ${studentName} on ${date}`);
       
       await storage.initializeDailySchedule(studentName, date);
@@ -1955,6 +1969,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       const { studentName } = req.params;
       const weekday = req.query.weekday as string;
       
+      // Set student context for RLS to access their own schedule template
+      await db.execute(sql`SELECT set_config('app.current_student', ${studentName.toLowerCase()}, true)`);
+      
       const templateData = await storage.getScheduleTemplate(studentName, weekday);
       res.json(templateData);
     } catch (error) {
@@ -1966,6 +1983,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   app.get('/api/schedule-template/:studentName/:weekday', async (req, res) => {
     try {
       const { studentName, weekday } = req.params;
+      
+      // Set student context for RLS to access their own schedule template
+      await db.execute(sql`SELECT set_config('app.current_student', ${studentName.toLowerCase()}, true)`);
       
       const templateData = await storage.getScheduleTemplate(studentName, weekday);
       res.json(templateData);
@@ -1979,6 +1999,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     try {
       const { studentName, weekday } = req.params;
       const { blocks } = req.body;
+      
+      // Set family context for RLS to update any student's schedule template (admin operation)
+      await db.execute(sql`SELECT set_config('app.current_student', 'family', true)`);
       
       console.log(`🔒 AUTHORIZED: Updating schedule template for ${studentName} on ${weekday} via admin interface`);
       
@@ -2003,6 +2026,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       const { csvData } = req.body;
       
       console.log(`🔒 AUTHORIZED: Replacing entire schedule_template via CSV upload`);
+      
+      // Set family context for RLS bypass (needed for multi-student CSV operations)
+      await db.execute(sql`SELECT set_config('app.current_student', 'family', true)`);
       
       if (!csvData || !Array.isArray(csvData)) {
         return res.status(400).json({ message: 'Invalid CSV data format' });
@@ -2045,6 +2071,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   // Print Queue Management API for Parent Dashboard
   app.get('/api/print-queue', async (req, res) => {
     try {
+      // Set family context for RLS to access all students' print queue data
+      await db.execute(sql`SELECT set_config('app.current_student', 'family', true)`);
+      
       const { startDate, endDate, days } = req.query;
       
       let fromDate: Date;
@@ -2591,6 +2620,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       const { studentName } = req.params;
       const { date, includeCompleted } = req.query;
       
+      // Set student context for RLS to access their own data
+      await db.execute(sql`SELECT set_config('app.current_student', ${studentName.toLowerCase()}, true)`);
+      
       // Map student name to user ID
       const userIdMap: Record<string, string> = {
         'abigail': 'abigail-user',
@@ -2632,6 +2664,10 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   app.get('/api/students/:studentName/profile', async (req, res) => {
     try {
       const { studentName } = req.params;
+      
+      // Set student context for RLS to access their own profile
+      await db.execute(sql`SELECT set_config('app.current_student', ${studentName.toLowerCase()}, true)`);
+      
       const profile = await storage.getStudentProfile(studentName);
       res.json(profile);
     } catch (error) {
@@ -2715,6 +2751,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   // GET /api/family/dashboard - Get family dashboard data
   app.get('/api/family/dashboard', async (req, res) => {
     try {
+      // Set family context for RLS to access all students' data
+      await db.execute(sql`SELECT set_config('app.current_student', 'family', true)`);
+      
       const dashboardData = await storage.getFamilyDashboardData();
       
       // Calculate daily stats across all students
