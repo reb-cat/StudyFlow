@@ -690,7 +690,7 @@ export default function AssignmentsPage() {
               data-testid={`assignment-${assignment.id}`}
             >
               <CardContent className="pt-4">
-                <div className="flex items-start gap-4">
+                <div className="flex items-center gap-4">
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={(checked) => {
@@ -702,7 +702,7 @@ export default function AssignmentsPage() {
                       }
                       setSelectedAssignments(newSelected);
                     }}
-                    className="flex-shrink-0 w-4 h-4 min-w-4 min-h-4 max-w-4 max-h-4"
+                    className="flex-shrink-0 w-5 h-5 min-w-5 min-h-5 max-w-5 max-h-5"
                     data-testid={`checkbox-${assignment.id}`}
                   />
                   
