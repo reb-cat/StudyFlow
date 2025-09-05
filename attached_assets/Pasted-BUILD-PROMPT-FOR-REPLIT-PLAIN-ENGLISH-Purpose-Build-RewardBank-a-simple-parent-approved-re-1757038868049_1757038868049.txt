@@ -1,0 +1,87 @@
+BUILD PROMPT FOR REPLIT (PLAIN ENGLISH)
+
+Purpose:
+- Build “RewardBank”: a simple, parent-approved rewards layer for StudyFlow so students earn points for real study work and redeem them for screen time or privileges.
+
+What the user can do (MVP):
+1) Earn points automatically when completing validated study actions (finishing a session, marking a task Done, keeping a streak).
+2) See a fun progress view: current points, level, streak, and 3 rotating “Quests” (small goals).
+3) Redeem points for parent-defined rewards (e.g., 30 min game time) with an approval flow.
+
+Pages & Navigation:
+- Rewards (Student): shows Points, Level, Streak, Quests, and a “Redeem” button (opens Reward Shop).
+- Reward Shop (Student): cards for available rewards with cost; requesting opens a confirm modal and creates a pending request.
+- Rewards (Parent/Admin in Settings): configure rewards, approve/deny redemption requests, set daily/weekly caps, and view history.
+
+Data to remember:
+- RewardProfile { userId*, points, level, streakDays, lastClaimedDate }
+- Quest { id, userId*, title, goalType(Tasks|Minutes|Streak), target, progress, expiresAt, rewardPoints }
+- RewardCatalogItem { id, ownerId(parent)*, title*, costPoints*, notes, isActive }
+- RedemptionRequest { id, userId*, catalogItemId*, status(Pending|Approved|Denied), requestedAt, decidedAt, notes }
+- EarnEvent (ledger) { id, userId*, type(Session|Task|Streak|Quest), amount*, sourceId, createdAt }
+- Settings (parent) { userId*, dailyEarnCapPoints, weeklyEarnCapPoints, redemptionCooldownMinutes }
+
+Rules & Limits:
+- Earning:
+  - Session completion: +1 point per 5 minutes (rounded down), only if session duration ≥ 15 min and not paused > 50%.
+  - Task completion: +5 (High), +3 (Med), +1 (Low) once per task.
+  - Streak: +10 on each 7-day streak checkpoint.
+  - Quests: +rewardPoints when target reached; each quest can be claimed once; rotate expired quests daily.
+- Anti-abuse:
+  - Daily earn cap default 100 points; weekly cap 400; show friendly banner when hit.
+  - Only sessions with “End” logged grant points; editing duration after end does not change points.
+  - Back-dated sessions do not award points.
+- Redeeming:
+  - Student can “Request Redeem”; status = Pending until a parent approves in Settings.
+  - On Approve: points deducted; on Deny: no deduction and a reason is stored.
+  - Cooldown: default 60 minutes between approved redemptions.
+- Levels:
+  - Level = floor(points_lifetime / 200); show small perks (badge + confetti only).
+- Safety:
+  - All reads/writes scoped to current signed-in user; parent controls are visible only to parent/admin role.
+  - Keep a full EarnEvent ledger for audit; points balance is computed from the ledger.
+
+Look & Feel:
+- Keep StudyFlow’s layout. Add a playful header on Rewards with a progress ring for “Points to next level,” 3 quest chips, and a gentle confetti on redeem/level-up.
+- Reward Shop uses simple cards with cost badges.
+
+Sample Text & Labels:
+- Tab name: “Rewards”
+- Section headers: “Your Points”, “Quests”, “Reward Shop”
+- Buttons: “Redeem”, “Request Redeem”, “Approve”, “Deny”
+- Empty state (student): “Earn points by finishing a study session or completing tasks.”
+- Empty state (parent): “Add a reward so students can redeem points.”
+- Success toast: “Nice! Points added.”
+- Redeem toast (pending): “Redemption requested — waiting for approval.”
+- Approval toast (parent): “Redemption approved.”
+- Error: “You’ve hit today’s point limit.” / “Not enough points.”
+
+Success Checks (manual test):
+- I can finish a 25-minute session and see +5 points (25/5).
+- I complete a High-priority task and see +5 points and a ledger entry.
+- I request a 30-minute game reward (cost 30) and it goes to Pending.
+- As parent, I approve the request; student points decrease; a RedemptionRequest record shows Approved.
+- Daily cap blocks further earning with a friendly banner.
+- Refreshing the page keeps my points/quests (ledger persists).
+
+Starter Content (seed data):
+- RewardCatalogItem examples (parent): “30 min Game Time (30)”, “Phone Time 20 min (20)”, “One Treat (15)”.
+- 3 Quests seeded per student: 
+  - “Focus 45 minutes today” (Minutes=45, +10)
+  - “Complete 2 tasks today” (+8)
+  - “Keep your streak 3 days” (+12)
+
+Run & Save in Replit:
+- Starts with Run; “Rewards” tab visible in the left nav.
+- Data persists per user; Demo Mode seeds a sample profile, quests, and rewards.
+
+Stretch Ideas (nice to have later):
+- Limited-time “Events” (double points on Saturdays up to +20).
+- Badge gallery and shareable milestone card.
+- Parent-scheduled auto-rewards (e.g., weekly allowance when streak ≥ 5).
+- “Focus integrity” check: tiny penalty if session has >60% paused time.
+
+Notes for the Builder:
+- Wire points to existing SessionLog and Task completion events; do not duplicate timers.
+- Use the ledger (EarnEvent) as source of truth; points balance = sum(earn) − sum(approved redemptions).
+- Keep all caps and values as settings so parents can edit later (use defaults now).

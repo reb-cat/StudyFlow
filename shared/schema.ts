@@ -273,6 +273,130 @@ export const insertProgressSessionSchema = createInsertSchema(progressSessions).
   createdAt: true,
 });
 
+// REWARDBANK SYSTEM TABLES
+// Gamification and rewards system for StudyFlow engagement
+
+// Student reward profiles - track points, levels, streaks
+export const rewardProfiles = pgTable("reward_profiles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull().unique(), // "khalil-user", "abigail-user"
+  points: integer("points").default(0), // Current point balance
+  lifetimePoints: integer("lifetime_points").default(0), // Total points ever earned (for levels)
+  level: integer("level").default(1), // Current level based on lifetime points
+  streakDays: integer("streak_days").default(0), // Current consecutive study days
+  lastStreakDate: date("last_streak_date"), // Last date streak was updated
+  lastClaimedDate: timestamp("last_claimed_date"), // Last time student claimed any reward
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Student quests - rotating mini-goals for engagement
+export const quests = pgTable("quests", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(), // "khalil-user", "abigail-user"
+  title: text("title").notNull(), // "Complete 2 tasks today"
+  goalType: text("goal_type", {
+    enum: ["Tasks", "Minutes", "Streak", "Sessions"]
+  }).notNull(), // Type of goal to track
+  target: integer("target").notNull(), // Goal target (e.g., 2 for "complete 2 tasks")
+  progress: integer("progress").default(0), // Current progress toward goal
+  rewardPoints: integer("reward_points").notNull(), // Points awarded when completed
+  expiresAt: timestamp("expires_at").notNull(), // When quest expires
+  isCompleted: boolean("is_completed").default(false), // Whether quest was completed
+  completedAt: timestamp("completed_at"), // When quest was completed
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Parent-defined rewards catalog
+export const rewardCatalog = pgTable("reward_catalog", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownerId: text("owner_id").notNull(), // Parent user ID who created the reward
+  title: text("title").notNull(), // "30 min Game Time"
+  costPoints: integer("cost_points").notNull(), // Point cost to redeem
+  description: text("description"), // Optional detailed description
+  notes: text("notes"), // Internal notes for parent
+  isActive: boolean("is_active").default(true), // Whether students can see/redeem this
+  timesRedeemed: integer("times_redeemed").default(0), // Usage tracking
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Redemption requests - student requests, parent approval flow
+export const redemptionRequests = pgTable("redemption_requests", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(), // Student making the request
+  catalogItemId: uuid("catalog_item_id").notNull().references(() => rewardCatalog.id),
+  pointsSpent: integer("points_spent").notNull(), // Points deducted (stored for audit)
+  status: text("status", {
+    enum: ["Pending", "Approved", "Denied"]
+  }).default("Pending"),
+  requestedAt: timestamp("requested_at").defaultNow(),
+  decidedAt: timestamp("decided_at"), // When parent approved/denied
+  decidedBy: text("decided_by"), // Parent who made the decision
+  parentNotes: text("parent_notes"), // Parent's reason for approval/denial
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Point earning ledger - full audit trail of all point transactions
+export const earnEvents = pgTable("earn_events", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(), // Student who earned the points
+  type: text("type", {
+    enum: ["Session", "Task", "Streak", "Quest", "Manual"]
+  }).notNull(), // What action earned the points
+  amount: integer("amount").notNull(), // Points earned (positive) or spent (negative)
+  sourceId: uuid("source_id"), // ID of the source (assignment ID, session ID, quest ID, etc.)
+  sourceDetails: text("source_details"), // Human-readable details about the source
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Parent reward system settings
+export const rewardSettings = pgTable("reward_settings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull().unique(), // Parent user ID
+  dailyEarnCapPoints: integer("daily_earn_cap_points").default(100), // Max points per day
+  weeklyEarnCapPoints: integer("weekly_earn_cap_points").default(400), // Max points per week
+  redemptionCooldownMinutes: integer("redemption_cooldown_minutes").default(60), // Minutes between redemptions
+  sessionMinimumMinutes: integer("session_minimum_minutes").default(15), // Min session length to earn points
+  sessionPauseThreshold: integer("session_pause_threshold").default(50), // Max pause percentage allowed
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Create insert schemas for RewardBank tables
+export const insertRewardProfileSchema = createInsertSchema(rewardProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertQuestSchema = createInsertSchema(quests).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertRewardCatalogSchema = createInsertSchema(rewardCatalog).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRedemptionRequestSchema = createInsertSchema(redemptionRequests).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEarnEventSchema = createInsertSchema(earnEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertRewardSettingsSchema = createInsertSchema(rewardSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Export types (removed unused user/task/session types)
 
 // New advanced types
@@ -308,3 +432,22 @@ export type InsertSession = z.infer<typeof insertSessionSchema>;
 export type ChecklistItem = typeof checklistItems.$inferSelect;
 export type InsertChecklistItem = z.infer<typeof insertChecklistItemSchema>;
 export type UpdateChecklistItem = z.infer<typeof updateChecklistItemSchema>;
+
+// RewardBank types
+export type RewardProfile = typeof rewardProfiles.$inferSelect;
+export type InsertRewardProfile = z.infer<typeof insertRewardProfileSchema>;
+
+export type Quest = typeof quests.$inferSelect;
+export type InsertQuest = z.infer<typeof insertQuestSchema>;
+
+export type RewardCatalogItem = typeof rewardCatalog.$inferSelect;
+export type InsertRewardCatalogItem = z.infer<typeof insertRewardCatalogSchema>;
+
+export type RedemptionRequest = typeof redemptionRequests.$inferSelect;
+export type InsertRedemptionRequest = z.infer<typeof insertRedemptionRequestSchema>;
+
+export type EarnEvent = typeof earnEvents.$inferSelect;
+export type InsertEarnEvent = z.infer<typeof insertEarnEventSchema>;
+
+export type RewardSettings = typeof rewardSettings.$inferSelect;
+export type InsertRewardSettings = z.infer<typeof insertRewardSettingsSchema>;
