@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
 import { Clock, Save, RotateCcw, Home, Edit3, Users, Upload, FileText } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -299,14 +300,17 @@ export default function ScheduleTemplates() {
             <p className="text-muted-foreground">Configure daily schedule blocks and time allocations</p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={() => window.location.href = '/admin'}
-          data-testid="button-back-admin"
-        >
-          <Home className="h-4 w-4 mr-2" />
-          Back to Admin
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.href = '/admin'}
+            data-testid="button-back-admin"
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Back to Admin
+          </Button>
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Student and Weekday Selection */}

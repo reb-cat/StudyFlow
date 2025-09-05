@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { 
   Users, 
   Settings, 
@@ -131,11 +132,15 @@ export default function AdminPanel() {
     <div className="container mx-auto p-6 space-y-8" data-testid="admin-panel">
       {/* Header */}
       <div className="text-center space-y-4">
-        <div className="flex items-center justify-center gap-3">
-          <Target className="w-10 h-10 text-primary" />
-          <h1 className="text-4xl font-bold text-foreground" data-testid="admin-title">
-            StudyFlow Admin
-          </h1>
+        <div className="flex items-center justify-between">
+          <div></div> {/* Spacer for centering */}
+          <div className="flex items-center gap-3">
+            <Target className="w-10 h-10 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground" data-testid="admin-title">
+              StudyFlow Admin
+            </h1>
+          </div>
+          <ThemeToggle />
         </div>
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
           Central hub for managing students, assignments, schedules, and system configuration. 

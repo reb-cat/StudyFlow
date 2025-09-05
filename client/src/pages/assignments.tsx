@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp, Plus, Calendar, ArrowLeft, User, HelpCircle, CheckCircle2, Calendar as CalendarIcon, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -509,6 +510,7 @@ export default function AssignmentsPage() {
             <Plus className="w-4 h-4" />
             Create Assignment
           </Button>
+          <ThemeToggle />
         </div>
       </div>
 

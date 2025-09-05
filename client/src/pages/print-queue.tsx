@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { ExternalLink, Printer, Check, X, Clock, AlertTriangle, BookOpen, FileText, Calendar } from "lucide-react";
 
 interface PrintQueueItem {
@@ -137,20 +138,23 @@ export default function PrintQueue() {
           </div>
           
           {/* Days Ahead Selector */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-foreground">
-              Print Range:
-            </label>
-            <select
-              value={daysAhead}
-              onChange={(e) => setDaysAhead(parseInt(e.target.value))}
-              className="px-3 py-2 border rounded-md bg-card border-border text-foreground"
-            >
-              <option value={3}>Next 3 days</option>
-              <option value={4}>Next 4 days</option>
-              <option value={5}>Next 5 days</option>
-              <option value={7}>Next week</option>
-            </select>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-foreground">
+                Print Range:
+              </label>
+              <select
+                value={daysAhead}
+                onChange={(e) => setDaysAhead(parseInt(e.target.value))}
+                className="px-3 py-2 border rounded-md bg-card border-border text-foreground"
+              >
+                <option value={3}>Next 3 days</option>
+                <option value={4}>Next 4 days</option>
+                <option value={5}>Next 5 days</option>
+                <option value={7}>Next week</option>
+              </select>
+            </div>
+            <ThemeToggle />
           </div>
         </div>
 
