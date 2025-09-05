@@ -2,14 +2,12 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Award, Star, Trophy, Gift, Clock, Target, Coins, Zap, TrendingUp } from 'lucide-react';
+import { QuestCard } from '@/components/rewards/QuestCard';
+import { Trophy, Gift, Star, TrendingUp, Flame, Target, Clock, Award } from 'lucide-react';
 
 export default function RewardsPage() {
   const [selectedReward, setSelectedReward] = useState<any>(null);
@@ -18,8 +16,7 @@ export default function RewardsPage() {
   const queryClient = useQueryClient();
 
   // Get current student - for now using hardcoded student names
-  // In production this would come from auth context
-  const currentStudent = 'abigail'; // or 'khalil' 
+  const currentStudent = 'abigail';
 
   // Fetch reward profile with points, level, quests
   const { data: profileData, isLoading: profileLoading } = useQuery({
@@ -77,18 +74,8 @@ export default function RewardsPage() {
     }
   };
 
-  // Calculate level progress
-  const calculateLevelProgress = (lifetimePoints: number, level: number) => {
-    const currentLevelStart = (level - 1) * 200;
-    const nextLevelStart = level * 200;
-    const progressInLevel = lifetimePoints - currentLevelStart;
-    const levelRange = nextLevelStart - currentLevelStart;
-    return (progressInLevel / levelRange) * 100;
-  };
-
   const profile = (profileData as any)?.profile;
   const quests = (profileData as any)?.quests || [];
-  const settings = (profileData as any)?.settings;
 
   if (profileLoading) {
     return (
@@ -102,7 +89,6 @@ export default function RewardsPage() {
   }
 
   if (!profile) {
-    // Show first-time setup message
     return (
       <div className="max-w-2xl mx-auto text-center space-y-6">
         <div className="p-8">
@@ -133,303 +119,192 @@ export default function RewardsPage() {
     );
   }
 
-  const levelProgress = calculateLevelProgress(profile.lifetimePoints, profile.level);
-
   return (
-    <div className="space-y-6" data-testid="rewards-page">
-      
-      {/* Stats Overview - Gaming Theme */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 bg-card border border-border shadow-gold animate-fade-in" data-testid="points-card">
-          <div className="text-center">
-            <Trophy className="w-8 h-8 text-gold mx-auto mb-2" />
-            <p className="text-2xl font-bold text-gold mb-1" data-testid="current-points">
-              {profile.points}
-            </p>
-            <p className="text-xs text-muted-foreground">Points</p>
-          </div>
-        </Card>
-
-        <Card className="p-4 bg-card border border-border animate-fade-in" data-testid="level-card">
-          <div className="text-center">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mx-auto mb-2">
-              <span className="text-sm font-bold text-primary-foreground">{profile.level}</span>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border bg-card">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold mb-1">Your Rewards</h1>
+              <p className="text-muted-foreground text-sm">
+                Keep studying to earn more points!
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">Level {profile.level}</p>
-            <Progress value={levelProgress} className="mt-2 h-2" data-testid="level-progress" />
+            <Button 
+              className="bg-primary hover:bg-primary/90" 
+              onClick={() => setShowRedeemDialog(true)}
+            >
+              <Gift className="w-4 h-4 mr-2" />
+              Shop
+            </Button>
           </div>
-        </Card>
-
-        <Card className="p-4 bg-card border border-border shadow-emerald animate-fade-in" data-testid="lifetime-card">
-          <div className="text-center">
-            <TrendingUp className="w-8 h-8 text-violet mx-auto mb-2" />
-            <p className="text-2xl font-bold text-violet mb-1" data-testid="lifetime-points">
-              {profile.lifetimePoints}
-            </p>
-            <p className="text-xs text-muted-foreground">Total Earned</p>
-          </div>
-        </Card>
-
-        <Card className="p-4 bg-card border border-border shadow-emerald animate-fade-in" data-testid="streak-card">
-          <div className="text-center">
-            <Zap className="w-8 h-8 text-emerald mx-auto mb-2" />
-            <p className="text-2xl font-bold text-emerald mb-1" data-testid="streak-days">
-              {profile.streakDays}
-            </p>
-            <p className="text-xs text-muted-foreground">Day Streak</p>
-          </div>
-        </Card>
+        </div>
       </div>
 
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="rewards" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="rewards" data-testid="rewards-tab">🎁 Reward Shop</TabsTrigger>
-          <TabsTrigger value="quests" data-testid="quests-tab">🎯 Quests</TabsTrigger>
-          <TabsTrigger value="history" data-testid="history-tab">📊 History</TabsTrigger>
-        </TabsList>
-
-        {/* Reward Shop */}
-        <TabsContent value="rewards" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Gift className="h-5 w-5" />
-                Reward Shop
-              </CardTitle>
-              <CardDescription>
-                Redeem your points for awesome rewards! All purchases need parent approval.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {catalogLoading ? (
-                <div className="text-center py-4">Loading rewards...</div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="reward-catalog">
-                  {Array.isArray(catalog) && catalog.map((item: any) => {
-                    const affordable = profile.points >= item.costPoints;
-                    // Extract emoji from title
-                    const emojiMatch = item.title.match(/^([^\w\s]+)/);
-                    const emoji = emojiMatch ? emojiMatch[1] : '🎁';
-                    const title = item.title.replace(/^[^\w\s]+\s*/, '');
-
-                    return (
-                      <Card
-                        key={item.id}
-                        className={`p-4 bg-card border border-border transition-all animate-scale-in ${
-                          affordable ? 'hover:border-primary/50 hover:shadow-glow cursor-pointer' : 'opacity-60'
-                        }`}
-                        data-testid={`reward-item-${item.id}`}
-                      >
-                        <div className="text-center space-y-3">
-                          {/* Emoji Icon */}
-                          <div className="w-12 h-12 mx-auto bg-primary/10 rounded-xl flex items-center justify-center text-2xl">
-                            {emoji}
-                          </div>
-
-                          {/* Title */}
-                          <h3 className="font-semibold text-sm leading-tight">{title}</h3>
-
-                          {/* Description */}
-                          {item.description && (
-                            <p className="text-xs text-muted-foreground">{item.description}</p>
-                          )}
-
-                          {/* Cost Badge */}
-                          <div className="flex items-center justify-center gap-2">
-                            <Badge
-                              className={`text-sm px-2 py-1 ${
-                                affordable
-                                  ? 'bg-gold/20 text-gold border-gold/30'
-                                  : 'bg-muted text-muted-foreground'
-                              }`}
-                              variant="outline"
-                            >
-                              <Star className="w-3 h-3 mr-1" />
-                              {item.costPoints}
-                            </Badge>
-                          </div>
-
-                          {/* Redeem Button */}
-                          <Button
-                            onClick={() => handleRedeemClick(item)}
-                            disabled={!affordable || redeemMutation.isPending}
-                            size="sm"
-                            className={`w-full ${
-                              affordable
-                                ? 'bg-primary hover:bg-primary/90'
-                                : 'bg-muted text-muted-foreground cursor-not-allowed'
-                            }`}
-                            data-testid={`redeem-button-${item.id}`}
-                          >
-                            {affordable ? 'Request' : 'Need More Points'}
-                          </Button>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                  {(!catalog || !Array.isArray(catalog) || catalog.length === 0) && (
-                    <div className="col-span-full text-center py-8 text-muted-foreground">
-                      No rewards available yet. Check back soon!
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Quests */}
-        <TabsContent value="quests" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                Active Quests
-              </CardTitle>
-              <CardDescription>
-                Complete special challenges for bonus points!
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3" data-testid="quest-list">
-                {Array.isArray(quests) && quests.map((quest: any) => (
-                  <Card 
-                    key={quest.id} 
-                    className="p-4 bg-gradient-card border-border/50 animate-fade-in hover:border-emerald/50 transition-all" 
-                    data-testid={`quest-${quest.id}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center flex-shrink-0">
-                        <Target className="w-5 h-5 text-primary-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-sm">{quest.title}</h4>
-                        <p className="text-xs text-muted-foreground">{quest.description}</p>
-                        
-                        <div className="mt-2">
-                          <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                            <span>{quest.currentProgress}/{quest.targetValue}</span>
-                            <span>Expires: {new Date(quest.expiresAt).toLocaleDateString()}</span>
-                          </div>
-                          <Progress 
-                            value={Math.min((quest.currentProgress / quest.targetValue) * 100, 100)}
-                            className="h-2"
-                          />
-                        </div>
-                      </div>
-                      <Badge className="bg-emerald/20 text-emerald border-emerald/30 flex items-center gap-1">
-                        <Star className="h-3 w-3" />
-                        {quest.rewardPoints}
-                      </Badge>
-                    </div>
-                  </Card>
-                ))}
-                {(!quests || !Array.isArray(quests) || quests.length === 0) && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No active quests right now. New challenges coming soon!
-                  </div>
-                )}
+      <div className="container mx-auto px-6 py-8">
+        <div className="grid gap-8">
+          {/* Stats Overview */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Current Points */}
+            <Card className="p-4 bg-card border border-border" data-testid="points-card">
+              <div className="text-center">
+                <Trophy className="w-8 h-8 text-gold mx-auto mb-2" />
+                <p className="text-2xl font-bold text-gold mb-1" data-testid="current-points">
+                  {profile.points}
+                </p>
+                <p className="text-xs text-muted-foreground">Points</p>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </Card>
 
-        {/* History */}
-        <TabsContent value="history" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Point History
-              </CardTitle>
-              <CardDescription>
-                Your recent earning activity
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {historyLoading ? (
-                <div className="text-center py-4">Loading history...</div>
+            {/* Level */}
+            <Card className="p-4 bg-card border border-border" data-testid="level-card">
+              <div className="text-center">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mx-auto mb-2">
+                  <span className="text-sm font-bold text-primary-foreground">{profile.level}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Level {profile.level}</p>
+              </div>
+            </Card>
+
+            {/* Streak */}
+            <Card className="p-4 bg-card border border-border" data-testid="streak-card">
+              <div className="text-center">
+                <Flame className="w-8 h-8 text-emerald mx-auto mb-2" />
+                <p className="text-2xl font-bold text-emerald mb-1" data-testid="streak-days">
+                  {profile.streakDays}
+                </p>
+                <p className="text-xs text-muted-foreground">Day Streak</p>
+              </div>
+            </Card>
+
+            {/* Lifetime Points */}
+            <Card className="p-4 bg-card border border-border" data-testid="lifetime-card">
+              <div className="text-center">
+                <TrendingUp className="w-8 h-8 text-violet mx-auto mb-2" />
+                <p className="text-2xl font-bold text-violet mb-1" data-testid="lifetime-points">
+                  {profile.lifetimePoints}
+                </p>
+                <p className="text-xs text-muted-foreground">Total Earned</p>
+              </div>
+            </Card>
+          </div>
+
+          {/* Quest Cards Section */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold">Daily Quests</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {quests.map((quest: any) => (
+                <QuestCard key={quest.id} quest={quest} />
+              ))}
+            </div>
+          </div>
+
+          {/* Reward Shop Section */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold">Reward Shop</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="reward-catalog">
+              {catalogLoading ? (
+                <div className="col-span-full text-center py-4">Loading rewards...</div>
               ) : (
-                <div className="space-y-3" data-testid="earning-history">
-                  {Array.isArray(history) && history.map((event: any) => (
-                    <Card key={event.id} className="p-4 bg-gradient-card border-border/50 animate-fade-in" data-testid={`history-${event.id}`}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center flex-shrink-0">
-                          {event.type === 'Assignment' ? <Award className="w-5 h-5 text-primary-foreground" /> :
-                           event.type === 'Session' ? <Clock className="h-5 w-5 text-primary-foreground" /> :
-                           event.type === 'Quest' ? <Target className="h-5 w-5 text-primary-foreground" /> :
-                           <Trophy className="h-5 w-5 text-primary-foreground" />}
+                Array.isArray(catalog) && catalog.map((item: any) => {
+                  const affordable = profile.points >= item.costPoints;
+                  const emojiMatch = item.title.match(/^([^\w\s]+)/);
+                  const emoji = emojiMatch ? emojiMatch[1] : '🎁';
+                  const title = item.title.replace(/^[^\w\s]+\s*/, '');
+
+                  return (
+                    <Card
+                      key={item.id}
+                      className={`p-4 bg-card border border-border transition-all animate-fade-in ${
+                        affordable ? 'hover:border-primary/50 hover:shadow-lg cursor-pointer' : 'opacity-60'
+                      }`}
+                      data-testid={`reward-item-${item.id}`}
+                    >
+                      <div className="text-center space-y-3">
+                        <div className="w-12 h-12 mx-auto bg-primary/10 rounded-xl flex items-center justify-center text-2xl">
+                          {emoji}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">{event.sourceDetails}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(event.createdAt).toLocaleDateString()} at {new Date(event.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                        <h3 className="font-semibold text-sm leading-tight">{title}</h3>
+                        {item.description && (
+                          <p className="text-xs text-muted-foreground">{item.description}</p>
+                        )}
+                        <div className="flex items-center justify-center gap-2">
+                          <Badge
+                            className={`text-sm px-2 py-1 ${
+                              affordable
+                                ? 'bg-gold/20 text-gold border-gold/30'
+                                : 'bg-muted text-muted-foreground'
+                            }`}
+                            variant="outline"
+                          >
+                            <Star className="w-3 h-3 mr-1" />
+                            {item.costPoints}
+                          </Badge>
                         </div>
-                        <Badge className="bg-gold text-gold-foreground text-xs">
-                          +{event.amount} points
-                        </Badge>
+                        <Button
+                          onClick={() => handleRedeemClick(item)}
+                          disabled={!affordable || redeemMutation.isPending}
+                          size="sm"
+                          className={`w-full ${
+                            affordable
+                              ? 'bg-primary hover:bg-primary/90'
+                              : 'bg-muted text-muted-foreground cursor-not-allowed'
+                          }`}
+                          data-testid={`redeem-button-${item.id}`}
+                        >
+                          {affordable ? 'Request' : 'Need More Points'}
+                        </Button>
                       </div>
                     </Card>
-                  ))}
-                  {(!history || !Array.isArray(history) || history.length === 0) && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No earning history yet. Complete some assignments to get started!
-                    </div>
-                  )}
-                </div>
+                  );
+                })
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Redemption Dialog */}
+      {/* Redeem Dialog */}
       <Dialog open={showRedeemDialog} onOpenChange={setShowRedeemDialog}>
-        <DialogContent data-testid="redeem-dialog">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle>Redeem Reward</DialogTitle>
+            <DialogTitle>Confirm Redemption</DialogTitle>
             <DialogDescription>
-              Request parent approval to redeem this reward
+              Request parent approval to redeem this reward?
             </DialogDescription>
           </DialogHeader>
           
           {selectedReward && (
             <div className="space-y-4">
-              <Card>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold">{selectedReward.title}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedReward.description}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className="flex items-center gap-1">
-                      <Coins className="h-3 w-3" />
-                      {selectedReward.costPoints} points
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-xl flex items-center justify-center text-3xl mb-2">
+                  {selectedReward.title.match(/^([^\w\s]+)/)?.[1] || '🎁'}
+                </div>
+                <h3 className="font-semibold">{selectedReward.title.replace(/^[^\w\s]+\s*/, '')}</h3>
+                <p className="text-muted-foreground text-sm">{selectedReward.description}</p>
+              </div>
               
-              <div className="text-sm text-muted-foreground">
-                <p>⏳ Your request will be sent to your parents for approval.</p>
-                <p>💰 Points will only be deducted once approved.</p>
-                {settings?.redemptionCooldownMinutes > 0 && (
-                  <p>🕐 Cooldown: {settings.redemptionCooldownMinutes} minutes between redemptions.</p>
-                )}
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <span className="text-sm">Cost:</span>
+                <Badge className="bg-gold/20 text-gold border-gold/30">
+                  <Star className="w-3 h-3 mr-1" />
+                  {selectedReward.costPoints} points
+                </Badge>
               </div>
             </div>
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRedeemDialog(false)} data-testid="cancel-redeem">
+            <Button variant="outline" onClick={() => setShowRedeemDialog(false)}>
               Cancel
             </Button>
             <Button 
-              onClick={handleRedeemConfirm} 
+              onClick={handleRedeemConfirm}
               disabled={redeemMutation.isPending}
-              data-testid="confirm-redeem"
+              className="bg-primary hover:bg-primary/90"
             >
-              {redeemMutation.isPending ? 'Requesting...' : 'Request Redemption'}
+              {redeemMutation.isPending ? "Requesting..." : "Request Approval"}
             </Button>
           </DialogFooter>
         </DialogContent>
