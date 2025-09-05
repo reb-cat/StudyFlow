@@ -859,9 +859,9 @@ export default function StudentDashboard() {
                           blockDetails = '';
                         }
                       } else if (block.blockType === 'bible') {
-                        // Use the populated Bible reading from block.subject (e.g., "Job 40-42")
-                        blockTitle = block.subject || 'Daily Bible Reading';
-                        blockDetails = 'Daily Bible Reading';
+                        // Show "Bible" as title and specific reading as details
+                        blockTitle = 'Bible';
+                        blockDetails = block.subject || 'Daily Bible Reading';
                       } else if (block.blockType === 'co-op') {
                         // Show rich details for co-op classes
                         blockTitle = block.title;
