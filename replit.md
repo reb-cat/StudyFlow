@@ -62,7 +62,15 @@ StudyFlow is a full-stack web application designed to help students manage acade
 *   **Assignments Page Usability**: Changed default view to show only pending assignments instead of completed ones, making the system manageable as the school year progresses
 *   **Co-op Prep Checklist**: Added intelligent preparation checklist in Guided mode during Prep/Load blocks that analyzes the day's schedule and assignments to generate personalized co-op preparation recommendations (books, materials, homework, general items) with executive function-friendly categorization and interactive checkboxes
 
-## Latest Stable Version (September 5, 2025)
+## Latest Stable Version (September 5, 2025) - v2.0 Dark Mode Edition
+
+### 🎨 **Dark Mode Transformation Complete:**
+
+*   **Lovable-Style Design**: Completely redesigned dark mode to match modern aesthetic with true black cards (#141316), very dark backgrounds (#0a0a0b), and high contrast white text (#fafafa)
+*   **Bright Accent Colors**: Updated all color variables to use saturated, vibrant colors - violet (#6d28d8), emerald (#00a348), blue (#3b82f6), and gold (#f1c40f) that really pop against the dark backgrounds
+*   **Theme Consistency**: Applied new color system across all components including AssignmentCard, OverviewBlock, GuidedDayView, and all status indicators
+*   **Theme Toggle Positioning**: Standardized theme toggle placement to far right on all pages for consistent navigation experience
+*   **No More Washed Colors**: Eliminated all old hardcoded blue colors and replaced with bright theme variables for consistent branding
 
 ### ✅ **Production-Ready Features Confirmed Working:**
 
