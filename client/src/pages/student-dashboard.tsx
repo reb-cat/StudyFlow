@@ -801,7 +801,12 @@ export default function StudentDashboard() {
               <div className="hidden print:block">
                 <div className="print-schedule-container">
                   {allScheduleBlocks
-                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                    .sort((a, b) => {
+                      // Convert time strings to minutes for proper chronological sorting
+                      const aMinutes = a.startTime ? parseInt(a.startTime.split(':')[0]) * 60 + parseInt(a.startTime.split(':')[1]) : 999;
+                      const bMinutes = b.startTime ? parseInt(b.startTime.split(':')[0]) * 60 + parseInt(b.startTime.split(':')[1]) : 999;
+                      return aMinutes - bMinutes;
+                    })
                     .map((block, index) => {
                       const formatTime = (start: string, end: string) => {
                         const formatTimeString = (timeStr: string) => {
