@@ -61,3 +61,31 @@ StudyFlow is a full-stack web application designed to help students manage acade
 *   **Smart Continuation Filter**: Added intelligent filter to prevent re-importing "(Continued)" assignments when original is already completed locally via "Need More Time" feature
 *   **Assignments Page Usability**: Changed default view to show only pending assignments instead of completed ones, making the system manageable as the school year progresses
 *   **Co-op Prep Checklist**: Added intelligent preparation checklist in Guided mode during Prep/Load blocks that analyzes the day's schedule and assignments to generate personalized co-op preparation recommendations (books, materials, homework, general items) with executive function-friendly categorization and interactive checkboxes
+
+## Latest Stable Version (September 5, 2025)
+
+### ✅ **Production-Ready Features Confirmed Working:**
+
+*   **Schedule Templates Management**: Complete CRUD system for managing daily schedule structures via `/schedule-templates` page
+*   **CSV Upload System**: Robust bulk upload with intelligent field mapping, deduplication, and constraint handling
+*   **Time Display Fix**: HTML time inputs properly display zero-padded format (08:15) converted from database format (8:15)
+*   **Block Type Logic**: Proper handling of block number assignment - only Bible, Assignment, Co-op, Study Hall get sequential numbers; Travel, Movement, Lunch, Prep/Load remain unnumbered
+*   **Assignment Population**: Study Hall and Assignment blocks correctly receive homework assignments from Canvas integration
+*   **Constraint Resolution**: Unique constraint `(student_name, weekday, block_number)` properly handled with deduplication
+*   **Dark Mode Theme**: Complete theme system with 4.5:1 contrast ratios and comfortable color palettes
+
+### 🔧 **Critical Architecture Fixes Applied:**
+
+1. **Study Hall Block Types**: Fixed Abigail's Study Hall from incorrect "Co-op" type to "Assignment" type, enabling homework population
+2. **CSV Field Mapping**: Added comprehensive header mapping to handle various CSV formats (`studentName`→`student_name`, `blockType`→`block_type`, etc.)
+3. **Auto Block Numbering**: Intelligent sequential numbering only for appropriate block types, preventing constraint violations
+4. **Duplicate Prevention**: Added deduplication logic to handle duplicate entries in CSV uploads
+5. **Time Format Compatibility**: Proper conversion between database storage format and HTML input requirements
+
+### 📋 **System Status:**
+*   **Database**: PostgreSQL with proper migrations and constraints
+*   **CSV Upload**: Fully functional with error handling and logging
+*   **Schedule Display**: Time inputs show correct formatted times
+*   **Assignment Allocation**: Both students receiving appropriate homework in Study Hall/Assignment blocks
+*   **Theme System**: Complete dark/light mode support with proper accessibility
+*   **Data Integrity**: Protected schedule template as source of truth with proper block type enforcement
