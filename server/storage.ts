@@ -701,9 +701,18 @@ export class DatabaseStorage implements IStorage {
       console.log(`🏫 Available blocks: ${assignmentBlocks.length} Assignment + ${studyHallBlocks.length} Study Hall`);
       
       // Create hybrid scheduling request
+      // CRITICAL FIX: Calculate Monday of the target week for hybrid scheduler
+      const dayOfWeek = targetDateObj.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const daysToMonday = dayOfWeek === 0 ? -6 : -(dayOfWeek - 1); // Calculate days back to Monday
+      const mondayOfTargetWeek = new Date(targetDateObj);
+      mondayOfTargetWeek.setDate(targetDateObj.getDate() + daysToMonday);
+      const targetWeekMonday = mondayOfTargetWeek.toISOString().split('T')[0];
+      
+      console.log(`📅 DATE CALCULATION: targetDate=${targetDate} (${weekday}) -> Monday of week=${targetWeekMonday}`);
+      
       const schedulingRequest = {
         studentName,
-        targetWeek: targetDate, // Monday of the target week
+        targetWeek: targetWeekMonday, // Monday of the target week (FIXED)
         assignments: assignmentsToSchedule,
         preserveExisting: true
       };
