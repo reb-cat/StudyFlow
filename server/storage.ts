@@ -717,11 +717,12 @@ export class DatabaseStorage implements IStorage {
           blockType: row.block_type as 'Bible' | 'Assignment' | 'Travel' | 'Co-op' | 'Study Hall' | 'Prep/Load' | 'Movement' | 'Lunch'
         }));
 
-        // Auto-generate block numbers for rows missing them to avoid constraint violations
+        // Auto-generate block numbers only for block types that should have them
+        const blockTypesWithNumbers = ['Bible', 'Assignment', 'Co-op', 'Study Hall', 'Prep/Load'];
         const blockNumberMap = new Map<string, number>(); // key: "studentName-weekday"
         
         insertBlocks.forEach(block => {
-          if (block.blockNumber === null) {
+          if (block.blockNumber === null && blockTypesWithNumbers.includes(block.blockType)) {
             const key = `${block.studentName}-${block.weekday}`;
             if (!blockNumberMap.has(key)) {
               // Find the highest existing block number for this student/weekday
@@ -734,6 +735,7 @@ export class DatabaseStorage implements IStorage {
             block.blockNumber = blockNumberMap.get(key)!;
             blockNumberMap.set(key, blockNumberMap.get(key)! + 1);
           }
+          // Leave block.blockNumber as null for Travel, Movement, Lunch, etc.
         });
         
         console.log(`📝 Inserting ${insertBlocks.length} new schedule template records`);
