@@ -424,7 +424,7 @@ async function placeAssignmentInOptimalSlot(
   return {
     success: true,
     scheduledDate: best.date,
-    scheduledBlock: best.slot.blockNumber === -999 ? null : best.slot.blockNumber, // Convert marker back to null
+    scheduledBlock: best.slot.blockNumber === -999 ? null : best.slot.blockNumber as number, // Convert marker back to null
     blockStart: best.slot.startTime,
     blockEnd: best.slot.endTime,
     reason: 'Successfully scheduled'

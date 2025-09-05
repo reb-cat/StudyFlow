@@ -1479,45 +1479,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async initializeDailySchedule(studentName: string, date: string): Promise<void> {
-    try {
-      // Get template blocks for the student's day
-      const weekday = new Date(date).getDay();
-      const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const weekdayName = weekdayNames[weekday];
-      
-      const templateBlocks = await this.getScheduleTemplate(studentName, weekdayName);
-      
-      if (templateBlocks.length === 0) {
-        console.log(`No template blocks found for ${studentName} on ${weekdayName}`);
-        return;
-      }
-      
-      // Create status records for each template block
-      const statusRecords = templateBlocks.map(block => ({
-        studentName,
-        date,
-        templateBlockId: block.id,
-        status: 'not-started' as const,
-      }));
-      
-      // Insert status records (ignore conflicts for existing records)
-      await db.insert(dailyScheduleStatus)
-        .values(statusRecords)
-        .onConflictDoNothing();
-      
-      console.log(`✅ Daily schedule status initialized for ${studentName} on ${weekdayName}`);
-      
-      // Now populate assignments into the schedule blocks using hybrid scheduler
-      console.log(`🚀 Populating assignments into schedule blocks...`);
-      await this.allocateAssignmentsToTemplate(studentName, date);
-      
-      console.log(`✅ Initialized daily schedule for ${studentName} on ${date} with ${templateBlocks.length} blocks`);
-      
-    } catch (error) {
-      console.error('Error initializing daily schedule:', error);
-    }
-  }
 
   // Checklist item operations
   async getChecklistItems(studentName: string, subject?: string): Promise<ChecklistItem[]> {
