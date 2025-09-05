@@ -120,15 +120,26 @@ export default function ScheduleTemplates() {
         allowSaturdayScheduling: allowSaturday
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/students/profiles/saturday-settings'] });
+    onSuccess: (data, variables) => {
+      // Optimistically update the cache
+      queryClient.setQueryData(['/api/students/profiles/saturday-settings'], (old: StudentProfile[] | undefined) => {
+        if (!old) return old;
+        return old.map(student => 
+          student.studentName === variables.studentName 
+            ? { ...student, allowSaturdayScheduling: variables.allowSaturday }
+            : student
+        );
+      });
+      
       toast({ 
         title: "Success", 
         description: "Saturday scheduling preference updated successfully."
       });
     },
-    onError: (error) => {
+    onError: (error, variables) => {
       console.error('Error updating Saturday settings:', error);
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['/api/students/profiles/saturday-settings'] });
       toast({ 
         title: "Error", 
         description: "Failed to update Saturday scheduling settings.",
@@ -491,13 +502,18 @@ export default function ScheduleTemplates() {
                       Allow Saturday
                     </Label>
                     <Switch
+                      key={`saturday-switch-${student.studentName}`}
                       id={`saturday-${student.studentName}`}
                       checked={student.allowSaturdayScheduling}
-                      onCheckedChange={(checked) => saturdayMutation.mutate({ 
-                        studentName: student.studentName, 
-                        allowSaturday: checked 
-                      })}
+                      onCheckedChange={(checked) => {
+                        console.log(`Toggle clicked for ${student.studentName}: ${checked}`);
+                        saturdayMutation.mutate({ 
+                          studentName: student.studentName, 
+                          allowSaturday: checked 
+                        });
+                      }}
                       disabled={saturdayMutation.isPending}
+                      className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input h-5"
                     />
                   </div>
                 </div>
