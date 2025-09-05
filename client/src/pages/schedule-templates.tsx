@@ -501,25 +501,28 @@ export default function ScheduleTemplates() {
                     }}
                     disabled={saturdayMutation.isPending}
                     className={`
-                      relative inline-block transition-all duration-300 ease-in-out focus:outline-none
+                      relative transition-all duration-300 ease-in-out focus:outline-none
                       ${saturdayMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                     `}
                     style={{
+                      display: 'inline-block',
                       width: '44px',
                       height: '22px',
                       borderRadius: '11px',
                       backgroundColor: student.allowSaturdayScheduling ? '#22c55e' : '#d1d5db',
-                      boxShadow: student.allowSaturdayScheduling ? '0 2px 4px rgba(34, 197, 94, 0.4)' : 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
-                      padding: '2px'
+                      padding: '2px',
+                      margin: '2px' // Space for shadow to prevent clipping
                     }}
                   >
                     <div 
-                      className="bg-white rounded-full shadow-sm transition-transform duration-300 ease-in-out"
+                      className="bg-white rounded-full transition-transform duration-300 ease-in-out"
                       style={{
                         width: '18px',
                         height: '18px',
-                        transform: student.allowSaturdayScheduling ? 'translateX(20px)' : 'translateX(0px)',
-                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.2)'
+                        // Available space: 44px - 4px padding = 40px internal width
+                        // Travel distance: 40px - 18px knob = 22px
+                        transform: student.allowSaturdayScheduling ? 'translateX(22px)' : 'translateX(0px)',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.25)'
                       }}
                     />
                   </button>
