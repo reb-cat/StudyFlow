@@ -620,7 +620,7 @@ export class DatabaseStorage implements IStorage {
         whereCondition = and(eq(scheduleTemplate.studentName, studentName), eq(scheduleTemplate.weekday, weekday))!;
       }
       
-      const result = await db.select().from(scheduleTemplate).where(whereCondition).orderBy(scheduleTemplate.startTime);
+      const result = await db.select().from(scheduleTemplate).where(whereCondition).orderBy(sql`${scheduleTemplate.startTime}::time`);
       
       return result || [];
     } catch (error) {
