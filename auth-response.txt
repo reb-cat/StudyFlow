@@ -1,0 +1,88 @@
+* Host study-flow.replit.app:443 was resolved.
+* IPv6: (none)
+* IPv4: 34.117.33.233
+*   Trying 34.117.33.233:443...
+* ALPN: curl offers h2,http/1.1
+} [5 bytes data]
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+} [512 bytes data]
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+{ [122 bytes data]
+* TLSv1.3 (IN), TLS change cipher, Change cipher spec (1):
+{ [1 bytes data]
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+{ [19 bytes data]
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+{ [4031 bytes data]
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+{ [264 bytes data]
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+{ [52 bytes data]
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+} [1 bytes data]
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+} [52 bytes data]
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384 / x25519 / RSASSA-PSS
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: CN=replit.app
+*  start date: Aug  6 01:37:18 2025 GMT
+*  expire date: Nov  4 02:33:12 2025 GMT
+*  subjectAltName: host "study-flow.replit.app" matched cert's "*.replit.app"
+*  issuer: C=US; O=Google Trust Services; CN=WR3
+*  SSL certificate verify ok.
+*   Certificate level 0: Public key type RSA (2048/112 Bits/secBits), signed using sha256WithRSAEncryption
+*   Certificate level 1: Public key type RSA (2048/112 Bits/secBits), signed using sha256WithRSAEncryption
+*   Certificate level 2: Public key type RSA (4096/152 Bits/secBits), signed using sha384WithRSAEncryption
+* Connected to study-flow.replit.app (34.117.33.233) port 443
+* using HTTP/2
+* [HTTP/2] [1] OPENED stream for https://study-flow.replit.app/api/unlock
+* [HTTP/2] [1] [:method: POST]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: study-flow.replit.app]
+* [HTTP/2] [1] [:path: /api/unlock]
+* [HTTP/2] [1] [user-agent: curl/8.14.1]
+* [HTTP/2] [1] [accept: */*]
+* [HTTP/2] [1] [content-type: application/json]
+* [HTTP/2] [1] [content-length: 33]
+} [5 bytes data]
+> POST /api/unlock HTTP/2
+> Host: study-flow.replit.app
+> User-Agent: curl/8.14.1
+> Accept: */*
+> Content-Type: application/json
+> Content-Length: 33
+> 
+} [33 bytes data]
+* upload completely sent off: 33 bytes
+{ [5 bytes data]
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+{ [284 bytes data]
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+{ [284 bytes data]
+< HTTP/2 200 
+< cache-control: private
+< content-length: 37
+< content-type: application/json; charset=utf-8
+< date: Thu, 04 Sep 2025 16:50:03 GMT
+< etag: W/"25-UNRdd/BeW2jtUx+EYimk6ajB+tw"
+< expires: Thu, 04 Sep 2025 16:50:03 GMT
+< referrer-policy: strict-origin-when-cross-origin
+< server: Google Frontend
+* Added cookie connect.sid="s%3AuXHrCA9anCyVQmah14ih1tk5x-TjB2iK.fEpWkV1iK%2FlJJKE2HqUD7M%2BeDMHQsyzwozc5wgEobeA" for domain study-flow.replit.app, path /, expire 1757091003
+< set-cookie: connect.sid=s%3AuXHrCA9anCyVQmah14ih1tk5x-TjB2iK.fEpWkV1iK%2FlJJKE2HqUD7M%2BeDMHQsyzwozc5wgEobeA; Path=/; Expires=Fri, 05 Sep 2025 16:50:03 GMT; HttpOnly; Secure; SameSite=None
+< strict-transport-security: max-age=63072000; includeSubDomains
+< strict-transport-security: max-age=31536000; includeSubDomains
+< x-cloud-trace-context: 251f35f4af95f96133e7e11ea055eea6
+< x-content-type-options: nosniff
+< x-powered-by: Express
+< x-ratelimit-limit: 1000
+< x-ratelimit-remaining: 999
+< x-ratelimit-reset: 1757005503310
+< x-xss-protection: 1; mode=block
+< via: 1.1 google
+< alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+< 
+{ [5 bytes data]
+* Connection #0 to host study-flow.replit.app left intact
+{"success":true,"authenticated":true}

@@ -1,0 +1,20 @@
+HTTP/2 200 
+content-length: 16
+content-type: application/json; charset=utf-8
+date: Thu, 04 Sep 2025 14:37:11 GMT
+etag: W/"10-oV4hJxRVSENxc/wX8+mA4/Pe4tA"
+referrer-policy: strict-origin-when-cross-origin
+server: Google Frontend
+strict-transport-security: max-age=63072000; includeSubDomains
+strict-transport-security: max-age=31536000; includeSubDomains
+x-cloud-trace-context: e8ededba7e30cda73203a37d5618e7f0;o=1
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-powered-by: Express
+x-ratelimit-limit: 1000
+x-ratelimit-remaining: 992
+x-ratelimit-reset: 1756997402673
+x-xss-protection: 1; mode=block
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
