@@ -594,12 +594,10 @@ export async function hybridScheduleAssignmentsWithQuickWins(
     const assignmentMinutes = assignment.actualEstimatedMinutes || 30;
     const course = assignment.courseName || assignment.subject || 'Other';
     
-    // Double-check capacity (might have changed)
+    // SCHEDULE EVERYTHING - Remove capacity restrictions
     const date = getDateForWeekday(strategy.targetSlot.weekday, request.targetWeek);
-    const dailyUsage = await calculateDailyCapacityUsage(request.studentName, date, storage);
-    const capacityCheck = canAddAssignmentToDay(dailyUsage, assignmentMinutes, course);
     
-    if (capacityCheck.canAdd && strategy.targetSlot.remainingMinutes >= assignmentMinutes) {
+    if (true) { // Always schedule - no capacity or time restrictions
       // Place the quick win
       initialResult.scheduledAssignments.push({
         ...assignment,
@@ -621,8 +619,9 @@ export async function hybridScheduleAssignmentsWithQuickWins(
         initialResult.unscheduledAssignments.splice(index, 1);
       }
     } else {
+      // This should never happen now since we removed capacity restrictions
       initialResult.warnings.push(
-        `Quick win "${assignment.title}" could not be placed: ${capacityCheck.reason || 'insufficient slot capacity'}`
+        `Quick win "${assignment.title}" could not be placed: Unknown reason`
       );
     }
   }
