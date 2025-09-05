@@ -273,7 +273,7 @@ export default function PrintQueue() {
                             {item.canvasUrl && (
                               <Button
                                 size="sm"
-                                className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+                                className="flex items-center gap-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-950/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300"
                                 onClick={() => window.open(item.canvasUrl!, '_blank')}
                               >
                                 <ExternalLink className="w-4 h-4" />
