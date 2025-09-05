@@ -976,9 +976,17 @@ export function analyzeAssignmentWithCanvas(
   }
 
   // Determine schedulability and block type
-  // In-class activities remain as regular assignments but get special category handling
-  // The UI can filter/handle them based on the 'in-class' category rather than blockType
-  const isSchedulable = true; // All assignments remain schedulable for flexibility
+  // Tests and quizzes are NOT schedulable unless they indicate homework/take-home/study
+  const titleLower = title.toLowerCase();
+  const isTestOrQuiz = titleLower.includes('test') || titleLower.includes('quiz');
+  const isHomeworkTest = titleLower.includes('study for') || 
+                         titleLower.includes('take-home') || 
+                         titleLower.includes('take home') ||
+                         titleLower.includes('prepare for') ||
+                         titleLower.includes('homework');
+  
+  // In-class tests/quizzes are not schedulable, but homework/study tasks are
+  const isSchedulable = !isInClass && (!isTestOrQuiz || isHomeworkTest);
   const blockType: 'assignment' | 'co-op' | 'travel' | 'prep' = 'assignment'; // Keep all as assignments
 
   // Enhanced analysis with Canvas data
@@ -988,7 +996,6 @@ export function analyzeAssignmentWithCanvas(
   // Determine Canvas category
   let canvasCategory: 'assignments' | 'discussions' | 'quizzes' | 'syllabus' | 'other' = 'other';
   const groupName = canvasData?.assignment_group?.name?.toLowerCase() || '';
-  const titleLower = title.toLowerCase();
   
   if (groupName.includes('syllabus') || titleLower.includes('syllabus') || titleLower.includes('fee')) {
     canvasCategory = 'syllabus';
@@ -1081,7 +1088,6 @@ export function analyzeAssignmentWithCanvas(
   }
   
   // Quizzes and tests get priority bump (check against title instead of category)
-  const titleLower = title.toLowerCase();
   if (titleLower.includes('quiz') || titleLower.includes('test')) {
     if (priority === 'C') priority = 'B';
     if (priority === 'B') priority = 'A';
