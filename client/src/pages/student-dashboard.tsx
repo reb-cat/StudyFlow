@@ -859,11 +859,32 @@ export default function StudentDashboard() {
                           blockDetails = '';
                         }
                       } else if (block.blockType === 'bible') {
-                        blockTitle = 'Bible';
-                        // Use real Bible curriculum data instead of hardcoded Genesis
-                        blockDetails = bibleData?.dailyReading 
-                          ? `${bibleData.dailyReading.readingTitle} (Daily Bible Reading)`
-                          : 'Daily Bible Reading';
+                        // Show Bible reading as the main title like Guided mode
+                        if (bibleData?.dailyReading) {
+                          blockTitle = bibleData.dailyReading.readingTitle;
+                          blockDetails = 'Daily Bible Reading';
+                        } else {
+                          blockTitle = 'Daily Bible Reading';
+                          blockDetails = 'Bible curriculum';
+                        }
+                      } else if (block.blockType === 'co-op') {
+                        // Show rich details for co-op classes
+                        blockTitle = block.title;
+                        blockDetails = 'Co-op Class';
+                      } else if (block.blockType === 'prep/load') {
+                        // Show helpful prep details
+                        blockTitle = 'Prep & Load Time';
+                        blockDetails = 'Get ready for co-op • Pack materials';
+                      } else if (block.blockType === 'travel') {
+                        blockTitle = block.title;
+                        blockDetails = 'Transition time';
+                      } else if (block.blockType === 'lunch') {
+                        blockTitle = 'Lunch Break';
+                        blockDetails = 'Meal & rest time';
+                      } else {
+                        // Default for other block types
+                        blockTitle = block.title;
+                        blockDetails = block.blockType;
                       }
                       
                       return (
