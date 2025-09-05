@@ -128,13 +128,20 @@ export class DatabaseStorage implements IStorage {
           title.includes('daily participation') ||
           title.startsWith('cap:');
         
+        // Filter out "bring" assignments - these are Prep/Load checklist items, not assignment work
+        const isBringItem = title.startsWith('bring ');
+        
         if (isParticipation) {
           console.log(`🚫 Excluding non-completable assignment: ${assignment.title}`);
           return false;
         }
+        if (isBringItem) {
+          console.log(`📦 Excluding prep/load item: ${assignment.title}`);
+          return false;
+        }
         return true;
       });
-      console.log(`🎯 Type filtering: ${beforeTypeFilter} → ${assignmentList.length} assignments (excluded participation/attendance)`);
+      console.log(`🎯 Type filtering: ${beforeTypeFilter} → ${assignmentList.length} assignments (excluded participation/attendance/bring-items)`);
 
       // SECOND: Exclude completed assignments from daily planning (unless admin mode)
       // Only show assignments that are actively workable (pending, needs_more_time, stuck)
