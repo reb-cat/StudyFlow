@@ -31,7 +31,7 @@ export interface IStorage {
   // Schedule template operations
   getScheduleTemplate(studentName: string, weekday?: string): Promise<ScheduleTemplate[]>;
   createScheduleTemplate(template: InsertScheduleTemplate): Promise<ScheduleTemplate>;
-  updateScheduleTemplate(studentName: string, weekday: string, blocks: ScheduleTemplate[]): Promise<void>;
+  updateScheduleTemplate(studentName: string, weekday: string, blocks: ScheduleTemplate[], isAuthorizedAdmin?: boolean): Promise<void>;
   
   // Bible curriculum operations
   getBibleCurriculum(weekNumber?: number): Promise<BibleCurriculum[]>;
@@ -638,7 +638,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateScheduleTemplate(studentName: string, weekday: string, blocks: ScheduleTemplate[]): Promise<void> {
+  async updateScheduleTemplate(studentName: string, weekday: string, blocks: ScheduleTemplate[], isAuthorizedAdmin: boolean = false): Promise<void> {
+    if (!isAuthorizedAdmin) {
+      throw new Error('PROTECTED: Schedule template modifications only allowed from authorized admin interface');
+    }
+    
     try {
       // Delete existing blocks for this student/weekday
       await db.delete(scheduleTemplate).where(
@@ -663,7 +667,7 @@ export class DatabaseStorage implements IStorage {
         await db.insert(scheduleTemplate).values(insertBlocks);
       }
       
-      console.log(`Updated schedule template for ${studentName} on ${weekday} with ${blocks.length} blocks`);
+      console.log(`✅ AUTHORIZED: Updated schedule template for ${studentName} on ${weekday} with ${blocks.length} blocks`);
     } catch (error) {
       console.error('Error updating schedule template:', {
         message: error.message,

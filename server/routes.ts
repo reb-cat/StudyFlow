@@ -1896,9 +1896,10 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       const { studentName, weekday } = req.params;
       const { blocks } = req.body;
       
-      console.log(`Updating schedule template for ${studentName} on ${weekday}`);
+      console.log(`🔒 AUTHORIZED: Updating schedule template for ${studentName} on ${weekday} via admin interface`);
       
-      await storage.updateScheduleTemplate(studentName, weekday, blocks);
+      // Pass authorization flag - only this route can modify schedule templates
+      await storage.updateScheduleTemplate(studentName, weekday, blocks, true);
       
       res.json({ 
         message: 'Schedule template updated successfully',
