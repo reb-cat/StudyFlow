@@ -1,0 +1,117 @@
+	
+0	
+table_name	"_pg_user_mappings"
+column_name	"umuser"
+data_type	"oid"
+1	
+table_name	"assignments"
+column_name	"user_id"
+data_type	"text"
+2	
+table_name	"bible_curriculum_position"
+column_name	"student_name"
+data_type	"character varying"
+3	
+table_name	"checklist_items"
+column_name	"student_name"
+data_type	"character varying"
+4	
+table_name	"daily_schedule_status"
+column_name	"student_name"
+data_type	"text"
+5	
+table_name	"earn_events"
+column_name	"user_id"
+data_type	"character varying"
+6	
+table_name	"pg_available_extension_versions"
+column_name	"superuser"
+data_type	"boolean"
+7	
+table_name	"pg_hba_file_rules"
+column_name	"user_name"
+data_type	"ARRAY"
+8	
+table_name	"pg_ident_file_mappings"
+column_name	"pg_username"
+data_type	"text"
+9	
+table_name	"pg_shadow"
+column_name	"userepl"
+data_type	"boolean"
+10	
+table_name	"pg_user"
+column_name	"userepl"
+data_type	"boolean"
+11	
+table_name	"pg_user_mapping"
+column_name	"umuser"
+data_type	"oid"
+12	
+table_name	"pg_user_mappings"
+column_name	"umuser"
+data_type	"oid"
+13	
+table_name	"progress_sessions"
+column_name	"student_name"
+data_type	"text"
+14	
+table_name	"quests"
+column_name	"user_id"
+data_type	"character varying"
+15	
+table_name	"redemption_requests"
+column_name	"user_id"
+data_type	"character varying"
+16	
+table_name	"reward_profiles"
+column_name	"user_id"
+data_type	"character varying"
+17	
+table_name	"reward_settings"
+column_name	"user_id"
+data_type	"character varying"
+18	
+table_name	"routines"
+column_name	"is_user_defined_cast"
+data_type	"character varying"
+19	
+table_name	"schedule_template"
+column_name	"student_name"
+data_type	"text"
+20	
+table_name	"student_profiles"
+column_name	"student_name"
+data_type	"character varying"
+21	
+table_name	"student_status"
+column_name	"student_name"
+data_type	"text"
+22	
+table_name	"tables"
+column_name	"user_defined_type_catalog"
+data_type	"name"
+23	
+table_name	"tables"
+column_name	"user_defined_type_name"
+data_type	"name"
+24	
+table_name	"tables"
+column_name	"user_defined_type_schema"
+data_type	"name"
+25	
+table_name	"user_defined_types"
+column_name	"user_defined_type_catalog"
+data_type	"name"
+26	
+table_name	"user_defined_types"
+column_name	"user_defined_type_category"
+data_type	"character varying"
+27	
+table_name	"user_defined_types"
+column_name	"user_defined_type_name"
+data_type	"name"
+28	
+table_name	"user_defined_types"
+column_name	"user_defined_type_schema"
+data_type	"name"
