@@ -182,6 +182,9 @@ export interface ScheduleBlockSlot {
   assignments: any[];        // Currently assigned assignments
 }
 
+/**
+ * @deprecated - Week-based interface that expects Monday as reference
+ */
 export interface HybridSchedulingRequest {
   studentName: string;
   targetWeek: string;       // YYYY-MM-DD format for Monday of week
@@ -270,6 +273,12 @@ export async function getAvailableScheduleSlots(
   return availableSlots;
 }
 
+/**
+ * @deprecated - VIOLATES CORE PRINCIPLE: Uses week-based Monday-centric logic
+ * This scheduler forces Monday as reference point and violates the principle
+ * that scheduling should work generically for ANY day.
+ * Use the single-day scheduler in storage.ts instead.
+ */
 // Hybrid scheduler that respects template structure + adds intelligent assignment placement
 export async function hybridScheduleAssignments(
   request: HybridSchedulingRequest,
@@ -462,6 +471,10 @@ async function placeAssignmentInOptimalSlot(
   };
 }
 
+/**
+ * @deprecated - Part of week-based scheduling system
+ * Calculates dates relative to Monday which violates core principle
+ */
 // Helper function to convert weekday to actual date based on target date
 function getDateForWeekday(weekday: string, targetDate?: string): string {
   // Use provided target date or fall back to today
@@ -581,6 +594,12 @@ export function generateQuickWinStrategies(
   return strategies.sort((a, b) => b.confidenceScore - a.confidenceScore);
 }
 
+/**
+ * @deprecated - VIOLATES CORE PRINCIPLE: Uses week-based Monday-centric logic
+ * This scheduler forces Monday as reference point and violates the principle
+ * that scheduling should work generically for ANY day.
+ * Use the single-day scheduler in storage.ts instead.
+ */
 // Enhanced hybrid scheduler with quick win integration
 export async function hybridScheduleAssignmentsWithQuickWins(
   request: HybridSchedulingRequest,

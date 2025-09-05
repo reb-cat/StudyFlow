@@ -18,7 +18,6 @@ import {
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
-import { hybridScheduleAssignmentsWithQuickWins } from './lib/assignmentIntelligence';
 
 // modify the interface with any CRUD methods
 // you might need
@@ -596,7 +595,7 @@ export class DatabaseStorage implements IStorage {
         if (!a.dueDate || a.completionStatus !== 'pending') return false;
         const dueDateOnly = typeof a.dueDate === 'string' ? a.dueDate.split('T')[0] : a.dueDate.toISOString().split('T')[0];
         const targetDateOnly = targetDate.split('T')[0];
-        return dueDateOnly === targetDateOnly; // Due on target date (Monday)
+        return dueDateOnly === targetDateOnly; // Due on target date
       });
       
       const assignmentsScheduledElsewhere = assignmentsDueToday.filter(a => {
