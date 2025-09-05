@@ -254,6 +254,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Track when assignment is marked complete for grading delay detection
       if (updateData.completionStatus === 'completed') {
         updateData.completedAt = new Date();
+        
+        // 🎯 REWARDBANK HOOK: Award points for completing assignment
+        try {
+          const studentName = req.params.userId; // Extract student from userId
+          const rewardUserId = `${studentName.toLowerCase()}-user`;
+          
+          // Calculate points based on assignment difficulty and estimated time
+          const assignment = await storage.getAssignment(id);
+          if (assignment) {
+            let points = 15; // Base completion points
+            
+            // Time bonus: +1 point per 10 minutes of estimated work
+            if (assignment.actualEstimatedMinutes) {
+              points += Math.floor(assignment.actualEstimatedMinutes / 10);
+            }
+            
+            // Difficulty bonus
+            if (assignment.difficulty === 'hard') points += 10;
+            else if (assignment.difficulty === 'medium') points += 5;
+            
+            // Priority bonus for overdue assignments
+            if (assignment.priority === 'A') points += 5;
+            
+            // Check earning limits before awarding
+            const settings = await storage.getRewardSettings('family');
+            const canEarn = await storage.checkEarningLimits(rewardUserId, points, settings);
+            
+            if (canEarn.allowed) {
+              await storage.createEarnEvent({
+                userId: rewardUserId,
+                type: 'Assignment',
+                amount: points,
+                sourceId: assignment.id,
+                sourceDetails: assignment.title
+              });
+              
+              await storage.updateRewardProfile(rewardUserId, points);
+              console.log(`🏆 Awarded ${points} points to ${studentName} for completing: ${assignment.title}`);
+            } else {
+              console.log(`⚠️ Points capped for ${studentName}: ${canEarn.reason}`);
+            }
+          }
+        } catch (error) {
+          // Silent fail - don't break assignment completion if rewards fail
+          console.error('❌ RewardBank hook failed:', error);
+        }
       }
       
       // Convert dueDate string to Date object if provided
@@ -1825,6 +1871,53 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       
       if (!updated) {
         return res.status(404).json({ message: 'Schedule block not found' });
+      }
+      
+      // 🎯 REWARDBANK HOOK: Award points for completing study block/session
+      if (status === 'complete' && updated) {
+        try {
+          const rewardUserId = `${studentName.toLowerCase()}-user`;
+          
+          // Get block duration from template
+          const template = updated.template;
+          let points = 10; // Base session completion points
+          
+          // Calculate duration-based bonus
+          if (template?.startTime && template?.endTime) {
+            const startTime = new Date(`2000-01-01T${template.startTime}`);
+            const endTime = new Date(`2000-01-01T${template.endTime}`);
+            const minutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+            
+            // +1 point per 15 minutes of focused work
+            points += Math.floor(minutes / 15);
+          }
+          
+          // Block type bonuses
+          if (template?.blockType === 'Assignment') points += 5; // Homework completion bonus
+          else if (template?.blockType === 'Bible') points += 3; // Spiritual growth bonus
+          
+          // Check earning limits
+          const settings = await storage.getRewardSettings('family');
+          const canEarn = await storage.checkEarningLimits(rewardUserId, points, settings);
+          
+          if (canEarn.allowed) {
+            await storage.createEarnEvent({
+              userId: rewardUserId,
+              type: 'Session',
+              amount: points,
+              sourceId: templateBlockId,
+              sourceDetails: `${template?.blockType || 'Study'} session (${template?.blockName || 'Block'})`
+            });
+            
+            await storage.updateRewardProfile(rewardUserId, points);
+            console.log(`🎯 Awarded ${points} points to ${studentName} for completing session: ${template?.blockName}`);
+          } else {
+            console.log(`⚠️ Session points capped for ${studentName}: ${canEarn.reason}`);
+          }
+        } catch (error) {
+          // Silent fail - don't break block completion if rewards fail
+          console.error('❌ RewardBank session hook failed:', error);
+        }
       }
       
       res.json(updated);
