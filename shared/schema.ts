@@ -285,7 +285,7 @@ export const rewardProfiles = pgTable("reward_profiles", {
   level: integer("level").default(1), // Current level based on lifetime points
   streakDays: integer("streak_days").default(0), // Current consecutive study days
   lastStreakDate: date("last_streak_date"), // Last date streak was updated
-  lastClaimedDate: timestamp("last_claimed_date"), // Last time student claimed any reward
+  lastClaimedDate: timestamp("lastclaimeddate"), // Last time student claimed any reward
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -295,7 +295,7 @@ export const quests = pgTable("quests", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: text("user_id").notNull(), // "khalil-user", "abigail-user"
   title: text("title").notNull(), // "Complete 2 tasks today"
-  goalType: text("goal_type", {
+  goalType: text("goaltype", {
     enum: ["Tasks", "Minutes", "Streak", "Sessions"]
   }).notNull(), // Type of goal to track
   target: integer("target").notNull(), // Goal target (e.g., 2 for "complete 2 tasks")
