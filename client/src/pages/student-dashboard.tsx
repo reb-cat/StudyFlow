@@ -334,16 +334,28 @@ export default function StudentDashboard() {
     return assignmentBlocks.map((block, index) => {
       let selectedAssignment = null;
       
-      // First pass: try to find assignment from unused subject
+      // PRIORITY 1: Check if any assignment is specifically scheduled for this block
       for (let i = 0; i < availableAssignments.length; i++) {
         const assignment = availableAssignments[i];
-        const subject = assignment.subject || 'General';
-        
-        if (!usedSubjects.has(subject)) {
+        if (assignment.scheduledDate === selectedDate && assignment.scheduledBlock === block.blockNumber) {
           selectedAssignment = assignment;
           availableAssignments.splice(i, 1);
-          usedSubjects.add(subject);
           break;
+        }
+      }
+      
+      // PRIORITY 2: If no specifically scheduled assignment, try to find assignment from unused subject
+      if (!selectedAssignment) {
+        for (let i = 0; i < availableAssignments.length; i++) {
+          const assignment = availableAssignments[i];
+          const subject = assignment.subject || 'General';
+          
+          if (!usedSubjects.has(subject)) {
+            selectedAssignment = assignment;
+            availableAssignments.splice(i, 1);
+            usedSubjects.add(subject);
+            break;
+          }
         }
       }
       
