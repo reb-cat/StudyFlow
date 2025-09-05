@@ -482,15 +482,15 @@ export default function ScheduleTemplates() {
                       allowSaturday: !student.allowSaturdayScheduling 
                     })}
                     disabled={saturdayMutation.isPending}
-                    className={`relative w-16 h-8 border transition-colors duration-200 flex-shrink-0 ${
+                    className={`relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0 ${
                       student.allowSaturdayScheduling 
-                        ? 'bg-blue-600 border-blue-700' 
-                        : 'bg-gray-300 dark:bg-gray-600 border-gray-400'
+                        ? 'bg-blue-600' 
+                        : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                   >
                     <div 
-                      className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white border shadow-sm transition-transform duration-200 ${
-                        student.allowSaturdayScheduling ? 'translate-x-8' : 'translate-x-0'
+                      className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-lg transition-transform duration-200 ${
+                        student.allowSaturdayScheduling ? 'translate-x-7 left-0.5' : 'translate-x-0 left-0.5'
                       }`}
                     />
                   </button>
