@@ -1,1 +1,0 @@
-{"message":"Daily schedule initialized successfully","studentName":"Abigail","date":"2025-09-04"}
