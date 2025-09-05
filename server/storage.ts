@@ -18,6 +18,7 @@ import {
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
+import { hybridScheduleAssignmentsWithQuickWins } from './lib/assignmentIntelligence';
 
 // modify the interface with any CRUD methods
 // you might need
@@ -628,7 +629,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Use the NEW hybrid scheduler with student-specific intelligence
-      const { hybridScheduleAssignmentsWithQuickWins } = await import('./lib/assignmentIntelligence');
+      console.log(`🔍 DEBUG: Using statically imported hybridScheduleAssignmentsWithQuickWins`);
       
       // Prepare assignments for the hybrid scheduler
       const assignmentsToSchedule = unscheduledAssignments.map(a => ({
