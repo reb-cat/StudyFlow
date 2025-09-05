@@ -453,7 +453,7 @@ function getDateForWeekday(weekday: string, targetDate?: string): string {
   const monday = new Date(baseDate);
   monday.setDate(baseDate.getDate() + daysToMonday);
   
-  const weekdayMap = {
+  const weekdayMap: Record<string, number> = {
     'Monday': 0,
     'Tuesday': 1, 
     'Wednesday': 2,
@@ -1060,8 +1060,8 @@ export function analyzeAssignmentWithCanvas(
   if (extractedDueDate) {
     const daysUntilDue = Math.ceil((extractedDueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     
-    // A = Critical (due today/tomorrow or overdue)
-    if (daysUntilDue <= 1) {
+    // A = Critical (due within 3 days or overdue)
+    if (daysUntilDue <= 3) {
       priority = 'A';
     }
     // C = Flexible (due more than a week away)
@@ -1080,8 +1080,9 @@ export function analyzeAssignmentWithCanvas(
     if (priority === 'B') priority = 'A';
   }
   
-  // Quizzes and tests get priority bump
-  if (category === 'quiz' || category === 'test') {
+  // Quizzes and tests get priority bump (check against title instead of category)
+  const titleLower = title.toLowerCase();
+  if (titleLower.includes('quiz') || titleLower.includes('test')) {
     if (priority === 'C') priority = 'B';
     if (priority === 'B') priority = 'A';
   }
