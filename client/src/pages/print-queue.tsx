@@ -284,7 +284,7 @@ export default function PrintQueue() {
                             <Button
                               size="sm"
                               variant="default"
-                              className="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white"
+                              className="bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white"
                               onClick={() => updateStatusMutation.mutate({ assignmentId: item.id, status: 'printed' })}
                               disabled={updateStatusMutation.isPending}
                             >
