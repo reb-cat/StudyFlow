@@ -1159,11 +1159,10 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Allocate assignments to template blocks with sophisticated scoring
+  // Allocate assignments to template blocks using sophisticated scheduling system
   async allocateAssignmentsToTemplate(studentName: string, date: string): Promise<void> {
     try {
-      console.log(`🔍 SCHEDULE PLANNER DEBUG: Starting for student=${studentName} date=${date}`);
-      console.log(`🎯 Allocating assignments for ${studentName} on ${date}`);
+      console.log(`🔍 SOPHISTICATED SCHEDULER: Starting for student=${studentName} date=${date}`);
       
       // Get current weekday
       const targetDate = new Date(date);
@@ -1171,507 +1170,31 @@ export class DatabaseStorage implements IStorage {
       const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const weekdayName = weekdayNames[weekday];
       
-      // Get assignment blocks (blockType = 'Assignment')
+      // Get all template blocks for validation
       const templateBlocks = await this.getScheduleTemplate(studentName, weekdayName);
       
-      // PHASE D: Safety check for template completeness
-      const template_block_count = templateBlocks.length;
-      console.log(`📊 PLANNER METRICS: template_block_count=${template_block_count}`);
-      
-      if (template_block_count < 6) {
-        const errorMsg = `Schedule template incomplete for this day`;
-        console.error(`❌ PLANNER ERROR: Template incomplete for ${studentName} on ${weekdayName} - only ${template_block_count} blocks found (minimum 6 required)`);
-        
-        // Return specific JSON error format as requested
+      // Safety check for template completeness
+      if (templateBlocks.length < 6) {
+        console.error(`❌ TEMPLATE ERROR: Template incomplete for ${studentName} on ${weekdayName} - only ${templateBlocks.length} blocks found`);
         throw new Error(JSON.stringify({
           error: {
-            code: "TEMPLATE_INCOMPLETE",
+            code: "TEMPLATE_INCOMPLETE", 
             message: "Schedule template incomplete for this day"
           }
         }));
       }
       
-      const assignmentBlocks = templateBlocks.filter(block => 
-        block.blockType === 'Assignment' || block.subject === 'Assignment'
-      ).sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-      // CRITICAL: Get existing daily schedule status to preserve completed blocks
-      const existingStatuses = await db
-        .select()
-        .from(dailyScheduleStatus)
-        .where(and(
-          eq(dailyScheduleStatus.studentName, studentName),
-          eq(dailyScheduleStatus.date, date)
-        ));
-
-      const completedBlockIds = new Set(
-        existingStatuses
-          .filter(status => status.status === 'complete')
-          .map(status => status.templateBlockId)
-      );
-
-      // CRITICAL: Only allocate to blocks that are NOT completed
-      const availableAssignmentBlocks = assignmentBlocks.filter(block => 
-        !completedBlockIds.has(block.id)
-      );
-
-      console.log(`🔒 Found ${completedBlockIds.size} completed blocks that will be preserved`);
-      console.log(`📝 Found ${availableAssignmentBlocks.length} available assignment blocks for allocation`);
-
-      if (availableAssignmentBlocks.length === 0) {
-        console.log(`📝 No available assignment blocks found for ${studentName} on ${weekdayName} (all completed or none exist)`);
-        
-        // PLANNER FIX: Check if we should create default blocks for assignments due today
-        const userId = `${studentName.toLowerCase()}-user`;
-        const allAssignments = await this.getAssignments(userId);
-        const targetDateOnly = date.split('T')[0];
-        const dueToday = allAssignments.filter(a => {
-          if (!a.dueDate) return false;
-          const dueDateOnly = typeof a.dueDate === 'string' ? a.dueDate.split('T')[0] : a.dueDate.toISOString().split('T')[0];
-          return dueDateOnly === targetDateOnly;
-        });
-        
-        if (dueToday.length > 0) {
-          console.log(`🔧 PLANNER FIX: No assignment blocks found but ${dueToday.length} assignments due today - creating default blocks`);
-          
-          // Create temporary default schedule blocks in the database
-          const defaultBlocks = [
-            {
-              studentName: studentName,
-              weekday: weekdayName,
-              blockNumber: 1,
-              startTime: '09:00',
-              endTime: '10:00',
-              subject: 'Assignment',
-              blockType: 'Assignment' as const
-            },
-            {
-              studentName: studentName,
-              weekday: weekdayName,
-              blockNumber: 2,
-              startTime: '10:00',
-              endTime: '11:00',
-              subject: 'Assignment',
-              blockType: 'Assignment' as const
-            },
-            {
-              studentName: studentName,
-              weekday: weekdayName,
-              blockNumber: 3,
-              startTime: '11:00',
-              endTime: '12:00',
-              subject: 'Assignment',
-              blockType: 'Assignment' as const
-            }
-          ];
-          
-          // Insert the default blocks into the schedule template
-          const insertedBlocks = await db.insert(scheduleTemplate).values(defaultBlocks).returning();
-          console.log(`✅ Created ${insertedBlocks.length} temporary assignment blocks for scheduling`);
-          
-          // Update availableAssignmentBlocks to use the newly created blocks
-          availableAssignmentBlocks.push(...insertedBlocks);
-          
-          // Also create daily status records for the new blocks
-          const statusRecords = insertedBlocks.map(block => ({
-            studentName,
-            date,
-            templateBlockId: block.id,
-            status: 'not-started' as const,
-          }));
-          await db.insert(dailyScheduleStatus).values(statusRecords);
-          
-        } else {
-          return; // Still no assignments due today, so return early
-        }
-      }
+      console.log(`✅ Template validated: ${templateBlocks.length} blocks found for ${weekdayName}`);
       
-      // DEBUG LOGGING: Import debug utilities
-      const { logOrderTrace, assertStrictOrder } = await import('@shared/debug');
+      // Use the sophisticated scheduling system instead of basic logic
+      console.log(`🚀 Delegating to sophisticated autoScheduleAssignments system...`);
+      const result = await this.autoScheduleAssignmentsForDate(studentName, date);
       
-      // Log template order
-      logOrderTrace('SERVER', 'templateOrder', templateBlocks.map(block => ({
-        blockId: block.id,
-        blockType: block.blockType,
-        startMinute: null, // Will be computed from startTime
-        endMinute: null,
-        startTime: block.startTime,
-        endTime: block.endTime,
-        label: block.subject || `Block ${block.blockNumber}`
-      })));
-      
-      // Log assignment slots (only available ones)
-      logOrderTrace('SERVER', 'assignmentSlots', availableAssignmentBlocks.map(block => ({
-        blockId: block.id,
-        blockType: 'assignment-slot',
-        startTime: block.startTime,
-        endTime: block.endTime,
-        label: `Assignment Block ${block.blockNumber || 'N/A'}`
-      })));
-      
-      // Assert template order
-      assertStrictOrder('SERVER_TEMPLATE', templateBlocks);
-      
-      // Clear any existing scheduling ONLY for available (non-completed) assignment blocks
-      const availableBlockNumbers = availableAssignmentBlocks
-        .map(block => block.blockNumber)
-        .filter(blockNumber => blockNumber !== null);
-      
-      if (availableBlockNumbers.length > 0) {
-        await db.update(assignments)
-          .set({
-            scheduledDate: null,
-            scheduledBlock: null,
-            blockStart: null,
-            blockEnd: null
-          })
-          .where(and(
-            eq(assignments.scheduledDate, date),
-            inArray(assignments.scheduledBlock, availableBlockNumbers)
-          ));
-        console.log(`🔄 Cleared existing scheduling for ${availableBlockNumbers.length} available blocks`);
-      }
-      
-      // Get candidate assignments with ±7 day window and not completed
-      const userId = `${studentName.toLowerCase()}-user`;
-      const windowStart = new Date(targetDate);
-      windowStart.setDate(windowStart.getDate() - 7);
-      const windowEnd = new Date(targetDate);
-      windowEnd.setDate(windowEnd.getDate() + 7);
-      
-      const allAssignments = await this.getAssignments(userId);
-      console.log(`📊 TOTAL TASKS: ${allAssignments.length} assignments found for ${studentName}`);
-      
-      // Count assignments due today
-      const targetDateOnly = date.split('T')[0]; // Handle both date and datetime formats
-      const dueToday = allAssignments.filter(a => {
-        if (!a.dueDate) return false;
-        const dueDateOnly = typeof a.dueDate === 'string' ? a.dueDate.split('T')[0] : a.dueDate.toISOString().split('T')[0];
-        return dueDateOnly === targetDateOnly;
-      });
-      console.log(`📅 DUE TODAY: ${dueToday.length} assignments due on ${date}`);
-      const candidateAssignments = allAssignments.filter(assignment => {
-        // Include assignments that are workable: pending, needs_more_time, stuck
-        // EXCLUDE only truly completed assignments
-        const workableStatuses = ['pending', 'needs_more_time', 'stuck', 'in_progress'];
-        if (!workableStatuses.includes(assignment.completionStatus || 'pending')) {
-          console.log(`🚫 Excluding non-workable assignment: ${assignment.title} (status: ${assignment.completionStatus})`);
-          return false;
-        }
-        
-        // Allow re-scheduling: Remove the scheduledDate check that was blocking allocation
-        // This allows flexible assignment distribution and rescheduling as needed
-        
-        // Within window or no due date
-        if (!assignment.dueDate) return true;
-        
-        const dueDate = new Date(assignment.dueDate);
-        return dueDate >= windowStart && dueDate <= windowEnd;
-      });
-      
-      console.log(`🔍 FILTERED: ${candidateAssignments.length} assignments after filtering out completed/parent/bible tasks`);
-      
-      // Check for Co-op Day detection
-      const studyHallBlocks = templateBlocks.filter(block => block.blockType === 'Study Hall');
-      const isCoopDay = studyHallBlocks.length > 0;
-      console.log(`🏫 CO-OP DAY CHECK: ${isCoopDay ? 'YES' : 'NO'} - ${assignmentBlocks.length} home blocks + ${studyHallBlocks.length} study hall blocks on ${weekdayName}`);
-      
-      // PHASE D: Comprehensive planner logging (single line with all counts)
-      console.log(`📊 PLANNER METRICS: tasks_total=${allAssignments.length}, due_today=${dueToday.length}, filtered=${candidateAssignments.length}, scheduled=TBD, template_block_count=${template_block_count}, coop_day=${isCoopDay}`);
-      
-      if (candidateAssignments.length === 0) {
-        console.log(`📝 No candidate assignments found for allocation`);
-        return;
-      }
-      
-      // Score assignments: A=100/B=50/C=10 + overdue + due-soon, but extra credit gets lower priority
-      const scoredAssignments = candidateAssignments.map(assignment => {
-        let score = 0;
-        
-        // Check if this is an extra credit assignment
-        const isExtraCredit = assignment.title.toLowerCase().includes('extra credit') ||
-                              assignment.title.toLowerCase().includes('extra-credit') ||
-                              assignment.title.toLowerCase().includes('bonus');
-        
-        // Priority score
-        switch (assignment.priority) {
-          case 'A': score += 100; break;
-          case 'B': score += 50; break;
-          case 'C': score += 10; break;
-          default: score += 50; break;
-        }
-        
-        // Extra credit penalty - reduce priority but keep them schedulable
-        if (isExtraCredit) {
-          score = Math.max(score * 0.3, 5); // Reduce to 30% of original score, minimum 5 points
-          console.log(`📝 Extra credit detected: "${assignment.title}" - reduced priority (score: ${score})`);
-        }
-        
-        // Overdue bonus (still applies to extra credit to encourage timely completion)
-        if (assignment.dueDate) {
-          const dueDate = new Date(assignment.dueDate);
-          const today = new Date(date);
-          const daysDiff = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-          
-          if (daysDiff < 0) {
-            // Overdue - high priority (but extra credit gets smaller bonus)
-            const overdueBonus = Math.abs(daysDiff) * (isExtraCredit ? 5 : 20);
-            score += overdueBonus;
-          } else if (daysDiff <= 2) {
-            // Due soon - medium priority (but extra credit gets smaller bonus)
-            const dueSoonBonus = (3 - daysDiff) * (isExtraCredit ? 3 : 10);
-            score += dueSoonBonus;
-          }
-        }
-        
-        return { assignment, score };
-      });
-      
-      // Sort by score (highest first) with curriculum sequence awareness
-      scoredAssignments.sort((a, b) => {
-        // First sort by score
-        if (Math.abs(b.score - a.score) > 5) {
-          return b.score - a.score;
-        }
-        
-        // Within similar scores, handle curriculum sequences
-        const aTitle = a.assignment.title.toLowerCase();
-        const bTitle = b.assignment.title.toLowerCase();
-        
-        // Extract sequence numbers from titles (Week 1, Chapter 2, Part 3, etc.)
-        const extractSequenceNumber = (title: string) => {
-          const sequencePatterns = [
-            /week\s+(\d+)/i,
-            /chapter\s+(\d+)/i,
-            /part\s+(\d+)/i,
-            /lesson\s+(\d+)/i,
-            /unit\s+(\d+)/i,
-            /section\s+(\d+)/i,
-            /module\s+(\d+)/i
-          ];
-          
-          for (const pattern of sequencePatterns) {
-            const match = title.match(pattern);
-            if (match) {
-              return { type: pattern.source.split('\\')[0], number: parseInt(match[1], 10) };
-            }
-          }
-          return null;
-        };
-        
-        const aSeq = extractSequenceNumber(aTitle);
-        const bSeq = extractSequenceNumber(bTitle);
-        
-        // If both have sequences of the same type, sort by sequence number
-        if (aSeq && bSeq && aSeq.type === bSeq.type) {
-          // Check if they're from the same base assignment (remove sequence part)
-          const aBase = aTitle.replace(new RegExp(aSeq.type + '\\s+\\d+', 'i'), '').trim();
-          const bBase = bTitle.replace(new RegExp(bSeq.type + '\\s+\\d+', 'i'), '').trim();
-          
-          if (aBase === bBase || aBase.includes(bBase) || bBase.includes(aBase)) {
-            console.log(`📚 Curriculum sequence detected: "${a.assignment.title}" (${aSeq.number}) vs "${b.assignment.title}" (${bSeq.number})`);
-            return aSeq.number - bSeq.number; // Lower numbers first (Week 2 before Week 3)
-          }
-        }
-        
-        // No sequence relationship, maintain score order
-        return b.score - a.score;
-      });
-      
-      // URGENCY-FIRST SUBJECT DISTRIBUTION - prioritize due dates while maintaining variety
-      console.log(`🎨 Optimizing subject distribution across ${availableAssignmentBlocks.length} assignment blocks`);
-      
-      // Take assignments in due date priority order, but avoid more than 2 consecutive from same subject
-      const optimizedSequence: typeof scoredAssignments = [];
-      const availableAssignments = [...scoredAssignments]; // Keep original due date order
-      let lastSubject = '';
-      let consecutiveCount = 0;
-      
-      // Priority-first distribution with subject variety constraint
-      while (optimizedSequence.length < Math.min(availableAssignments.length, availableAssignmentBlocks.length) && availableAssignments.length > 0) {
-        let selectedIndex = -1;
-        
-        // First, try to find next urgent assignment from different subject
-        for (let i = 0; i < availableAssignments.length; i++) {
-          const assignment = availableAssignments[i];
-          const subject = assignment.assignment.subject || 'General';
-          
-          // Allow if it's a different subject OR we haven't hit the consecutive limit
-          if (subject !== lastSubject || consecutiveCount < 2) {
-            selectedIndex = i;
-            break;
-          }
-        }
-        
-        // If no suitable assignment found (all remaining are from same overused subject), take the most urgent
-        if (selectedIndex === -1 && availableAssignments.length > 0) {
-          selectedIndex = 0; // Take most urgent regardless of subject
-        }
-        
-        if (selectedIndex >= 0) {
-          const selected = availableAssignments.splice(selectedIndex, 1)[0];
-          const subject = selected.assignment.subject || 'General';
-          
-          optimizedSequence.push(selected);
-          console.log(`📝 Block ${optimizedSequence.length}: ${subject} - ${selected.assignment.title}`);
-          
-          // Update subject tracking
-          if (subject === lastSubject) {
-            consecutiveCount++;
-          } else {
-            lastSubject = subject;
-            consecutiveCount = 1;
-          }
-        } else {
-          break; // Safety exit
-        }
-      }
-      
-      console.log(`✨ Urgency-first distribution complete: ${optimizedSequence.length} assignments scheduled`);
-      
-      // Smart assignment allocation: match assignment duration to block capacity
-      const assignedAssignments: string[] = [];
-      
-      // Calculate block durations and sort by duration (longest first for smart allocation)
-      const blocksWithDuration = availableAssignmentBlocks.map(block => {
-        const startTime = new Date(`2000-01-01T${block.startTime}`);
-        const endTime = new Date(`2000-01-01T${block.endTime}`);
-        const blockMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
-        return { block, blockMinutes };
-      }).sort((a, b) => b.blockMinutes - a.blockMinutes); // Longest blocks first
-      
-      // Prepare assignment pool with time estimates - PRESERVE subject distribution order
-      const assignmentPool = optimizedSequence.map(({ assignment }) => ({
-        assignment,
-        assignmentMinutes: assignment.actualEstimatedMinutes || 30,
-        assigned: false
-      })); // Keep optimized subject distribution order - DO NOT resort by time!
-      
-      // Phase 1: Subject-aware allocation - allocate in subject-distributed order
-      let blockIndex = 0;
-      for (let i = 0; i < assignmentPool.length && blockIndex < blocksWithDuration.length; i++) {
-        const item = assignmentPool[i];
-        if (item.assigned) continue;
-        
-        // Find a suitable block for this assignment (prefer sequential order for subject distribution)
-        let selectedBlock = null;
-        let selectedBlockIndex = -1;
-        
-        // First, try to use blocks in order to maintain subject distribution
-        for (let j = blockIndex; j < blocksWithDuration.length; j++) {
-          const { block, blockMinutes } = blocksWithDuration[j];
-          
-          // Allow assignments that are up to 30 minutes longer than the block
-          const timeBuffer = 30;
-          const allowableTime = blockMinutes + timeBuffer;
-          
-          if (item.assignmentMinutes <= allowableTime) {
-            selectedBlock = block;
-            selectedBlockIndex = j;
-            break; // Take first suitable block to maintain subject order
-          }
-        }
-        
-        if (selectedBlock) {
-          // Schedule the assignment in subject-distributed order
-          item.assigned = true;
-          
-          await this.updateAssignmentScheduling(item.assignment.id, {
-            scheduledDate: date,
-            scheduledBlock: selectedBlock.blockNumber,
-            blockStart: selectedBlock.startTime,
-            blockEnd: selectedBlock.endTime
-          });
-          
-          assignedAssignments.push(item.assignment.title);
-          
-          // Remove used block from available pool
-          blocksWithDuration.splice(selectedBlockIndex, 1);
-          
-          // Calculate block duration for logging
-          const selectedBlockMinutes = Math.floor((new Date(`2000-01-01T${selectedBlock.endTime}`).getTime() - new Date(`2000-01-01T${selectedBlock.startTime}`).getTime()) / (1000 * 60));
-          const timeOverflow = Math.max(0, item.assignmentMinutes - selectedBlockMinutes);
-          
-          if (timeOverflow > 0) {
-            console.log(`📋 Scheduled ${item.assignmentMinutes}min assignment in ${selectedBlockMinutes}min block (${timeOverflow}min overflow): ${item.assignment.title}`);
-          } else {
-            console.log(`✅ Scheduled ${item.assignmentMinutes}min assignment in ${selectedBlockMinutes}min block: ${item.assignment.title}`);
-          }
-        } else {
-          console.log(`⚠️ No suitable block found for assignment: ${item.assignment.title} (${item.assignmentMinutes}min)`);
-        }
-      }
-      
-      // Phase 2: Force-schedule ANY remaining assignments - NO ASSIGNMENTS LEFT BEHIND!
-      const unassigned = assignmentPool.filter(item => !item.assigned);
-      if (unassigned.length > 0) {
-        console.log(`🚀 Force-scheduling ${unassigned.length} remaining assignments - NO ASSIGNMENTS LEFT BEHIND!`);
-        
-        // Find available blocks that can accommodate with very generous overflow
-        const availableBlocks = blocksWithDuration.filter(({ block }) => 
-          !assignmentPool.some(item => item.assigned && item.assignment.id && 
-            assignedAssignments.includes(item.assignment.title))
-        );
-        
-        // If we have more assignments than available blocks, reuse the longest blocks
-        let blockIndex = 0;
-        for (const assignment of unassigned) {
-          const targetBlock = blocksWithDuration[blockIndex % blocksWithDuration.length];
-          assignment.assigned = true;
-          
-          await this.updateAssignmentScheduling(assignment.assignment.id, {
-            scheduledDate: date,
-            scheduledBlock: targetBlock.block.blockNumber,
-            blockStart: targetBlock.block.startTime,
-            blockEnd: targetBlock.block.endTime
-          });
-          
-          assignedAssignments.push(assignment.assignment.title);
-          console.log(`🎯 Force-scheduled: ${assignment.assignment.title} (${assignment.assignmentMinutes}min) in block ${targetBlock.block.blockNumber} (${targetBlock.blockMinutes}min)`);
-          
-          blockIndex++;
-        }
-      }
-      
-      // Final verification - ensure ALL assignments are scheduled
-      const finalUnassigned = assignmentPool.filter(item => !item.assigned);
-      if (finalUnassigned.length === 0) {
-        console.log(`✅ SUCCESS: All ${assignmentPool.length} assignments have been scheduled!`);
-      } else {
-        console.log(`❌ ERROR: ${finalUnassigned.length} assignments still unscheduled - this should not happen!`);
-      }
-      
-      // Apply normalization to assignment titles for logging
-      const { normalizeAssignment: normalizeAssignmentNew } = await import('@shared/normalize');
-      const normalizedAssignments = assignedAssignments.map(title => {
-        // Find the assignment object to get full details for normalization
-        const assignment = candidateAssignments.find(a => a.title === title);
-        if (!assignment) return title;
-        
-        const normalized = normalizeAssignmentNew({
-          id: assignment.id,
-          title: assignment.title,
-          course: assignment.courseName,
-          instructions: assignment.instructions,
-          dueAt: assignment.dueDate ? assignment.dueDate.toISOString() : null
-        });
-        
-        return normalized.displayTitle || title;
-      });
-      
-      console.log(`✅ Allocated ${assignedAssignments.length} assignments:`, normalizedAssignments);
-      
-      // DEBUG LOGGING: Show filled assignments (using assignment titles as strings)
-      logOrderTrace('SERVER', 'filledAssignments', assignedAssignments.map((assignmentTitle, index) => ({
-        slotBlockId: `block-${index}`,
-        assignmentId: `assignment-${index}`,
-        assignmentTitle: assignmentTitle,
-        startTime: null, // Will be computed from block
-        startMinute: null
-      })));
+      console.log(`✅ SOPHISTICATED SCHEDULER: Completed for ${studentName} - ${result.scheduled}/${result.total} assignments scheduled`);
       
     } catch (error) {
-      console.error('Error allocating assignments to template:', error);
+      console.error('Error in sophisticated scheduler:', error);
+      throw error;
     }
   }
 
@@ -1680,105 +1203,154 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`⏰ Rescheduling assignment ${assignmentId} from ${date}`);
       
+      // Get the assignment and clear its current scheduling
       const assignment = await this.getAssignment(assignmentId);
       if (!assignment) {
         throw new Error(`Assignment ${assignmentId} not found`);
       }
       
-      const targetDate = new Date(date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      targetDate.setHours(0, 0, 0, 0);
+      // Clear current scheduling
+      await this.updateAssignmentScheduling(assignmentId, {
+        scheduledDate: null,
+        scheduledBlock: null,
+        blockStart: null,
+        blockEnd: null
+      });
       
-      const isDueToday = assignment.dueDate && new Date(assignment.dueDate).getTime() === targetDate.getTime();
-      const isOverdue = assignment.dueDate && new Date(assignment.dueDate) < targetDate;
+      // Set status to needs_more_time
+      await this.updateAssignmentStatus(assignmentId, 'needs_more_time');
       
-      if (isDueToday || isOverdue) {
-        // Find next open assignment block today
-        const weekday = targetDate.getDay();
-        const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const weekdayName = weekdayNames[weekday];
-        
-        const templateBlocks = await this.getScheduleTemplate(assignment.userId.replace('-user', ''), weekdayName);
-        const assignmentBlocks = templateBlocks.filter(block => 
-          block.blockType === 'Assignment' || block.subject === 'Assignment'
-        ).sort((a, b) => a.startTime.localeCompare(b.startTime));
-        
-        // Find available block
-        const userId = assignment.userId;
-        const todayAssignments = await this.getAssignments(userId, date);
-        const scheduledBlocks = new Set(todayAssignments.map(a => a.scheduledBlock).filter(Boolean));
-        
-        const availableBlock = assignmentBlocks.find(block => !scheduledBlocks.has(block.blockNumber));
-        
-        if (availableBlock) {
-          // Schedule in available block
-          await this.updateAssignmentScheduling(assignmentId, {
-            scheduledDate: date,
-            scheduledBlock: availableBlock.blockNumber,
-            blockStart: availableBlock.startTime,
-            blockEnd: availableBlock.endTime
-          });
-        } else {
-          // Bump lowest-priority C assignment to tomorrow
-          const todayScheduled = todayAssignments.filter(a => a.priority === 'C' && a.scheduledDate === date);
-          if (todayScheduled.length > 0) {
-            const lowestPriority = todayScheduled[0];
-            const tomorrow = new Date(targetDate);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            
-            await this.updateAssignmentScheduling(lowestPriority.id, {
-              scheduledDate: tomorrow.toISOString().split('T')[0],
-              scheduledBlock: null,
-              blockStart: null,
-              blockEnd: null
-            });
-            
-            // Schedule current assignment in freed block
-            await this.updateAssignmentScheduling(assignmentId, {
-              scheduledDate: date,
-              scheduledBlock: lowestPriority.scheduledBlock,
-              blockStart: lowestPriority.blockStart,
-              blockEnd: lowestPriority.blockEnd
-            });
-          }
-        }
-      } else {
-        // Due later this week - just reschedule without creating Split Auto
-        console.log(`ℹ️ Assignment due later this week, no Split Auto needed: ${assignment.title}`);
-      }
-      
-      console.log(`✅ Rescheduled assignment ${assignment.title}`);
+      console.log(`✅ Assignment ${assignment.title} rescheduled and marked as needs more time`);
       
     } catch (error) {
       console.error('Error rescheduling assignment:', error);
+      throw error;
     }
   }
 
-  // Mark assignment as stuck and add to needs review list
+  // Mark assignment as stuck with undo capability
   async markStuckWithUndo(assignmentId: string): Promise<void> {
     try {
       console.log(`🚩 Marking assignment ${assignmentId} as stuck`);
       
-      const assignment = await this.getAssignment(assignmentId);
-      if (!assignment) {
-        throw new Error(`Assignment ${assignmentId} not found`);
-      }
-      
-      // Set completion status to 'stuck'
+      // Update assignment status to stuck
       await this.updateAssignmentStatus(assignmentId, 'stuck');
       
-      // Update student flags to mark as stuck
-      const studentName = assignment.userId.replace('-user', '');
-      await this.updateStudentFlags(studentName, { 
-        isStuck: true,
-        needsHelp: true 
+      // Clear any current scheduling to remove it from today's plan
+      await this.updateAssignmentScheduling(assignmentId, {
+        scheduledDate: null,
+        scheduledBlock: null,
+        blockStart: null,
+        blockEnd: null
       });
       
-      console.log(`✅ Marked assignment "${assignment.title}" as stuck for ${studentName}`);
+      console.log(`✅ Assignment marked as stuck and removed from schedule`);
       
     } catch (error) {
       console.error('Error marking assignment as stuck:', error);
+      throw error;
+    }
+  }
+
+  // Storage operations for daily schedule management
+  async getDailyScheduleStatus(studentName: string, date: string): Promise<Array<DailyScheduleStatus & { template: ScheduleTemplate }>> {
+    try {
+      const result = await db
+        .select({
+          // DailyScheduleStatus fields
+          id: dailyScheduleStatus.id,
+          studentName: dailyScheduleStatus.studentName,
+          date: dailyScheduleStatus.date,
+          templateBlockId: dailyScheduleStatus.templateBlockId,
+          status: dailyScheduleStatus.status,
+          flags: dailyScheduleStatus.flags,
+          createdAt: dailyScheduleStatus.createdAt,
+          updatedAt: dailyScheduleStatus.updatedAt,
+          // ScheduleTemplate fields (aliased)
+          template: {
+            id: scheduleTemplate.id,
+            studentName: scheduleTemplate.studentName,
+            weekday: scheduleTemplate.weekday,
+            blockNumber: scheduleTemplate.blockNumber,
+            startTime: scheduleTemplate.startTime,
+            endTime: scheduleTemplate.endTime,
+            subject: scheduleTemplate.subject,
+            blockType: scheduleTemplate.blockType,
+            createdAt: scheduleTemplate.createdAt,
+            updatedAt: scheduleTemplate.updatedAt,
+          }
+        })
+        .from(dailyScheduleStatus)
+        .innerJoin(scheduleTemplate, eq(dailyScheduleStatus.templateBlockId, scheduleTemplate.id))
+        .where(and(
+          eq(dailyScheduleStatus.studentName, studentName),
+          eq(dailyScheduleStatus.date, date)
+        ))
+        .orderBy(scheduleTemplate.startTime);
+      
+      return result;
+    } catch (error) {
+      console.error('Error getting daily schedule status:', error);
+      return [];
+    }
+  }
+
+  async updateBlockStatus(studentName: string, date: string, templateBlockId: string, status: string, flags?: object): Promise<DailyScheduleStatus | undefined> {
+    try {
+      const [updated] = await db
+        .update(dailyScheduleStatus)
+        .set({ 
+          status, 
+          flags: flags || null, 
+          updatedAt: new Date() 
+        })
+        .where(and(
+          eq(dailyScheduleStatus.studentName, studentName),
+          eq(dailyScheduleStatus.date, date),
+          eq(dailyScheduleStatus.templateBlockId, templateBlockId)
+        ))
+        .returning();
+      
+      return updated;
+    } catch (error) {
+      console.error('Error updating block status:', error);
+      return undefined;
+    }
+  }
+
+  async initializeDailySchedule(studentName: string, date: string): Promise<void> {
+    try {
+      // Get template blocks for the student's day
+      const weekday = new Date(date).getDay();
+      const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const weekdayName = weekdayNames[weekday];
+      
+      const templateBlocks = await this.getScheduleTemplate(studentName, weekdayName);
+      
+      if (templateBlocks.length === 0) {
+        console.log(`No template blocks found for ${studentName} on ${weekdayName}`);
+        return;
+      }
+      
+      // Create status records for each template block
+      const statusRecords = templateBlocks.map(block => ({
+        studentName,
+        date,
+        templateBlockId: block.id,
+        status: 'not-started' as const,
+      }));
+      
+      // Insert status records (ignore conflicts for existing records)
+      await db.insert(dailyScheduleStatus)
+        .values(statusRecords)
+        .onConflictDoNothing({
+          target: [dailyScheduleStatus.studentName, dailyScheduleStatus.date, dailyScheduleStatus.templateBlockId]
+        });
+      
+      console.log(`✅ Initialized daily schedule for ${studentName} on ${date} with ${templateBlocks.length} blocks`);
+      
+    } catch (error) {
+      console.error('Error initializing daily schedule:', error);
     }
   }
 
