@@ -400,8 +400,14 @@ export function GuidedDayView({
       block.type === 'bible' || 
       ['lunch', 'movement'].includes(block.blockType || '')
     )
-    // Sort by start time
-    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    // Sort by start time chronologically
+    .sort((a, b) => {
+      const [hoursA, minutesA] = a.startTime.split(':').map(Number);
+      const [hoursB, minutesB] = b.startTime.split(':').map(Number);
+      const timeA = hoursA * 60 + minutesA;
+      const timeB = hoursB * 60 + minutesB;
+      return timeA - timeB;
+    });
   };
 
   const scheduleBlocks: any[] = useMemo(() => {

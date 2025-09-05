@@ -678,7 +678,13 @@ export default function StudentDashboard() {
                   <div className="space-y-3 print:space-y-0">
                     {/* Show ALL schedule blocks in chronological order with compact Apple-style layout */}
                     {allScheduleBlocks
-                      .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                      .sort((a, b) => {
+                        const [hoursA, minutesA] = a.startTime.split(':').map(Number);
+                        const [hoursB, minutesB] = b.startTime.split(':').map(Number);
+                        const timeA = hoursA * 60 + minutesA;
+                        const timeB = hoursB * 60 + minutesB;
+                        return timeA - timeB;
+                      })
                       .map((block, index) => {
                         // Get appropriate icon component using cleaner mapping
                         const getBlockIcon = (blockType: string) => {

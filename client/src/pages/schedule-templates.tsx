@@ -98,10 +98,11 @@ export default function ScheduleTemplates() {
     },
   });
 
-  // Initialize editing blocks when data changes
+  // Initialize editing blocks when data changes and sort them chronologically
   useEffect(() => {
     if (scheduleBlocks && scheduleBlocks.length > 0) {
-      setEditingBlocks([...scheduleBlocks]);
+      const sorted = [...scheduleBlocks].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+      setEditingBlocks(sorted);
       setHasChanges(false);
     }
   }, [scheduleBlocks]);
