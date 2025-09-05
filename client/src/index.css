@@ -48,7 +48,7 @@ body {
 
 /* Move knob exactly inside left→right padding */
 .toggle > input:checked + .switch .knob{
-  transform:translateX(calc(var(--track-w) - var(--knob-d) - 2*var(--p)));
+  transform:translateX(calc(var(--track-w) - var(--knob-d) - var(--p)));
 }
 
 /* Accessibility niceties */
