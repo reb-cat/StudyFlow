@@ -320,9 +320,7 @@ export default function RewardsPage() {
 
               <Card className="bg-card border-border p-6" data-testid="level-card">
                 <div className="text-center">
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span className="text-sm font-bold text-primary-foreground">{profile.level}</span>
-                  </div>
+                  <Star className="w-8 h-8 mx-auto mb-3 text-primary" />
                   <p className="text-3xl font-bold mb-1 text-primary" data-testid="level-number">
                     {profile.level}
                   </p>
