@@ -926,11 +926,12 @@ export class DatabaseStorage implements IStorage {
         });
 
         // Deduplicate records to prevent constraint violations
+        // Use more specific key that includes time to avoid removing valid null blocks
         const uniqueBlocks = new Map();
         const deduplicatedBlocks = [];
         
         for (const block of insertBlocks) {
-          const key = `${block.studentName}-${block.weekday}-${block.blockNumber}`;
+          const key = `${block.studentName}-${block.weekday}-${block.blockNumber}-${block.startTime}-${block.endTime}`;
           if (!uniqueBlocks.has(key)) {
             uniqueBlocks.set(key, true);
             deduplicatedBlocks.push(block);
