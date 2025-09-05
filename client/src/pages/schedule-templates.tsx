@@ -498,7 +498,7 @@ export default function ScheduleTemplates() {
                         allowSaturday: checked 
                       })}
                       disabled={saturdayMutation.isPending}
-                      className="w-11 h-6 data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-gray-600"
+                      className="w-11 h-6 rounded-full data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-gray-600 [&>span]:w-5 [&>span]:h-5 [&>span]:rounded-full [&>span]:bg-white [&>span]:shadow-lg [&>span]:transition-transform [&>span:last-child]:translate-x-5"
                     />
                   </div>
                 </div>
