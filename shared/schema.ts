@@ -298,8 +298,8 @@ export const quests = pgTable("quests", {
   goalType: text("goaltype", {
     enum: ["Tasks", "Minutes", "Streak", "Sessions"]
   }).notNull(), // Type of goal to track
-  target: integer("target").notNull(), // Goal target (e.g., 2 for "complete 2 tasks")
-  progress: integer("progress").default(0), // Current progress toward goal
+  target: integer("target_value").notNull(), // Goal target (e.g., 2 for "complete 2 tasks")
+  progress: integer("current_progress").default(0), // Current progress toward goal
   rewardPoints: integer("reward_points").notNull(), // Points awarded when completed
   expiresAt: timestamp("expires_at").notNull(), // When quest expires
   isCompleted: boolean("is_completed").default(false), // Whether quest was completed
