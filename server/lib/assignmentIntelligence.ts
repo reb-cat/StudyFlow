@@ -269,6 +269,9 @@ export async function hybridScheduleAssignments(
   request: HybridSchedulingRequest,
   storage: any
 ): Promise<HybridSchedulingResult> {
+  console.log(`🚀 HYBRID SCHEDULER: Starting for ${request.studentName}, target week: ${request.targetWeek}`);
+  console.log(`📝 HYBRID SCHEDULER: ${request.assignments.length} assignments to schedule`);
+  
   const result: HybridSchedulingResult = {
     success: false,
     scheduledAssignments: [],
