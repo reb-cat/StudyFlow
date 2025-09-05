@@ -572,10 +572,11 @@ export default function ScheduleTemplates() {
                     )}
                   </div>
                   <Button 
-                    variant="destructive" 
+                    variant="outline" 
                     size="sm" 
                     onClick={() => removeBlock(index)}
                     data-testid={`button-remove-${index}`}
+                    className="border-violet-500 text-violet-500 hover:bg-violet-500 hover:text-white"
                   >
                     Remove
                   </Button>
