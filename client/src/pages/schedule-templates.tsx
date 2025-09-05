@@ -501,20 +501,27 @@ export default function ScheduleTemplates() {
                     }}
                     disabled={saturdayMutation.isPending}
                     className={`
-                      h-5 w-10 rounded-full relative transition-all duration-200 ease-in-out inline-block
-                      ${student.allowSaturdayScheduling 
-                        ? 'bg-green-500 shadow-lg' 
-                        : 'bg-gray-300 shadow-inner'
-                      }
+                      relative inline-block transition-all duration-300 ease-in-out focus:outline-none
                       ${saturdayMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                      focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50
                     `}
+                    style={{
+                      width: '48px',
+                      height: '24px',
+                      borderRadius: '24px',
+                      backgroundColor: student.allowSaturdayScheduling ? '#22c55e' : '#d1d5db',
+                      boxShadow: student.allowSaturdayScheduling ? '0 2px 4px rgba(34, 197, 94, 0.4)' : 'inset 0 1px 3px rgba(0, 0, 0, 0.1)'
+                    }}
                   >
                     <div 
-                      className={`
-                        absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out
-                        ${student.allowSaturdayScheduling ? 'translate-x-5' : 'translate-x-0'}
-                      `}
+                      className="absolute bg-white rounded-full shadow-md transition-transform duration-300 ease-in-out"
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        top: '2px',
+                        left: '2px',
+                        transform: student.allowSaturdayScheduling ? 'translateX(24px)' : 'translateX(0px)',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
+                      }}
                     />
                   </button>
                 </div>
