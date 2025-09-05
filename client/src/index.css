@@ -148,62 +148,62 @@ button {
 }
 
 .dark {
-  /* StudyFlow Dark Mode Palette - Updated Colors */
+  /* Lovable-Style Dark Mode - Black cards with bright accent colors */
   
-  /* Backgrounds - warmer, softer dark tones */
-  --background: hsl(220, 10%, 14%);             /* #202125 - Main background - slightly lighter */
-  --card: hsl(220, 8%, 20%);                    /* #313237 - Elevated surface - better separation */
-  --surface-secondary: hsl(220, 8%, 18%);       /* #2a2b30 - Input fields */
-  --surface-hover: hsl(220, 7%, 23%);           /* #383a40 - Hover state */
+  /* Backgrounds - True dark like Lovable */
+  --background: hsl(240, 10%, 4%);              /* #0a0a0b - Very dark background */
+  --card: hsl(240, 6%, 8%);                     /* #141316 - True black cards */
+  --surface-secondary: hsl(240, 6%, 6%);        /* #0f0f10 - Input fields darker */
+  --surface-hover: hsl(240, 6%, 10%);           /* #191a1c - Hover state */
   
-  /* Text - softer contrast hierarchy */
-  --foreground: hsl(210, 15%, 85%);             /* #d1d5db - Primary text - softer than pure white */
-  --card-foreground: hsl(210, 15%, 85%);        
-  --muted-foreground: hsl(220, 9%, 64%);        /* #9ca3af - Secondary text - updated gray */
-  --text-disabled: hsl(211, 10%, 53%);          /* #6c757f - Disabled text */
-  --text-critical: hsl(210, 15%, 85%);          /* #d1d5db - Timer/critical text - no pure white */
+  /* Text - High contrast like Lovable */
+  --foreground: hsl(0, 0%, 98%);                /* #fafafa - Near white text */
+  --card-foreground: hsl(0, 0%, 98%);           
+  --muted-foreground: hsl(240, 5%, 65%);        /* #9ca3af - Muted text */
+  --text-disabled: hsl(240, 5%, 50%);           /* #6b7280 - Disabled text */
+  --text-critical: hsl(0, 0%, 98%);             /* #fafafa - Critical text */
   
-  /* Interactive elements */
-  --popover: hsl(220, 8%, 20%);
-  --popover-foreground: hsl(210, 15%, 85%);
-  --secondary: hsl(220, 8%, 20%);
-  --secondary-foreground: hsl(210, 15%, 85%);
-  --muted: hsl(220, 8%, 18%);
+  /* Interactive elements - True blacks */
+  --popover: hsl(240, 6%, 8%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(240, 6%, 8%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 6%, 6%);
   
-  /* Borders - better visibility */
-  --border: hsl(220, 7%, 28%);                  /* #434550 - Default borders - more visible */
-  --input: hsl(220, 8%, 18%);                   /* #2a2b30 - Input background */
-  --ring: hsl(263, 89%, 66%);                   /* #8b5cf6 - Updated focus ring */
+  /* Borders - Subtle but visible */
+  --border: hsl(240, 6%, 15%);                  /* #26272b - Subtle borders */
+  --input: hsl(240, 6%, 6%);                    /* #0f0f10 - Input background */
+  --ring: hsl(263, 89%, 60%);                   /* Bright violet focus ring */
   
-  /* Status colors - gaming theme brightened by ~20% for dark mode */
-  --primary: hsl(263, 70%, 75%);                /* Gaming violet - 20% brighter */
-  --primary-foreground: hsl(220, 10%, 14%);
-  --accent: hsl(142, 76%, 55%);                 /* Gaming emerald - 20% brighter */
-  --accent-foreground: hsl(220, 10%, 14%);
-  --status-complete: hsl(142, 76%, 55%);        /* Gaming emerald - 20% brighter */
-  --status-progress: hsl(213, 94%, 78%);        /* Gaming blue - 20% brighter */
-  --status-blocked: hsl(220, 15%, 65%);         /* #96a0b0 - 20% brighter gray */
+  /* Status colors - Bright and saturated like Lovable */
+  --primary: hsl(263, 89%, 60%);                /* #6d28d8 - Bright violet (original) */
+  --primary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(142, 100%, 32%);                /* #00a348 - Bright emerald */
+  --accent-foreground: hsl(0, 0%, 98%);
+  --status-complete: hsl(142, 100%, 32%);       /* #00a348 - Bright emerald */
+  --status-progress: hsl(213, 94%, 68%);        /* #3b82f6 - Bright blue */
+  --status-blocked: hsl(240, 5%, 65%);          /* #9ca3af - Muted gray */
   
-  /* Destructive states - brightened for dark mode */
-  --destructive: hsl(0, 70%, 60%);               /* #e85555 - 20% brighter red */
-  --destructive-foreground: hsl(220, 10%, 14%);
+  /* Destructive states - Bright red */
+  --destructive: hsl(0, 84%, 60%);              /* #ef4444 - Bright red */
+  --destructive-foreground: hsl(0, 0%, 98%);
   
-  /* Charts - Gaming theme, 20% brighter for dark mode */
-  --chart-1: hsl(263, 70%, 75%);               /* Gaming violet - 20% brighter */
-  --chart-2: hsl(213, 94%, 78%);               /* Gaming blue - 20% brighter */
-  --chart-3: hsl(142, 76%, 55%);               /* Gaming emerald - 20% brighter */
-  --chart-4: hsl(45, 93%, 75%);                /* Gaming gold - 20% brighter */
-  --chart-5: hsl(37, 92%, 65%);                /* Keep orange for variety */
+  /* Charts - Bright gaming colors */
+  --chart-1: hsl(263, 89%, 60%);               /* #6d28d8 - Bright violet */
+  --chart-2: hsl(213, 94%, 68%);               /* #3b82f6 - Bright blue */
+  --chart-3: hsl(142, 100%, 32%);              /* #00a348 - Bright emerald */
+  --chart-4: hsl(45, 86%, 57%);                /* #f0ca33 - Bright gold */
+  --chart-5: hsl(37, 92%, 50%);                /* Orange variation */
   
-  /* Sidebar - consistent with new palette */
-  --sidebar: hsl(220, 8%, 20%);
-  --sidebar-foreground: hsl(210, 15%, 85%);
-  --sidebar-primary: hsl(260, 53%, 75%);
-  --sidebar-primary-foreground: hsl(220, 10%, 14%);
-  --sidebar-accent: hsl(220, 8%, 18%);
-  --sidebar-accent-foreground: hsl(210, 15%, 85%);
-  --sidebar-border: hsl(220, 7%, 28%);
-  --sidebar-ring: hsl(260, 53%, 75%);
+  /* Sidebar - Black theme */
+  --sidebar: hsl(240, 6%, 8%);
+  --sidebar-foreground: hsl(0, 0%, 98%);
+  --sidebar-primary: hsl(263, 89%, 60%);
+  --sidebar-primary-foreground: hsl(0, 0%, 98%);
+  --sidebar-accent: hsl(240, 6%, 6%);
+  --sidebar-accent-foreground: hsl(0, 0%, 98%);
+  --sidebar-border: hsl(240, 6%, 15%);
+  --sidebar-ring: hsl(263, 89%, 60%);
 }
 
 @layer base {
