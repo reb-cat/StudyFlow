@@ -233,6 +233,14 @@ export async function getAvailableScheduleSlots(
         return total + (assignment.actualEstimatedMinutes || 30);
       }, 0);
       
+      // Debug what assignments are currently in this block
+      if (assignedAssignments.length > 0) {
+        console.log(`   🚨 Block ${block.blockNumber} (${block.blockType}) already has ${assignedAssignments.length} assignments:`);
+        assignedAssignments.forEach(a => {
+          console.log(`      - ${a.title} (due: ${a.dueDate}, ${a.actualEstimatedMinutes || 30}min)`);
+        });
+      }
+      
       availableSlots.push({
         studentName,
         weekday,
