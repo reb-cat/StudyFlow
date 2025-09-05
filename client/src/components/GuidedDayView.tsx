@@ -1177,7 +1177,7 @@ export function GuidedDayView({
         </div>
 
         {/* Title card + Instructions pill */}
-        <div className="mb-4 rounded-2xl bg-blue-50/60 dark:bg-slate-800/80 border border-blue-200 dark:border-slate-600 px-5 py-4" style={{ marginBottom: '16px' }}>
+        <div className="mb-4 rounded-2xl bg-[hsl(var(--status-progress)_/_0.1)] border border-[hsl(var(--status-progress)_/_0.2)] px-5 py-4" style={{ marginBottom: '16px' }}>
           <div className="mb-2 flex items-start justify-between gap-3">
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
               <h2 className="text-[20px] font-bold text-foreground" style={{ 
@@ -1198,7 +1198,7 @@ export function GuidedDayView({
             {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && (
               <button
                 onClick={() => setShowInstructions(!showInstructions)}
-                className="flex items-center gap-1 px-2 py-1 text-xs text-blue hover:bg-blue/20 rounded transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-xs text-[hsl(var(--status-progress))] hover:bg-[hsl(var(--status-progress)_/_0.2)] rounded transition-colors"
                 data-testid="button-toggle-instructions"
               >
                 Instructions {showInstructions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -1207,9 +1207,9 @@ export function GuidedDayView({
           </div>
           {/* Instructions Dropdown Content */}
           {currentBlock.type === 'assignment' && currentBlock.assignment?.instructions && showInstructions && (
-            <div className="mt-3 p-3 bg-blue-50/50 dark:bg-slate-700/50 rounded-lg border border-blue-200/50 dark:border-slate-600/50">
+            <div className="mt-3 p-3 bg-[hsl(var(--status-progress)_/_0.1)] rounded-lg border border-[hsl(var(--status-progress)_/_0.2)]">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                <div className="w-5 h-5 rounded-full bg-[hsl(var(--status-progress))] flex items-center justify-center">
                   <span className="text-white text-xs font-bold">i</span>
                 </div>
                 <h4 className="text-sm font-medium text-foreground">Instructions</h4>
@@ -1223,7 +1223,7 @@ export function GuidedDayView({
                         speak(`Assignment instructions: ${stripHtml(currentBlock.assignment.instructions)}`);
                       }
                     }}
-                    className="ml-auto w-7 h-7 rounded-full bg-blue hover:bg-blue/90 flex items-center justify-center text-blue-foreground transition-colors"
+                    className="ml-auto w-7 h-7 rounded-full bg-[hsl(var(--status-progress))] hover:bg-[hsl(var(--status-progress)_/_0.9)] flex items-center justify-center text-[hsl(var(--background))] transition-colors"
                     title={isPlaying ? "Stop reading" : "Read instructions aloud"}
                     data-testid="button-speak-instructions"
                   >
@@ -1241,10 +1241,10 @@ export function GuidedDayView({
 
         {/* Co-op Prep Checklist - shows during Prep/Load blocks */}
         {isPrepLoadBlock && prepChecklist.length > 0 && (
-          <div className="mb-6 rounded-2xl bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-5 py-4">
+          <div className="mb-6 rounded-2xl bg-[hsl(var(--status-progress)_/_0.1)] border border-[hsl(var(--status-progress)_/_0.2)] px-5 py-4">
             <div className="flex items-center gap-2 mb-3">
               <div 
-                className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center"
+                className="w-6 h-6 rounded-full bg-[hsl(var(--status-progress))] flex items-center justify-center"
                 style={{ flexShrink: 0 }}
               >
                 <span className="text-white text-xs font-bold">✓</span>
