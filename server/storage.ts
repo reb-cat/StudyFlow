@@ -644,13 +644,17 @@ export class DatabaseStorage implements IStorage {
     }
     
     try {
+      console.log(`🔍 DEBUG: About to delete existing blocks for ${studentName} ${weekday}`);
+      
       // Delete existing blocks for this student/weekday
-      await db.delete(scheduleTemplate).where(
+      const deleteResult = await db.delete(scheduleTemplate).where(
         and(
           eq(scheduleTemplate.studentName, studentName),
           eq(scheduleTemplate.weekday, weekday)
         )
       );
+      
+      console.log(`🔍 DEBUG: Delete completed, attempting insert of ${blocks.length} blocks`);
 
       // Insert new blocks with corrected student name
       if (blocks.length > 0) {
@@ -663,6 +667,9 @@ export class DatabaseStorage implements IStorage {
           subject: block.subject,
           blockType: block.blockType
         }));
+        
+        console.log(`🔍 DEBUG: Insert data preview:`, insertBlocks.slice(0, 3));
+        console.log(`🔍 DEBUG: Block numbers being inserted:`, insertBlocks.map(b => b.blockNumber));
         
         await db.insert(scheduleTemplate).values(insertBlocks);
       }
