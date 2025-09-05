@@ -1,0 +1,66 @@
+FORENSIC MODE (READ-ONLY FIRST) — DO NOT “FIX” ANYTHING YET
+
+Goal:
+- Explain why Friday (2025-09-05) shows the wrong assignments and order.
+- Prove exactly where truth diverges: DB vs API vs frontend mapping.
+- Return artifacts. No optimistic summaries. No silent writes.
+
+Scope (student/date):
+- Student: Khalil
+- Date: 2025-09-05 (Friday)
+
+Rules:
+- Phase 1 (Read-only) ONLY. Do not mutate DB/app state.
+- If you propose a fix, provide reproducible evidence first; then do ONE surgical change in Phase 2 with rollback notes.
+
+PHASE 1 — EVIDENCE COLLECTION (READ-ONLY)
+1) DB Ground Truth (Production):
+   - Query A: All assignments due on/ before 2025-09-08 23:59 for Khalil: title, subject, due_date, completion_status.
+   - Query B: All assignments with scheduled_date = '2025-09-05': title, subject, scheduled_block (NULL or number).
+   - Query C: Count how many have (scheduled_date='2025-09-05' AND scheduled_block IS NULL). This is the pool the scheduler should fill.
+   - Return CSV snippets (10–20 rows) + totals.
+
+2) API Outputs (Production):
+   - GET /api/assignments?date=2025-09-05&studentName=Khalil → save JSON (top 20 with: title, dueDate, scheduledDate, scheduledBlock, priority).
+   - GET /api/schedule/Khalil/2025-09-05 → save JSON of blocks shown on UI.
+   - Report HTTP status, content-type, and auth status for each call.
+
+3) Frontend Inputs & Mapper:
+   - Identify the exact code path that builds the Friday grid (file + line ranges).
+   - Confirm whether it respects scheduled_block first, then applies “diversity” for only the remaining pool.
+   - Log (console.info) the final list used to render each block: `[block#, assignedTitle, from="dbScheduled|diversityAlgo"]`.
+   - Capture the console output (screenshot or text).
+
+4) DIFF (Single Table of Truth):
+   - Create a 3-column table for each block (2..N): 
+     DB (scheduled_block), API (scheduledBlock), UI (what was rendered + source).
+   - Mark mismatches with 🔴 and exact reason (e.g., “UI ignored dbScheduled”, “API filtered out X”, “DB has NULL but UI filled Y via diversity”).
+
+5) Bug Hypothesis (one line):
+   - “Because <specific filter/mapper>, assignments with scheduled_date=2025-09-05 and scheduled_block=NULL were excluded / reshuffled / overwritten.”
+
+Deliverables (must attach):
+- DB CSV (Queries A/B/C).
+- Raw API JSON (2 endpoints).
+- Frontend console table (per block) + file/lines where mapping happens.
+- The DIFF table with 🔴 markers.
+- One-line hypothesis.
+
+PHASE 2 — ONE SURGICAL FIX (ONLY IF PROVED)
+- If evidence shows a **single** root cause, do ONE of:
+  A) Storage filter fix: include (scheduled_date=today AND scheduled_block IS NULL) in the “unscheduled” pool.
+  B) Frontend mapper fix: always place db-scheduled first; diversity runs only on the remainder; never overwrite db placement.
+  C) API param/date-parse fix if wrong date window is used.
+
+Constraints for Phase 2:
+- Make exactly one change; include file + line range.
+- Add temporary logs: for each block, print `{block, from: db|algo, title}`.
+- Re-run Phase 1 steps 2–4 to show corrected DIFF (no 🔴).
+- No other refactors. No capacity/estimate logic changes.
+
+ACCEPTANCE (must pass all, with artifacts):
+- DB pool (scheduled today & NULL block) = X; API returns same X; UI fills all with correct ordering.
+- Weather Forecast at 9:20 (Block 2), Unit 2 at 10:00 (Block 3); diversity algorithm only fills unassigned blocks and never replaces db-scheduled ones.
+- Attach updated API JSON + console table + DIFF (all ✅).
+
+If any check fails, revert the one change and stop. Report what failed with the evidence.

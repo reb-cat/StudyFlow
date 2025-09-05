@@ -698,6 +698,8 @@ export class DatabaseStorage implements IStorage {
       let scheduledCount = 0;
       
       for (const [assignmentId, result] of Array.from(schedulingResults.entries())) {
+        console.log(`🔧 UPDATING assignment ${assignmentId}: scheduledDate=${result.scheduledDate}, scheduledBlock=${result.scheduledBlock}`);
+        
         const updated = await this.updateAssignmentScheduling(assignmentId, {
           scheduledDate: result.scheduledDate,
           scheduledBlock: result.scheduledBlock,
@@ -706,8 +708,11 @@ export class DatabaseStorage implements IStorage {
         });
         
         if (updated) {
+          console.log(`✅ UPDATED assignment ${updated.title}: block=${updated.scheduledBlock}`);
           updatedAssignments.push(updated);
           scheduledCount++;
+        } else {
+          console.log(`❌ FAILED to update assignment ${assignmentId}`);
         }
       }
       

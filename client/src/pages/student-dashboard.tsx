@@ -314,6 +314,15 @@ export default function StudentDashboard() {
       !a.scheduledDate || a.scheduledDate === selectedDate
     );
     
+    console.info(`🔍 FRONTEND DEBUG: selectedDate=${selectedDate}`);
+    console.info(`🔍 FRONTEND DEBUG: Total assignments=${assignments.length}, Today's assignments=${todaysAssignments.length}`);
+    console.info(`🔍 FRONTEND DEBUG: Today's assignments:`, todaysAssignments.map(a => ({
+      title: a.title, 
+      scheduledDate: a.scheduledDate, 
+      scheduledBlock: a.scheduledBlock,
+      subject: a.subject
+    })));
+    
     // Create a copy of today's assignments for scheduling
     const availableAssignments = [...todaysAssignments];
     const usedSubjects = new Set<string>();
@@ -339,6 +348,7 @@ export default function StudentDashboard() {
     
     return assignmentBlocks.map((block, index) => {
       let selectedAssignment = null;
+      let selectionSource = 'none';
       
       // PRIORITY 1: Check if any assignment is specifically scheduled for this block
       for (let i = 0; i < availableAssignments.length; i++) {
@@ -346,6 +356,7 @@ export default function StudentDashboard() {
         if (assignment.scheduledDate === selectedDate && assignment.scheduledBlock === block.blockNumber) {
           selectedAssignment = assignment;
           availableAssignments.splice(i, 1);
+          selectionSource = 'dbScheduled';
           // Don't add to usedSubjects yet - let diversity logic handle remaining assignments
           break;
         }
@@ -361,6 +372,7 @@ export default function StudentDashboard() {
             selectedAssignment = assignment;
             availableAssignments.splice(i, 1);
             usedSubjects.add(subject);
+            selectionSource = 'diversityAlgo';
             break;
           }
         }
@@ -404,8 +416,11 @@ export default function StudentDashboard() {
         // If still no assignment and we have extras, take next available anyway
         if (!selectedAssignment && availableAssignments.length > 0) {
           selectedAssignment = availableAssignments.shift();
+          selectionSource = 'fallback';
         }
       }
+      
+      console.info(`🎯 BLOCK ${block.blockNumber}: ${selectedAssignment ? selectedAssignment.title : 'empty'} [from: ${selectionSource}]`);
       
       scheduledAssignments.push(selectedAssignment);
       
