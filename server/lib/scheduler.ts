@@ -272,12 +272,13 @@ class JobScheduler {
                 });
                 totalImported++;
               } else {
-                // Update existing assignment if it's now graded
+                // DISABLED: Auto-completion update logic to prevent false completions
+                // Canvas graded_submissions_exist can be true if ANY student has graded work,
+                // not necessarily THIS specific student, causing false completions.
                 const existingAssignment = existingAssignments.find(a => a.title === canvasAssignment.name);
                 if (existingAssignment && existingAssignment.completionStatus === 'pending' && 
                     (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions)) {
-                  await storage.updateAssignment(existingAssignment.id, { completionStatus: 'completed' });
-                  console.log(`✅ Updated "${canvasAssignment.name}" to completed (now graded in Canvas)`);
+                  console.log(`🔒 DISABLED: Would have auto-marked "${canvasAssignment.name}" as completed (Canvas graded) - preserving manual status`);
                 }
               }
             } catch (error) {
@@ -464,12 +465,13 @@ class JobScheduler {
                 });
                 totalImported++;
               } else {
-                // Update existing assignment if it's now graded
+                // DISABLED: Auto-completion update logic to prevent false completions
+                // Canvas graded_submissions_exist can be true if ANY student has graded work,
+                // not necessarily THIS specific student, causing false completions.
                 const existingAssignment = existingAssignments.find(a => a.title === canvasAssignment.name);
                 if (existingAssignment && existingAssignment.completionStatus === 'pending' && 
                     (canvasAssignment.graded_submissions_exist || canvasAssignment.has_submitted_submissions)) {
-                  await storage.updateAssignment(existingAssignment.id, { completionStatus: 'completed' });
-                  console.log(`✅ Updated "${canvasAssignment.name}" to completed (now graded in Canvas)`);
+                  console.log(`🔒 DISABLED: Would have auto-marked "${canvasAssignment.name}" as completed (Canvas graded) - preserving manual status`);
                 }
               }
             } catch (error) {
