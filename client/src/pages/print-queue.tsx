@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { ExternalLink, Printer, Check, X, Clock, AlertTriangle, BookOpen, FileText, Calendar } from "lucide-react";
+import { ExternalLink, Printer, Check, X, Clock, AlertTriangle, BookOpen, FileText, Calendar, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 
 interface PrintQueueItem {
   id: string;
@@ -125,19 +126,27 @@ export default function PrintQueue() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2" style={{ 
-              background: 'linear-gradient(135deg, var(--foreground) 0%, var(--primary) 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>
-              <Printer className="w-7 h-7" style={{ color: 'var(--primary)' }} />
-              Print Queue
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Proactive printing support for tomorrow's assignments
-            </p>
+          <div className="flex items-center gap-4">
+            <Link href="/admin">
+              <Button variant="ghost" size="sm" data-testid="button-back">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Admin
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2" style={{ 
+                background: 'linear-gradient(135deg, var(--foreground) 0%, var(--primary) 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                <Printer className="w-7 h-7" style={{ color: 'var(--primary)' }} />
+                Print Queue
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Proactive printing support for tomorrow's assignments
+              </p>
+            </div>
           </div>
           
           {/* Days Ahead Selector */}
