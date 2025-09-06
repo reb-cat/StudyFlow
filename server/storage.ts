@@ -795,25 +795,85 @@ export class DatabaseStorage implements IStorage {
         console.log(`   Block ${blocksToFill[index].blockNumber}: "${assignment.title}"`);
       });
       
-      // Simple assignment: first sorted assignment → first block, second → second block, etc.
-      for (let i = 0; i < Math.min(assignmentsToAssign.length, blocksToFill.length); i++) {
-        const assignment = assignmentsToAssign[i];
-        const block = blocksToFill[i];
+      // ENHANCED ASSIGNMENT WITH SUBJECT VARIETY: Avoid back-to-back same subjects while preserving educational sequencing
+      const assignmentPlacements: Array<{assignment: any, blockNumber: number}> = [];
+      const assignmentsToPlace = [...assignmentsToAssign];
+      const availableBlocks = [...blocksToFill];
+      
+      // Track subjects by block for diversity checking
+      const blockSubjects: string[] = [];
+      
+      while (assignmentPlacements.length < Math.min(assignmentsToPlace.length, availableBlocks.length)) {
+        const currentBlockIndex = assignmentPlacements.length;
+        const currentBlock = availableBlocks[currentBlockIndex];
+        let selectedAssignment = null;
+        let selectedIndex = -1;
         
-        // Check if urgent (must be scheduled today)
-        const isOverdue = assignment.dueDate && new Date(assignment.dueDate) < new Date(targetDate);
-        const isDueToday = assignment.dueDate && new Date(assignment.dueDate).toISOString().split('T')[0] === targetDateOnly;
-        const isUrgent = isOverdue || isDueToday;
+        // Try to find an assignment that doesn't create back-to-back same subjects
+        for (let i = 0; i < assignmentsToPlace.length; i++) {
+          const candidate = assignmentsToPlace[i];
+          if (!candidate) continue; // Already placed
+          
+          // Check if this would create back-to-back same subjects
+          const candidateSubject = candidate.subject || 'Unknown';
+          const previousSubject = currentBlockIndex > 0 ? blockSubjects[currentBlockIndex - 1] : null;
+          
+          // If this is the first block, or no subject conflict, or this is urgent, place it
+          const isOverdue = candidate.dueDate && new Date(candidate.dueDate) < new Date(targetDate);
+          const isDueToday = candidate.dueDate && new Date(candidate.dueDate).toISOString().split('T')[0] === targetDateOnly;
+          const isUrgent = isOverdue || isDueToday;
+          
+          if (currentBlockIndex === 0 || candidateSubject !== previousSubject || isUrgent) {
+            selectedAssignment = candidate;
+            selectedIndex = i;
+            blockSubjects[currentBlockIndex] = candidateSubject;
+            break;
+          }
+        }
         
-        schedulingResults.set(assignment.id, {
-          scheduledDate: targetDate,
-          scheduledBlock: block.blockNumber,
-          blockStart: block.startTime,
-          blockEnd: block.endTime
-        });
+        // If no subject-diverse assignment found, fall back to first available (preserves educational sequencing)
+        if (!selectedAssignment) {
+          for (let i = 0; i < assignmentsToPlace.length; i++) {
+            if (assignmentsToPlace[i]) {
+              selectedAssignment = assignmentsToPlace[i];
+              selectedIndex = i;
+              blockSubjects[currentBlockIndex] = selectedAssignment.subject || 'Unknown';
+              console.log(`🔄 FALLBACK: No subject diversity possible, using sequenced assignment "${selectedAssignment.title}"`);
+              break;
+            }
+          }
+        }
         
-        scheduledAssignments.push(assignment);
-        console.log(`📍 SCHEDULED: "${assignment.title}" → Block ${block.blockNumber} (${isUrgent ? 'URGENT' : 'MOVEABLE'})`);
+        if (selectedAssignment) {
+          // Check if urgent (must be scheduled today)
+          const isOverdue = selectedAssignment.dueDate && new Date(selectedAssignment.dueDate) < new Date(targetDate);
+          const isDueToday = selectedAssignment.dueDate && new Date(selectedAssignment.dueDate).toISOString().split('T')[0] === targetDateOnly;
+          const isUrgent = isOverdue || isDueToday;
+          
+          // Record the placement
+          assignmentPlacements.push({
+            assignment: selectedAssignment,
+            blockNumber: currentBlock.blockNumber
+          });
+          
+          schedulingResults.set(selectedAssignment.id, {
+            scheduledDate: targetDate,
+            scheduledBlock: currentBlock.blockNumber,
+            blockStart: currentBlock.startTime,
+            blockEnd: currentBlock.endTime
+          });
+          
+          scheduledAssignments.push(selectedAssignment);
+          
+          // Log subject diversity info
+          const diversityNote = currentBlockIndex > 0 && blockSubjects[currentBlockIndex] !== blockSubjects[currentBlockIndex - 1] ? '🎨 DIVERSE' : '📚 SAME';
+          console.log(`📍 SCHEDULED: "${selectedAssignment.title}" → Block ${currentBlock.blockNumber} (${isUrgent ? 'URGENT' : 'MOVEABLE'}) ${diversityNote}`);
+          
+          // Remove from available assignments
+          assignmentsToPlace[selectedIndex] = null;
+        } else {
+          break; // No more assignments available
+        }
       }
       
       // OVERFLOW HANDLING: Move unscheduled MOVEABLE assignments to next day
