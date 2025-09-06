@@ -3660,6 +3660,120 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
+  // Schedule Manager API endpoints
+
+  // GET /api/schedule/:student/:date/preview - Get schedule preview with blocks and assignments
+  app.get('/api/schedule/:student/:date/preview', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { student, date } = req.params;
+      
+      // Get schedule blocks for the student and date
+      const blocks = await storage.getDailyScheduleStatus(student, date);
+      
+      if (!blocks || blocks.length === 0) {
+        return res.status(404).json({ message: 'No schedule found for this date' });
+      }
+
+      // Format response with assignment details
+      const schedulePreview = {
+        date,
+        studentName: student,
+        blocks: blocks.map((block: any) => ({
+          blockNumber: block.blockNumber,
+          startTime: block.startTime,
+          endTime: block.endTime,
+          blockType: block.blockType,
+          assignment: block.assignment || null
+        }))
+      };
+
+      res.json(schedulePreview);
+    } catch (error) {
+      console.error('Error fetching schedule preview:', error);
+      res.status(500).json({ message: 'Failed to fetch schedule preview' });
+    }
+  });
+
+  // PUT /api/schedule/:student/:date/manual - Save manual schedule changes
+  app.put('/api/schedule/:student/:date/manual', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { student, date } = req.params;
+      const { blocks } = req.body;
+
+      if (!blocks || !Array.isArray(blocks)) {
+        return res.status(400).json({ message: 'Blocks array is required' });
+      }
+
+      // Clear existing assignments for the date
+      const userId = `${student.toLowerCase()}-user`;
+      const existingAssignments = await storage.getAssignmentsByStudentAndDate(student, date);
+      
+      // Clear existing scheduling
+      for (const assignment of existingAssignments) {
+        await storage.updateAssignmentScheduling(assignment.id, {
+          scheduledDate: null,
+          scheduledBlock: null
+        });
+      }
+
+      // Apply manual schedule changes
+      let updatedCount = 0;
+      for (const block of blocks) {
+        if (block.assignment) {
+          await storage.updateAssignmentScheduling(block.assignment.id, {
+            scheduledDate: date,
+            scheduledBlock: block.blockNumber
+          });
+          updatedCount++;
+        }
+      }
+
+      console.log(`🎯 Manual schedule saved: ${updatedCount} assignments scheduled for ${student} on ${date}`);
+      
+      res.json({
+        message: 'Manual schedule saved successfully',
+        updatedCount,
+        studentName: student,
+        date
+      });
+    } catch (error) {
+      console.error('Error saving manual schedule:', error);
+      res.status(500).json({ message: 'Failed to save manual schedule' });
+    }
+  });
+
+  // POST /api/schedule/:student/:date/regenerate - Regenerate schedule automatically
+  app.post('/api/schedule/:student/:date/regenerate', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { student, date } = req.params;
+      
+      // Clear existing schedule for the day
+      const existingAssignments = await storage.getAssignmentsByStudentAndDate(student, date);
+      
+      // Clear existing scheduling
+      for (const assignment of existingAssignments) {
+        await storage.updateAssignmentScheduling(assignment.id, {
+          scheduledDate: null,
+          scheduledBlock: null
+        });
+      }
+      
+      // Regenerate using the scheduler
+      await storage.autoScheduleAssignmentsForDate(student, date);
+      
+      console.log(`🔄 Schedule regenerated for ${student} on ${date}`);
+      
+      res.json({
+        message: 'Schedule regenerated successfully',
+        studentName: student,
+        date
+      });
+    } catch (error) {
+      console.error('Error regenerating schedule:', error);
+      res.status(500).json({ message: 'Failed to regenerate schedule' });
+    }
+  });
+
   // PHASE A FIX: API 404 handler - must be LAST API route to catch unmatched /api/* paths
   app.use('/api/*', (req: Request, res: Response) => {
     res.status(404).json({ 

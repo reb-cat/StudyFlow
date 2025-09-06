@@ -14,7 +14,8 @@ import {
   Target,
   Clock,
   RefreshCw,
-  CheckSquare
+  CheckSquare,
+  CalendarCheck
 } from 'lucide-react';
 
 interface AdminTile {
@@ -80,6 +81,14 @@ const adminTiles: AdminTile[] = [
     color: "pink"
   },
   {
+    title: "Schedule Manager",
+    description: "Preview, reorder, and substitute daily assignments",
+    href: "/schedule-manager",
+    icon: CalendarCheck,
+    color: "amber",
+    badge: "Preview"
+  },
+  {
     title: "Canvas Integration",
     description: "Sync assignments and manage Canvas connections",
     href: "#canvas-integration", 
@@ -111,6 +120,7 @@ const getColorClasses = (color: string) => {
     orange: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-orange-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
     indigo: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-indigo-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
     pink: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-pink-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
+    amber: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-amber-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
     teal: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-teal-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
     violet: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-violet-600', border: 'border-muted', hover: 'hover:bg-muted/60' },
     gray: { bg: 'bg-muted/50', text: 'text-foreground', icon: 'text-gray-600', border: 'border-muted', hover: 'hover:bg-muted/60' }
