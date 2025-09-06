@@ -39,9 +39,9 @@ export function detectPrintNeeds(assignment: {
     if (baseUrl) {
       const cleanUrl = baseUrl.replace(/\/$/, '');
       if (assignment.canvasInstance === 2) {
-        // Apologia Canvas uses pages format
-        const titleSlug = assignment.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-        result.canvasUrl = `${cleanUrl}/courses/541/pages/${titleSlug}?module_item_id=${assignment.canvasId}`;
+        // Apologia Canvas uses assignments format with module_item_id
+        // TODO: Need to store module_item_id separately from canvas_id
+        result.canvasUrl = `${cleanUrl}/courses/541/assignments/${assignment.canvasId}`;
       } else {
         result.canvasUrl = `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
       }
@@ -54,9 +54,9 @@ export function detectPrintNeeds(assignment: {
     if (baseUrl) {
       const cleanUrl = baseUrl.replace(/\/$/, '');
       if (assignment.canvasInstance === 2) {
-        // Apologia Canvas uses pages format  
-        const titleSlug = assignment.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-        result.canvasUrl = `${cleanUrl}/courses/541/pages/${titleSlug}?module_item_id=${assignment.canvasId}`;
+        // Apologia Canvas uses assignments format with module_item_id
+        // TODO: Need to store module_item_id separately from canvas_id
+        result.canvasUrl = `${cleanUrl}/courses/541/assignments/${assignment.canvasId}`;
       } else {
         result.canvasUrl = `${cleanUrl}/assignments/${assignment.canvasId}`;
       }
