@@ -730,8 +730,6 @@ export class DatabaseStorage implements IStorage {
       console.log(`📅 GENERIC SCHEDULING: Filling ${allAvailableBlocks.length} blocks on ${targetDate}`);
       
       // ENHANCED ASSIGNMENT PRIORITIZATION with urgency-based bumping
-      const targetDateOnly = targetDate.split('T')[0];
-      
       const prioritizedAssignments = assignmentsToSchedule.sort((a, b) => {
         // Priority 1: URGENT - Overdue assignments (must be scheduled today)
         const aOverdue = a.dueDate && new Date(a.dueDate) < new Date(targetDate);
