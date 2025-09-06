@@ -640,6 +640,12 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
+      // DEBUG: Show what we have BEFORE sequence filtering
+      console.log(`🔍 RAW UNSCHEDULED: ${unscheduledAssignments.length} assignments before sequence filtering:`);
+      unscheduledAssignments.forEach(a => {
+        console.log(`   - "${a.title}" (Unit ${extractUnitNumber(a.title)}) - Course: "${a.courseName}" - Subject: "${a.subject}"`);
+      });
+      
       // Now get ALL available assignments for rescheduling (fresh start)
       const assignmentsToSchedule = unscheduledAssignments.filter(a => {
         // Additional sequence validation - don't even consider out-of-sequence assignments
