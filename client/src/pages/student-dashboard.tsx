@@ -307,12 +307,12 @@ export default function StudentDashboard() {
   );
   const assignmentBlocks = allScheduleBlocks.filter((block) => block.blockType === 'assignment');
 
-  // INTELLIGENT ASSIGNMENT SCHEDULING with subject distribution and deduplication
+  // INTELLIGENT ASSIGNMENT SCHEDULING - RESPECT BACKEND DECISIONS
   const populatedAssignmentBlocks = (() => {
-    // CRITICAL: Only consider assignments scheduled for TODAY or unscheduled
-    // This ensures we only work with urgent Monday assignments that should appear today
+    // CRITICAL: Only use assignments EXPLICITLY SCHEDULED by the backend for today
+    // Do NOT use unscheduled assignments - they may be blocked for sequence violations
     const todaysAssignments = assignments.filter(a => 
-      !a.scheduledDate || a.scheduledDate === selectedDate
+      a.scheduledDate === selectedDate && a.scheduledBlock !== null
     );
     
     console.info(`🔍 FRONTEND DEBUG: selectedDate=${selectedDate}`);
@@ -363,63 +363,14 @@ export default function StudentDashboard() {
         }
       }
       
-      // PRIORITY 2: If no specifically scheduled assignment, try subject diversity
-      if (!selectedAssignment) {
-        for (let i = 0; i < availableAssignments.length; i++) {
-          const assignment = availableAssignments[i];
-          const subject = assignment.subject || 'General';
-          
-          if (!usedSubjects.has(subject)) {
-            selectedAssignment = assignment;
-            availableAssignments.splice(i, 1);
-            usedSubjects.add(subject);
-            selectionSource = 'diversityAlgo';
-            break;
-          }
-        }
-      } else {
-        // If we used a specifically scheduled assignment, still track its subject
+      // Track subjects of scheduled assignments for logging purposes
+      if (selectedAssignment) {
         const subject = selectedAssignment.subject || 'General';
         usedSubjects.add(subject);
       }
       
-      // Second pass: if no unused subject, take next available (but avoid similar titles)
-      if (!selectedAssignment && availableAssignments.length > 0) {
-        for (let i = 0; i < availableAssignments.length; i++) {
-          const assignment = availableAssignments[i];
-          
-          // Check for similar titles in already scheduled assignments
-          const similarExists = scheduledAssignments.some(scheduled => {
-            if (!scheduled) return false;
-            const titleA = assignment.title.toLowerCase().replace(/[^a-z\s]/g, '');
-            const titleB = scheduled.title.toLowerCase().replace(/[^a-z\s]/g, '');
-            
-            // Check for similar recipe assignments or identical prefixes
-            if (titleA.includes('review recipe') && titleB.includes('review recipe')) {
-              return true;
-            }
-            
-            // Check for similar worksheet/homework patterns
-            const wordsA = titleA.split(' ').filter((w: string) => w.length > 3);
-            const wordsB = titleB.split(' ').filter((w: string) => w.length > 3);
-            const commonWords = wordsA.filter((w: string) => wordsB.includes(w));
-            
-            return commonWords.length >= 2; // Similar if 2+ significant words match
-          });
-          
-          if (!similarExists) {
-            selectedAssignment = assignment;
-            availableAssignments.splice(i, 1);
-            break;
-          }
-        }
-        
-        // If still no assignment and we have extras, take next available anyway
-        if (!selectedAssignment && availableAssignments.length > 0) {
-          selectedAssignment = availableAssignments.shift();
-          selectionSource = 'fallback';
-        }
-      }
+      // NO FALLBACK LOGIC: Only show assignments explicitly scheduled by backend
+      // This ensures sequence blocking and other backend rules are respected
       
       console.info(`🎯 BLOCK ${block.blockNumber}: ${selectedAssignment ? selectedAssignment.title : 'empty'} [from: ${selectionSource}]`);
       
