@@ -10,8 +10,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, Save, RotateCcw, Home, Edit3, Users, Upload, FileText, Calendar, CheckCircle2 } from 'lucide-react';
+import { Clock, Save, RotateCcw, Home, Edit3, Users, Upload, FileText, Calendar, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import { Link } from 'wouter';
 
 interface ScheduleBlock {
   id: string;
