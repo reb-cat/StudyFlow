@@ -908,14 +908,17 @@ export class DatabaseStorage implements IStorage {
       
       for (const assignment of allAssignments) {
         const title = assignment.title.toLowerCase();
-        const isAdministrative = title.includes('fee') ||
-                                title.includes('supply') ||
-                                title.includes('permission') ||
-                                title.includes('form') ||
-                                title.includes('waiver') ||
-                                title.includes('registration') ||
+        
+        // Use word boundaries and more precise matching to avoid false positives
+        // Only match whole words, not substrings
+        const isAdministrative = /\b(fee|supply|permission|waiver|registration)\b/.test(title) ||
                                 title.includes('syllabus') ||
-                                title.includes('honor code');
+                                title.includes('honor code') ||
+                                title.includes('copy fee') ||
+                                title.includes('class fee') ||
+                                title.includes('supply fee') ||
+                                title.includes('lab fee') ||
+                                (title.includes('form') && !title.includes('information') && !title.includes('transform') && !title.includes('format') && !title.includes('perform'));
         
         if (isAdministrative) {
           await db.update(assignments)
