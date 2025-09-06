@@ -653,11 +653,18 @@ export class DatabaseStorage implements IStorage {
         
         
         if (candidateUnit && candidateUnit > 1) {
-          const hasPrerequisite = allUserAssignments.some(prereq => {
+          // FLEXIBLE SEQUENCE: Only block if there are ASSIGNED lower-numbered units that aren't completed yet
+          // Don't require units that were never assigned by the teacher
+          
+          const candidateCourse = (a.courseName || a.subject || '').toLowerCase();
+          
+          const hasBlockingPrerequisite = allUserAssignments.some(prereq => {
             const prereqUnit = extractUnitNumber(prereq.title);
             
+            // Only check units that are lower-numbered than the candidate
+            if (!prereqUnit || prereqUnit >= candidateUnit) return false;
+            
             // FLEXIBLE COURSE MATCHING: Handle different course name formats
-            const candidateCourse = (a.courseName || a.subject || '').toLowerCase();
             const prereqCourse = (prereq.courseName || prereq.subject || '').toLowerCase();
             
             // Match if both contain "history", "chemistry", etc. (subject-based matching)
@@ -666,13 +673,13 @@ export class DatabaseStorage implements IStorage {
             const isExactMatch = candidateCourse === prereqCourse;
             
             const sameCourse = isHistoryMatch || isChemistryMatch || isExactMatch;
-            const isMatch = sameCourse && prereqUnit === candidateUnit - 1 && prereq.completionStatus === 'completed';
             
-            return isMatch;
+            // Block if there's a lower unit in the same course that's NOT completed
+            return sameCourse && prereq.completionStatus !== 'completed';
           });
           
-          if (!hasPrerequisite) {
-            console.log(`⛔ SEQUENCE BLOCK: Excluding ${a.title} (Unit ${candidateUnit}) - Unit ${candidateUnit - 1} not completed`);
+          if (hasBlockingPrerequisite) {
+            console.log(`⛔ SEQUENCE BLOCK: Excluding ${a.title} (Unit ${candidateUnit}) - lower-numbered units in same course not completed`);
             return false;
           }
         }
