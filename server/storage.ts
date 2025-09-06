@@ -590,41 +590,46 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent/bible tasks`);
       
-      // REDISTRIBUTION LOGIC: Check for assignments due today that are scheduled for other days
-      // This helps balance workload when target day has available capacity
-      const assignmentsDueToday = userAssignments.filter(a => {
-        if (!a.dueDate || a.completionStatus !== 'pending') return false;
-        const dueDateOnly = typeof a.dueDate === 'string' ? a.dueDate.split('T')[0] : a.dueDate.toISOString().split('T')[0];
-        const targetDateOnly = targetDate.split('T')[0];
-        return dueDateOnly === targetDateOnly; // Due on target date
-      });
+      // CRITICAL FIX: Clear ALL existing scheduled assignments for this target date
+      // This ensures complete re-evaluation on every refresh (essential for Need More Time)
+      console.log(`🧹 CLEARING: Removing all existing scheduled assignments for ${studentName} on ${targetDate}`);
       
-      const assignmentsScheduledElsewhere = assignmentsDueToday.filter(a => {
-        return a.scheduledDate && a.scheduledDate !== targetDate; // Scheduled for different day
-      });
+      const clearedAssignments = await db.update(assignments)
+        .set({ 
+          scheduledDate: null, 
+          scheduledBlock: null,
+          blockStart: null,
+          blockEnd: null
+        })
+        .where(
+          and(
+            eq(assignments.userId, userId),
+            eq(assignments.scheduledDate, targetDate)
+          )
+        )
+        .returning();
+        
+      console.log(`🧹 CLEARED: ${clearedAssignments.length} assignments cleared from ${targetDate}`);
       
-      if (assignmentsScheduledElsewhere.length > 0) {
-        console.log(`🔄 REDISTRIBUTION CHECK: Found ${assignmentsScheduledElsewhere.length} assignments due today but scheduled elsewhere:`);
-        assignmentsScheduledElsewhere.forEach(a => {
-          console.log(`   - "${a.title}" scheduled for ${a.scheduledDate} (due ${targetDate})`);
-        });
+      // Now get ALL available assignments for rescheduling (fresh start)
+      const assignmentsToSchedule = unscheduledAssignments.filter(a => {
+        // Additional sequence validation - don't even consider out-of-sequence assignments
+        const candidateUnit = extractUnitNumber(a.title);
+        if (candidateUnit && candidateUnit > 1) {
+          const hasPrerequisite = userAssignments.some(prereq => {
+            const prereqUnit = extractUnitNumber(prereq.title);
+            const sameCourse = (prereq.courseName || prereq.subject) === (a.courseName || a.subject);
+            return sameCourse && prereqUnit === candidateUnit - 1 && prereq.completionStatus === 'completed';
+          });
+          
+          if (!hasPrerequisite) {
+            console.log(`⛔ SEQUENCE BLOCK: Excluding ${a.title} (Unit ${candidateUnit}) - Unit ${candidateUnit - 1} not completed`);
+            return false;
+          }
+        }
         
-        // Add these assignments to unscheduled list for potential redistribution
-        // Only add if they pass the same exclusion filters
-        const redistributableAssignments = assignmentsScheduledElsewhere.filter(a => {
-          const title = a.title.toLowerCase();
-          const subject = (a.subject || '').toLowerCase();
-          const isParentTask = title.includes('fee') || title.includes('supply') || title.includes('permission') || 
-                              title.includes('form') || title.includes('waiver') || title.includes('registration') ||
-                              title.includes('syllabus') || title.includes('honor code');
-          const isBibleAssignment = title.includes('bible') || subject.includes('bible') ||
-                                   title.includes('scripture') || subject.includes('scripture');
-          return !isParentTask && !isBibleAssignment;
-        });
-        
-        console.log(`🔄 REDISTRIBUTION: Adding ${redistributableAssignments.length} assignments for potential redistribution`);
-        unscheduledAssignments.push(...redistributableAssignments);
-      }
+        return true;
+      });
       
       // Get schedule template blocks
       const targetDateObj = new Date(targetDate);
@@ -679,23 +684,6 @@ export class DatabaseStorage implements IStorage {
         console.log(`✅ Created ${defaultBlocks.length} temporary assignment blocks for scheduling`);
       }
       
-      // Use the NEW hybrid scheduler with student-specific intelligence
-      
-      // Prepare assignments for the hybrid scheduler
-      const assignmentsToSchedule = unscheduledAssignments.map(a => ({
-        id: a.id,
-        title: a.title,
-        priority: a.priority as 'A' | 'B' | 'C',
-        dueDate: a.dueDate ? new Date(a.dueDate) : null,
-        difficulty: a.difficulty as 'easy' | 'medium' | 'hard',
-        actualEstimatedMinutes: a.actualEstimatedMinutes || 30,
-        completionStatus: a.completionStatus || 'pending',
-        scheduledDate: a.scheduledDate,
-        scheduledBlock: a.scheduledBlock,
-        courseName: a.courseName,
-        subject: a.subject
-      }));
-      
       console.log(`🎯 Using SINGLE-DAY SCHEDULER (Generic for ANY day) for ${studentName}`);
       console.log(`📚 Assignments to schedule: ${assignmentsToSchedule.length}`);
       console.log(`🏫 Available blocks: ${assignmentBlocks.length} Assignment + ${studyHallBlocks.length} Study Hall`);
@@ -746,21 +734,7 @@ export class DatabaseStorage implements IStorage {
         for (let i = 0; i < Math.min(3, prioritizedAssignments.length); i++) {
           const candidate = prioritizedAssignments[i];
           
-          // Check for sequence violations (e.g., Unit 3 before Unit 2)
-          const candidateUnit = extractUnitNumber(candidate.title);
-          if (candidateUnit && candidateUnit > 1) {
-            // Check if prerequisite units are completed
-            const hasPrerequisite = userAssignments.some(a => {
-              const aUnit = extractUnitNumber(a.title);
-              const sameCourse = (a.courseName || a.subject) === (candidate.courseName || candidate.subject);
-              return sameCourse && aUnit === candidateUnit - 1 && a.completionStatus === 'completed';
-            });
-            
-            if (!hasPrerequisite) {
-              console.log(`⚠️ SEQUENCE VIOLATION: Skipping ${candidate.title} (Unit ${candidateUnit}) - prerequisite unit not completed`);
-              continue;
-            }
-          }
+          // NOTE: Sequence violations are now pre-filtered, so we don't need to check again
           
           // Check for subject clustering (avoid back-to-back same subjects)
           const lastScheduled = scheduledAssignments[scheduledAssignments.length - 1];
