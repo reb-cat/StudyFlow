@@ -1526,6 +1526,10 @@ export class DatabaseStorage implements IStorage {
       // Check if this is Saturday and if Saturday scheduling is enabled
       if (weekday === 6) { // Saturday
         const studentProfile = await this.getStudentProfile(studentName);
+        console.log(`🔍 DEBUG: getStudentProfile for ${studentName}:`, JSON.stringify(studentProfile, null, 2));
+        console.log(`🔍 DEBUG: allowSaturdayScheduling value:`, studentProfile?.allowSaturdayScheduling);
+        console.log(`🔍 DEBUG: Checking !studentProfile?.allowSaturdayScheduling:`, !studentProfile?.allowSaturdayScheduling);
+        
         if (!studentProfile?.allowSaturdayScheduling) {
           console.log(`🗓️ Saturday scheduling disabled for ${studentName} - skipping assignment allocation`);
           return; // Skip Saturday scheduling entirely when disabled
