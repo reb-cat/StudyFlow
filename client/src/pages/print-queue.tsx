@@ -228,7 +228,7 @@ export default function PrintQueue() {
                   <div className="flex items-center gap-3">
                     <Calendar className="w-5 h-5 text-primary" />
                     <h3 className="text-lg font-semibold text-foreground">
-                      Due {new Date(dateGroup.date).toLocaleDateString('en-US', { 
+                      Due {new Date(dateGroup.date + 'T12:00:00').toLocaleDateString('en-US', { 
                         weekday: 'long', 
                         month: 'short', 
                         day: 'numeric',
