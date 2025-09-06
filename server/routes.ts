@@ -1016,6 +1016,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         
         if (canvasMatch) {
+          // DEBUG: Log due date data for Forensics Lab assignments
+          if (canvasMatch.name.includes('Forensics Lab')) {
+            console.log(`🔍 DEBUG: Canvas due_at for "${canvasMatch.name}": ${canvasMatch.due_at}`);
+            console.log(`🔍 DEBUG: Database due date: ${dbAssignment.dueDate}`);
+          }
+          
+          // CANVAS SOURCE OF TRUTH: Sync due date changes from Canvas
+          let dueDateChanged = false;
+          if (canvasMatch.due_at) {
+            const canvasDueDate = new Date(canvasMatch.due_at);
+            const dbDueDate = dbAssignment.dueDate ? new Date(dbAssignment.dueDate) : null;
+            
+            // Compare dates (normalize to same timezone for comparison)
+            const canvasDateStr = canvasDueDate.toISOString().split('T')[0];
+            const dbDateStr = dbDueDate ? dbDueDate.toISOString().split('T')[0] : null;
+            
+            if (canvasDateStr !== dbDateStr) {
+              dueDateChanged = true;
+              await storage.updateAssignment(dbAssignment.id, {
+                dueDate: canvasDueDate,
+                updatedAt: new Date()
+              });
+              console.log(`📅 Canvas sync: Updated due date for "${canvasMatch.name}" from ${dbDateStr || 'none'} to ${canvasDateStr}`);
+            }
+          } else if (dbAssignment.dueDate) {
+            // Canvas assignment has no due date but database has one - update to null
+            dueDateChanged = true;
+            await storage.updateAssignment(dbAssignment.id, {
+              dueDate: null,
+              updatedAt: new Date()
+            });
+            console.log(`📅 Canvas sync: Removed due date for "${canvasMatch.name}" (no longer set in Canvas)`);
+          }
+          
           // Check multiple ways an assignment can be graded in Canvas:
           // 1. Traditional flags (graded_submissions_exist && has_submitted_submissions)
           // 2. Actual submission with a score/grade

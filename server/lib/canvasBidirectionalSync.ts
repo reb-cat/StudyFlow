@@ -90,6 +90,34 @@ export async function syncCompletionStatus(
       const dbAssignment = studentDbAssignments.find(a => a.canvasId === canvasAssignment.id);
       
       if (dbAssignment) {
+        // CANVAS SOURCE OF TRUTH: Sync due date changes from Canvas
+        let dueDateChanged = false;
+        if (canvasAssignment.due_at) {
+          const canvasDueDate = new Date(canvasAssignment.due_at);
+          const dbDueDate = dbAssignment.dueDate ? new Date(dbAssignment.dueDate) : null;
+          
+          // Compare dates (normalize to same timezone for comparison)
+          const canvasDateStr = canvasDueDate.toISOString().split('T')[0];
+          const dbDateStr = dbDueDate ? dbDueDate.toISOString().split('T')[0] : null;
+          
+          if (canvasDateStr !== dbDateStr) {
+            dueDateChanged = true;
+            await storage.updateAssignment(dbAssignment.id, {
+              dueDate: canvasDueDate,
+              updatedAt: new Date()
+            });
+            console.log(`📅 Canvas sync: Updated due date for "${canvasAssignment.name}" from ${dbDateStr || 'none'} to ${canvasDateStr}`);
+          }
+        } else if (dbAssignment.dueDate) {
+          // Canvas assignment has no due date but database has one - update to null
+          dueDateChanged = true;
+          await storage.updateAssignment(dbAssignment.id, {
+            dueDate: null,
+            updatedAt: new Date()
+          });
+          console.log(`📅 Canvas sync: Removed due date for "${canvasAssignment.name}" (no longer set in Canvas)`);
+        }
+        
         // DEBUG: Check what Canvas is actually returning for this assignment
         if (canvasAssignment.name.includes('Points, Lines and Planes')) {
           console.log(`🔍 DEBUG Canvas data for "${canvasAssignment.name}":`, {
@@ -110,7 +138,7 @@ export async function syncCompletionStatus(
         // 2. Admin manual status changes in Assignment Manager
         // 
         // Canvas sync is now limited to: imports, deletions, and metadata updates
-        console.log(`🔒 Canvas sync: Preserving StudyFlow completion status for "${canvasAssignment.name}" (status: ${dbAssignment.completionStatus})`);
+        console.log(`🔒 Canvas sync: Preserving StudyFlow completion status for "${canvasAssignment.name}" (status: ${dbAssignment.completionStatus})${dueDateChanged ? ' [due date updated]' : ''}`);
         
         // DEBUG: Log Canvas grading data for transparency but take no action
         if (canvasAssignment.name.includes('Points, Lines and Planes')) {
