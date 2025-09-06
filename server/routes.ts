@@ -3674,16 +3674,27 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         return res.status(404).json({ message: 'No schedule found for this date' });
       }
 
+      // Get assignments scheduled for this student and date
+      const assignments = await storage.getAssignmentsByStudentAndDate(student, date);
+      
+      // Create a map of assignments by block number
+      const assignmentsByBlock = new Map();
+      assignments.forEach(assignment => {
+        if (assignment.scheduledBlock) {
+          assignmentsByBlock.set(assignment.scheduledBlock, assignment);
+        }
+      });
+
       // Format response with assignment details
       const schedulePreview = {
         date,
         studentName: student,
         blocks: blocks.map((block: any) => ({
-          blockNumber: block.blockNumber,
-          startTime: block.startTime,
-          endTime: block.endTime,
-          blockType: block.blockType,
-          assignment: block.assignment || null
+          blockNumber: block.template.blockNumber,
+          startTime: block.template.startTime,
+          endTime: block.template.endTime,
+          blockType: block.template.blockType,
+          assignment: assignmentsByBlock.get(block.template.blockNumber) || null
         }))
       };
 
