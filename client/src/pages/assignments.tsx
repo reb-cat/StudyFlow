@@ -800,7 +800,8 @@ export default function AssignmentsPage() {
                               month: 'short',
                               day: 'numeric',
                               hour: 'numeric',
-                              minute: '2-digit'
+                              minute: '2-digit',
+                              timeZone: 'America/New_York'
                             })}
                           </p>
                         )}
@@ -823,7 +824,9 @@ export default function AssignmentsPage() {
                           <span>Priority: {assignment.priority}</span>
                           <span>Est. Time: {assignment.actualEstimatedMinutes || 30}min</span>
                           {assignment.scheduledDate && (
-                            <span>Scheduled: {new Date(assignment.scheduledDate).toLocaleDateString()}</span>
+                            <span>Scheduled: {new Date(assignment.scheduledDate).toLocaleDateString('en-US', {
+                              timeZone: 'America/New_York'
+                            })}</span>
                           )}
                         </div>
                       </div>

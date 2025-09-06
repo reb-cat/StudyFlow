@@ -1016,12 +1016,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         
         if (canvasMatch) {
-          // DEBUG: Log due date data for Forensics Lab assignments
-          if (canvasMatch.name.includes('Forensics Lab')) {
-            console.log(`🔍 DEBUG: Canvas due_at for "${canvasMatch.name}": ${canvasMatch.due_at}`);
-            console.log(`🔍 DEBUG: Database due date: ${dbAssignment.dueDate}`);
-          }
-          
           // CANVAS SOURCE OF TRUTH: Sync due date changes from Canvas
           let dueDateChanged = false;
           if (canvasMatch.due_at) {

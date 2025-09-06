@@ -251,7 +251,9 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
           </span>
           {assignment.dueDate && (
             <span data-testid={`assignment-due-${assignment.id}`}>
-              Due: {new Date(assignment.dueDate).toLocaleDateString()}
+              Due: {new Date(assignment.dueDate).toLocaleDateString('en-US', { 
+                timeZone: 'America/New_York' 
+              })}
             </span>
           )}
         </div>
