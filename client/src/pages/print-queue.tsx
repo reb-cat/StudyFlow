@@ -91,7 +91,10 @@ export default function PrintQueue() {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate all print-queue queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['/api/print-queue'] });
+      // Also refetch immediately to ensure UI updates
+      queryClient.refetchQueries({ queryKey: ['/api/print-queue', daysAhead] });
     },
   });
 
