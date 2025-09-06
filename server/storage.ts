@@ -652,37 +652,7 @@ export class DatabaseStorage implements IStorage {
         const candidateUnit = extractUnitNumber(a.title);
         
         
-        if (candidateUnit && candidateUnit > 1) {
-          // FLEXIBLE SEQUENCE: Only block if there are ASSIGNED lower-numbered units that aren't completed yet
-          // Don't require units that were never assigned by the teacher
-          
-          const candidateCourse = (a.courseName || a.subject || '').toLowerCase();
-          
-          const hasBlockingPrerequisite = allUserAssignments.some(prereq => {
-            const prereqUnit = extractUnitNumber(prereq.title);
-            
-            // Only check units that are lower-numbered than the candidate
-            if (!prereqUnit || prereqUnit >= candidateUnit) return false;
-            
-            // FLEXIBLE COURSE MATCHING: Handle different course name formats
-            const prereqCourse = (prereq.courseName || prereq.subject || '').toLowerCase();
-            
-            // Match if both contain "history", "chemistry", etc. (subject-based matching)
-            const isHistoryMatch = candidateCourse.includes('history') && prereqCourse.includes('history');
-            const isChemistryMatch = candidateCourse.includes('chemistry') && prereqCourse.includes('chemistry');
-            const isExactMatch = candidateCourse === prereqCourse;
-            
-            const sameCourse = isHistoryMatch || isChemistryMatch || isExactMatch;
-            
-            // Block if there's a lower unit in the same course that's NOT completed
-            return sameCourse && prereq.completionStatus !== 'completed';
-          });
-          
-          if (hasBlockingPrerequisite) {
-            console.log(`⛔ SEQUENCE BLOCK: Excluding ${a.title} (Unit ${candidateUnit}) - lower-numbered units in same course not completed`);
-            return false;
-          }
-        }
+        // SEQUENCE LOGIC REMOVED: Don't block assignments, just ensure proper ordering during scheduling
         
         return true;
       });
