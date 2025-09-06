@@ -1483,15 +1483,8 @@ export class DatabaseStorage implements IStorage {
         await db.insert(dailyScheduleStatus).values(statusRecords);
       }
       
-      // Only auto-schedule if there are no existing assignments scheduled for this date
-      // This prevents overriding manual schedule changes when just fetching data
-      const existingAssignments = await this.getAssignmentsByStudentAndDate(studentName, date);
-      if (existingAssignments.length === 0) {
-        console.log(`📅 No assignments found for ${studentName} on ${date} - triggering auto-scheduling`);
-        await this.allocateAssignmentsToTemplate(studentName, date);
-      } else {
-        console.log(`✅ Found ${existingAssignments.length} existing assignments for ${studentName} on ${date} - skipping auto-scheduling to preserve manual changes`);
-      }
+      // After creating missing daily schedule status rows, allocate assignments to template
+      await this.allocateAssignmentsToTemplate(studentName, date);
     } catch (error) {
       console.error('Error initializing daily schedule:', error);
     }
