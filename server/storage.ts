@@ -799,37 +799,39 @@ export class DatabaseStorage implements IStorage {
         const urgentCandidates = availableAssignments.filter((_, i) => i < urgentAssignments.length);
         const searchPool = urgentCandidates.length > 0 ? urgentCandidates : availableAssignments;
         
-        // Strategy 2: BALANCED SELECTION - Sequence order + smart clustering avoidance
+        // Strategy 2: SEQUENCE-FIRST SELECTION - Preserve sort order, especially for sequential assignments
         for (let i = 0; i < Math.min(3, searchPool.length); i++) {
           const candidate = searchPool[i];
           const candidateIndex = availableAssignments.indexOf(candidate);
           
-          // Check for subject clustering (avoid back-to-back same subjects when possible)
+          // CRITICAL FIX: Always take the first assignment in sorted order to preserve sequencing
+          // The compareAssignmentTitles function already sorted them correctly (Ch 1 before Ch 2)
           const lastScheduled = scheduledAssignments[scheduledAssignments.length - 1];
+          
           if (lastScheduled && scheduledAssignments.length > 0) {
             const candidateSubject = (candidate.courseName || candidate.subject || '').toLowerCase();
             const lastSubject = (lastScheduled.courseName || lastScheduled.subject || '').toLowerCase();
             
-            // SEQUENCE PRESERVATION: Don't break chronological order for same due date
-            const candidateDueDate = candidate.dueDate ? new Date(candidate.dueDate).toISOString().split('T')[0] : null;
-            const lastDueDate = lastScheduled.dueDate ? new Date(lastScheduled.dueDate).toISOString().split('T')[0] : null;
-            const sameDueDate = candidateDueDate === lastDueDate;
+            // SEQUENCE PRESERVATION: For same subject, ALWAYS preserve sorted order
+            if (candidateSubject === lastSubject) {
+              console.log(`📅 PRESERVING SEQUENCE: Taking ${candidate.title} in sorted order (same subject = maintain Ch 1 → Ch 2)`);
+              selectedAssignment = candidate;
+              selectedIndex = candidateIndex;
+              break;
+            }
             
-            // For urgent assignments, clustering is acceptable (they MUST be scheduled)
+            // CLUSTERING AVOIDANCE: Only for different subjects and non-urgent assignments
             const isUrgent = urgentAssignments.includes(candidate);
-            
-            // Only apply clustering avoidance if NOT same due date and NOT urgent and we have more options
-            if (!isUrgent && !sameDueDate && candidateSubject === lastSubject && i < searchPool.length - 1) {
-              console.log(`🔄 AVOIDING CLUSTER: Skipping ${candidate.title} to avoid back-to-back ${candidateSubject} (different due dates)`);
+            if (!isUrgent && candidateSubject === lastSubject && i < searchPool.length - 1) {
+              console.log(`🔄 AVOIDING CLUSTER: Skipping ${candidate.title} to avoid back-to-back ${candidateSubject} (different subjects)`);
               continue;
-            } else if (sameDueDate && candidateSubject === lastSubject) {
-              console.log(`📅 PRESERVING SEQUENCE: Allowing ${candidate.title} despite same subject (same due date = sequence order)`);
             }
           }
           
-          // This candidate passes all checks
+          // This candidate passes all checks - use sorted order
           selectedAssignment = candidate;
           selectedIndex = candidateIndex;
+          console.log(`📍 SCHEDULED: "${candidate.title}" → Block ${block.blockNumber} (${selectedIndex === 0 ? 'FIRST in sorted order' : 'SELECTED'})`);
           break;
         }
         
