@@ -790,7 +790,7 @@ export class DatabaseStorage implements IStorage {
         const urgentCandidates = availableAssignments.filter((_, i) => i < urgentAssignments.length);
         const searchPool = urgentCandidates.length > 0 ? urgentCandidates : availableAssignments;
         
-        // Strategy 2: Within the search pool, avoid subject clustering
+        // Strategy 2: Preserve chronological order for same-due-date assignments
         for (let i = 0; i < Math.min(3, searchPool.length); i++) {
           const candidate = searchPool[i];
           const candidateIndex = availableAssignments.indexOf(candidate);
@@ -801,11 +801,20 @@ export class DatabaseStorage implements IStorage {
             const candidateSubject = (candidate.courseName || candidate.subject || '').toLowerCase();
             const lastSubject = (lastScheduled.courseName || lastScheduled.subject || '').toLowerCase();
             
+            // CHRONOLOGICAL PRESERVATION: Don't break chronological order for same due date
+            const candidateDueDate = candidate.dueDate ? new Date(candidate.dueDate).toISOString().split('T')[0] : null;
+            const lastDueDate = lastScheduled.dueDate ? new Date(lastScheduled.dueDate).toISOString().split('T')[0] : null;
+            const sameDueDate = candidateDueDate === lastDueDate;
+            
             // For urgent assignments, cluster is acceptable (they MUST be scheduled)
             const isUrgent = urgentAssignments.includes(candidate);
-            if (!isUrgent && candidateSubject === lastSubject && i < searchPool.length - 1) {
-              console.log(`🔄 AVOIDING CLUSTER: Skipping ${candidate.title} to avoid back-to-back ${candidateSubject}`);
+            
+            // Only apply clustering avoidance if NOT same due date and NOT urgent
+            if (!isUrgent && !sameDueDate && candidateSubject === lastSubject && i < searchPool.length - 1) {
+              console.log(`🔄 AVOIDING CLUSTER: Skipping ${candidate.title} to avoid back-to-back ${candidateSubject} (different due dates)`);
               continue;
+            } else if (sameDueDate && candidateSubject === lastSubject) {
+              console.log(`📅 PRESERVING CHRONOLOGY: Allowing ${candidate.title} despite same subject (same due date)`);
             }
           }
           
