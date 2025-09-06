@@ -250,6 +250,7 @@ class JobScheduler {
                   canvasCourseId: canvasAssignment.course_id,
                   canvasInstance: 1,
                   isCanvasImport: true,
+                  creationSource: 'canvas_sync',
                   
                   // Enhanced Canvas metadata
                   canvasCategory: intelligence.canvasCategory,
@@ -443,6 +444,7 @@ class JobScheduler {
                   canvasId: canvasAssignment.id,
                   canvasInstance: 2,
                   isCanvasImport: true,
+                  creationSource: 'canvas_sync',
                   
                   // Enhanced Canvas metadata for instance 2
                   canvasCategory: intelligence.canvasCategory,
