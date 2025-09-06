@@ -194,11 +194,10 @@ class JobScheduler {
                   console.warn(`Failed to extract due date from title: ${canvasAssignment.name}`);
                 }
                 
-                // Use the best available due date source, including new suggested dates
+                // Use the best available due date source from Canvas
                 const dueDate = extractedFromTitle || 
                                intelligence.extractedDueDate || 
                                (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null) ||
-                               (canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null) ||
                                (canvasAssignment.inferred_start_date ? new Date(canvasAssignment.inferred_start_date) : null);
                 
                 // Validate extracted due date is within current school year
@@ -262,9 +261,7 @@ class JobScheduler {
                   academicYear: canvasAssignment.academic_year,
                   confidenceScore: intelligence.confidence.toString(),
                   
-                  // Smart fallback metadata for missing dates
-                  needsManualDueDate: canvasAssignment.needs_manual_due_date || false,
-                  suggestedDueDate: canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null,
+                  // Canvas metadata - no fallback properties needed
                   
                   // Direct Canvas assignment URL for easy access
                   canvasUrl: canvasAssignment.course_id && canvasAssignment.id 
@@ -395,11 +392,10 @@ class JobScheduler {
                   console.warn(`Failed to extract due date from title: ${title}`);
                 }
                 
-                // Use the best available due date source, including new suggested dates
+                // Use the best available due date source from Canvas
                 const dueDate = extractedFromTitle || 
                                intelligence.extractedDueDate || 
                                (canvasAssignment.due_at ? new Date(canvasAssignment.due_at) : null) ||
-                               (canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null) ||
                                (canvasAssignment.inferred_start_date ? new Date(canvasAssignment.inferred_start_date) : null);
                 
                 // Validate extracted due date is within current school year
@@ -456,9 +452,7 @@ class JobScheduler {
                   academicYear: canvasAssignment.academic_year,
                   confidenceScore: intelligence.confidence.toString(),
                   
-                  // Smart fallback metadata for missing dates
-                  needsManualDueDate: canvasAssignment.needs_manual_due_date || false,
-                  suggestedDueDate: canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null,
+                  // Canvas metadata - no fallback properties needed
                   
                   // Direct Canvas URL for Apologia (assignments format)
                   // TODO: Need to capture and store module_item_id for full URL
