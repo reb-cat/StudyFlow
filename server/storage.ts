@@ -468,17 +468,18 @@ export class DatabaseStorage implements IStorage {
   async updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined> {
     try {
       // Make creation_source "sticky" - once set to 'canvas_sync', it cannot be changed
+      let finalUpdate = update;
       if (update.creationSource && update.creationSource !== 'canvas_sync') {
         const existing = await db.select().from(assignments).where(eq(assignments.id, id)).limit(1);
         if (existing[0] && existing[0].creationSource === 'canvas_sync') {
           console.log(`🔒 Protecting canvas_sync source for "${existing[0].title}" - ignoring attempt to change to "${update.creationSource}"`);
-          // Remove creationSource from update to preserve canvas_sync
+          // Create new update object without creationSource to preserve canvas_sync
           const { creationSource, ...protectedUpdate } = update;
-          update = protectedUpdate as UpdateAssignment;
+          finalUpdate = protectedUpdate;
         }
       }
       
-      const result = await db.update(assignments).set(update).where(eq(assignments.id, id)).returning();
+      const result = await db.update(assignments).set(finalUpdate).where(eq(assignments.id, id)).returning();
       return result[0] || undefined;
     } catch (error) {
       console.error('Error updating assignment:', error);
@@ -630,9 +631,9 @@ export class DatabaseStorage implements IStorage {
         
       console.log(`🧹 CLEARED: ${clearedAssignments.length} unworked assignments cleared from ${targetDate} (preserving completed/marked work)`);
       
-      // NEED MORE TIME LOGIC: Move "needMoreTime" assignments to next day
+      // NEED MORE TIME LOGIC: Move "needs_more_time" assignments to next day
       const needMoreTimeAssignments = userAssignments.filter(a => 
-        a.completionStatus === 'needMoreTime' && a.scheduledDate === targetDate
+        a.completionStatus === 'needs_more_time' && a.scheduledDate === targetDate
       );
       
       if (needMoreTimeAssignments.length > 0) {
@@ -934,7 +935,7 @@ export class DatabaseStorage implements IStorage {
         if (isAdministrative) {
           await db.update(assignments)
             .set({ 
-              priority: 'parent' // Mark as parent task but keep manual completion
+              notes: assignment.notes ? `${assignment.notes} [PARENT TASK]` : '[PARENT TASK]' // Mark as parent task but keep manual completion
             })
             .where(eq(assignments.id, assignment.id));
           
