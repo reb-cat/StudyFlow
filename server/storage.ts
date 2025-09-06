@@ -1278,16 +1278,32 @@ export class DatabaseStorage implements IStorage {
 
   async updateStudentSaturdayScheduling(studentName: string, allowSaturday: boolean): Promise<StudentProfile | undefined> {
     try {
-      const [result] = await db
-        .update(studentProfiles)
-        .set({
-          allowSaturdayScheduling: allowSaturday,
-          updatedAt: new Date()
-        })
-        .where(eq(studentProfiles.studentName, studentName))
-        .returning();
+      // Check if profile exists first
+      const existing = await this.getStudentProfile(studentName);
       
-      return result;
+      if (existing) {
+        // Update existing profile
+        const [result] = await db
+          .update(studentProfiles)
+          .set({
+            allowSaturdayScheduling: allowSaturday,
+            updatedAt: new Date()
+          })
+          .where(eq(studentProfiles.studentName, studentName))
+          .returning();
+        
+        return result;
+      } else {
+        // Create new profile with Saturday setting (auto-create for production)
+        const newProfile = await this.upsertStudentProfile({
+          studentName,
+          displayName: studentName.charAt(0).toUpperCase() + studentName.slice(1),
+          allowSaturdayScheduling: allowSaturday
+        });
+        
+        console.log(`✨ Auto-created student profile for ${studentName} in production with Saturday scheduling ${allowSaturday ? 'enabled' : 'disabled'}`);
+        return newProfile;
+      }
     } catch (error) {
       console.error('Error updating Saturday scheduling preference:', error);
       return undefined;
