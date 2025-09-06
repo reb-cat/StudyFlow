@@ -782,82 +782,33 @@ export class DatabaseStorage implements IStorage {
       console.log(`🚨 URGENT: ${urgentAssignments.length} assignments must be scheduled today (overdue/due today)`);
       console.log(`📅 MOVEABLE: ${moveableAssignments.length} assignments can be moved to next day if needed`);
 
-      // URGENCY-FIRST SCHEDULING ALGORITHM 
+      // SIMPLE SEQUENTIAL SCHEDULING: Assign sorted assignments to blocks in order
       const schedulingResults = new Map();
       const scheduledAssignments: any[] = [];
       
-      // Combine urgent and moveable for selection, but prioritize urgent
-      let availableAssignments = [...urgentAssignments, ...moveableAssignments];
+      // Take assignments in the exact order they were prioritized and sorted
+      const assignmentsToAssign = [...prioritizedAssignments];
+      const blocksToFill = [...allAvailableBlocks];
       
-      for (const block of allAvailableBlocks) {
-        if (availableAssignments.length === 0) break;
+      // Simple assignment: first sorted assignment → first block, second → second block, etc.
+      for (let i = 0; i < Math.min(assignmentsToAssign.length, blocksToFill.length); i++) {
+        const assignment = assignmentsToAssign[i];
+        const block = blocksToFill[i];
         
-        let selectedAssignment = null;
-        let selectedIndex = -1;
+        // Check if urgent (must be scheduled today)
+        const isOverdue = assignment.dueDate && new Date(assignment.dueDate) < new Date(targetDate);
+        const isDueToday = assignment.dueDate && new Date(assignment.dueDate).toISOString().split('T')[0] === targetDateOnly;
+        const isUrgent = isOverdue || isDueToday;
         
-        // Strategy 1: Always prefer URGENT assignments first
-        const urgentCandidates = availableAssignments.filter((_, i) => i < urgentAssignments.length);
-        const searchPool = urgentCandidates.length > 0 ? urgentCandidates : availableAssignments;
+        schedulingResults.set(assignment.id, {
+          scheduledDate: targetDate,
+          scheduledBlock: block.blockNumber,
+          blockStart: block.startTime,
+          blockEnd: block.endTime
+        });
         
-        // Strategy 2: SEQUENCE-FIRST SELECTION - Preserve sort order, especially for sequential assignments
-        for (let i = 0; i < Math.min(3, searchPool.length); i++) {
-          const candidate = searchPool[i];
-          const candidateIndex = availableAssignments.indexOf(candidate);
-          
-          // CRITICAL FIX: Always take the first assignment in sorted order to preserve sequencing
-          // The compareAssignmentTitles function already sorted them correctly (Ch 1 before Ch 2)
-          const lastScheduled = scheduledAssignments[scheduledAssignments.length - 1];
-          
-          if (lastScheduled && scheduledAssignments.length > 0) {
-            const candidateSubject = (candidate.courseName || candidate.subject || '').toLowerCase();
-            const lastSubject = (lastScheduled.courseName || lastScheduled.subject || '').toLowerCase();
-            
-            // SEQUENCE PRESERVATION: For same subject, ALWAYS preserve sorted order
-            if (candidateSubject === lastSubject) {
-              console.log(`📅 PRESERVING SEQUENCE: Taking ${candidate.title} in sorted order (same subject = maintain Ch 1 → Ch 2)`);
-              selectedAssignment = candidate;
-              selectedIndex = candidateIndex;
-              break;
-            }
-            
-            // CLUSTERING AVOIDANCE: Only for different subjects and non-urgent assignments
-            const isUrgent = urgentAssignments.includes(candidate);
-            if (!isUrgent && candidateSubject === lastSubject && i < searchPool.length - 1) {
-              console.log(`🔄 AVOIDING CLUSTER: Skipping ${candidate.title} to avoid back-to-back ${candidateSubject} (different subjects)`);
-              continue;
-            }
-          }
-          
-          // This candidate passes all checks - use sorted order
-          selectedAssignment = candidate;
-          selectedIndex = candidateIndex;
-          console.log(`📍 SCHEDULED: "${candidate.title}" → Block ${block.blockNumber} (${selectedIndex === 0 ? 'FIRST in sorted order' : 'SELECTED'})`);
-          break;
-        }
-        
-        // Strategy 3: If no assignment found above, take the first available (as fallback)
-        if (!selectedAssignment && availableAssignments.length > 0) {
-          selectedAssignment = availableAssignments[0];
-          selectedIndex = 0;
-          console.log(`📦 FALLBACK: Using ${selectedAssignment.title} (no better options available)`);
-        }
-        
-        if (selectedAssignment) {
-          const isUrgent = urgentAssignments.includes(selectedAssignment);
-          const urgencyLabel = isUrgent ? 'URGENT' : 'MOVEABLE';
-          
-          schedulingResults.set(selectedAssignment.id, {
-            scheduledDate: targetDate,
-            scheduledBlock: block.blockNumber,
-            blockStart: block.startTime,
-            blockEnd: block.endTime
-          });
-          
-          scheduledAssignments.push(selectedAssignment);
-          availableAssignments.splice(selectedIndex, 1);
-          
-          console.log(`📍 SCHEDULED: "${selectedAssignment.title}" → Block ${block.blockNumber} (${urgencyLabel})`);
-        }
+        scheduledAssignments.push(assignment);
+        console.log(`📍 SCHEDULED: "${assignment.title}" → Block ${block.blockNumber} (${isUrgent ? 'URGENT' : 'MOVEABLE'})`);
       }
       
       // OVERFLOW HANDLING: Move unscheduled MOVEABLE assignments to next day
