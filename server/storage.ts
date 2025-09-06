@@ -763,7 +763,11 @@ export class DatabaseStorage implements IStorage {
         if (!a.dueDate && b.dueDate) return 1;
         
         // Priority 4: Use intelligent sequence sorting (Unit 2 → Unit 3)
-        return compareAssignmentTitles(a.title || '', b.title || '');
+        const titleComparison = compareAssignmentTitles(a.title || '', b.title || '');
+        if (titleComparison !== 0) {
+          console.log(`🔍 TITLE COMPARISON: "${a.title}" vs "${b.title}" = ${titleComparison} ${titleComparison < 0 ? '(A first)' : '(B first)'}`);
+        }
+        return titleComparison;
       });
       
       // URGENCY CLASSIFICATION: Separate critical vs moveable assignments
@@ -781,6 +785,12 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`🚨 URGENT: ${urgentAssignments.length} assignments must be scheduled today (overdue/due today)`);
       console.log(`📅 MOVEABLE: ${moveableAssignments.length} assignments can be moved to next day if needed`);
+      
+      // DEBUG: Show the actual sorted order
+      console.log(`📋 SORTED ORDER DEBUG:`);
+      prioritizedAssignments.forEach((assignment, index) => {
+        console.log(`   ${index + 1}. "${assignment.title}" (${assignment.subject || 'No subject'})`);
+      });
 
       // URGENCY-FIRST SCHEDULING ALGORITHM 
       const schedulingResults = new Map();
