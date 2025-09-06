@@ -397,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/assignments - Get assignments for a user/date
   app.get('/api/assignments', requireAuth, async (req, res) => {
     try {
-      const { date, startDate, endDate, studentName, includeCompleted } = req.query;
+      const { date, startDate, endDate, studentName, includeCompleted, unscheduled } = req.query;
       
       // Use student-specific user ID mapping  
       let userId = "unknown-user"; // fallback (was demo-user-1 - removed to prevent mock data contamination)
