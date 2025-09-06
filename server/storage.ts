@@ -172,6 +172,8 @@ export class DatabaseStorage implements IStorage {
           const [startDate, endDate] = date.split(',');
           pastLimit = new Date(startDate);
           futureLimit = new Date(endDate);
+          // Set futureLimit to end of day (23:59:59) to include assignments due anytime on endDate
+          futureLimit.setHours(23, 59, 59, 999);
         } else {
           // Single date - use existing logic for daily scheduling
           const requestDate = new Date(date);
