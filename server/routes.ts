@@ -2250,7 +2250,10 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       const groupedByDate: { [date: string]: any[] } = {};
       
       for (const item of printQueue) {
-        const dateKey = item.dueDate ? new Date(item.dueDate).toISOString().split('T')[0] : 'no-date';
+        // Extract date in Eastern Time to match classroom context
+        const dateKey = item.dueDate ? 
+          new Date(item.dueDate).toLocaleDateString('en-CA', { timeZone: 'America/New_York' }) : 
+          'no-date';
         if (!groupedByDate[dateKey]) {
           groupedByDate[dateKey] = [];
         }

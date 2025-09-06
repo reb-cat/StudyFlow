@@ -231,7 +231,8 @@ export default function PrintQueue() {
                       Due {new Date(dateGroup.date).toLocaleDateString('en-US', { 
                         weekday: 'long', 
                         month: 'short', 
-                        day: 'numeric' 
+                        day: 'numeric',
+                        timeZone: 'America/New_York'
                       })}
                     </h3>
                   </div>
