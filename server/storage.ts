@@ -923,12 +923,11 @@ export class DatabaseStorage implements IStorage {
         if (isAdministrative) {
           await db.update(assignments)
             .set({ 
-              completionStatus: 'completed',
-              priority: 'parent' // Mark as parent task
+              priority: 'parent' // Mark as parent task but keep manual completion
             })
             .where(eq(assignments.id, assignment.id));
           
-          console.log(`✅ Marked parent task as completed: ${assignment.title}`);
+          console.log(`🏷️ Identified parent task (manual completion required): ${assignment.title}`);
         }
       }
     } catch (error) {
