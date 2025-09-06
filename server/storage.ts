@@ -526,9 +526,13 @@ export class DatabaseStorage implements IStorage {
       console.log(`🔍 SCHEDULE PLANNER DEBUG: Starting for student=${studentName} date=${targetDate}`);
       const userId = `${studentName.toLowerCase()}-user`;
       
-      // Get unscheduled assignments - EXCLUDE PARENT TASKS
+      // Get ALL assignments (including completed) for prerequisite checking
+      const allUserAssignments = await this.getAssignments(userId, targetDate, true);
+      console.log(`📊 ALL TASKS: ${allUserAssignments.length} assignments found for ${studentName} (including completed)`);
+      
+      // Get unscheduled assignments (excluding completed) for actual scheduling
       const userAssignments = await this.getAssignments(userId, targetDate);
-      console.log(`📊 TOTAL TASKS: ${userAssignments.length} assignments found for ${studentName}`);
+      console.log(`📊 SCHEDULABLE TASKS: ${userAssignments.length} assignments found for ${studentName}`);
       
       // Count assignments due today
       const targetDateOnly = targetDate.split('T')[0]; // Handle both date and datetime formats
@@ -590,11 +594,6 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent/bible tasks`);
       
-      // DEBUG: Show exactly what made it through the initial filtering
-      console.log(`📋 UNSCHEDULED LIST:`);
-      unscheduledAssignments.forEach((a, i) => {
-        console.log(`   ${i+1}. "${a.title}" - Course: "${a.courseName}" - Subject: "${a.subject}" - Status: ${a.completionStatus}`);
-      });
       
       // SMART CLEARING: Only clear unworked assignments, preserve completed/marked work
       // This preserves "Need More Time", completed, and in-progress assignments
@@ -646,38 +645,20 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      // DEBUG: Show what we have BEFORE sequence filtering
-      console.log(`🔍 RAW UNSCHEDULED: ${unscheduledAssignments.length} assignments before sequence filtering:`);
-      unscheduledAssignments.forEach(a => {
-        console.log(`   - "${a.title}" (Unit ${extractUnitNumber(a.title)}) - Course: "${a.courseName}" - Subject: "${a.subject}"`);
-      });
       
       // Now get ALL available assignments for rescheduling (fresh start)
       const assignmentsToSchedule = unscheduledAssignments.filter(a => {
         // Additional sequence validation - don't even consider out-of-sequence assignments
         const candidateUnit = extractUnitNumber(a.title);
         
-        console.log(`🎯 PROCESSING: "${a.title}" - Unit ${candidateUnit} - Course: "${a.courseName}" - Subject: "${a.subject}"`);
         
         if (candidateUnit && candidateUnit > 1) {
-          const hasPrerequisite = userAssignments.some(prereq => {
+          const hasPrerequisite = allUserAssignments.some(prereq => {
             const prereqUnit = extractUnitNumber(prereq.title);
             
             // FLEXIBLE COURSE MATCHING: Handle different course name formats
             const candidateCourse = (a.courseName || a.subject || '').toLowerCase();
             const prereqCourse = (prereq.courseName || prereq.subject || '').toLowerCase();
-            
-            // DEBUG: Check if we're looking at History assignments specifically
-            if (candidateCourse.includes('history') || prereqCourse.includes('history')) {
-              console.log(`🎯 HISTORY DEBUG: Found history assignment!`);
-              console.log(`   Candidate: "${a.title}" - course: "${a.courseName}" - subject: "${a.subject}"`);
-              console.log(`   Prereq: "${prereq.title}" - course: "${prereq.courseName}" - subject: "${prereq.subject}"`);
-            }
-            
-            // DEBUG: Log the comparison details
-            console.log(`🔍 SEQUENCE DEBUG: Checking "${a.title}" (Unit ${candidateUnit}) against "${prereq.title}" (Unit ${prereqUnit})`);
-            console.log(`   Candidate course: "${candidateCourse}" | Prereq course: "${prereqCourse}"`);
-            console.log(`   Prereq status: ${prereq.completionStatus}`);
             
             // Match if both contain "history", "chemistry", etc. (subject-based matching)
             const isHistoryMatch = candidateCourse.includes('history') && prereqCourse.includes('history');
@@ -685,11 +666,7 @@ export class DatabaseStorage implements IStorage {
             const isExactMatch = candidateCourse === prereqCourse;
             
             const sameCourse = isHistoryMatch || isChemistryMatch || isExactMatch;
-            
-            console.log(`   Course match: history=${isHistoryMatch}, chemistry=${isChemistryMatch}, exact=${isExactMatch}, sameCourse=${sameCourse}`);
-            
             const isMatch = sameCourse && prereqUnit === candidateUnit - 1 && prereq.completionStatus === 'completed';
-            console.log(`   Final match: ${isMatch} (need Unit ${candidateUnit - 1}, found Unit ${prereqUnit}, completed=${prereq.completionStatus === 'completed'})`);
             
             return isMatch;
           });
