@@ -244,15 +244,8 @@ export const studentStatus = pgTable("student_status", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Session management for family password authentication
-export const sessions = pgTable("sessions", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  sessionId: varchar("session_id", { length: 128 }).unique().notNull(),
-  authenticated: boolean("authenticated").default(false),
-  familyName: text("family_name"), // Track which family is authenticated  
-  createdAt: timestamp("created_at").defaultNow(),
-  expiresAt: timestamp("expires_at").notNull(),
-});
+// Sessions table is managed by connect-pg-simple middleware - do not define in schema
+// Format: sid (varchar), sess (json), expire (timestamp)
 
 // Custom checklist items for co-op prep - allows students to manage their own specific items
 export const checklistItems = pgTable("checklist_items", {
@@ -290,10 +283,7 @@ export const insertStudentProfileSchema = createInsertSchema(studentProfiles).om
 export const updateStudentProfileSchema = insertStudentProfileSchema.partial();
 
 // Session schemas
-export const insertSessionSchema = createInsertSchema(sessions).omit({
-  id: true,
-  createdAt: true,
-});
+// Sessions schema removed - managed by connect-pg-simple
 
 // Checklist item schemas
 export const insertChecklistItemSchema = createInsertSchema(checklistItems).omit({
@@ -473,8 +463,7 @@ export type StudentProfile = typeof studentProfiles.$inferSelect;
 export type StudentStatus = typeof studentStatus.$inferSelect;
 export type InsertStudentStatus = typeof studentStatus.$inferInsert;
 
-export type Session = typeof sessions.$inferSelect;
-export type InsertSession = z.infer<typeof insertSessionSchema>;
+// Session types removed - managed by connect-pg-simple
 
 export type ChecklistItem = typeof checklistItems.$inferSelect;
 export type InsertChecklistItem = z.infer<typeof insertChecklistItemSchema>;
