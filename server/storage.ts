@@ -647,7 +647,18 @@ export class DatabaseStorage implements IStorage {
         if (candidateUnit && candidateUnit > 1) {
           const hasPrerequisite = userAssignments.some(prereq => {
             const prereqUnit = extractUnitNumber(prereq.title);
-            const sameCourse = (prereq.courseName || prereq.subject) === (a.courseName || a.subject);
+            
+            // FLEXIBLE COURSE MATCHING: Handle different course name formats
+            const candidateCourse = (a.courseName || a.subject || '').toLowerCase();
+            const prereqCourse = (prereq.courseName || prereq.subject || '').toLowerCase();
+            
+            // Match if both contain "history", "chemistry", etc. (subject-based matching)
+            const isHistoryMatch = candidateCourse.includes('history') && prereqCourse.includes('history');
+            const isChemistryMatch = candidateCourse.includes('chemistry') && prereqCourse.includes('chemistry');
+            const isExactMatch = candidateCourse === prereqCourse;
+            
+            const sameCourse = isHistoryMatch || isChemistryMatch || isExactMatch;
+            
             return sameCourse && prereqUnit === candidateUnit - 1 && prereq.completionStatus === 'completed';
           });
           
