@@ -590,6 +590,12 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent/bible tasks`);
       
+      // DEBUG: Show exactly what made it through the initial filtering
+      console.log(`📋 UNSCHEDULED LIST:`);
+      unscheduledAssignments.forEach((a, i) => {
+        console.log(`   ${i+1}. "${a.title}" - Course: "${a.courseName}" - Subject: "${a.subject}" - Status: ${a.completionStatus}`);
+      });
+      
       // SMART CLEARING: Only clear unworked assignments, preserve completed/marked work
       // This preserves "Need More Time", completed, and in-progress assignments
       console.log(`🧹 SMART CLEARING: Removing only unworked scheduled assignments for ${studentName} on ${targetDate}`);
