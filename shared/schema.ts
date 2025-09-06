@@ -188,36 +188,6 @@ export const studentProfiles = pgTable("student_profiles", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Student scheduling profiles - learning patterns and assignment timing intelligence
-export const studentSchedulingProfiles = pgTable("student_scheduling_profiles", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  studentName: text("student_name").notNull().unique(), // "abigail", "khalil"
-  
-  // Time estimation factors (per student learning patterns)
-  readMinPerPage: integer("read_min_per_page").default(400), // Base: 4.0 min/page (stored as 400)
-  problemsMin: integer("problems_min").default(500), // Base: 5.0 min/problem (stored as 500) 
-  writeMinPer100Words: integer("write_min_per_100_words").default(1400), // Base: 14.0 min/100 words (stored as 1400)
-  
-  // Student-specific multipliers
-  globalMultiplier: integer("global_multiplier").default(120), // Base: 1.2x (stored as 120)
-  readingMultiplier: integer("reading_multiplier").default(115), // Base: 1.15x (stored as 115)
-  writingMultiplier: integer("writing_multiplier").default(135), // Base: 1.35x (stored as 135)
-  
-  // Daily capacity limits
-  maxFocusMinutesPerDay: integer("max_focus_minutes_per_day").default(150), // 2.5 hours
-  maxPerCoursePerDay: integer("max_per_course_per_day").default(75), // 1.25 hours per subject
-  
-  // Learning profile flags
-  hasDyslexia: boolean("has_dyslexia").default(false),
-  hasADHD: boolean("has_adhd").default(false), 
-  hasExecutiveFunctionChallenges: boolean("has_executive_function_challenges").default(false),
-  
-  // Notes for parents/teachers
-  profileNotes: text("profile_notes"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
 
 // Student status for real-time family dashboard
 export const studentStatus = pgTable("student_status", {
@@ -294,14 +264,6 @@ export const insertChecklistItemSchema = createInsertSchema(checklistItems).omit
 
 export const updateChecklistItemSchema = insertChecklistItemSchema.partial();
 
-// Student scheduling profile schemas
-export const insertStudentSchedulingProfileSchema = createInsertSchema(studentSchedulingProfiles).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const updateStudentSchedulingProfileSchema = insertStudentSchedulingProfileSchema.partial();
 
 // Progress session schemas
 export const insertProgressSessionSchema = createInsertSchema(progressSessions).omit({
@@ -469,9 +431,6 @@ export type ChecklistItem = typeof checklistItems.$inferSelect;
 export type InsertChecklistItem = z.infer<typeof insertChecklistItemSchema>;
 export type UpdateChecklistItem = z.infer<typeof updateChecklistItemSchema>;
 
-export type StudentSchedulingProfile = typeof studentSchedulingProfiles.$inferSelect;
-export type InsertStudentSchedulingProfile = z.infer<typeof insertStudentSchedulingProfileSchema>;
-export type UpdateStudentSchedulingProfile = z.infer<typeof updateStudentSchedulingProfileSchema>;
 
 // RewardBank types
 export type RewardProfile = typeof rewardProfiles.$inferSelect;
