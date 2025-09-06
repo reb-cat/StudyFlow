@@ -1076,7 +1076,16 @@ export default function AssignmentsPage() {
                 <Input
                   type="datetime-local"
                   value={editingAssignment?.dueDate ? 
-                    new Date(editingAssignment.dueDate).toISOString().slice(0, 16) : ''
+                    (() => {
+                      const date = new Date(editingAssignment.dueDate);
+                      // Format as YYYY-MM-DDTHH:MM without timezone conversion
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const hours = String(date.getHours()).padStart(2, '0');
+                      const minutes = String(date.getMinutes()).padStart(2, '0');
+                      return `${year}-${month}-${day}T${hours}:${minutes}`;
+                    })() : ''
                   }
                   onChange={(e) => editingAssignment && setEditingAssignment({
                     ...editingAssignment, 
