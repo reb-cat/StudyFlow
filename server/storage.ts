@@ -644,6 +644,9 @@ export class DatabaseStorage implements IStorage {
       const assignmentsToSchedule = unscheduledAssignments.filter(a => {
         // Additional sequence validation - don't even consider out-of-sequence assignments
         const candidateUnit = extractUnitNumber(a.title);
+        
+        console.log(`🎯 PROCESSING: "${a.title}" - Unit ${candidateUnit} - Course: "${a.courseName}" - Subject: "${a.subject}"`);
+        
         if (candidateUnit && candidateUnit > 1) {
           const hasPrerequisite = userAssignments.some(prereq => {
             const prereqUnit = extractUnitNumber(prereq.title);
