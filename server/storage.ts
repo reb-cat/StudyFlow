@@ -652,6 +652,11 @@ export class DatabaseStorage implements IStorage {
             const candidateCourse = (a.courseName || a.subject || '').toLowerCase();
             const prereqCourse = (prereq.courseName || prereq.subject || '').toLowerCase();
             
+            // DEBUG: Log the comparison details
+            console.log(`🔍 SEQUENCE DEBUG: Checking "${a.title}" (Unit ${candidateUnit}) against "${prereq.title}" (Unit ${prereqUnit})`);
+            console.log(`   Candidate course: "${candidateCourse}" | Prereq course: "${prereqCourse}"`);
+            console.log(`   Prereq status: ${prereq.completionStatus}`);
+            
             // Match if both contain "history", "chemistry", etc. (subject-based matching)
             const isHistoryMatch = candidateCourse.includes('history') && prereqCourse.includes('history');
             const isChemistryMatch = candidateCourse.includes('chemistry') && prereqCourse.includes('chemistry');
@@ -659,7 +664,12 @@ export class DatabaseStorage implements IStorage {
             
             const sameCourse = isHistoryMatch || isChemistryMatch || isExactMatch;
             
-            return sameCourse && prereqUnit === candidateUnit - 1 && prereq.completionStatus === 'completed';
+            console.log(`   Course match: history=${isHistoryMatch}, chemistry=${isChemistryMatch}, exact=${isExactMatch}, sameCourse=${sameCourse}`);
+            
+            const isMatch = sameCourse && prereqUnit === candidateUnit - 1 && prereq.completionStatus === 'completed';
+            console.log(`   Final match: ${isMatch} (need Unit ${candidateUnit - 1}, found Unit ${prereqUnit}, completed=${prereq.completionStatus === 'completed'})`);
+            
+            return isMatch;
           });
           
           if (!hasPrerequisite) {
