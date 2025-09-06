@@ -652,6 +652,13 @@ export class DatabaseStorage implements IStorage {
             const candidateCourse = (a.courseName || a.subject || '').toLowerCase();
             const prereqCourse = (prereq.courseName || prereq.subject || '').toLowerCase();
             
+            // DEBUG: Check if we're looking at History assignments specifically
+            if (candidateCourse.includes('history') || prereqCourse.includes('history')) {
+              console.log(`🎯 HISTORY DEBUG: Found history assignment!`);
+              console.log(`   Candidate: "${a.title}" - course: "${a.courseName}" - subject: "${a.subject}"`);
+              console.log(`   Prereq: "${prereq.title}" - course: "${prereq.courseName}" - subject: "${prereq.subject}"`);
+            }
+            
             // DEBUG: Log the comparison details
             console.log(`🔍 SEQUENCE DEBUG: Checking "${a.title}" (Unit ${candidateUnit}) against "${prereq.title}" (Unit ${prereqUnit})`);
             console.log(`   Candidate course: "${candidateCourse}" | Prereq course: "${prereqCourse}"`);
