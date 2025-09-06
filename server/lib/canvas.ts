@@ -77,10 +77,6 @@ export interface CanvasAssignment {
   inferred_start_date?: string;
   inferred_end_date?: string;
   
-  // Smart date management fields
-  needs_manual_due_date?: boolean;
-  suggested_due_date?: string;
-  
   // TEXTBOOK linking for referencing pages/modules from TEXTBOOK course
   textbook_links?: TextbookLink[];
 }
