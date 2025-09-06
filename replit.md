@@ -52,6 +52,15 @@ StudyFlow is a full-stack web application designed to help students manage acade
 
 ## Recent Updates (September 2025)
 
+### **🌍 Timezone & Navigation Fixes (September 6, 2025):**
+*   **Print Queue Timezone Resolution**: Fixed critical issue where Monday assignments displayed as "Due Sunday" - now correctly shows classroom days in Eastern Time
+*   **Comprehensive Timezone Fixes**: Applied Eastern Time context across 5+ frontend display locations to match co-op classroom schedule
+*   **Canvas Import Preservation**: Timezone fixes only apply to title-inferred dates; Canvas assignments with proper due_at times remain unchanged  
+*   **Print Queue Button Functionality**: Resolved hardcoded status bug - API now correctly returns actual print status instead of always 'needs_printing'
+*   **Admin Navigation**: Added consistent "Back to Admin" buttons across all admin pages for seamless navigation workflow
+*   **Print Queue Completed Items**: Fixed filter logic to include completed items (printed/skipped) in "Completed" section display
+
+### **📚 Previous Updates:**
 *   **Instructions Removal**: Completely eliminated instruction displays from assignment cards and guided views for cleaner, less overwhelming interface
 *   **Smart Time Estimation**: Added intelligent time allocation based on assignment type - significantly improved scheduling accuracy
 *   **Recipe Time Fix**: Updated all recipe review assignments from 60 minutes to realistic 10-minute estimates
@@ -62,7 +71,7 @@ StudyFlow is a full-stack web application designed to help students manage acade
 *   **Assignments Page Usability**: Changed default view to show only pending assignments instead of completed ones, making the system manageable as the school year progresses
 *   **Co-op Prep Checklist**: Added intelligent preparation checklist in Guided mode during Prep/Load blocks that analyzes the day's schedule and assignments to generate personalized co-op preparation recommendations (books, materials, homework, general items) with executive function-friendly categorization and interactive checkboxes
 
-## Latest Stable Version (September 5, 2025) - v2.0 Dark Mode Edition
+## Latest Stable Version (September 6, 2025) - v2.1 Timezone & Navigation Edition
 
 ### 🎨 **Dark Mode Transformation Complete:**
 
@@ -90,10 +99,15 @@ StudyFlow is a full-stack web application designed to help students manage acade
 4. **Duplicate Prevention**: Added deduplication logic to handle duplicate entries in CSV uploads
 5. **Time Format Compatibility**: Proper conversion between database storage format and HTML input requirements
 
-### 📋 **System Status:**
+### 📋 **System Status (v2.1):**
 *   **Database**: PostgreSQL with proper migrations and constraints
 *   **CSV Upload**: Fully functional with error handling and logging
 *   **Schedule Display**: Time inputs show correct formatted times
 *   **Assignment Allocation**: Both students receiving appropriate homework in Study Hall/Assignment blocks
 *   **Theme System**: Complete dark/light mode support with proper accessibility
 *   **Data Integrity**: Protected schedule template as source of truth with proper block type enforcement
+*   **Timezone Accuracy**: All displays correctly show Eastern Time to match co-op classroom context
+*   **Print Queue**: Fully functional with correct status tracking and timezone-aware date grouping
+*   **Admin Navigation**: Seamless navigation between admin pages with consistent "Back to Admin" buttons
+*   **Code Quality**: LSP errors resolved, TypeScript compatibility maintained
+*   **Canvas Integration**: Sticky Canvas metadata preserved, timezone fixes scoped to title-inferred dates only

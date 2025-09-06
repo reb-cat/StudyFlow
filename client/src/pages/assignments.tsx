@@ -43,7 +43,7 @@ function extractSequenceNumbers(title: string): number[] {
   ];
   
   for (const pattern of patterns) {
-    const matches = [...title.matchAll(pattern)];
+    const matches = Array.from(title.matchAll(pattern));
     if (matches.length > 0) {
       return matches.map(match => parseInt(match[1], 10)).filter(n => !isNaN(n));
     }
