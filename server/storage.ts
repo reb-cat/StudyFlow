@@ -18,6 +18,7 @@ import {
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
+import { compareAssignmentTitles, extractUnitNumber } from './lib/assignmentIntelligence';
 
 // modify the interface with any CRUD methods
 // you might need
@@ -711,7 +712,7 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`📅 GENERIC SCHEDULING: Filling ${allAvailableBlocks.length} blocks on ${targetDate}`);
       
-      // Apply assignment prioritization logic (same for any day)
+      // ENHANCED ASSIGNMENT PRIORITIZATION with sequence awareness and subject distribution
       const prioritizedAssignments = assignmentsToSchedule.sort((a, b) => {
         // Priority 1: Overdue assignments first
         const aOverdue = a.dueDate && new Date(a.dueDate) < new Date(targetDate);
@@ -721,32 +722,85 @@ export class DatabaseStorage implements IStorage {
         
         // Priority 2: Due date (earliest first)
         if (a.dueDate && b.dueDate) {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          const dateDiff = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          if (Math.abs(dateDiff) > 86400000) return dateDiff; // More than 1 day difference
         }
         if (a.dueDate && !b.dueDate) return -1;
         if (!a.dueDate && b.dueDate) return 1;
         
-        // Priority 3: Title alphabetical
-        return (a.title || '').localeCompare(b.title || '');
+        // Priority 3: Use intelligent sequence sorting (Unit 2 → Unit 3)
+        return compareAssignmentTitles(a.title || '', b.title || '');
       });
-      
-      // Fill blocks with prioritized assignments (generic algorithm)
+
+      // ENHANCED SCHEDULING ALGORITHM with subject distribution and sequence validation
       const schedulingResults = new Map();
-      let assignmentIndex = 0;
+      const scheduledAssignments: any[] = [];
       
       for (const block of allAvailableBlocks) {
-        if (assignmentIndex >= prioritizedAssignments.length) break;
+        if (prioritizedAssignments.length === 0) break;
         
-        const assignment = prioritizedAssignments[assignmentIndex];
-        schedulingResults.set(assignment.id, {
-          scheduledDate: targetDate,
-          scheduledBlock: block.blockNumber,
-          blockStart: block.startTime,
-          blockEnd: block.endTime
-        });
+        let selectedAssignment = null;
+        let selectedIndex = -1;
         
-        console.log(`📍 SCHEDULED: "${assignment.title}" → Block ${block.blockNumber} (${block.startTime}-${block.endTime})`);
-        assignmentIndex++;
+        // Strategy 1: Look for assignments that avoid subject clustering
+        for (let i = 0; i < Math.min(3, prioritizedAssignments.length); i++) {
+          const candidate = prioritizedAssignments[i];
+          
+          // Check for sequence violations (e.g., Unit 3 before Unit 2)
+          const candidateUnit = extractUnitNumber(candidate.title);
+          if (candidateUnit && candidateUnit > 1) {
+            // Check if prerequisite units are completed
+            const hasPrerequisite = userAssignments.some(a => {
+              const aUnit = extractUnitNumber(a.title);
+              const sameCourse = (a.courseName || a.subject) === (candidate.courseName || candidate.subject);
+              return sameCourse && aUnit === candidateUnit - 1 && a.completionStatus === 'completed';
+            });
+            
+            if (!hasPrerequisite) {
+              console.log(`⚠️ SEQUENCE VIOLATION: Skipping ${candidate.title} (Unit ${candidateUnit}) - prerequisite unit not completed`);
+              continue;
+            }
+          }
+          
+          // Check for subject clustering (avoid back-to-back same subjects)
+          const lastScheduled = scheduledAssignments[scheduledAssignments.length - 1];
+          if (lastScheduled && scheduledAssignments.length > 0) {
+            const candidateSubject = (candidate.courseName || candidate.subject || '').toLowerCase();
+            const lastSubject = (lastScheduled.courseName || lastScheduled.subject || '').toLowerCase();
+            
+            // Avoid clustering same subjects unless it's the only option
+            if (candidateSubject === lastSubject && i < prioritizedAssignments.length - 1) {
+              console.log(`🔄 AVOIDING CLUSTER: Skipping ${candidate.title} to avoid back-to-back ${candidateSubject}`);
+              continue;
+            }
+          }
+          
+          // This candidate passes all checks
+          selectedAssignment = candidate;
+          selectedIndex = i;
+          break;
+        }
+        
+        // Strategy 2: If no assignment found above, take the first available (as fallback)
+        if (!selectedAssignment && prioritizedAssignments.length > 0) {
+          selectedAssignment = prioritizedAssignments[0];
+          selectedIndex = 0;
+          console.log(`📦 FALLBACK: Using ${selectedAssignment.title} (no better options available)`);
+        }
+        
+        if (selectedAssignment) {
+          schedulingResults.set(selectedAssignment.id, {
+            scheduledDate: targetDate,
+            scheduledBlock: block.blockNumber,
+            blockStart: block.startTime,
+            blockEnd: block.endTime
+          });
+          
+          scheduledAssignments.push(selectedAssignment);
+          prioritizedAssignments.splice(selectedIndex, 1);
+          
+          console.log(`📍 SCHEDULED: "${selectedAssignment.title}" → Block ${block.blockNumber} (${block.startTime}-${block.endTime})`);
+        }
       }
       
       console.log(`📊 SCHEDULED: ${schedulingResults.size} assignments scheduled by the planner`);
