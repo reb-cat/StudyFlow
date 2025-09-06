@@ -1189,7 +1189,13 @@ export class DatabaseStorage implements IStorage {
   // Student profile operations
   async getStudentProfile(studentName: string): Promise<StudentProfile | undefined> {
     try {
-      const result = await db.select().from(studentProfiles).where(eq(studentProfiles.studentName, studentName)).limit(1);
+      // CASE FIX: Convert to lowercase to match database storage format
+      const normalizedName = studentName.toLowerCase();
+      console.log(`🔍 DEBUG: Looking for student profile with normalizedName="${normalizedName}" (original="${studentName}")`);
+      
+      const result = await db.select().from(studentProfiles).where(eq(studentProfiles.studentName, normalizedName)).limit(1);
+      console.log(`🔍 DEBUG: Found profile:`, result[0] ? 'YES' : 'NO');
+      
       return result[0] || undefined;
     } catch (error) {
       console.error('Error getting student profile:', error);
