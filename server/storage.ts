@@ -467,6 +467,17 @@ export class DatabaseStorage implements IStorage {
 
   async updateAssignment(id: string, update: UpdateAssignment): Promise<Assignment | undefined> {
     try {
+      // Make creation_source "sticky" - once set to 'canvas_sync', it cannot be changed
+      if (update.creationSource && update.creationSource !== 'canvas_sync') {
+        const existing = await db.select().from(assignments).where(eq(assignments.id, id)).limit(1);
+        if (existing[0] && existing[0].creationSource === 'canvas_sync') {
+          console.log(`🔒 Protecting canvas_sync source for "${existing[0].title}" - ignoring attempt to change to "${update.creationSource}"`);
+          // Remove creationSource from update to preserve canvas_sync
+          const { creationSource, ...protectedUpdate } = update;
+          update = protectedUpdate as UpdateAssignment;
+        }
+      }
+      
       const result = await db.update(assignments).set(update).where(eq(assignments.id, id)).returning();
       return result[0] || undefined;
     } catch (error) {
