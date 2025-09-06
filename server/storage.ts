@@ -790,6 +790,12 @@ export class DatabaseStorage implements IStorage {
       const assignmentsToAssign = [...prioritizedAssignments];
       const blocksToFill = [...allAvailableBlocks];
       
+      // DEBUG: Show the exact assignment order before block assignment
+      console.log(`📋 ASSIGNMENT ORDER FOR BLOCKS:`);
+      assignmentsToAssign.slice(0, blocksToFill.length).forEach((assignment, index) => {
+        console.log(`   Block ${blocksToFill[index].blockNumber}: "${assignment.title}"`);
+      });
+      
       // Simple assignment: first sorted assignment → first block, second → second block, etc.
       for (let i = 0; i < Math.min(assignmentsToAssign.length, blocksToFill.length); i++) {
         const assignment = assignmentsToAssign[i];
