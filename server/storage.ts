@@ -812,7 +812,8 @@ export class DatabaseStorage implements IStorage {
       }
       
       // OVERFLOW HANDLING: Move unscheduled MOVEABLE assignments to next day
-      const unscheduledMoveable = availableAssignments.filter(a => moveableAssignments.includes(a));
+      const unscheduled = assignmentsToAssign.slice(blocksToFill.length);
+      const unscheduledMoveable = unscheduled.filter(a => moveableAssignments.includes(a));
       if (unscheduledMoveable.length > 0) {
         console.log(`⏭️ OVERFLOW: Moving ${unscheduledMoveable.length} non-urgent assignments to next day`);
         
