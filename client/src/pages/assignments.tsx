@@ -482,19 +482,11 @@ export default function AssignmentsPage() {
 
   // Helper function to get Canvas URL for assignment
   const getCanvasUrl = (assignment: Assignment): string | null => {
-    // Use stored canvasUrl if available and valid
-    if (assignment.canvasUrl && !assignment.canvasUrl.includes('/courses/541/')) {
+    // Use stored canvasUrl if available (backend has proper base URLs)
+    if (assignment.canvasUrl) {
       return assignment.canvasUrl;
     }
     
-    // Skip URL generation if we don't have Canvas data
-    // Backend should provide proper canvasUrl during import
-    if (!assignment.canvasId || !assignment.canvasInstance) {
-      return null;
-    }
-    
-    // For now, return null to rely on backend-generated URLs
-    // Frontend doesn't have access to Canvas base URL secrets
     return null;
   };
 
