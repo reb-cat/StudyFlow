@@ -460,9 +460,9 @@ class JobScheduler {
                   needsManualDueDate: canvasAssignment.needs_manual_due_date || false,
                   suggestedDueDate: canvasAssignment.suggested_due_date ? new Date(canvasAssignment.suggested_due_date) : null,
                   
-                  // Direct Canvas assignment URL for easy access
-                  canvasUrl: canvasAssignment.course_id && canvasAssignment.id 
-                    ? `${process.env.CANVAS_BASE_URL}courses/${canvasAssignment.course_id}/assignments/${canvasAssignment.id}`
+                  // Direct Canvas URL for Apologia (uses pages, not assignments)
+                  canvasUrl: canvasAssignment.id 
+                    ? `${process.env.CANVAS_BASE_URL_2}courses/541/pages/${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}?module_item_id=${canvasAssignment.id}`
                     : null
                 });
                 totalImported++;

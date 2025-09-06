@@ -38,7 +38,13 @@ export function detectPrintNeeds(assignment: {
       : process.env.CANVAS_BASE_URL_2;
     if (baseUrl) {
       const cleanUrl = baseUrl.replace(/\/$/, '');
-      result.canvasUrl = `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
+      if (assignment.canvasInstance === 2) {
+        // Apologia Canvas uses pages format
+        const titleSlug = assignment.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        result.canvasUrl = `${cleanUrl}/courses/541/pages/${titleSlug}?module_item_id=${assignment.canvasId}`;
+      } else {
+        result.canvasUrl = `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
+      }
     }
   } else if (assignment.canvasId && assignment.canvasInstance) {
     // Fallback: Direct assignment link when course ID missing
@@ -47,7 +53,13 @@ export function detectPrintNeeds(assignment: {
       : process.env.CANVAS_BASE_URL_2;
     if (baseUrl) {
       const cleanUrl = baseUrl.replace(/\/$/, '');
-      result.canvasUrl = `${cleanUrl}/assignments/${assignment.canvasId}`;
+      if (assignment.canvasInstance === 2) {
+        // Apologia Canvas uses pages format  
+        const titleSlug = assignment.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        result.canvasUrl = `${cleanUrl}/courses/541/pages/${titleSlug}?module_item_id=${assignment.canvasId}`;
+      } else {
+        result.canvasUrl = `${cleanUrl}/assignments/${assignment.canvasId}`;
+      }
     }
   } else if (assignment.canvasInstance) {
     // Final fallback: Canvas dashboard when assignment data incomplete
