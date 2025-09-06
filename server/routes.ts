@@ -2297,6 +2297,9 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         return res.status(400).json({ error: 'Invalid status' });
       }
       
+      // Update the assignment's print status in the database
+      await storage.updateAssignment(assignmentId, { printStatus: status });
+      
       console.log(`📋 Updated print status for assignment ${assignmentId}: ${status}`);
       res.json({ success: true, status, assignmentId });
       
