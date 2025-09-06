@@ -49,10 +49,10 @@ export default function Header() {
             </Button>
             <div className="flex items-center space-x-2">
               <Avatar className="h-8 w-8" data-testid="user-avatar">
-                <AvatarFallback>AC</AvatarFallback>
+                <AvatarFallback>SF</AvatarFallback>
               </Avatar>
               <span className="hidden sm:block text-sm font-medium text-foreground" data-testid="user-name">
-                Alex Chen
+                StudyFlow
               </span>
             </div>
           </div>
