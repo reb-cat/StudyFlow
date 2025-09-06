@@ -590,9 +590,9 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent/bible tasks`);
       
-      // CRITICAL FIX: Clear ALL existing scheduled assignments for this target date
-      // This ensures complete re-evaluation on every refresh (essential for Need More Time)
-      console.log(`🧹 CLEARING: Removing all existing scheduled assignments for ${studentName} on ${targetDate}`);
+      // SMART CLEARING: Only clear unworked assignments, preserve completed/marked work
+      // This preserves "Need More Time", completed, and in-progress assignments
+      console.log(`🧹 SMART CLEARING: Removing only unworked scheduled assignments for ${studentName} on ${targetDate}`);
       
       const clearedAssignments = await db.update(assignments)
         .set({ 
@@ -604,12 +604,41 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             eq(assignments.userId, userId),
-            eq(assignments.scheduledDate, targetDate)
+            eq(assignments.scheduledDate, targetDate),
+            // CRITICAL: Only clear assignments that haven't been worked on
+            eq(assignments.completionStatus, 'pending')
+            // This preserves: completed, needMoreTime, inProgress, stuck, etc.
           )
         )
         .returning();
         
-      console.log(`🧹 CLEARED: ${clearedAssignments.length} assignments cleared from ${targetDate}`);
+      console.log(`🧹 CLEARED: ${clearedAssignments.length} unworked assignments cleared from ${targetDate} (preserving completed/marked work)`);
+      
+      // NEED MORE TIME LOGIC: Move "needMoreTime" assignments to next day
+      const needMoreTimeAssignments = userAssignments.filter(a => 
+        a.completionStatus === 'needMoreTime' && a.scheduledDate === targetDate
+      );
+      
+      if (needMoreTimeAssignments.length > 0) {
+        console.log(`⏭️ NEED MORE TIME: Moving ${needMoreTimeAssignments.length} assignments to next day`);
+        
+        const nextDate = new Date(targetDate);
+        nextDate.setDate(nextDate.getDate() + 1);
+        const nextDateString = nextDate.toISOString().split('T')[0];
+        
+        for (const assignment of needMoreTimeAssignments) {
+          await db.update(assignments)
+            .set({ 
+              scheduledDate: nextDateString,
+              scheduledBlock: null, // Will be rescheduled by next day's scheduler
+              blockStart: null,
+              blockEnd: null
+            })
+            .where(eq(assignments.id, assignment.id));
+            
+          console.log(`⏭️ MOVED: "${assignment.title}" → ${nextDateString} (Need More Time)`);
+        }
+      }
       
       // Now get ALL available assignments for rescheduling (fresh start)
       const assignmentsToSchedule = unscheduledAssignments.filter(a => {
@@ -700,41 +729,71 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`📅 GENERIC SCHEDULING: Filling ${allAvailableBlocks.length} blocks on ${targetDate}`);
       
-      // ENHANCED ASSIGNMENT PRIORITIZATION with sequence awareness and subject distribution
+      // ENHANCED ASSIGNMENT PRIORITIZATION with urgency-based bumping
+      const targetDateOnly = targetDate.split('T')[0];
+      
       const prioritizedAssignments = assignmentsToSchedule.sort((a, b) => {
-        // Priority 1: Overdue assignments first
+        // Priority 1: URGENT - Overdue assignments (must be scheduled today)
         const aOverdue = a.dueDate && new Date(a.dueDate) < new Date(targetDate);
         const bOverdue = b.dueDate && new Date(b.dueDate) < new Date(targetDate);
         if (aOverdue && !bOverdue) return -1;
         if (!aOverdue && bOverdue) return 1;
         
-        // Priority 2: Due date (earliest first)
+        // Priority 2: HIGH - Due TODAY (must be scheduled today) 
+        const aDueToday = a.dueDate && new Date(a.dueDate).toISOString().split('T')[0] === targetDateOnly;
+        const bDueToday = b.dueDate && new Date(b.dueDate).toISOString().split('T')[0] === targetDateOnly;
+        if (aDueToday && !bDueToday) return -1;
+        if (!aDueToday && bDueToday) return 1;
+        
+        // Priority 3: MEDIUM - Due within 2 days (can be moved if needed)
         if (a.dueDate && b.dueDate) {
           const dateDiff = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-          if (Math.abs(dateDiff) > 86400000) return dateDiff; // More than 1 day difference
+          if (Math.abs(dateDiff) > 172800000) return dateDiff; // More than 2 days difference
         }
         if (a.dueDate && !b.dueDate) return -1;
         if (!a.dueDate && b.dueDate) return 1;
         
-        // Priority 3: Use intelligent sequence sorting (Unit 2 → Unit 3)
+        // Priority 4: Use intelligent sequence sorting (Unit 2 → Unit 3)
         return compareAssignmentTitles(a.title || '', b.title || '');
       });
+      
+      // URGENCY CLASSIFICATION: Separate critical vs moveable assignments
+      const urgentAssignments = prioritizedAssignments.filter(a => {
+        const isOverdue = a.dueDate && new Date(a.dueDate) < new Date(targetDate);
+        const isDueToday = a.dueDate && new Date(a.dueDate).toISOString().split('T')[0] === targetDateOnly;
+        return isOverdue || isDueToday;
+      });
+      
+      const moveableAssignments = prioritizedAssignments.filter(a => {
+        const isOverdue = a.dueDate && new Date(a.dueDate) < new Date(targetDate);
+        const isDueToday = a.dueDate && new Date(a.dueDate).toISOString().split('T')[0] === targetDateOnly;
+        return !isOverdue && !isDueToday;
+      });
+      
+      console.log(`🚨 URGENT: ${urgentAssignments.length} assignments must be scheduled today (overdue/due today)`);
+      console.log(`📅 MOVEABLE: ${moveableAssignments.length} assignments can be moved to next day if needed`);
 
-      // ENHANCED SCHEDULING ALGORITHM with subject distribution and sequence validation
+      // URGENCY-FIRST SCHEDULING ALGORITHM 
       const schedulingResults = new Map();
       const scheduledAssignments: any[] = [];
       
+      // Combine urgent and moveable for selection, but prioritize urgent
+      let availableAssignments = [...urgentAssignments, ...moveableAssignments];
+      
       for (const block of allAvailableBlocks) {
-        if (prioritizedAssignments.length === 0) break;
+        if (availableAssignments.length === 0) break;
         
         let selectedAssignment = null;
         let selectedIndex = -1;
         
-        // Strategy 1: Look for assignments that avoid subject clustering
-        for (let i = 0; i < Math.min(3, prioritizedAssignments.length); i++) {
-          const candidate = prioritizedAssignments[i];
-          
-          // NOTE: Sequence violations are now pre-filtered, so we don't need to check again
+        // Strategy 1: Always prefer URGENT assignments first
+        const urgentCandidates = availableAssignments.filter((_, i) => i < urgentAssignments.length);
+        const searchPool = urgentCandidates.length > 0 ? urgentCandidates : availableAssignments;
+        
+        // Strategy 2: Within the search pool, avoid subject clustering
+        for (let i = 0; i < Math.min(3, searchPool.length); i++) {
+          const candidate = searchPool[i];
+          const candidateIndex = availableAssignments.indexOf(candidate);
           
           // Check for subject clustering (avoid back-to-back same subjects)
           const lastScheduled = scheduledAssignments[scheduledAssignments.length - 1];
@@ -742,8 +801,9 @@ export class DatabaseStorage implements IStorage {
             const candidateSubject = (candidate.courseName || candidate.subject || '').toLowerCase();
             const lastSubject = (lastScheduled.courseName || lastScheduled.subject || '').toLowerCase();
             
-            // Avoid clustering same subjects unless it's the only option
-            if (candidateSubject === lastSubject && i < prioritizedAssignments.length - 1) {
+            // For urgent assignments, cluster is acceptable (they MUST be scheduled)
+            const isUrgent = urgentAssignments.includes(candidate);
+            if (!isUrgent && candidateSubject === lastSubject && i < searchPool.length - 1) {
               console.log(`🔄 AVOIDING CLUSTER: Skipping ${candidate.title} to avoid back-to-back ${candidateSubject}`);
               continue;
             }
@@ -751,18 +811,21 @@ export class DatabaseStorage implements IStorage {
           
           // This candidate passes all checks
           selectedAssignment = candidate;
-          selectedIndex = i;
+          selectedIndex = candidateIndex;
           break;
         }
         
-        // Strategy 2: If no assignment found above, take the first available (as fallback)
-        if (!selectedAssignment && prioritizedAssignments.length > 0) {
-          selectedAssignment = prioritizedAssignments[0];
+        // Strategy 3: If no assignment found above, take the first available (as fallback)
+        if (!selectedAssignment && availableAssignments.length > 0) {
+          selectedAssignment = availableAssignments[0];
           selectedIndex = 0;
           console.log(`📦 FALLBACK: Using ${selectedAssignment.title} (no better options available)`);
         }
         
         if (selectedAssignment) {
+          const isUrgent = urgentAssignments.includes(selectedAssignment);
+          const urgencyLabel = isUrgent ? 'URGENT' : 'MOVEABLE';
+          
           schedulingResults.set(selectedAssignment.id, {
             scheduledDate: targetDate,
             scheduledBlock: block.blockNumber,
@@ -771,9 +834,27 @@ export class DatabaseStorage implements IStorage {
           });
           
           scheduledAssignments.push(selectedAssignment);
-          prioritizedAssignments.splice(selectedIndex, 1);
+          availableAssignments.splice(selectedIndex, 1);
           
-          console.log(`📍 SCHEDULED: "${selectedAssignment.title}" → Block ${block.blockNumber} (${block.startTime}-${block.endTime})`);
+          console.log(`📍 SCHEDULED: "${selectedAssignment.title}" → Block ${block.blockNumber} (${urgencyLabel})`);
+        }
+      }
+      
+      // OVERFLOW HANDLING: Move unscheduled MOVEABLE assignments to next day
+      const unscheduledMoveable = availableAssignments.filter(a => moveableAssignments.includes(a));
+      if (unscheduledMoveable.length > 0) {
+        console.log(`⏭️ OVERFLOW: Moving ${unscheduledMoveable.length} non-urgent assignments to next day`);
+        
+        const nextDate = new Date(targetDate);
+        nextDate.setDate(nextDate.getDate() + 1);
+        const nextDateString = nextDate.toISOString().split('T')[0];
+        
+        for (const assignment of unscheduledMoveable) {
+          await db.update(assignments)
+            .set({ scheduledDate: nextDateString })
+            .where(eq(assignments.id, assignment.id));
+            
+          console.log(`⏭️ MOVED: "${assignment.title}" → ${nextDateString} (overflow)`);
         }
       }
       
