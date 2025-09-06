@@ -43,8 +43,11 @@ function inferDueDateFromText(text: string, now = new Date(), tz: string = 'Amer
 
   const nowYear = now.getFullYear();
   const candidateYear = year ?? nowYear;
-  // build local date at 23:59 in tz (simple: use local, app already treats ET as local)
-  const d = new Date(candidateYear, month, day, 23, 59, 0, 0);
+  // Create date as Eastern Time end-of-day to match classroom context
+  // Add UTC offset to ensure Eastern Time dates display correctly
+  const isDST = month >= 2 && month <= 10; // Rough DST check (March-November)
+  const utcOffsetHours = isDST ? 4 : 5; // EDT is UTC-4, EST is UTC-5
+  const d = new Date(candidateYear, month, day, 23 + utcOffsetHours, 59, 0, 0);
 
   // If we parsed without a year and it landed far in the past (e.g., last school year),
   // nudge to next year.

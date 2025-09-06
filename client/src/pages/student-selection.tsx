@@ -27,7 +27,7 @@ export default function FamilyDashboard() {
   
   // Current date/time
   const now = new Date();
-  const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/New_York' };
   const dateDisplay = now.toLocaleDateString('en-US', dateOptions);
   const timeOfDay = now.getHours() < 12 ? 'morning' : now.getHours() < 17 ? 'afternoon' : 'evening';
   const greeting = `Good ${timeOfDay}! Let's make it a great day!`;

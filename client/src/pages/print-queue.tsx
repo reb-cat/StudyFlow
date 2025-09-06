@@ -205,7 +205,7 @@ export default function PrintQueue() {
         {/* Date Range Info */}
         {printQueueData && (
           <div className="mb-4 text-sm text-muted-foreground">
-            Showing assignments due {new Date(printQueueData.dateRange.from).toLocaleDateString()} - {new Date(printQueueData.dateRange.to).toLocaleDateString()}
+            Showing assignments due {new Date(printQueueData.dateRange.from).toLocaleDateString('en-US', { timeZone: 'America/New_York' })} - {new Date(printQueueData.dateRange.to).toLocaleDateString('en-US', { timeZone: 'America/New_York' })}
           </div>
         )}
 

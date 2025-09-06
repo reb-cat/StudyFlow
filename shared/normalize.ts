@@ -13,7 +13,11 @@ function inferDueDateFromText(text:string, now=new Date()): Date | null {
            M=names.findIndex(n=>n.startsWith(md[1].toLowerCase())); D=+md[2]; }
   }
   if (M==null||D==null) return null;
-  const y = Y ?? now.getFullYear(); const d = new Date(y,M,D,23,59,0,0);
+  const y = Y ?? now.getFullYear(); 
+  // Create date as Eastern Time end-of-day to match classroom context
+  const isDST = M >= 2 && M <= 10; // March-November (rough DST)
+  const utcOffsetHours = isDST ? 4 : 5; // EDT is UTC-4, EST is UTC-5
+  const d = new Date(y, M, D, 23 + utcOffsetHours, 59, 0, 0);
   if (!Y && ((d.getTime()-now.getTime())/86400000 < -120)) d.setFullYear(y+1);
   return d;
 }

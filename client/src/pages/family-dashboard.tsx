@@ -162,11 +162,12 @@ export default function FamilyDashboard() {
           <div className="flex items-center gap-3 mb-2">
             <Calendar size={24} className="text-primary" />
             <h2 className="text-3xl font-semibold text-foreground m-0">
-              {new Date(selectedDate + 'T12:00:00.000Z').toLocaleDateString('en-US', { 
+              {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 
-                day: 'numeric' 
+                day: 'numeric',
+                timeZone: 'America/New_York'
               })}
             </h2>
           </div>

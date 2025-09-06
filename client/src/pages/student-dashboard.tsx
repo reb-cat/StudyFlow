@@ -913,7 +913,7 @@ export default function StudentDashboard() {
         
         {/* Print Footer - Hidden on screen, visible in print */}
         <div className="hidden print:block print-footer">
-          StudyFlow Daily Schedule • Executive Function Support System • Generated: {new Date().toLocaleDateString()}
+          StudyFlow Daily Schedule • Executive Function Support System • Generated: {new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York' })}
         </div>
       </div>
     </div>
