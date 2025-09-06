@@ -340,7 +340,7 @@ export default function ScheduleManager() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {scheduleBlocks.map((block, index) => (
+            {scheduleBlocks.sort((a, b) => a.blockNumber - b.blockNumber).map((block, index) => (
               <Card key={block.blockNumber} className="bg-background border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
