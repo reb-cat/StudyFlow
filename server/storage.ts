@@ -732,10 +732,9 @@ export class DatabaseStorage implements IStorage {
       // Simply fill available blocks on THIS specific date with prioritized assignments
       const allAvailableBlocks = [...assignmentBlocks, ...studyHallBlocks]
         .sort((a, b) => {
-          // Sort blocks by start time 
-          const timeA = a.startTime || '00:00';
-          const timeB = b.startTime || '00:00';
-          return timeA.localeCompare(timeB);
+          // Sort blocks by block number for proper educational sequencing
+          // This ensures Ch 1 → Block 1, Ch 2 → Block 2, etc.
+          return (a.blockNumber || 0) - (b.blockNumber || 0);
         });
       
       console.log(`📅 GENERIC SCHEDULING: Filling ${allAvailableBlocks.length} blocks on ${targetDate}`);

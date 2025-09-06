@@ -13,10 +13,10 @@ export function extractUnitNumber(title?: string): number | null {
 
 // Extract all numbers from assignment titles for comprehensive sequencing
 export function extractSequenceNumbers(title: string): number[] {
-  // Match patterns like "Unit 2", "Module 3", "Chapter 1", "Page 5", etc.
+  // Match patterns like "Unit 2", "Module 3", "Chapter 1", "Ch 1", "Page 5", etc.
   const patterns = [
-    /(?:unit|module|chapter|lesson|section|part|page|step|week|day)\s*(\d+)/gi,
-    /(\d+)\s*(?:unit|module|chapter|lesson|section|part|page|step|week|day)/gi,
+    /(?:unit|u|module|mod|chapter|ch\.?|lesson|section|part|page|step|week|day)\s*(\d+)/gi,
+    /(\d+)\s*(?:unit|u|module|mod|chapter|ch\.?|lesson|section|part|page|step|week|day)/gi,
     /(\d+)/g // Fall back to any numbers
   ];
   
