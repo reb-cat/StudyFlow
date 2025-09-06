@@ -106,6 +106,17 @@ export default function StudentDashboard() {
   };
 
 
+  // Fetch Saturday scheduling settings
+  const { data: saturdaySettings = [] } = useQuery({
+    queryKey: ['/api/students/profiles/saturday-settings'],
+    queryFn: async () => {
+      const response = await fetch('/api/students/profiles/saturday-settings');
+      if (!response.ok) throw new Error('Failed to fetch Saturday settings');
+      return response.json();
+    },
+    staleTime: 1000 * 60 * 10, // 10 minutes (settings change rarely)
+  });
+
   // Fetch assignments for today (includes both due soon AND scheduled for today)
   const { data: assignments = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/assignments', selectedDate, studentName],
@@ -259,7 +270,9 @@ export default function StudentDashboard() {
   const selectedDateObj = parseDateString(selectedDate);
   const todayString = getTodayString();
   const isTodaySelected = isToday(selectedDate);
-  const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
+  // SATURDAY SCHEDULING SUPPORT: Only treat Saturday as weekend if Saturday scheduling is disabled
+  const isSaturday = selectedDateObj.getDay() === 6;
+  const isSunday = selectedDateObj.getDay() === 0;
   const dayName = getDayName(selectedDate);
   const dateDisplay = formatDateDisplay(selectedDate);
   
@@ -446,7 +459,16 @@ export default function StudentDashboard() {
     }
   }
 
-  if (isWeekend) {
+  // SMART WEEKEND CHECK: Respect Saturday scheduling setting
+  const studentSettings = saturdaySettings.find(s => s.studentName.toLowerCase() === studentName.toLowerCase());
+  const allowSaturdayScheduling = studentSettings?.allowSaturdayScheduling || false;
+  
+  // Only show weekend message if:
+  // - It's Sunday (always weekend), OR
+  // - It's Saturday AND Saturday scheduling is disabled
+  const shouldShowWeekendMessage = isSunday || (isSaturday && !allowSaturdayScheduling);
+  
+  if (shouldShowWeekendMessage) {
     return (
       <div className="min-h-screen p-6 bg-background">
         <div className="max-w-4xl mx-auto">

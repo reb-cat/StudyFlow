@@ -1191,10 +1191,7 @@ export class DatabaseStorage implements IStorage {
     try {
       // CASE FIX: Convert to lowercase to match database storage format
       const normalizedName = studentName.toLowerCase();
-      console.log(`🔍 DEBUG: Looking for student profile with normalizedName="${normalizedName}" (original="${studentName}")`);
-      
       const result = await db.select().from(studentProfiles).where(eq(studentProfiles.studentName, normalizedName)).limit(1);
-      console.log(`🔍 DEBUG: Found profile:`, result[0] ? 'YES' : 'NO');
       
       return result[0] || undefined;
     } catch (error) {
@@ -1532,9 +1529,6 @@ export class DatabaseStorage implements IStorage {
       // Check if this is Saturday and if Saturday scheduling is enabled
       if (weekday === 6) { // Saturday
         const studentProfile = await this.getStudentProfile(studentName);
-        console.log(`🔍 DEBUG: getStudentProfile for ${studentName}:`, JSON.stringify(studentProfile, null, 2));
-        console.log(`🔍 DEBUG: allowSaturdayScheduling value:`, studentProfile?.allowSaturdayScheduling);
-        console.log(`🔍 DEBUG: Checking !studentProfile?.allowSaturdayScheduling:`, !studentProfile?.allowSaturdayScheduling);
         
         if (!studentProfile?.allowSaturdayScheduling) {
           console.log(`🗓️ Saturday scheduling disabled for ${studentName} - skipping assignment allocation`);
