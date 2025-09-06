@@ -2226,7 +2226,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
           subject: assignment.subject
         });
         
-        if (printDetection.needsPrinting) {
+        // Include items that need printing OR have been printed/skipped (for completed section)
+        if (printDetection.needsPrinting || assignment.printStatus === 'printed' || assignment.printStatus === 'skipped') {
           printQueue.push({
             id: assignment.id,
             studentName: assignment.userId === 'abigail-user' ? 'Abigail' : 
@@ -2239,7 +2240,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
             printReason: printDetection.printReason,
             priority: printDetection.priority,
             canvasUrl: printDetection.canvasUrl,
-            printStatus: 'needs_printing',
+            printStatus: assignment.printStatus || 'needs_printing',
             estimatedPages: estimatePageCount(assignment.instructions)
           });
         }
