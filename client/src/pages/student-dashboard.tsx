@@ -180,6 +180,25 @@ export default function StudentDashboard() {
   };
 
 
+  // State to track schedule initialization - MOVED TO TOP to prevent temporal dead zone
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize daily schedule for today - MOVED TO TOP to prevent race conditions
+  useEffect(() => {
+    const initializeSchedule = async () => {
+      setIsInitialized(false);
+      try {
+        await apiRequest('POST', `/api/schedule/${studentName}/${selectedDate}/initialize`);
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize schedule:', error);
+        setIsInitialized(true); // Still allow fetching even if init fails
+      }
+    };
+    
+    initializeSchedule();
+  }, [studentName, selectedDate]);
+
   // Fetch Saturday scheduling settings
   const { data: saturdaySettings = [] } = useQuery({
     queryKey: ['/api/students/profiles/saturday-settings'],
@@ -219,25 +238,6 @@ export default function StudentDashboard() {
     queryKey: ['/api/schedule', studentName, selectedDate],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
-
-  // State to track schedule initialization
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Initialize daily schedule for today
-  useEffect(() => {
-    const initializeSchedule = async () => {
-      setIsInitialized(false);
-      try {
-        await apiRequest('POST', `/api/schedule/${studentName}/${selectedDate}/initialize`);
-        setIsInitialized(true);
-      } catch (error) {
-        console.error('Failed to initialize schedule:', error);
-        setIsInitialized(true); // Still allow fetching even if init fails
-      }
-    };
-    
-    initializeSchedule();
-  }, [studentName, selectedDate]);
 
   // Fetch daily schedule status for both Overview and Guided Mode synchronization
   // Wait for initialization to complete to prevent race conditions
