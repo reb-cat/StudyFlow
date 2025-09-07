@@ -171,7 +171,7 @@ export default function AssignmentsPage() {
 
   // Create manual assignment mutation
   const createAssignmentMutation = useMutation({
-    mutationFn: async (assignment: typeof manualAssignment & { userId: string }) => {
+    mutationFn: async (assignment: typeof manualAssignment & { studentName: string }) => {
       const response = await apiRequest('POST', '/api/assignments', assignment);
       return await response.json();
     },
@@ -464,8 +464,8 @@ export default function AssignmentsPage() {
   };
 
   const handleCreateManualAssignment = () => {
-    const userId = `${selectedStudent.toLowerCase()}-user`;
-    createAssignmentMutation.mutate({ ...manualAssignment, userId });
+    // Send studentName instead of userId - backend handles the mapping
+    createAssignmentMutation.mutate({ ...manualAssignment, studentName: selectedStudent });
   };
 
   const handleEditAssignment = (assignment: Assignment) => {
