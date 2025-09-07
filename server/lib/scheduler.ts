@@ -231,44 +231,110 @@ class JobScheduler {
                   console.log(`   ⏰ Availability: ${intelligence.availabilityWindow.availableFrom?.toDateString() || 'open'} → ${intelligence.availabilityWindow.availableUntil?.toDateString() || 'no limit'}`);
                 }
 
-                await storage.createAssignment({
-                  userId: userId,
-                  title: canvasAssignment.name,
-                  subject: canvasAssignment.courseName || 'Unknown Course',
-                  courseName: canvasAssignment.courseName || 'Unknown Course',
-                  instructions: canvasAssignment.description || 'Assignment from Canvas',
-                  dueDate: dueDate,
-                  scheduledDate: smartScheduledDate,
-                  actualEstimatedMinutes: 60,
-                  completionStatus: completionStatus,
-                  priority: 'B',
-                  difficulty: 'medium',
-                  blockType: intelligence.blockType,
-                  isAssignmentBlock: intelligence.isSchedulable,
-                  canvasId: canvasAssignment.id,
-                  canvasCourseId: canvasAssignment.course_id,
-                  canvasInstance: 1,
-                  isCanvasImport: true,
-                  creationSource: 'canvas_sync',
+                // NEW: NESTED ASSIGNMENT PARSING - Break down complex assignments into manageable chunks
+                const { parseNestedAssignments, createSubAssignmentRecords } = await import('./nestedAssignmentParser.js');
+                const parsingResult = parseNestedAssignments(
+                  canvasAssignment.name,
+                  canvasAssignment.description,
+                  studentName.toLowerCase()
+                );
+
+                if (parsingResult.shouldSplit) {
+                  console.log(`🔪 NESTED PARSING: Breaking down "${canvasAssignment.name}" into ${parsingResult.subAssignments.length} sub-assignments`);
+                  console.log(`   🎯 Parsing confidence: ${Math.round(parsingResult.parsingConfidence * 100)}%`);
                   
-                  // Enhanced Canvas metadata
-                  canvasCategory: intelligence.canvasCategory,
-                  submissionTypes: intelligence.submissionContext.submissionTypes,
-                  pointsValue: intelligence.submissionContext.pointsValue,
-                  availableFrom: intelligence.availabilityWindow.availableFrom,
-                  availableUntil: intelligence.availabilityWindow.availableUntil,
-                  isRecurring: intelligence.isRecurring,
-                  academicYear: canvasAssignment.academic_year,
-                  confidenceScore: intelligence.confidence.toString(),
+                  // Create base assignment data template
+                  const baseAssignmentData = {
+                    userId: userId,
+                    subject: canvasAssignment.courseName || 'Unknown Course',
+                    courseName: canvasAssignment.courseName || 'Unknown Course',
+                    dueDate: dueDate,
+                    scheduledDate: smartScheduledDate,
+                    completionStatus: completionStatus,
+                    blockType: intelligence.blockType,
+                    isAssignmentBlock: intelligence.isSchedulable,
+                    canvasId: canvasAssignment.id,
+                    canvasCourseId: canvasAssignment.course_id,
+                    canvasInstance: 1,
+                    isCanvasImport: true,
+                    creationSource: 'auto_split' as const,
+                    
+                    // Enhanced Canvas metadata
+                    canvasCategory: intelligence.canvasCategory,
+                    submissionTypes: intelligence.submissionContext.submissionTypes,
+                    pointsValue: intelligence.submissionContext.pointsValue,
+                    availableFrom: intelligence.availabilityWindow.availableFrom,
+                    availableUntil: intelligence.availabilityWindow.availableUntil,
+                    isRecurring: intelligence.isRecurring,
+                    academicYear: canvasAssignment.academic_year,
+                    confidenceScore: intelligence.confidence.toString(),
+                    
+                    // Canvas assignment URL - inherit from original
+                    canvasUrl: canvasAssignment.course_id && canvasAssignment.id 
+                      ? `${process.env.CANVAS_BASE_URL}courses/${canvasAssignment.course_id}/assignments/${canvasAssignment.id}`
+                      : null
+                  };
+
+                  // Create each sub-assignment
+                  for (let i = 0; i < parsingResult.subAssignments.length; i++) {
+                    const subAssignment = parsingResult.subAssignments[i];
+                    console.log(`   📝 Creating sub-assignment ${i + 1}/${parsingResult.subAssignments.length}: "${subAssignment.title}" (${subAssignment.estimatedMinutes} min)`);
+                    
+                    await storage.createAssignment({
+                      ...baseAssignmentData,
+                      title: subAssignment.title,
+                      instructions: subAssignment.description,
+                      actualEstimatedMinutes: subAssignment.estimatedMinutes,
+                      priority: subAssignment.priority,
+                      difficulty: subAssignment.difficulty,
+                      notes: `Split from: ${canvasAssignment.name} (Part ${i + 1}/${parsingResult.subAssignments.length})`,
+                      // Clear Canvas ID for sub-assignments to prevent conflicts
+                      canvasId: null,
+                      isCanvasImport: false
+                    });
+                    totalImported++;
+                  }
                   
-                  // Canvas metadata - no fallback properties needed
-                  
-                  // Direct Canvas assignment URL for easy access
-                  canvasUrl: canvasAssignment.course_id && canvasAssignment.id 
-                    ? `${process.env.CANVAS_BASE_URL}courses/${canvasAssignment.course_id}/assignments/${canvasAssignment.id}`
-                    : null
-                });
-                totalImported++;
+                  console.log(`✅ Successfully split "${canvasAssignment.name}" into ${parsingResult.subAssignments.length} manageable 30-minute tasks`);
+                } else {
+                  // Original single assignment creation for assignments that don't need splitting
+                  await storage.createAssignment({
+                    userId: userId,
+                    title: canvasAssignment.name,
+                    subject: canvasAssignment.courseName || 'Unknown Course',
+                    courseName: canvasAssignment.courseName || 'Unknown Course',
+                    instructions: canvasAssignment.description || 'Assignment from Canvas',
+                    dueDate: dueDate,
+                    scheduledDate: smartScheduledDate,
+                    actualEstimatedMinutes: 60,
+                    completionStatus: completionStatus,
+                    priority: 'B',
+                    difficulty: 'medium',
+                    blockType: intelligence.blockType,
+                    isAssignmentBlock: intelligence.isSchedulable,
+                    canvasId: canvasAssignment.id,
+                    canvasCourseId: canvasAssignment.course_id,
+                    canvasInstance: 1,
+                    isCanvasImport: true,
+                    creationSource: 'canvas_sync',
+                    
+                    // Enhanced Canvas metadata
+                    canvasCategory: intelligence.canvasCategory,
+                    submissionTypes: intelligence.submissionContext.submissionTypes,
+                    pointsValue: intelligence.submissionContext.pointsValue,
+                    availableFrom: intelligence.availabilityWindow.availableFrom,
+                    availableUntil: intelligence.availabilityWindow.availableUntil,
+                    isRecurring: intelligence.isRecurring,
+                    academicYear: canvasAssignment.academic_year,
+                    confidenceScore: intelligence.confidence.toString(),
+                    
+                    // Direct Canvas assignment URL for easy access
+                    canvasUrl: canvasAssignment.course_id && canvasAssignment.id 
+                      ? `${process.env.CANVAS_BASE_URL}courses/${canvasAssignment.course_id}/assignments/${canvasAssignment.id}`
+                      : null
+                  });
+                  totalImported++;
+                }
               } else {
                 // DISABLED: Auto-completion update logic to prevent false completions
                 // Canvas graded_submissions_exist can be true if ANY student has graded work,
@@ -423,44 +489,108 @@ class JobScheduler {
                   console.log(`   ⚠️ Previous year/template data detected`);
                 }
 
-                await storage.createAssignment({
-                  userId: userId,
-                  title: title,
-                  subject: canvasAssignment.courseName || 'Unknown Course 2',
-                  courseName: canvasAssignment.courseName || 'Unknown Course 2',
-                  instructions: canvasAssignment.description || 'Assignment from Apologia',
-                  dueDate: dueDate,
-                  scheduledDate: smartScheduledDate,
-                  actualEstimatedMinutes: 60,
-                  completionStatus: completionStatus,
-                  priority: 'B',
-                  difficulty: 'medium',
-                  blockType: intelligence.blockType,
-                  isAssignmentBlock: intelligence.isSchedulable,
-                  canvasId: canvasAssignment.id,
-                  canvasInstance: 2,
-                  isCanvasImport: true,
-                  creationSource: 'canvas_sync',
+                // NEW: NESTED ASSIGNMENT PARSING for Canvas Instance 2 - Break down complex assignments
+                const { parseNestedAssignments } = await import('./nestedAssignmentParser.js');
+                const parsingResult = parseNestedAssignments(
+                  canvasAssignment.name,
+                  canvasAssignment.description,
+                  studentName.toLowerCase()
+                );
+
+                if (parsingResult.shouldSplit) {
+                  console.log(`🔪 NESTED PARSING (Canvas 2): Breaking down "${canvasAssignment.name}" into ${parsingResult.subAssignments.length} sub-assignments`);
+                  console.log(`   🎯 Parsing confidence: ${Math.round(parsingResult.parsingConfidence * 100)}%`);
                   
-                  // Enhanced Canvas metadata for instance 2
-                  canvasCategory: intelligence.canvasCategory,
-                  submissionTypes: intelligence.submissionContext.submissionTypes,
-                  pointsValue: intelligence.submissionContext.pointsValue,
-                  availableFrom: intelligence.availabilityWindow.availableFrom,
-                  availableUntil: intelligence.availabilityWindow.availableUntil,
-                  isRecurring: intelligence.isRecurring,
-                  academicYear: canvasAssignment.academic_year,
-                  confidenceScore: intelligence.confidence.toString(),
+                  // Create base assignment data template for Canvas instance 2
+                  const baseAssignmentData = {
+                    userId: userId,
+                    subject: canvasAssignment.courseName || 'Unknown Course 2',
+                    courseName: canvasAssignment.courseName || 'Unknown Course 2',
+                    dueDate: dueDate,
+                    scheduledDate: smartScheduledDate,
+                    completionStatus: completionStatus,
+                    blockType: intelligence.blockType,
+                    isAssignmentBlock: intelligence.isSchedulable,
+                    canvasId: canvasAssignment.id,
+                    canvasInstance: 2,
+                    isCanvasImport: true,
+                    creationSource: 'auto_split' as const,
+                    
+                    // Enhanced Canvas metadata for instance 2
+                    canvasCategory: intelligence.canvasCategory,
+                    submissionTypes: intelligence.submissionContext.submissionTypes,
+                    pointsValue: intelligence.submissionContext.pointsValue,
+                    availableFrom: intelligence.availabilityWindow.availableFrom,
+                    availableUntil: intelligence.availabilityWindow.availableUntil,
+                    isRecurring: intelligence.isRecurring,
+                    academicYear: canvasAssignment.academic_year,
+                    confidenceScore: intelligence.confidence.toString(),
+                    
+                    // Canvas assignment URL - inherit from original
+                    canvasUrl: canvasAssignment.id 
+                      ? `${process.env.CANVAS_BASE_URL_2}courses/541/assignments/${canvasAssignment.id}`
+                      : null
+                  };
+
+                  // Create each sub-assignment for Canvas instance 2
+                  for (let i = 0; i < parsingResult.subAssignments.length; i++) {
+                    const subAssignment = parsingResult.subAssignments[i];
+                    console.log(`   📝 Creating sub-assignment ${i + 1}/${parsingResult.subAssignments.length}: "${subAssignment.title}" (${subAssignment.estimatedMinutes} min)`);
+                    
+                    await storage.createAssignment({
+                      ...baseAssignmentData,
+                      title: subAssignment.title,
+                      instructions: subAssignment.description,
+                      actualEstimatedMinutes: subAssignment.estimatedMinutes,
+                      priority: subAssignment.priority,
+                      difficulty: subAssignment.difficulty,
+                      notes: `Split from: ${canvasAssignment.name} (Part ${i + 1}/${parsingResult.subAssignments.length})`,
+                      // Clear Canvas ID for sub-assignments to prevent conflicts
+                      canvasId: null,
+                      isCanvasImport: false
+                    });
+                    totalImported++;
+                  }
                   
-                  // Canvas metadata - no fallback properties needed
-                  
-                  // Direct Canvas URL for Apologia (assignments format)
-                  // TODO: Need to capture and store module_item_id for full URL
-                  canvasUrl: canvasAssignment.id 
-                    ? `${process.env.CANVAS_BASE_URL_2}courses/541/assignments/${canvasAssignment.id}`
-                    : null
-                });
-                totalImported++;
+                  console.log(`✅ Successfully split "${canvasAssignment.name}" into ${parsingResult.subAssignments.length} manageable 30-minute tasks`);
+                } else {
+                  // Original single assignment creation for assignments that don't need splitting
+                  await storage.createAssignment({
+                    userId: userId,
+                    title: title,
+                    subject: canvasAssignment.courseName || 'Unknown Course 2',
+                    courseName: canvasAssignment.courseName || 'Unknown Course 2',
+                    instructions: canvasAssignment.description || 'Assignment from Apologia',
+                    dueDate: dueDate,
+                    scheduledDate: smartScheduledDate,
+                    actualEstimatedMinutes: 60,
+                    completionStatus: completionStatus,
+                    priority: 'B',
+                    difficulty: 'medium',
+                    blockType: intelligence.blockType,
+                    isAssignmentBlock: intelligence.isSchedulable,
+                    canvasId: canvasAssignment.id,
+                    canvasInstance: 2,
+                    isCanvasImport: true,
+                    creationSource: 'canvas_sync',
+                    
+                    // Enhanced Canvas metadata for instance 2
+                    canvasCategory: intelligence.canvasCategory,
+                    submissionTypes: intelligence.submissionContext.submissionTypes,
+                    pointsValue: intelligence.submissionContext.pointsValue,
+                    availableFrom: intelligence.availabilityWindow.availableFrom,
+                    availableUntil: intelligence.availabilityWindow.availableUntil,
+                    isRecurring: intelligence.isRecurring,
+                    academicYear: canvasAssignment.academic_year,
+                    confidenceScore: intelligence.confidence.toString(),
+                    
+                    // Direct Canvas URL for Apologia (assignments format)
+                    canvasUrl: canvasAssignment.id 
+                      ? `${process.env.CANVAS_BASE_URL_2}courses/541/assignments/${canvasAssignment.id}`
+                      : null
+                  });
+                  totalImported++;
+                }
               } else {
                 // DISABLED: Auto-completion update logic to prevent false completions
                 // Canvas graded_submissions_exist can be true if ANY student has graded work,

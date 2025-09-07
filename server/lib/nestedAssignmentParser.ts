@@ -105,7 +105,7 @@ function parseReadingRanges(text: string, studentName: string): ParsedSubAssignm
   ];
 
   for (const pattern of rangePatterns) {
-    const matches = [...text.matchAll(pattern)];
+    const matches = Array.from(text.matchAll(pattern));
     for (const match of matches) {
       const start = parseInt(match[1]);
       const end = parseInt(match[2]) || start;
@@ -163,7 +163,7 @@ function parseActivities(text: string, fullInstructions: string): ParsedSubAssig
 
   // Look for other distinct activities
   for (const pattern of activityPatterns) {
-    const matches = [...fullInstructions.matchAll(pattern)];
+    const matches = Array.from(fullInstructions.matchAll(pattern));
     for (const match of matches) {
       if (!activities.some(a => a.title.includes('Map & Chart'))) {
         activities.push({
