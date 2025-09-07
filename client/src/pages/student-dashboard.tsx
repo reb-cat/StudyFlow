@@ -99,16 +99,41 @@ export default function StudentDashboard() {
   
   // Initialize selectedDate from URL parameter if present, otherwise use today
   const [selectedDate, setSelectedDate] = useState(() => {
-    const urlParams = new URLSearchParams(search);
-    const dateParam = urlParams.get('date');
+    // Try multiple ways to get the date parameter for production compatibility
+    let dateParam: string | null = null;
+    
+    try {
+      // Method 1: Use wouter's search
+      const urlParams = new URLSearchParams(search);
+      dateParam = urlParams.get('date');
+      
+      // Method 2: Fallback to window.location for production
+      if (!dateParam && typeof window !== 'undefined') {
+        const windowParams = new URLSearchParams(window.location.search);
+        dateParam = windowParams.get('date');
+      }
+      
+      // Method 3: Parse from hash if using hash routing
+      if (!dateParam && typeof window !== 'undefined' && window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+        dateParam = hashParams.get('date');
+      }
+    } catch (error) {
+      console.warn('URL parameter parsing failed:', error);
+    }
+    
+    console.log('🔍 URL Date Parsing:', { search, dateParam, windowSearch: typeof window !== 'undefined' ? window.location.search : 'N/A' });
     
     // Validate date parameter format (YYYY-MM-DD)
     if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      console.log('✅ Using URL date parameter:', dateParam);
       return dateParam;
     }
     
     // Fallback to today using timezone-safe function
-    return toNYDateString();
+    const fallbackDate = toNYDateString();
+    console.log('📅 Falling back to today:', fallbackDate);
+    return fallbackDate;
   });
   
   const queryClient = useQueryClient();
@@ -121,11 +146,27 @@ export default function StudentDashboard() {
 
   // Sync selectedDate with URL changes (for direct navigation/bookmarks)
   useEffect(() => {
-    const urlParams = new URLSearchParams(search);
-    const dateParam = urlParams.get('date');
+    let dateParam: string | null = null;
+    
+    try {
+      // Try multiple methods to get URL parameter
+      const urlParams = new URLSearchParams(search);
+      dateParam = urlParams.get('date');
+      
+      // Production fallback: check window.location directly
+      if (!dateParam && typeof window !== 'undefined') {
+        const windowParams = new URLSearchParams(window.location.search);
+        dateParam = windowParams.get('date');
+      }
+    } catch (error) {
+      console.warn('URL sync failed:', error);
+    }
+    
+    console.log('🔄 URL Sync Check:', { search, dateParam, currentSelectedDate: selectedDate });
     
     // If URL has valid date parameter different from current state, update state
     if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && dateParam !== selectedDate) {
+      console.log('🔄 Updating selectedDate from URL:', dateParam);
       setSelectedDate(dateParam);
     }
   }, [search, selectedDate]);
