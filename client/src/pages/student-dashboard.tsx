@@ -47,7 +47,7 @@ import {
   CalendarClock, 
   School
 } from 'lucide-react';
-import { Link, useParams } from 'wouter';
+import { Link, useParams, useSearch, useLocation } from 'wouter';
 import { GuidedDayView } from '@/components/GuidedDayView';
 import { AssignmentCard } from '@/components/AssignmentCard';
 import { FixedBlock } from '@/components/FixedBlock';
@@ -90,18 +90,51 @@ export const iconFor = (kind: BlockKind, label?: string) => {
 
 export default function StudentDashboard() {
   const params = useParams<{ student: string }>();
+  const search = useSearch();
+  const [location, setLocation] = useLocation();
+  
   // Capitalize student name for consistency, default to Abigail if no student provided
   const studentName = params.student ? params.student.charAt(0).toUpperCase() + params.student.slice(1) : "Abigail";
   const [isGuidedMode, setIsGuidedMode] = useState(false);
+  
+  // Initialize selectedDate from URL parameter if present, otherwise use today
   const [selectedDate, setSelectedDate] = useState(() => {
-    // Initialize to today using timezone-safe function
+    const urlParams = new URLSearchParams(search);
+    const dateParam = urlParams.get('date');
+    
+    // Validate date parameter format (YYYY-MM-DD)
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      return dateParam;
+    }
+    
+    // Fallback to today using timezone-safe function
     return toNYDateString();
   });
+  
   const queryClient = useQueryClient();
+
+  // Update URL when date changes
+  const updateDateInUrl = (newDate: string) => {
+    const currentPath = location.split('?')[0]; // Get path without query params
+    setLocation(`${currentPath}?date=${newDate}`);
+  };
+
+  // Sync selectedDate with URL changes (for direct navigation/bookmarks)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(search);
+    const dateParam = urlParams.get('date');
+    
+    // If URL has valid date parameter different from current state, update state
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && dateParam !== selectedDate) {
+      setSelectedDate(dateParam);
+    }
+  }, [search, selectedDate]);
 
   const handleHomeClick = () => {
     // Reset to today and overview mode
-    setSelectedDate(toNYDateString());
+    const today = toNYDateString();
+    setSelectedDate(today);
+    updateDateInUrl(today);
     setIsGuidedMode(false);
   };
 
@@ -289,17 +322,23 @@ export default function StudentDashboard() {
   const isThursday = selectedDateObj.getDay() === 4;
   const weekdayName = dayName;
 
-  // Date navigation functions
+  // Date navigation functions - Now update URL when date changes
   const goToPreviousDay = () => {
-    setSelectedDate(addDays(selectedDate, -1));
+    const newDate = addDays(selectedDate, -1);
+    setSelectedDate(newDate);
+    updateDateInUrl(newDate);
   };
 
   const goToNextDay = () => {
-    setSelectedDate(addDays(selectedDate, 1));
+    const newDate = addDays(selectedDate, 1);
+    setSelectedDate(newDate);
+    updateDateInUrl(newDate);
   };
 
   const goToToday = () => {
-    setSelectedDate(getTodayString());
+    const today = getTodayString();
+    setSelectedDate(today);
+    updateDateInUrl(today);
   };
 
   // Use real schedule template data from database (fix field mapping)
