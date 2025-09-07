@@ -177,13 +177,19 @@ export default function StudentDashboard() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // State to track schedule initialization
+  const [isInitialized, setIsInitialized] = useState(false);
+
   // Initialize daily schedule for today
   useEffect(() => {
     const initializeSchedule = async () => {
+      setIsInitialized(false);
       try {
         await apiRequest('POST', `/api/schedule/${studentName}/${selectedDate}/initialize`);
+        setIsInitialized(true);
       } catch (error) {
         console.error('Failed to initialize schedule:', error);
+        setIsInitialized(true); // Still allow fetching even if init fails
       }
     };
     
@@ -191,6 +197,7 @@ export default function StudentDashboard() {
   }, [studentName, selectedDate]);
 
   // Fetch daily schedule status for both Overview and Guided Mode synchronization
+  // Wait for initialization to complete to prevent race conditions
   const { data: dailyScheduleStatus = [], isLoading: isStatusLoading } = useQuery<Array<DailyScheduleStatus & { template: ScheduleTemplate }>>({
     queryKey: ['/api/schedule', studentName, selectedDate, 'status'],
     queryFn: async () => {
@@ -198,6 +205,7 @@ export default function StudentDashboard() {
       if (!response.ok) throw new Error('Failed to fetch daily schedule status');
       return response.json();
     },
+    enabled: isInitialized, // Only fetch after initialization completes
     staleTime: 1000 * 30, // 30 seconds for real-time updates
     // Always fetch to maintain synchronization between modes
   });
