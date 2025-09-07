@@ -192,6 +192,7 @@ export default function StudentDashboard() {
   });
 
   // Fetch assignments for today (includes both due soon AND scheduled for today)
+  // Wait for initialization to complete to prevent race conditions
   const { data: assignments = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/assignments', selectedDate, studentName],
     queryFn: async () => {
@@ -209,6 +210,7 @@ export default function StudentDashboard() {
       if (!response.ok) throw new Error('Failed to fetch assignments');
       return response.json();
     },
+    enabled: isInitialized, // Only fetch assignments after initialization completes
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
