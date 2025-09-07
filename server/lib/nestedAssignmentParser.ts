@@ -41,12 +41,23 @@ export function parseNestedAssignments(
     };
   }
 
+  // Skip parsing for cohesive assignments that should stay together
+  if (isCohesiveAssignment(fullText)) {
+    return {
+      shouldSplit: false,
+      subAssignments: [],
+      originalTitle: title,
+      parsingConfidence: 0.85
+    };
+  }
+
   const subAssignments: ParsedSubAssignment[] = [];
   let confidence = 0.5;
 
   // Parse reading ranges (e.g., "Read Lessons 6-9", "Chapters 1-3")
+  // But be more conservative - only split if it's clearly a range of separate lessons
   const readingTasks = parseReadingRanges(fullText, studentName);
-  if (readingTasks.length > 0) {
+  if (readingTasks.length > 1) { // Changed from > 0 to > 1 to be more conservative
     subAssignments.push(...readingTasks);
     confidence = 0.85;
   }
@@ -58,8 +69,14 @@ export function parseNestedAssignments(
     confidence = Math.max(confidence, 0.8);
   }
 
-  // Only split if we found multiple meaningful sub-components
-  const shouldSplit = subAssignments.length >= 2;
+  // Be much more conservative about splitting - require strong evidence
+  // Must have multiple reading tasks OR multiple distinct activities
+  // AND the total count must be significant (3+ components)
+  const hasMultipleReadingTasks = readingTasks.length > 1;
+  const hasMultipleActivities = activityTasks.length > 1;
+  const totalComponents = subAssignments.length;
+  
+  const shouldSplit = (hasMultipleReadingTasks || hasMultipleActivities) && totalComponents >= 3;
 
   return {
     shouldSplit,
@@ -88,21 +105,60 @@ function isSimpleAssignment(text: string): boolean {
 }
 
 /**
+ * Detects cohesive assignments that should stay together despite having multiple components
+ */
+function isCohesiveAssignment(text: string): boolean {
+  const cohesivePatterns = [
+    // Reading + questions is one cohesive task
+    /read.*(?:chapter|ch|page).*(?:and|&).*(?:answer|complete).*question/i,
+    /(?:answer|complete).*question.*(?:and|&).*read.*(?:chapter|ch|page)/i,
+    
+    // Worksheet + discussion is cohesive
+    /complete.*worksheet.*(?:and|&).*(?:discussion|post)/i,
+    /(?:discussion|post).*(?:and|&).*complete.*worksheet/i,
+    
+    // Watch + answer is cohesive
+    /watch.*video.*(?:and|&).*(?:answer|complete)/i,
+    /(?:answer|complete).*(?:and|&).*watch.*video/i,
+    
+    // Single chapter/lesson with questions is cohesive
+    /(?:read|study).*(?:chapter|lesson|ch)\s+\d+.*(?:answer|complete|do).*question/i,
+    
+    // Map and chart activities are cohesive
+    /(?:complete|label|color).*(?:map|chart).*(?:and|&).*(?:complete|label|color).*(?:map|chart)/i,
+    
+    // Single assignment with numbered items (1-5 questions, etc.)
+    /answer.*(?:questions?\s+)?(?:\d+[-–—]\d+|\d+\s*[,-]\s*\d+)/i,
+    
+    // Essay with research is cohesive
+    /write.*essay.*(?:and|&).*(?:research|find|cite)/i,
+    
+    // Lab report components are cohesive
+    /(?:complete|do).*lab.*(?:and|&).*(?:write|submit).*report/i,
+  ];
+
+  return cohesivePatterns.some(pattern => pattern.test(text));
+}
+
+/**
  * Parses reading ranges like "Lessons 6-9" into individual reading tasks
  */
 function parseReadingRanges(text: string, studentName: string): ParsedSubAssignment[] {
   const subAssignments: ParsedSubAssignment[] = [];
   
   // Match patterns like:
-  // "Read Lessons 6-9"
+  // "Read Lessons 6-9" (but not "read lesson 6 and answer questions")
   // "Chapters 1-3" 
-  // "Pages 45-67"
+  // "Pages 45-67" (large page ranges only)
   // "Lessons 6, 7, 8, and 9"
   const rangePatterns = [
-    /read\s+(?:lessons?|chapters?|pages?|units?)\s+(\d+)[-–—](\d+)/gi,
-    /(?:lessons?|chapters?|pages?|units?)\s+(\d+)[-–—](\d+)/gi,
+    /read\s+(?:lessons?|chapters?|units?)\s+(\d+)[-–—](\d+)/gi,
+    /(?:lessons?|chapters?|units?)\s+(\d+)[-–—](\d+)/gi,
     /(?:lessons?|chapters?)\s+(\d+)(?:,?\s*(?:and\s+)?(\d+))+/gi
   ];
+
+  // Don't split page ranges unless they're very large (20+ pages)
+  const pageRangePattern = /pages?\s+(\d+)[-–—](\d+)/gi;
 
   for (const pattern of rangePatterns) {
     const matches = Array.from(text.matchAll(pattern));
@@ -110,7 +166,12 @@ function parseReadingRanges(text: string, studentName: string): ParsedSubAssignm
       const start = parseInt(match[1]);
       const end = parseInt(match[2]) || start;
       
-      // Create individual lesson tasks
+      // Only split if it's a meaningful range (3+ lessons/chapters)
+      if (end - start + 1 < 3) {
+        continue; // Skip small ranges
+      }
+      
+      // Create individual lesson tasks only for clear multi-lesson assignments
       for (let lessonNum = start; lessonNum <= end; lessonNum++) {
         const lessonTitle = `Read Lesson ${lessonNum} + Answer Questions`;
         const estimatedMinutes = calculateReadingTime(studentName);
@@ -128,6 +189,33 @@ function parseReadingRanges(text: string, studentName: string): ParsedSubAssignm
     }
   }
 
+  // Handle large page ranges (20+ pages) separately
+  const pageMatches = Array.from(text.matchAll(pageRangePattern));
+  for (const match of pageMatches) {
+    const start = parseInt(match[1]);
+    const end = parseInt(match[2]);
+    const pageCount = end - start + 1;
+    
+    // Only split very large page ranges (20+ pages)
+    if (pageCount >= 20) {
+      const chunksNeeded = Math.ceil(pageCount / 15); // 15 pages per chunk
+      for (let chunk = 0; chunk < chunksNeeded; chunk++) {
+        const chunkStart = start + (chunk * 15);
+        const chunkEnd = Math.min(start + ((chunk + 1) * 15) - 1, end);
+        
+        subAssignments.push({
+          title: `Read Pages ${chunkStart}-${chunkEnd}`,
+          description: `Read pages ${chunkStart} through ${chunkEnd}`,
+          estimatedMinutes: calculateReadingTime(studentName),
+          priority: 'B',
+          difficulty: 'medium',
+          type: 'reading',
+          lessonNumber: chunk + 1
+        });
+      }
+    }
+  }
+
   return subAssignments;
 }
 
@@ -137,46 +225,40 @@ function parseReadingRanges(text: string, studentName: string): ParsedSubAssignm
 function parseActivities(text: string, fullInstructions: string): ParsedSubAssignment[] {
   const activities: ParsedSubAssignment[] = [];
   
-  // Look for numbered activities or bullet points
-  const activityPatterns = [
-    // Maps, charts, and similar activities that go together
-    /(?:label|complete|color).*?(?:map|chart).*?(?:label|complete|color).*?(?:map|chart)/gi,
-    // Standalone activities
-    /answer.*?question/gi,
-    /complete.*?worksheet/gi,
-    /write.*?essay/gi,
-    /create.*?presentation/gi,
-    /draw.*?diagram/gi
+  // Be much more conservative - only look for clearly separate activities
+  // Don't split activities that are naturally cohesive
+  
+  // Only split if we find multiple distinct project-level activities
+  const majorActivityPatterns = [
+    // Large projects that are clearly separate
+    /create.*presentation.*(?:and|&).*write.*essay/gi,
+    /write.*essay.*(?:and|&).*create.*presentation/gi,
+    /complete.*project.*(?:and|&).*(?:write|create|design)/gi,
   ];
 
-  // Check for combined map + chart activity (classic history pattern)
-  if (/map.*chart|chart.*map/i.test(fullInstructions)) {
-    activities.push({
-      title: 'Complete Map & Chart Activity',
-      description: 'Label colonies on map and complete reference chart',
-      estimatedMinutes: 30,
-      priority: 'B',
-      difficulty: 'medium',
-      type: 'activity'
-    });
-  }
-
-  // Look for other distinct activities
-  for (const pattern of activityPatterns) {
+  // Check for major separate activities only
+  for (const pattern of majorActivityPatterns) {
     const matches = Array.from(fullInstructions.matchAll(pattern));
     for (const match of matches) {
-      if (!activities.some(a => a.title.includes('Map & Chart'))) {
-        activities.push({
-          title: capitalizeFirst(match[0]),
-          description: match[0],
-          estimatedMinutes: 30,
-          priority: 'B',
-          difficulty: 'medium',
-          type: 'activity'
-        });
+      // Split major combined activities
+      const parts = match[0].split(/(?:and|&)/);
+      for (const part of parts) {
+        if (part.trim().length > 5) {
+          activities.push({
+            title: capitalizeFirst(part.trim()),
+            description: part.trim(),
+            estimatedMinutes: 45, // Longer for major activities
+            priority: 'B',
+            difficulty: 'medium',
+            type: 'activity'
+          });
+        }
       }
     }
   }
+
+  // Don't split map+chart, reading+questions, or other cohesive activities
+  // These should be handled as single assignments
 
   return activities;
 }
