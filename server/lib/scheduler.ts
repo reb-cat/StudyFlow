@@ -143,9 +143,9 @@ class JobScheduler {
               // Log the real Canvas assignment being processed
               console.log(`📝 Real Canvas Assignment Found: "${canvasAssignment.name}" for ${studentName}`);
               
-              // Check if assignment already exists to avoid duplicates
+              // Check if assignment already exists to avoid duplicates - use Canvas ID for proper duplicate detection
               const alreadyExists = existingAssignments.some(
-                assignment => assignment.title === canvasAssignment.name
+                assignment => assignment.canvasId === canvasAssignment.id && assignment.isCanvasImport
               );
               
               if (!alreadyExists) {
