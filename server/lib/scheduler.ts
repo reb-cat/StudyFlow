@@ -347,7 +347,7 @@ class JobScheduler {
               
               const existingAssignments = await storage.getAssignments(userId);
               const alreadyExists = existingAssignments.some(
-                assignment => assignment.title === canvasAssignment.name
+                assignment => assignment.canvasId === canvasAssignment.id && assignment.isCanvasImport
               );
               
               if (!alreadyExists) {
