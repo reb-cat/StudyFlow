@@ -363,13 +363,13 @@ export default function StudentDashboard() {
   const populatedAssignmentBlocks = (() => {
     // CRITICAL: Only use assignments EXPLICITLY SCHEDULED by the backend for today
     // Do NOT use unscheduled assignments - they may be blocked for sequence violations
-    const todaysAssignments = assignments.filter(a => 
+    const todaysAssignments = assignments.filter((a: Assignment) => 
       a.scheduledDate === selectedDate && a.scheduledBlock !== null
     );
     
     console.info(`🔍 FRONTEND DEBUG: selectedDate=${selectedDate}`);
     console.info(`🔍 FRONTEND DEBUG: Total assignments=${assignments.length}, Today's assignments=${todaysAssignments.length}`);
-    console.info(`🔍 FRONTEND DEBUG: Today's assignments:`, todaysAssignments.map(a => ({
+    console.info(`🔍 FRONTEND DEBUG: Today's assignments:`, todaysAssignments.map((a: Assignment) => ({
       title: a.title, 
       scheduledDate: a.scheduledDate, 
       scheduledBlock: a.scheduledBlock,
@@ -499,7 +499,13 @@ export default function StudentDashboard() {
   }
 
   // SMART WEEKEND CHECK: Respect Saturday scheduling setting
-  const studentSettings = saturdaySettings.find(s => s.studentName.toLowerCase() === studentName.toLowerCase());
+  interface StudentProfile {
+    id: string;
+    studentName: string;
+    displayName: string;
+    allowSaturdayScheduling: boolean;
+  }
+  const studentSettings = saturdaySettings.find((s: StudentProfile) => s.studentName.toLowerCase() === studentName.toLowerCase());
   const allowSaturdayScheduling = studentSettings?.allowSaturdayScheduling || false;
   
   // Only show weekend message if:
