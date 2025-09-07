@@ -235,7 +235,7 @@ class JobScheduler {
                 const { parseNestedAssignments, createSubAssignmentRecords } = await import('./nestedAssignmentParser.js');
                 const parsingResult = parseNestedAssignments(
                   canvasAssignment.name,
-                  canvasAssignment.description,
+                  canvasAssignment.description || null,
                   studentName.toLowerCase()
                 );
 
@@ -493,7 +493,7 @@ class JobScheduler {
                 const { parseNestedAssignments } = await import('./nestedAssignmentParser.js');
                 const parsingResult = parseNestedAssignments(
                   canvasAssignment.name,
-                  canvasAssignment.description,
+                  canvasAssignment.description || null,
                   studentName.toLowerCase()
                 );
 
