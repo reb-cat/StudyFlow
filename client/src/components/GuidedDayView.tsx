@@ -503,7 +503,7 @@ export function GuidedDayView({
 
     todayAssignments.forEach(assignment => {
       const subject = assignment.courseName || assignment.subject;
-      const matches = matchesTodaysCoopClass(subject);
+      const matches = subject ? matchesTodaysCoopClass(subject) : false;
       
       if (process.env.NODE_ENV === 'development') {
         console.log(`🔍 Assignment "${assignment.title}": subject="${subject}", matches=${matches}`);
