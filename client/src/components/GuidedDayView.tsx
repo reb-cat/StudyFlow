@@ -768,8 +768,13 @@ export function GuidedDayView({
   // Reset timer when block changes
   useEffect(() => {
     if (currentBlock) {
-      setTimeRemaining((currentBlock.estimatedMinutes || 20) * 60);
+      const actualMinutes = currentBlock.estimatedMinutes || (currentBlock.type === 'assignment' ? 30 : 20);
+      setTimeRemaining(actualMinutes * 60);
       setIsTimerRunning(true); // Auto-start for new block
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔄 BLOCK CHANGE: Setting timer to ${actualMinutes} minutes for "${currentBlock.title}"`);
+      }
     }
   }, [currentIndex]);
 
@@ -1340,19 +1345,28 @@ export function GuidedDayView({
         {/* Timer - Hidden for Co-op class blocks */}
         {!(currentBlock.type === 'fixed' && currentBlock.title?.includes('Co-op')) && (
           <div style={{ marginBottom: '32px' }}>
-            <CircularTimer
-              durationMinutes={currentBlock.estimatedMinutes || 20}
-              isRunning={isTimerRunning}
-              onComplete={handleBlockComplete}
-              onToggle={() => setIsTimerRunning(!isTimerRunning)}
-              onReset={() => {
-                setIsTimerRunning(false);
-                setTimeRemaining((currentBlock.estimatedMinutes || 20) * 60);
-              }}
-              hideControls={true}
-              externalTimeRemaining={timeRemaining}
-              onTimeUpdate={setTimeRemaining}
-            />
+            {(() => {
+              // DEBUG: Check what estimatedMinutes we're getting
+              const actualMinutes = currentBlock.estimatedMinutes || (currentBlock.type === 'assignment' ? 30 : 20);
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`🔧 TIMER DEBUG: Block "${currentBlock.title}", type="${currentBlock.type}", estimatedMinutes=${currentBlock.estimatedMinutes}, actualMinutes=${actualMinutes}`);
+              }
+              return (
+                <CircularTimer
+                  durationMinutes={actualMinutes}
+                  isRunning={isTimerRunning}
+                  onComplete={handleBlockComplete}
+                  onToggle={() => setIsTimerRunning(!isTimerRunning)}
+                  onReset={() => {
+                    setIsTimerRunning(false);
+                    setTimeRemaining(actualMinutes * 60);
+                  }}
+                  hideControls={true}
+                  externalTimeRemaining={timeRemaining}
+                  onTimeUpdate={setTimeRemaining}
+                />
+              );
+            })()}
           </div>
         )}
 
