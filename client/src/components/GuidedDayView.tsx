@@ -1368,6 +1368,8 @@ export function GuidedDayView({
               
               if (process.env.NODE_ENV === 'development') {
                 console.log(`⏰ TIMER: Block "${currentBlock.title}" (${currentBlock.startTime}-${currentBlock.endTime}) = ${blockDurationMinutes} minutes`);
+                console.log(`🔧 DEBUG: startTime="${currentBlock.startTime}", endTime="${currentBlock.endTime}"`);
+                console.log(`🔧 DEBUG: Calculation: ${currentBlock.startTime} to ${currentBlock.endTime} = ${blockDurationMinutes} minutes`);
               }
               
               return (
@@ -1567,7 +1569,15 @@ export function GuidedDayView({
               Great work! 🎉
             </h3>
             {(() => {
-              const totalMinutes = currentBlock.estimatedMinutes || 20;
+              // FIXED: Use actual block duration, not estimatedMinutes
+              const getBlockDurationMinutes = (startTime: string, endTime: string): number => {
+                const [startHour, startMin] = startTime.split(':').map(Number);
+                const [endHour, endMin] = endTime.split(':').map(Number);
+                const startMinutes = startHour * 60 + startMin;
+                const endMinutes = endHour * 60 + endMin;
+                return Math.max(1, endMinutes - startMinutes);
+              };
+              const totalMinutes = getBlockDurationMinutes(currentBlock.startTime, currentBlock.endTime);
               const timeSpentMinutes = Math.max(1, totalMinutes - Math.floor((timeRemaining || 0) / 60));
               const extraMinutes = Math.max(0, totalMinutes - timeSpentMinutes);
               
