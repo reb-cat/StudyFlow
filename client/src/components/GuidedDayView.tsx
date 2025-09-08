@@ -178,7 +178,7 @@ const CircularTimer = ({
     }
     
     return () => clearInterval(interval);
-  }, [isRunning, timeRemaining, onComplete, onTimeUpdate]);
+  }, [isRunning, onComplete, onTimeUpdate]); // FIXED: Removed timeRemaining from dependencies
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -1292,7 +1292,7 @@ export function GuidedDayView({
             <CircularTimer
               durationMinutes={currentBlock.estimatedMinutes || 20}
               isRunning={isTimerRunning}
-              onComplete={() => setIsTimerRunning(false)}
+              onComplete={handleBlockComplete}
               onToggle={() => setIsTimerRunning(!isTimerRunning)}
               onReset={() => {
                 setIsTimerRunning(false);
