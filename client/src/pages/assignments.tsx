@@ -465,7 +465,13 @@ export default function AssignmentsPage() {
 
   const handleCreateManualAssignment = () => {
     // Send studentName instead of userId - backend handles the mapping
-    createAssignmentMutation.mutate({ ...manualAssignment, studentName: selectedStudent });
+    // Convert empty date string to null for proper validation
+    const assignmentData = {
+      ...manualAssignment,
+      dueDate: manualAssignment.dueDate === '' ? null : manualAssignment.dueDate,
+      studentName: selectedStudent
+    };
+    createAssignmentMutation.mutate(assignmentData);
   };
 
   const handleEditAssignment = (assignment: Assignment) => {
