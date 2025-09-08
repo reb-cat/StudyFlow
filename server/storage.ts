@@ -761,8 +761,8 @@ export class DatabaseStorage implements IStorage {
       // Get block numbers that are marked as complete
       const completedBlockNumbers = existingBlockStatuses
         .filter(status => status.status === 'complete')
-        .map(status => blockIdToNumber.get(status.templateBlockId))
-        .filter(num => num !== undefined) as number[];
+        .map(status => status.template.blockNumber)
+        .filter(num => num !== null) as number[];
         
       const uncompletedBlocks = allAvailableBlocks.filter(block => {
         if (completedBlockNumbers.includes(block.blockNumber || 0)) {
