@@ -3804,7 +3804,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
   app.post('/api/assignments/:parentId/create-sub-assignments', async (req, res) => {
     try {
       const { parentId } = req.params;
-      const { subAssignments } = req.body; // Array of { title, estimatedMinutes, order }
+      const { subAssignments } = req.body; // Array of { title, instructions, estimatedMinutes, order }
       
       // Get parent assignment
       const parentAssignment = await storage.getAssignment(parentId);
@@ -3822,7 +3822,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
           title: subAssignment.title,
           subject: parentAssignment.subject,
           courseName: parentAssignment.courseName,
-          instructions: `Part ${subAssignment.order} of: ${parentAssignment.title}`,
+          instructions: (subAssignment.instructions && subAssignment.instructions.trim()) ? subAssignment.instructions : `Part ${subAssignment.order} of: ${parentAssignment.title}`,
           dueDate: parentAssignment.dueDate,
           actualEstimatedMinutes: subAssignment.estimatedMinutes || 30,
           priority: parentAssignment.priority,

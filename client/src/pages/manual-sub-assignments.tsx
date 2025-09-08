@@ -4,6 +4,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,7 @@ interface Assignment {
 
 interface SubAssignment {
   title: string;
+  instructions: string;
   estimatedMinutes: number;
   order: number;
 }
@@ -116,6 +118,7 @@ export default function ManualSubAssignments() {
     const newOrder = subAssignments.length + 1;
     setSubAssignments([...subAssignments, {
       title: `Lesson ${newOrder}`,
+      instructions: '',
       estimatedMinutes: 30,
       order: newOrder
     }]);
@@ -233,7 +236,7 @@ export default function ManualSubAssignments() {
               <div className="space-y-4">
                 {subAssignments.map((subAssignment, index) => (
                   <div key={index} className="border rounded-lg p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div>
                         <Label htmlFor={`title-${index}`}>Title</Label>
                         <Input
@@ -266,7 +269,21 @@ export default function ManualSubAssignments() {
                         </Button>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="mt-2">Order: {subAssignment.order}</Badge>
+                    
+                    {/* Instructions field - full width */}
+                    <div className="mb-3">
+                      <Label htmlFor={`instructions-${index}`}>Instructions (what exactly should the student do?)</Label>
+                      <Textarea
+                        id={`instructions-${index}`}
+                        value={subAssignment.instructions}
+                        onChange={(e) => updateSubAssignment(index, 'instructions', e.target.value)}
+                        placeholder="e.g., Read pages 15-20 in your textbook, then answer questions 1-5 on the worksheet. Focus on identifying key historical events and their causes."
+                        rows={3}
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    <Badge variant="secondary">Order: {subAssignment.order}</Badge>
                   </div>
                 ))}
 
