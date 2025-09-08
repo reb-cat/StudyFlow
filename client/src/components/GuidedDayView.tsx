@@ -203,9 +203,9 @@ const CircularTimer = ({
         const remainingMs = Math.max(0, endTime - now);
         const remainingSeconds = Math.ceil(remainingMs / 1000);
         
-        // Only log every 10 seconds to avoid spam
-        if (process.env.NODE_ENV === 'development' && remainingSeconds % 10 === 0) {
-          console.log(`🔧 CIRCULAR TIMER: Countdown tick - remainingSeconds=${remainingSeconds}`);
+        // DEBUG: Log every second temporarily to see if timer is working
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🔧 CIRCULAR TIMER: Tick - now=${now}, endTime=${endTime}, remainingMs=${remainingMs}, remainingSeconds=${remainingSeconds}`);
         }
         
         if (remainingSeconds <= 0) {
