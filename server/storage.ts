@@ -1485,20 +1485,15 @@ export class DatabaseStorage implements IStorage {
                       status.studentName === 'khalil' ? 'khalil-user' : 
                       status.studentName + '-user';
         
-        // Calculate today's assignment progress
+        // Calculate today's assignment progress - ONLY assignments actually scheduled for today
+        // This should match what's shown in the guided day view
         const todayAssignments = await db
           .select()
           .from(assignments)
           .where(
             and(
               eq(assignments.userId, userId),
-              or(
-                eq(assignments.scheduledDate, today),
-                and(
-                  isNull(assignments.scheduledDate),
-                  lte(assignments.dueDate, new Date())
-                )
-              )
+              eq(assignments.scheduledDate, today) // ONLY scheduled for today, not random overdue assignments
             )
           );
         
