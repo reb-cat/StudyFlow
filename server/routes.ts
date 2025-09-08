@@ -665,9 +665,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📝 Assignment data after extracting studentName:', JSON.stringify(assignmentData, null, 2));
       
       // Convert dueDate string to Date object if present (HTTP serializes Date objects to strings)
-      if (assignmentData.dueDate && typeof assignmentData.dueDate === 'string') {
-        assignmentData.dueDate = new Date(assignmentData.dueDate);
-        console.log('📅 Converted dueDate string to Date object:', assignmentData.dueDate);
+      if (assignmentData.dueDate) {
+        console.log('🔍 dueDate received type:', typeof assignmentData.dueDate, 'value:', assignmentData.dueDate);
+        if (typeof assignmentData.dueDate === 'string') {
+          const convertedDate = new Date(assignmentData.dueDate);
+          console.log('📅 Converting string to Date:', assignmentData.dueDate, '→', convertedDate);
+          assignmentData.dueDate = convertedDate;
+        }
       }
       
       // Validate the assignment data
