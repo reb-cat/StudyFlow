@@ -739,8 +739,12 @@ export class DatabaseStorage implements IStorage {
       
       // CRITICAL DATA INTEGRITY FIX: Filter out blocks that are already marked as complete
       // This prevents completed assignments from being replaced with different assignments
+      console.log(`🔍 BLOCK INTEGRITY: Getting existing block statuses for ${studentName} on ${targetDate}`);
       const existingBlockStatuses = await this.getDailyScheduleStatus(studentName, targetDate);
+      console.log(`🔍 BLOCK INTEGRITY: Found ${existingBlockStatuses.length} existing block statuses`);
+      
       const existingScheduledAssignments = await this.getAssignmentsByStudentAndDate(studentName, targetDate);
+      console.log(`🔍 BLOCK INTEGRITY: Found ${existingScheduledAssignments.length} existing scheduled assignments`);
       
       // Build a mapping of template block IDs to block numbers
       const blockIdToNumber = new Map<string, number>();
