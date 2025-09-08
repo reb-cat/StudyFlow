@@ -196,9 +196,13 @@ const CircularTimer = ({
     if (isRunning && startTime && endTime) {
       if (process.env.NODE_ENV === 'development') {
         console.log(`🔧 CIRCULAR TIMER: Setting up countdown interval. startTime=${startTime}, endTime=${endTime}`);
+        console.log(`🔧 CIRCULAR TIMER: About to create setInterval...`);
       }
       
       interval = setInterval(() => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🔧 CIRCULAR TIMER: INSIDE setInterval callback - this should fire every 100ms`);
+        }
         const now = Date.now();
         const remainingMs = Math.max(0, endTime - now);
         const remainingSeconds = Math.ceil(remainingMs / 1000);
@@ -228,6 +232,10 @@ const CircularTimer = ({
           }
         }
       }, 100); // Check every 100ms for accuracy
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔧 CIRCULAR TIMER: setInterval created successfully. interval=${interval}`);
+      }
     } else {
       if (process.env.NODE_ENV === 'development') {
         console.log(`🔧 CIRCULAR TIMER: NOT setting up countdown - isRunning=${isRunning}, startTime=${startTime}, endTime=${endTime}`);
