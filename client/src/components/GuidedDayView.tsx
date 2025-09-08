@@ -693,7 +693,7 @@ export function GuidedDayView({
     }
   }, [scheduleBlocks, dailyScheduleStatus, hasInitializedIndex]);
   const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(20 * 60);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [exitClickCount, setExitClickCount] = useState(0);
   const [showDoneDialog, setShowDoneDialog] = useState(false);
   const [showStuckDialog, setShowStuckDialog] = useState(false);
@@ -783,6 +783,11 @@ export function GuidedDayView({
       
       if (process.env.NODE_ENV === 'development') {
         console.log(`🔄 BLOCK CHANGE: Timer set to ${blockDurationMinutes} minutes (${currentBlock.startTime}-${currentBlock.endTime}) for "${currentBlock.title}"`);
+        console.log(`🔄 SETTING timeRemaining to: ${blockDurationMinutes * 60} seconds (${blockDurationMinutes} minutes)`);
+        // Add a timeout to check what the actual value is after state update
+        setTimeout(() => {
+          console.log(`🔄 VERIFICATION: timeRemaining is now: ${timeRemaining} seconds`);
+        }, 100);
       }
     }
   }, [currentIndex]);
