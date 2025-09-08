@@ -69,6 +69,11 @@ export const assignments = pgTable("assignments", {
   deletedAt: timestamp("deleted_at"), // When assignment was removed from Canvas  
   canvasGradeStatus: text("canvas_grade_status"), // Canvas grading status for completion sync
   
+  // Manual sub-assignment system - Executive function support
+  parentCanvasId: integer("parent_canvas_id"), // Links to Canvas assignment this was manually split from
+  isManualSubAssignment: boolean("is_manual_sub_assignment").default(false), // Manually created sub-task
+  subAssignmentOrder: integer("sub_assignment_order"), // Order within the parent (1, 2, 3...)
+  
   // Canvas grading notification system - Executive function support
   // TEMPORARY: Commented out until database migration completes
   // canvasGradingDetected: boolean("canvas_grading_detected").default(false), // Canvas shows graded but StudyFlow still pending

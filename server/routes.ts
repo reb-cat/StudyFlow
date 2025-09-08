@@ -3800,6 +3800,59 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
+  // Manual sub-assignment creation endpoint
+  app.post('/api/assignments/:parentId/create-sub-assignments', async (req, res) => {
+    try {
+      const { parentId } = req.params;
+      const { subAssignments } = req.body; // Array of { title, estimatedMinutes, order }
+      
+      // Get parent assignment
+      const parentAssignment = await storage.getAssignment(parentId);
+      if (!parentAssignment) {
+        return res.status(404).json({ message: 'Parent assignment not found' });
+      }
+      
+      // Validate that parent has Canvas ID (only Canvas assignments can be split)
+      if (!parentAssignment.canvasId) {
+        return res.status(400).json({ message: 'Only Canvas assignments can be manually split' });
+      }
+      
+      // Create sub-assignments
+      const createdSubAssignments = [];
+      for (const subAssignment of subAssignments) {
+        const newAssignment = {
+          userId: parentAssignment.userId,
+          title: subAssignment.title,
+          subject: parentAssignment.subject,
+          courseName: parentAssignment.courseName,
+          instructions: `Part ${subAssignment.order} of: ${parentAssignment.title}`,
+          dueDate: parentAssignment.dueDate,
+          actualEstimatedMinutes: subAssignment.estimatedMinutes || 30,
+          priority: parentAssignment.priority,
+          difficulty: parentAssignment.difficulty,
+          creationSource: 'manual' as const,
+          // For now, store in notes field until schema is updated
+          notes: `PARENT_CANVAS_ID:${parentAssignment.canvasId}|ORDER:${subAssignment.order}`,
+          isCanvasImport: false,
+          canvasId: null // Sub-assignments don't have their own Canvas ID
+        };
+        
+        const created = await storage.createAssignment(newAssignment);
+        createdSubAssignments.push(created);
+      }
+      
+      console.log(`✅ Created ${createdSubAssignments.length} sub-assignments for: ${parentAssignment.title}`);
+      res.json({ 
+        parentAssignment,
+        subAssignments: createdSubAssignments 
+      });
+      
+    } catch (error) {
+      console.error('Error creating sub-assignments:', error);
+      res.status(500).json({ message: 'Failed to create sub-assignments', error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // PHASE A FIX: API 404 handler - must be LAST API route to catch unmatched /api/* paths
   app.use('/api/*', (req: Request, res: Response) => {
     res.status(404).json({ 
