@@ -817,6 +817,11 @@ export function GuidedDayView({
       if (process.env.NODE_ENV === 'development') {
         console.log(`🔄 BLOCK CHANGE: Timer set to ${blockDurationMinutes} minutes (${currentBlock.startTime}-${currentBlock.endTime}) for "${currentBlock.title}"`);
         console.log(`🔄 SETTING timeRemaining to: ${blockDurationMinutes * 60} seconds (${blockDurationMinutes} minutes)`);
+        console.log(`🔄 SETTING isTimerRunning to: true`);
+        // Wait a moment then check the actual state
+        setTimeout(() => {
+          console.log(`🔄 VERIFICATION: isTimerRunning is now ${isTimerRunning}`);
+        }, 100);
       }
     }
   }, [currentIndex, currentBlock?.id, currentBlock?.startTime, currentBlock?.endTime]);
@@ -1414,6 +1419,7 @@ export function GuidedDayView({
                 console.log(`🔧 TIMER COMPONENT: durationMinutes passed to CircularTimer = ${blockDurationMinutes}`);
                 console.log(`🔧 TIMER COMPONENT: isTimerRunning = ${isTimerRunning}`);
                 console.log(`🔧 TIMER COMPONENT: Timer should be ${isTimerRunning ? 'COUNTING DOWN' : 'STOPPED'}`);
+                console.log(`🔧 TIMER COMPONENT: About to render CircularTimer with isRunning=${isTimerRunning}`);
               }
               
               return (
