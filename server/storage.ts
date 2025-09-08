@@ -737,7 +737,39 @@ export class DatabaseStorage implements IStorage {
           return (a.blockNumber || 0) - (b.blockNumber || 0);
         });
       
-      console.log(`📅 GENERIC SCHEDULING: Filling ${allAvailableBlocks.length} blocks on ${targetDate}`);
+      // CRITICAL DATA INTEGRITY FIX: Filter out blocks that are already marked as complete
+      // This prevents completed assignments from being replaced with different assignments
+      const existingBlockStatuses = await this.getDailyScheduleStatus(studentName, targetDate);
+      const existingScheduledAssignments = await this.getAssignmentsByStudentAndDate(studentName, targetDate);
+      
+      // Build a mapping of template block IDs to block numbers
+      const blockIdToNumber = new Map<string, number>();
+      for (const assignment of existingScheduledAssignments) {
+        if (assignment.scheduledBlock) {
+          // Find the template block ID that corresponds to this scheduled block number
+          const templateBlock = scheduleBlocks.find(block => block.blockNumber === assignment.scheduledBlock);
+          if (templateBlock) {
+            blockIdToNumber.set(templateBlock.id, assignment.scheduledBlock);
+          }
+        }
+      }
+      
+      // Get block numbers that are marked as complete
+      const completedBlockNumbers = existingBlockStatuses
+        .filter(status => status.status === 'complete')
+        .map(status => blockIdToNumber.get(status.templateBlockId))
+        .filter(num => num !== undefined) as number[];
+        
+      const uncompletedBlocks = allAvailableBlocks.filter(block => {
+        if (completedBlockNumbers.includes(block.blockNumber || 0)) {
+          console.log(`🔒 PRESERVING COMPLETED BLOCK: Block ${block.blockNumber} already marked as complete - not scheduling new assignments`);
+          return false;
+        }
+        return true;
+      });
+      
+      console.log(`🔍 BLOCK FILTERING: ${allAvailableBlocks.length} total blocks → ${uncompletedBlocks.length} available (${completedBlockNumbers.length} already complete)`);
+      console.log(`📅 GENERIC SCHEDULING: Filling ${uncompletedBlocks.length} available blocks on ${targetDate}`);
       
       // ENHANCED ASSIGNMENT PRIORITIZATION with urgency-based bumping
       const prioritizedAssignments = assignmentsToSchedule.sort((a, b) => {
@@ -787,7 +819,7 @@ export class DatabaseStorage implements IStorage {
       
       // Take assignments in the exact order they were prioritized and sorted
       const assignmentsToAssign = [...prioritizedAssignments];
-      const blocksToFill = [...allAvailableBlocks];
+      const blocksToFill = [...uncompletedBlocks];
       
       // DEBUG: Show the exact assignment order before block assignment
       console.log(`📋 ASSIGNMENT ORDER FOR BLOCKS:`);
