@@ -868,9 +868,25 @@ export function GuidedDayView({
   }, [stuckCountdown, stuckPendingKey, onAssignmentUpdate]);
 
   const handleBlockComplete = async () => {
-    if (!currentBlock) return;
+    console.log('🔴 DEBUG: handleBlockComplete called', { 
+      currentBlock: currentBlock?.id, 
+      type: currentBlock?.type, 
+      hasAssignment: !!currentBlock?.assignment,
+      assignmentId: currentBlock?.assignment?.id 
+    });
+    
+    if (!currentBlock) {
+      console.error('🔴 ERROR: currentBlock is null/undefined');
+      toast({
+        title: "Error",
+        description: "No current block found",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (currentBlock.type === 'assignment' && currentBlock.assignment) {
+      console.log('🔴 DEBUG: Showing Done dialog for assignment');
       // Show Done dialog for assignments
       setShowDoneDialog(true);
     } else if (currentBlock.type === 'bible' && bibleData?.dailyReading) {
@@ -918,8 +934,18 @@ export function GuidedDayView({
         return; // Don't advance if completion failed
       }
     } else {
+      console.log('🔴 DEBUG: Completing non-assignment block immediately');
       // Complete other blocks immediately
-      await completeBlock();
+      try {
+        await completeBlock();
+      } catch (error) {
+        console.error('🔴 ERROR: completeBlock failed:', error);
+        toast({
+          title: "Error",
+          description: `Block completion failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -1016,8 +1042,29 @@ export function GuidedDayView({
   };
 
   const handleNeedMoreTime = () => {
-    // Directly reschedule - no popup needed for better executive function UX
-    rescheduleAssignment('Need more time');
+    console.log('🔴 DEBUG: handleNeedMoreTime called', { currentBlock: currentBlock?.id, assignment: currentBlock?.assignment?.id });
+    
+    if (!currentBlock?.assignment && currentBlock?.type !== 'bible') {
+      console.error('🔴 ERROR: No assignment found for Need More Time');
+      toast({
+        title: "Error",
+        description: "No assignment found for Need More Time",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      // Directly reschedule - no popup needed for better executive function UX
+      rescheduleAssignment('Need more time');
+    } catch (error) {
+      console.error('🔴 ERROR: handleNeedMoreTime failed:', error);
+      toast({
+        title: "Error", 
+        description: `Need More Time failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
   };
 
   const rescheduleAssignment = async (reason: string, estimatedMinutesNeeded?: number) => {
@@ -1125,7 +1172,28 @@ export function GuidedDayView({
   };
 
   const handleStuck = () => {
-    setShowStuckDialog(true);
+    console.log('🔴 DEBUG: handleStuck called', { currentBlock: currentBlock?.id, assignment: currentBlock?.assignment?.id });
+    
+    if (!currentBlock?.assignment) {
+      console.error('🔴 ERROR: No assignment found for Stuck');
+      toast({
+        title: "Error",
+        description: "No assignment found for Stuck",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setShowStuckDialog(true);
+    } catch (error) {
+      console.error('🔴 ERROR: handleStuck failed:', error);
+      toast({
+        title: "Error",
+        description: `Stuck failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
   };
 
   const markAsStuck = async (reason: string, needsHelp: boolean) => {
