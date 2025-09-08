@@ -393,7 +393,7 @@ export default function StudentDashboard() {
   };
 
   // Use real schedule template data from database (fix field mapping)
-  const allScheduleBlocks = scheduleTemplate.map((block) => ({
+  const allScheduleBlocks = (scheduleTemplate || []).map((block) => ({
     id: block.id,
     title: block.subject,
     blockType: block.blockType?.toLowerCase() || 'unknown',
@@ -420,7 +420,7 @@ export default function StudentDashboard() {
     
     console.info(`🔍 FRONTEND DEBUG: selectedDate=${selectedDate}`);
     console.info(`🔍 FRONTEND DEBUG: Total assignments=${assignments.length}, Today's assignments=${todaysAssignments.length}`);
-    console.info(`🔍 FRONTEND DEBUG: Today's assignments:`, todaysAssignments.map((a: Assignment) => ({
+    console.info(`🔍 FRONTEND DEBUG: Today's assignments:`, (todaysAssignments || []).map((a: Assignment) => ({
       title: a.title, 
       scheduledDate: a.scheduledDate, 
       scheduledBlock: a.scheduledBlock,
@@ -487,7 +487,7 @@ export default function StudentDashboard() {
   })();
 
   // NEW: Compose the exact sequence Guided should show (mirrors Overview)
-  const composedForGuided = allScheduleBlocks.map((block) => {
+  const composedForGuided = (allScheduleBlocks || []).map((block) => {
     const base = {
       id: block.id ?? `block-${block.blockNumber ?? crypto.randomUUID()}`,
       startTime: block.startTime?.slice(0,5) || '00:00',
