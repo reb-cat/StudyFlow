@@ -768,12 +768,21 @@ export function GuidedDayView({
   // Reset timer when block changes
   useEffect(() => {
     if (currentBlock) {
-      const actualMinutes = currentBlock.estimatedMinutes || (currentBlock.type === 'assignment' ? 30 : 20);
-      setTimeRemaining(actualMinutes * 60);
+      // CRITICAL FIX: Use actual time block duration
+      const getBlockDurationMinutes = (startTime: string, endTime: string): number => {
+        const [startHour, startMin] = startTime.split(':').map(Number);
+        const [endHour, endMin] = endTime.split(':').map(Number);
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+        return Math.max(1, endMinutes - startMinutes);
+      };
+      
+      const blockDurationMinutes = getBlockDurationMinutes(currentBlock.startTime, currentBlock.endTime);
+      setTimeRemaining(blockDurationMinutes * 60);
       setIsTimerRunning(true); // Auto-start for new block
       
       if (process.env.NODE_ENV === 'development') {
-        console.log(`🔄 BLOCK CHANGE: Setting timer to ${actualMinutes} minutes for "${currentBlock.title}"`);
+        console.log(`🔄 BLOCK CHANGE: Timer set to ${blockDurationMinutes} minutes (${currentBlock.startTime}-${currentBlock.endTime}) for "${currentBlock.title}"`);
       }
     }
   }, [currentIndex]);
@@ -1346,20 +1355,30 @@ export function GuidedDayView({
         {!(currentBlock.type === 'fixed' && currentBlock.title?.includes('Co-op')) && (
           <div style={{ marginBottom: '32px' }}>
             {(() => {
-              // DEBUG: Check what estimatedMinutes we're getting
-              const actualMinutes = currentBlock.estimatedMinutes || (currentBlock.type === 'assignment' ? 30 : 20);
+              // CRITICAL FIX: Use actual time block duration, not assignment estimates
+              const getBlockDurationMinutes = (startTime: string, endTime: string): number => {
+                const [startHour, startMin] = startTime.split(':').map(Number);
+                const [endHour, endMin] = endTime.split(':').map(Number);
+                const startMinutes = startHour * 60 + startMin;
+                const endMinutes = endHour * 60 + endMin;
+                return Math.max(1, endMinutes - startMinutes); // At least 1 minute
+              };
+              
+              const blockDurationMinutes = getBlockDurationMinutes(currentBlock.startTime, currentBlock.endTime);
+              
               if (process.env.NODE_ENV === 'development') {
-                console.log(`🔧 TIMER DEBUG: Block "${currentBlock.title}", type="${currentBlock.type}", estimatedMinutes=${currentBlock.estimatedMinutes}, actualMinutes=${actualMinutes}`);
+                console.log(`⏰ TIMER: Block "${currentBlock.title}" (${currentBlock.startTime}-${currentBlock.endTime}) = ${blockDurationMinutes} minutes`);
               }
+              
               return (
                 <CircularTimer
-                  durationMinutes={actualMinutes}
+                  durationMinutes={blockDurationMinutes}
                   isRunning={isTimerRunning}
                   onComplete={handleBlockComplete}
                   onToggle={() => setIsTimerRunning(!isTimerRunning)}
                   onReset={() => {
                     setIsTimerRunning(false);
-                    setTimeRemaining(actualMinutes * 60);
+                    setTimeRemaining(blockDurationMinutes * 60);
                   }}
                   hideControls={true}
                   externalTimeRemaining={timeRemaining}
