@@ -747,7 +747,7 @@ export class DatabaseStorage implements IStorage {
       for (const assignment of existingScheduledAssignments) {
         if (assignment.scheduledBlock) {
           // Find the template block ID that corresponds to this scheduled block number
-          const templateBlock = scheduleBlocks.find(block => block.blockNumber === assignment.scheduledBlock);
+          const templateBlock = allAvailableBlocks.find(block => block.blockNumber === assignment.scheduledBlock);
           if (templateBlock) {
             blockIdToNumber.set(templateBlock.id, assignment.scheduledBlock);
           }
