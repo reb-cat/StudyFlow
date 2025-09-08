@@ -143,42 +143,70 @@ const CircularTimer = ({
   externalTimeRemaining = null,
   onTimeUpdate
 }: CircularTimerProps) => {
-  const [internalTimeRemaining, setInternalTimeRemaining] = useState(durationMinutes * 60 + extraTime * 60);
+  const durationSeconds = durationMinutes * 60 + extraTime * 60;
+  const [internalTimeRemaining, setInternalTimeRemaining] = useState(durationSeconds);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [endTime, setEndTime] = useState<number | null>(null);
   
   const timeRemaining = externalTimeRemaining !== null ? externalTimeRemaining : internalTimeRemaining;
-  const totalTime = durationMinutes * 60 + extraTime * 60;
+  const totalTime = durationSeconds;
 
+  // Reset timer when duration changes
   useEffect(() => {
     if (externalTimeRemaining === null) {
-      setInternalTimeRemaining(durationMinutes * 60 + extraTime * 60);
+      setInternalTimeRemaining(durationSeconds);
+      setStartTime(null);
+      setEndTime(null);
     }
-  }, [durationMinutes, extraTime, externalTimeRemaining]);
+  }, [durationMinutes, extraTime, externalTimeRemaining, durationSeconds]);
 
+  // Start/stop timer logic
+  useEffect(() => {
+    if (isRunning && !startTime) {
+      // Starting timer - record exact timestamps
+      const now = Date.now();
+      setStartTime(now);
+      setEndTime(now + (durationSeconds * 1000));
+    } else if (!isRunning) {
+      // Stopping timer - clear timestamps
+      setStartTime(null);
+      setEndTime(null);
+    }
+  }, [isRunning, startTime, durationSeconds]);
+
+  // Timer countdown logic using real timestamps
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
-    if (isRunning && timeRemaining > 0) {
+    if (isRunning && startTime && endTime) {
       interval = setInterval(() => {
-        // CRITICAL FIX: Use state updater function to avoid stale closure values
-        setInternalTimeRemaining(prev => {
-          const newTime = prev - 1;
-          if (newTime <= 0) {
-            onComplete?.();
-            if (onTimeUpdate) {
-              onTimeUpdate(0);
-            }
-            return 0;
-          }
+        const now = Date.now();
+        const remainingMs = Math.max(0, endTime - now);
+        const remainingSeconds = Math.ceil(remainingMs / 1000);
+        
+        if (remainingSeconds <= 0) {
+          // Timer completed
+          onComplete?.();
           if (onTimeUpdate) {
-            onTimeUpdate(newTime);
+            onTimeUpdate(0);
+          } else {
+            setInternalTimeRemaining(0);
           }
-          return newTime;
-        });
-      }, 1000);
+          setStartTime(null);
+          setEndTime(null);
+        } else {
+          // Update remaining time
+          if (onTimeUpdate) {
+            onTimeUpdate(remainingSeconds);
+          } else {
+            setInternalTimeRemaining(remainingSeconds);
+          }
+        }
+      }, 100); // Check every 100ms for accuracy
     }
     
     return () => clearInterval(interval);
-  }, [isRunning, onComplete, onTimeUpdate]);
+  }, [isRunning, startTime, endTime, onComplete, onTimeUpdate]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
