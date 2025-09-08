@@ -806,27 +806,48 @@ export function GuidedDayView({
       // Show Done dialog for assignments
       setShowDoneDialog(true);
     } else if (currentBlock.type === 'bible' && bibleData?.dailyReading) {
-      // Complete Bible reading directly with proper parameters
-      await apiRequest('POST', '/api/bible-curriculum/complete', {
-        weekNumber: bibleData.dailyReading.weekNumber,
-        dayOfWeek: bibleData.dailyReading.dayOfWeek,
-        type: 'daily_reading',
-        studentName: studentName
-      });
-      
-      toast({
-        title: "Bible Reading Completed!",
-        description: "Your Bible reading has been completed and progress advanced.",
-        variant: "default"
-      });
-      
-      // Advance to the next block
-      if (currentIndex < scheduleBlocks.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-        setIsTimerRunning(true);
-      } else {
-        // Day complete
-        onModeToggle?.();
+      try {
+        // Complete Bible reading directly with proper parameters
+        await apiRequest('POST', '/api/bible-curriculum/complete', {
+          weekNumber: bibleData.dailyReading.weekNumber,
+          dayOfWeek: bibleData.dailyReading.dayOfWeek,
+          type: 'daily_reading',
+          studentName: studentName
+        });
+        
+        // CRITICAL FIX: Also mark the Bible block as complete in daily schedule status
+        // This prevents the reversion bug by updating the status table that guided view checks
+        await apiRequest('PATCH', `/api/schedule/${studentName}/${selectedDate}/block/${currentBlock.templateBlockId || currentBlock.id}/status`, {
+          status: 'complete'
+        });
+        
+        toast({
+          title: "Bible Reading Completed!",
+          description: "Your Bible reading has been completed and progress advanced.",
+          variant: "default"
+        });
+        
+        // Refresh data to ensure guided view sees the updated status
+        if (onAssignmentUpdate) {
+          onAssignmentUpdate();
+        }
+        
+        // Advance to the next block
+        if (currentIndex < scheduleBlocks.length - 1) {
+          setCurrentIndex(prev => prev + 1);
+          setIsTimerRunning(true);
+        } else {
+          // Day complete
+          onModeToggle?.();
+        }
+      } catch (error) {
+        console.error('Failed to complete Bible reading:', error);
+        toast({
+          title: "Error",
+          description: "Failed to mark Bible reading as complete",
+          variant: "destructive"
+        });
+        return; // Don't advance if completion failed
       }
     } else {
       // Complete other blocks immediately
