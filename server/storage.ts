@@ -636,13 +636,14 @@ export class DatabaseStorage implements IStorage {
       // TIMESTAMP RESTORATION: Restore completed assignments to their original blocks based on completion timing
       console.log(`🕐 TIMESTAMP RESTORATION: Checking for completed assignments to restore to blocks`);
       
-      // Get completed assignments from today that aren't scheduled yet
-      const completedTodayAssignments = userAssignments.filter(a => 
-        a.completionStatus === 'completed' && 
-        a.completedAt &&
-        new Date(a.completedAt).toISOString().split('T')[0] === targetDate &&
-        !a.scheduledBlock // Not already scheduled to a block
-      );
+      // Get completed assignments from today that aren't scheduled yet (production-safe)
+      const completedTodayAssignments = userAssignments.filter(a => {
+        if (a.completionStatus === 'completed' && a.completedAt && !a.scheduledBlock) {
+          const completedDate = new Date(a.completedAt).toISOString().split('T')[0];
+          return completedDate === targetDate;
+        }
+        return false;
+      });
       
       if (completedTodayAssignments.length > 0) {
         console.log(`🔍 Found ${completedTodayAssignments.length} completed assignments from today to potentially restore`);
@@ -656,29 +657,40 @@ export class DatabaseStorage implements IStorage {
           block.blockType === 'Assignment' || block.blockType === 'Study Hall'
         );
         
-        // Match completed assignments to blocks based on completion time
+        // Match completed assignments to blocks based on completion time (with 20-minute buffer)
         for (const assignment of completedTodayAssignments) {
-          const completedTime = new Date(assignment.completedAt!);
-          const completedHour = completedTime.getHours();
-          const completedMinute = completedTime.getMinutes();
-          const completedTimeString = `${completedHour.toString().padStart(2, '0')}:${completedMinute.toString().padStart(2, '0')}`;
-          
-          // Find block where completion time falls within the time window
-          for (const block of schedulableBlocks) {
-            if (block.startTime <= completedTimeString && completedTimeString <= block.endTime) {
-              console.log(`⏰ RESTORING: "${assignment.title}" to Block ${block.blockNumber} (completed at ${completedTimeString} during ${block.startTime}-${block.endTime})`);
+          if (assignment.completedAt) {
+            const completedTime = new Date(assignment.completedAt);
+            const completedHour = completedTime.getHours();
+            const completedMinute = completedTime.getMinutes();
+            const completedTimeString = `${completedHour.toString().padStart(2, '0')}:${completedMinute.toString().padStart(2, '0')}`;
+            
+            // Find matching block with 20-minute buffer
+            for (const block of schedulableBlocks) {
+              const [startHour, startMin] = block.startTime.split(':').map(Number);
+              const [endHour, endMin] = block.endTime.split(':').map(Number);
               
-              // Restore assignment to its original block
-              await db.update(assignments)
-                .set({
-                  scheduledDate: targetDate,
-                  scheduledBlock: block.blockNumber,
-                  blockStart: block.startTime,
-                  blockEnd: block.endTime
-                })
-                .where(eq(assignments.id, assignment.id));
+              const startTimeMinutes = startHour * 60 + startMin - 20; // 20 min before
+              const endTimeMinutes = endHour * 60 + endMin + 20; // 20 min after
+              const completedMinutes = completedHour * 60 + completedMinute;
               
-              break; // Only restore to one block
+              if (completedMinutes >= Math.max(0, startTimeMinutes) && completedMinutes <= Math.min(1440, endTimeMinutes)) {
+                const bufferNote = completedTimeString < block.startTime ? ' (early start)' : 
+                                  completedTimeString > block.endTime ? ' (late finish)' : '';
+                console.log(`⏰ RESTORING: "${assignment.title}" to Block ${block.blockNumber} (completed ${completedTimeString}${bufferNote})`);
+                
+                // Restore assignment to its original block
+                await db.update(assignments)
+                  .set({
+                    scheduledDate: targetDate,
+                    scheduledBlock: block.blockNumber,
+                    blockStart: block.startTime,
+                    blockEnd: block.endTime
+                  })
+                  .where(eq(assignments.id, assignment.id));
+                
+                break; // Only restore to one block
+              }
             }
           }
         }
