@@ -1566,29 +1566,52 @@ export function GuidedDayView({
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* Simple Co-op Attendance Button */}
+          {/* Co-op Attendance Options */}
           {currentBlock.type === 'fixed' && currentBlock.title?.includes('Co-op') ? (
-            <button
-              onClick={handleBlockComplete}
-              style={{
-                width: '100%',
-                padding: '16px',
-                borderRadius: '12px',
-                backgroundColor: colors.complete,
-                color: 'white',
-                border: 'none',
-                fontSize: '18px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'transform 0.1s',
-                boxShadow: `0 4px 12px ${colors.complete}40`
-              }}
-              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              data-testid="button-attended"
-            >
-              ✓ Attended
-            </button>
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button
+                onClick={handleBlockComplete}
+                style={{
+                  flex: 1,
+                  padding: '16px',
+                  borderRadius: '12px',
+                  backgroundColor: colors.complete,
+                  color: 'white',
+                  border: 'none',
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'transform 0.1s',
+                  boxShadow: `0 4px 12px ${colors.complete}40`
+                }}
+                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                data-testid="button-attended"
+              >
+                ✓ Attended
+              </button>
+              
+              <button
+                onClick={handleBlockComplete}
+                style={{
+                  flex: 1,
+                  padding: '16px',
+                  borderRadius: '12px',
+                  backgroundColor: 'transparent',
+                  color: colors.support,
+                  border: `2px solid ${colors.support}`,
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'transform 0.1s'
+                }}
+                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                data-testid="button-absent"
+              >
+                ✗ Absent
+              </button>
+            </div>
           ) : (
             <button
               onClick={handleBlockComplete}
