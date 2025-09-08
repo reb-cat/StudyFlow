@@ -143,11 +143,6 @@ const CircularTimer = ({
   externalTimeRemaining = null,
   onTimeUpdate
 }: CircularTimerProps) => {
-  // DEBUG: Log CircularTimer render and props
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`🔧 CIRCULAR TIMER RENDER: isRunning=${isRunning}, durationMinutes=${durationMinutes}, externalTimeRemaining=${externalTimeRemaining}`);
-  }
-  
   const durationSeconds = durationMinutes * 60 + extraTime * 60;
   const [internalTimeRemaining, setInternalTimeRemaining] = useState(durationSeconds);
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -170,29 +165,17 @@ const CircularTimer = ({
 
   // Start/stop timer logic
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔧 CIRCULAR TIMER: isRunning=${isRunning}, startTime=${startTime}, externalTimeRemaining=${externalTimeRemaining}, durationSeconds=${durationSeconds}`);
-      console.log(`🔧 CIRCULAR TIMER: useEffect deps - isRunning=${isRunning}, startTime=${startTime}, durationSeconds=${durationSeconds}`);
-      console.log(`🔧 CIRCULAR TIMER: Condition check - isRunning && !startTime = ${isRunning && !startTime}`);
-    }
-    
     if (isRunning && !startTime) {
       // Starting timer - record exact timestamps
       const now = Date.now();
       setStartTime(now);
       setEndTime(now + (durationSeconds * 1000));
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`🔧 CIRCULAR TIMER: STARTED - now=${now}, endTime=${now + (durationSeconds * 1000)}, durationSeconds=${durationSeconds}`);
-      }
     } else if (!isRunning) {
       // Stopping timer - clear timestamps
       setStartTime(null);
       setEndTime(null);
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`🔧 CIRCULAR TIMER: STOPPED`);
-      }
     }
   }, [isRunning, startTime, durationSeconds]);
 
@@ -201,23 +184,14 @@ const CircularTimer = ({
     let interval: NodeJS.Timeout;
     
     if (isRunning && startTime && endTime) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`🔧 CIRCULAR TIMER: Starting countdown for ${Math.ceil((endTime - startTime) / 60000)} minutes`);
-      }
-      
       interval = setInterval(() => {
         const now = Date.now();
         const remainingMs = Math.max(0, endTime - now);
         const remainingSeconds = Math.ceil(remainingMs / 1000);
         
-        // Only log every 5 seconds to avoid spam
-        if (process.env.NODE_ENV === 'development' && remainingSeconds % 5 === 0) {
-          console.log(`🔧 CIRCULAR TIMER: Countdown - ${remainingSeconds}s remaining`);
-        }
         
         if (remainingSeconds <= 0) {
           // Timer completed
-          console.log(`🔧 CIRCULAR TIMER: COMPLETED!`);
           onComplete?.();
           if (onTimeUpdate) {
             onTimeUpdate(0);
@@ -235,10 +209,6 @@ const CircularTimer = ({
           }
         }
       }, 100); // Check every 100ms for accuracy
-    } else {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`🔧 CIRCULAR TIMER: NOT setting up countdown - isRunning=${isRunning}, startTime=${startTime}, endTime=${endTime}`);
-      }
     }
     
     return () => clearInterval(interval);
@@ -1410,9 +1380,6 @@ export function GuidedDayView({
         {/* Timer - Hidden for Co-op class blocks */}
         {(() => {
           const shouldHideTimer = currentBlock.type === 'fixed' && currentBlock.title?.includes('Co-op');
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`🔧 TIMER CONDITIONAL: shouldHideTimer=${shouldHideTimer}, currentBlock.type="${currentBlock.type}", title="${currentBlock.title}"`);
-          }
           return !shouldHideTimer;
         })() && (
           <div style={{ marginBottom: '32px' }}>
@@ -1428,49 +1395,28 @@ export function GuidedDayView({
               
               const blockDurationMinutes = getBlockDurationMinutes(currentBlock.startTime, currentBlock.endTime);
               
-              // AUTO-FIX: Force correct timer if it's wrong (DISABLED TEMPORARILY FOR DEBUGGING)
+              // Smart auto-fix: Only correct timer if significantly wrong and not currently running
               const expectedSeconds = blockDurationMinutes * 60;
-              if (!timeRemaining || Math.abs(timeRemaining - expectedSeconds) > 120) {
-                console.log(`🔧 AUTO-FIX NEEDED: ${timeRemaining || 'null'} → ${expectedSeconds} seconds (DISABLED)`);
-                // setTimeRemaining(expectedSeconds); // COMMENTED OUT
+              if (!timeRemaining || (Math.abs(timeRemaining - expectedSeconds) > 120 && !isTimerRunning)) {
+                setTimeRemaining(expectedSeconds);
               }
 
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`⏰ TIMER COMPONENT: Block "${currentBlock.title}" (${currentBlock.startTime}-${currentBlock.endTime}) = ${blockDurationMinutes} minutes`);
-                console.log(`🔧 TIMER COMPONENT: startTime="${currentBlock.startTime}", endTime="${currentBlock.endTime}"`);
-                console.log(`🔧 TIMER COMPONENT: timeRemaining state = ${timeRemaining} seconds (${Math.floor((timeRemaining || 0) / 60)} minutes)`);
-                console.log(`🔧 TIMER COMPONENT: durationMinutes passed to CircularTimer = ${blockDurationMinutes}`);
-                console.log(`🔧 TIMER COMPONENT: isTimerRunning = ${isTimerRunning}`);
-                console.log(`🔧 TIMER COMPONENT: Timer should be ${isTimerRunning ? 'COUNTING DOWN' : 'STOPPED'}`);
-                console.log(`🔧 TIMER COMPONENT: About to render CircularTimer with isRunning=${isTimerRunning}`);
-              }
               
-              console.log(`🚨 ABOUT TO RENDER CIRCULARTIMER - blockDurationMinutes=${blockDurationMinutes}, isRunning=${isTimerRunning}, timeRemaining=${timeRemaining}`);
-              
-              try {
-                const timerComponent = (
-                  <CircularTimer
-                    durationMinutes={blockDurationMinutes}
-                    isRunning={isTimerRunning}
-                    onComplete={handleBlockComplete}
-                    onToggle={() => setIsTimerRunning(!isTimerRunning)}
-                    onReset={() => {
-                      console.log(`🔧 RESET CLICKED: Setting timer to ${blockDurationMinutes} minutes (${blockDurationMinutes * 60} seconds)`);
-                      setIsTimerRunning(false);
-                      setTimeRemaining(blockDurationMinutes * 60);
-                    }}
-                    hideControls={true}
-                    externalTimeRemaining={timeRemaining}
-                    onTimeUpdate={setTimeRemaining}
-                  />
-                );
-                
-                console.log(`🚨 CIRCULARTIMER COMPONENT CREATED SUCCESSFULLY`);
-                return timerComponent;
-              } catch (error) {
-                console.error(`🚨 ERROR CREATING CIRCULARTIMER:`, error);
-                return <div>Timer Error: {String(error)}</div>;
-              }
+              return (
+                <CircularTimer
+                  durationMinutes={blockDurationMinutes}
+                  isRunning={isTimerRunning}
+                  onComplete={handleBlockComplete}
+                  onToggle={() => setIsTimerRunning(!isTimerRunning)}
+                  onReset={() => {
+                    setIsTimerRunning(false);
+                    setTimeRemaining(blockDurationMinutes * 60);
+                  }}
+                  hideControls={true}
+                  externalTimeRemaining={timeRemaining}
+                  onTimeUpdate={setTimeRemaining}
+                />
+              );
             })()}
           </div>
         )}
