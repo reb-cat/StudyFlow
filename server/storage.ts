@@ -17,7 +17,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, sql, desc, inArray, isNull, isNotNull, or, lte } from "drizzle-orm";
 import { compareAssignmentTitles, extractUnitNumber } from './lib/assignmentIntelligence';
 
 // modify the interface with any CRUD methods
