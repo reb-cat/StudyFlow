@@ -112,24 +112,9 @@ export function normalizeAssignment(a: AssignmentLike, now = new Date()): Normal
 
   const effectiveDueAt = a.dueAt ?? (inferred ? inferred.toISOString() : null);
 
-  // 2) Display title: if title is generic ("Homework Due ..."), build from instructions
-  // BUT preserve specific due dates to avoid identical display titles for different assignments
-  const looksGeneric = /\bhomework\b/i.test(a.title) || /\bdue\b/i.test(a.title);
-  const hasSpecificDate = /due\s+\d{1,2}[\/\-]\d{1,2}/i.test(a.title);
-  
-  let displayTitle: string;
-  if (looksGeneric && !hasSpecificDate) {
-    // Generic homework without specific dates -> build from instructions
-    displayTitle = titleFromInstructions(a.instructions, a.title, courseLabel || undefined);
-  } else if (looksGeneric && hasSpecificDate) {
-    // Homework with specific date -> keep the date but enhance with course info
-    const baseName = titleFromInstructions(a.instructions, 'Assignment', courseLabel || undefined);
-    const dateMatch = a.title.match(/due\s+(\d{1,2}[\/\-]\d{1,2})/i);
-    displayTitle = dateMatch ? `${baseName} (Due ${dateMatch[1]})` : cleanTitleNoise(a.title);
-  } else {
-    // Not generic -> clean up noise but keep original title
-    displayTitle = cleanTitleNoise(a.title);
-  }
+  // CANVAS DATA INTEGRITY: Preserve titles EXACTLY as they come from Canvas
+  // Never modify Canvas assignment titles - they are the definitive source of truth
+  let displayTitle: string = a.title;
 
   return { displayTitle, effectiveDueAt, courseLabel };
 }
