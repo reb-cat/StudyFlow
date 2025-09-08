@@ -633,6 +633,57 @@ export class DatabaseStorage implements IStorage {
         
       console.log(`🧹 CLEARED: ${clearedAssignments.length} unworked assignments cleared from ${targetDate} (preserving completed/marked work)`);
       
+      // TIMESTAMP RESTORATION: Restore completed assignments to their original blocks based on completion timing
+      console.log(`🕐 TIMESTAMP RESTORATION: Checking for completed assignments to restore to blocks`);
+      
+      // Get completed assignments from today that aren't scheduled yet
+      const completedTodayAssignments = userAssignments.filter(a => 
+        a.completionStatus === 'completed' && 
+        a.completedAt &&
+        new Date(a.completedAt).toISOString().split('T')[0] === targetDate &&
+        !a.scheduledBlock // Not already scheduled to a block
+      );
+      
+      if (completedTodayAssignments.length > 0) {
+        console.log(`🔍 Found ${completedTodayAssignments.length} completed assignments from today to potentially restore`);
+        
+        // Get schedule template blocks with time windows
+        const targetDateObj = new Date(targetDate);
+        const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const weekday = weekdays[targetDateObj.getDay()];
+        const templateBlocks = await this.getScheduleTemplate(studentName, weekday);
+        const schedulableBlocks = templateBlocks.filter(block => 
+          block.blockType === 'Assignment' || block.blockType === 'Study Hall'
+        );
+        
+        // Match completed assignments to blocks based on completion time
+        for (const assignment of completedTodayAssignments) {
+          const completedTime = new Date(assignment.completedAt!);
+          const completedHour = completedTime.getHours();
+          const completedMinute = completedTime.getMinutes();
+          const completedTimeString = `${completedHour.toString().padStart(2, '0')}:${completedMinute.toString().padStart(2, '0')}`;
+          
+          // Find block where completion time falls within the time window
+          for (const block of schedulableBlocks) {
+            if (block.startTime <= completedTimeString && completedTimeString <= block.endTime) {
+              console.log(`⏰ RESTORING: "${assignment.title}" to Block ${block.blockNumber} (completed at ${completedTimeString} during ${block.startTime}-${block.endTime})`);
+              
+              // Restore assignment to its original block
+              await db.update(assignments)
+                .set({
+                  scheduledDate: targetDate,
+                  scheduledBlock: block.blockNumber,
+                  blockStart: block.startTime,
+                  blockEnd: block.endTime
+                })
+                .where(eq(assignments.id, assignment.id));
+              
+              break; // Only restore to one block
+            }
+          }
+        }
+      }
+      
       // NEED MORE TIME LOGIC: Move "needs_more_time" assignments to next day
       const needMoreTimeAssignments = userAssignments.filter(a => 
         a.completionStatus === 'needs_more_time' && a.scheduledDate === targetDate
