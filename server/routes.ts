@@ -3812,10 +3812,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         return res.status(404).json({ message: 'Parent assignment not found' });
       }
       
-      // Validate that parent has Canvas ID (only Canvas assignments can be split)
-      if (!parentAssignment.canvasId) {
-        return res.status(400).json({ message: 'Only Canvas assignments can be manually split' });
-      }
+      // Allow splitting any assignment (Canvas or manual) for maximum flexibility
       
       // Create sub-assignments
       const createdSubAssignments = [];
@@ -3831,8 +3828,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
           priority: parentAssignment.priority,
           difficulty: parentAssignment.difficulty,
           creationSource: 'manual' as const,
-          // For now, store in notes field until schema is updated
-          notes: `PARENT_CANVAS_ID:${parentAssignment.canvasId}|ORDER:${subAssignment.order}`,
+          // Store parent relationship in notes field (works with current database)
+          notes: `PARENT_ID:${parentAssignment.id}|PARENT_CANVAS_ID:${parentAssignment.canvasId || 'none'}|ORDER:${subAssignment.order}`,
           isCanvasImport: false,
           canvasId: null // Sub-assignments don't have their own Canvas ID
         };

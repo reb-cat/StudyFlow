@@ -32,15 +32,30 @@ export default function ManualSubAssignments() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch Canvas assignments that can be split
+  // Fetch ALL assignments that can be split (both Canvas and manual)
   const { data: canvasAssignments = [] } = useQuery({
-    queryKey: ['/api/assignments', 'canvas-only'],
+    queryKey: ['/api/assignments', 'splittable'],
     queryFn: async () => {
-      // Get all assignments with Canvas IDs
-      const response = await fetch('/api/assignments?studentName=Khalil&includeCompleted=true');
-      if (!response.ok) throw new Error('Failed to fetch assignments');
-      const assignments = await response.json();
-      return assignments.filter((a: Assignment) => a.canvasId && !a.notes?.includes('PARENT_CANVAS_ID'));
+      // Get all assignments for both students
+      const [khalilResponse, abigailResponse] = await Promise.all([
+        fetch('/api/assignments?studentName=Khalil&includeCompleted=true'),
+        fetch('/api/assignments?studentName=Abigail&includeCompleted=true')
+      ]);
+      
+      if (!khalilResponse.ok || !abigailResponse.ok) {
+        throw new Error('Failed to fetch assignments');
+      }
+      
+      const khalilAssignments = await khalilResponse.json();
+      const abigailAssignments = await abigailResponse.json();
+      
+      // Combine and filter for splittable assignments (not already sub-assignments)
+      const allAssignments = [...khalilAssignments, ...abigailAssignments];
+      return allAssignments.filter((a: Assignment) => 
+        !a.notes?.includes('PARENT_CANVAS_ID') && // Not already a sub-assignment
+        a.title && // Has a title
+        a.title.length > 10 // Not a trivial assignment
+      );
     }
   });
 
@@ -138,14 +153,17 @@ export default function ManualSubAssignments() {
                 <Label htmlFor="parent-select">Parent Assignment</Label>
                 <Select value={selectedParentId} onValueChange={setSelectedParentId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose a Canvas assignment to break down..." />
+                    <SelectValue placeholder="Choose ANY assignment to break down..." />
                   </SelectTrigger>
                   <SelectContent>
                     {canvasAssignments.map((assignment: Assignment) => (
                       <SelectItem key={assignment.id} value={assignment.id}>
                         <div className="flex flex-col">
                           <span className="font-medium">{assignment.title}</span>
-                          <span className="text-sm text-muted-foreground">{assignment.subject}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {assignment.subject} 
+                            {assignment.canvasId && <Badge variant="outline" className="ml-2">Canvas</Badge>}
+                          </span>
                         </div>
                       </SelectItem>
                     ))}
@@ -158,7 +176,11 @@ export default function ManualSubAssignments() {
                   <h4 className="font-semibold mb-2">Selected Assignment:</h4>
                   <p className="text-sm mb-2"><strong>Title:</strong> {selectedParent.title}</p>
                   <p className="text-sm mb-2"><strong>Subject:</strong> {selectedParent.subject}</p>
-                  <Badge variant="outline">Canvas ID: {selectedParent.canvasId}</Badge>
+                  {selectedParent.canvasId ? (
+                    <Badge variant="outline">Canvas ID: {selectedParent.canvasId}</Badge>
+                  ) : (
+                    <Badge variant="secondary">Manual Assignment</Badge>
+                  )}
                 </div>
               )}
             </div>

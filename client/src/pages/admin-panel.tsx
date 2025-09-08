@@ -37,6 +37,14 @@ const adminTiles: AdminTile[] = [
     badge: "Core"
   },
   {
+    title: "Break Down Assignments",
+    description: "Split overwhelming assignments into smaller, manageable tasks",
+    href: "/manual-sub-assignments",
+    icon: Target,
+    color: "purple",
+    badge: "EF Support"
+  },
+  {
     title: "Print Queue",
     description: "Review and manage items that need printing",
     href: "/print-queue", 
