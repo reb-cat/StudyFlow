@@ -162,15 +162,27 @@ const CircularTimer = ({
 
   // Start/stop timer logic
   useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔧 CIRCULAR TIMER: isRunning=${isRunning}, startTime=${startTime}, externalTimeRemaining=${externalTimeRemaining}`);
+    }
+    
     if (isRunning && !startTime) {
       // Starting timer - record exact timestamps
       const now = Date.now();
       setStartTime(now);
       setEndTime(now + (durationSeconds * 1000));
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔧 CIRCULAR TIMER: STARTED - now=${now}, endTime=${now + (durationSeconds * 1000)}, durationSeconds=${durationSeconds}`);
+      }
     } else if (!isRunning) {
       // Stopping timer - clear timestamps
       setStartTime(null);
       setEndTime(null);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔧 CIRCULAR TIMER: STOPPED`);
+      }
     }
   }, [isRunning, startTime, durationSeconds]);
 
@@ -179,13 +191,23 @@ const CircularTimer = ({
     let interval: NodeJS.Timeout;
     
     if (isRunning && startTime && endTime) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔧 CIRCULAR TIMER: Setting up countdown interval. startTime=${startTime}, endTime=${endTime}`);
+      }
+      
       interval = setInterval(() => {
         const now = Date.now();
         const remainingMs = Math.max(0, endTime - now);
         const remainingSeconds = Math.ceil(remainingMs / 1000);
         
+        // Only log every 10 seconds to avoid spam
+        if (process.env.NODE_ENV === 'development' && remainingSeconds % 10 === 0) {
+          console.log(`🔧 CIRCULAR TIMER: Countdown tick - remainingSeconds=${remainingSeconds}`);
+        }
+        
         if (remainingSeconds <= 0) {
           // Timer completed
+          console.log(`🔧 CIRCULAR TIMER: COMPLETED!`);
           onComplete?.();
           if (onTimeUpdate) {
             onTimeUpdate(0);
@@ -203,6 +225,10 @@ const CircularTimer = ({
           }
         }
       }, 100); // Check every 100ms for accuracy
+    } else {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔧 CIRCULAR TIMER: NOT setting up countdown - isRunning=${isRunning}, startTime=${startTime}, endTime=${endTime}`);
+      }
     }
     
     return () => clearInterval(interval);
@@ -1386,6 +1412,8 @@ export function GuidedDayView({
                 console.log(`🔧 TIMER COMPONENT: startTime="${currentBlock.startTime}", endTime="${currentBlock.endTime}"`);
                 console.log(`🔧 TIMER COMPONENT: timeRemaining state = ${timeRemaining} seconds (${Math.floor((timeRemaining || 0) / 60)} minutes)`);
                 console.log(`🔧 TIMER COMPONENT: durationMinutes passed to CircularTimer = ${blockDurationMinutes}`);
+                console.log(`🔧 TIMER COMPONENT: isTimerRunning = ${isTimerRunning}`);
+                console.log(`🔧 TIMER COMPONENT: Timer should be ${isTimerRunning ? 'COUNTING DOWN' : 'STOPPED'}`);
               }
               
               return (
