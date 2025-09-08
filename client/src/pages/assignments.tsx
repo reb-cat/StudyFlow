@@ -465,10 +465,10 @@ export default function AssignmentsPage() {
 
   const handleCreateManualAssignment = () => {
     // Send studentName instead of userId - backend handles the mapping
-    // Convert datetime-local string to proper Date object or null
+    // Convert datetime-local string to Date object (schema expects Date, not string)
     const assignmentData = {
       ...manualAssignment,
-      dueDate: manualAssignment.dueDate === '' ? null : new Date(manualAssignment.dueDate).toISOString(),
+      dueDate: manualAssignment.dueDate === '' ? null : new Date(manualAssignment.dueDate),
       studentName: selectedStudent
     };
     createAssignmentMutation.mutate(assignmentData);
