@@ -733,6 +733,13 @@ export function GuidedDayView({
 
   const currentBlock = scheduleBlocks[currentIndex];
   
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🎯 CURRENT BLOCK DEBUG: currentIndex=${currentIndex}, scheduleBlocks.length=${scheduleBlocks.length}, currentBlock exists=${!!currentBlock}`);
+    if (currentBlock) {
+      console.log(`🎯 CURRENT BLOCK: id="${currentBlock.id}", title="${currentBlock.title}", startTime="${currentBlock.startTime}", endTime="${currentBlock.endTime}"`);
+    }
+  }
+  
 
   // Get day name from selectedDate for co-op day check (timezone-safe)
   const dayName = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/New_York' });
