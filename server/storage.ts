@@ -737,43 +737,9 @@ export class DatabaseStorage implements IStorage {
           return (a.blockNumber || 0) - (b.blockNumber || 0);
         });
       
-      // CRITICAL DATA INTEGRITY FIX: Filter out blocks that are already marked as complete
-      // This prevents completed assignments from being replaced with different assignments
-      console.log(`🔍 BLOCK INTEGRITY: Getting existing block statuses for ${studentName} on ${targetDate}`);
-      const existingBlockStatuses = await this.getDailyScheduleStatus(studentName, targetDate);
-      console.log(`🔍 BLOCK INTEGRITY: Found ${existingBlockStatuses.length} existing block statuses`);
-      
-      const existingScheduledAssignments = await this.getAssignmentsByStudentAndDate(studentName, targetDate);
-      console.log(`🔍 BLOCK INTEGRITY: Found ${existingScheduledAssignments.length} existing scheduled assignments`);
-      
-      // Build a mapping of template block IDs to block numbers
-      const blockIdToNumber = new Map<string, number>();
-      for (const assignment of existingScheduledAssignments) {
-        if (assignment.scheduledBlock) {
-          // Find the template block ID that corresponds to this scheduled block number
-          const templateBlock = allAvailableBlocks.find(block => block.blockNumber === assignment.scheduledBlock);
-          if (templateBlock) {
-            blockIdToNumber.set(templateBlock.id, assignment.scheduledBlock);
-          }
-        }
-      }
-      
-      // Get block numbers that are marked as complete
-      const completedBlockNumbers = existingBlockStatuses
-        .filter(status => status.status === 'complete')
-        .map(status => status.template.blockNumber)
-        .filter(num => num !== null) as number[];
-        
-      const uncompletedBlocks = allAvailableBlocks.filter(block => {
-        if (completedBlockNumbers.includes(block.blockNumber || 0)) {
-          console.log(`🔒 PRESERVING COMPLETED BLOCK: Block ${block.blockNumber} already marked as complete - not scheduling new assignments`);
-          return false;
-        }
-        return true;
-      });
-      
-      console.log(`🔍 BLOCK FILTERING: ${allAvailableBlocks.length} total blocks → ${uncompletedBlocks.length} available (${completedBlockNumbers.length} already complete)`);
-      console.log(`📅 GENERIC SCHEDULING: Filling ${uncompletedBlocks.length} available blocks on ${targetDate}`);
+      // Use all available blocks for now - data integrity protection removed temporarily
+      const blocksToFill = allAvailableBlocks;
+      console.log(`📅 SCHEDULING: Filling ${blocksToFill.length} available blocks on ${targetDate}`);
       
       // ENHANCED ASSIGNMENT PRIORITIZATION with urgency-based bumping
       const prioritizedAssignments = assignmentsToSchedule.sort((a, b) => {
@@ -823,18 +789,18 @@ export class DatabaseStorage implements IStorage {
       
       // Take assignments in the exact order they were prioritized and sorted
       const assignmentsToAssign = [...prioritizedAssignments];
-      const blocksToFill = [...uncompletedBlocks];
+      const availableBlocksToFill = [...blocksToFill];
       
       // DEBUG: Show the exact assignment order before block assignment
       console.log(`📋 ASSIGNMENT ORDER FOR BLOCKS:`);
-      assignmentsToAssign.slice(0, blocksToFill.length).forEach((assignment, index) => {
-        console.log(`   Block ${blocksToFill[index].blockNumber}: "${assignment.title}"`);
+      assignmentsToAssign.slice(0, availableBlocksToFill.length).forEach((assignment, index) => {
+        console.log(`   Block ${availableBlocksToFill[index].blockNumber}: "${assignment.title}"`);
       });
       
       // ENHANCED ASSIGNMENT WITH SUBJECT VARIETY: Avoid back-to-back same subjects while preserving educational sequencing
       const assignmentPlacements: Array<{assignment: any, blockNumber: number}> = [];
       const assignmentsToPlace = [...assignmentsToAssign];
-      const availableBlocks = [...blocksToFill];
+      const availableBlocks = [...availableBlocksToFill];
       
       // Track subjects by block for diversity checking
       const blockSubjects: string[] = [];
