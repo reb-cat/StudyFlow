@@ -32,14 +32,14 @@ export default function ManualSubAssignments() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch ALL assignments that can be split (both Canvas and manual)
+  // Fetch ACTIVE assignments that can be split (pending work only)
   const { data: canvasAssignments = [] } = useQuery({
     queryKey: ['/api/assignments', 'splittable'],
     queryFn: async () => {
-      // Get all assignments for both students
+      // Get only PENDING assignments (not completed) for both students
       const [khalilResponse, abigailResponse] = await Promise.all([
-        fetch('/api/assignments?studentName=Khalil&includeCompleted=true'),
-        fetch('/api/assignments?studentName=Abigail&includeCompleted=true')
+        fetch('/api/assignments?studentName=Khalil'), // Remove includeCompleted=true
+        fetch('/api/assignments?studentName=Abigail') // Remove includeCompleted=true
       ]);
       
       if (!khalilResponse.ok || !abigailResponse.ok) {
@@ -49,13 +49,37 @@ export default function ManualSubAssignments() {
       const khalilAssignments = await khalilResponse.json();
       const abigailAssignments = await abigailResponse.json();
       
-      // Combine and filter for splittable assignments (not already sub-assignments)
+      // Combine and filter for splittable assignments
       const allAssignments = [...khalilAssignments, ...abigailAssignments];
-      return allAssignments.filter((a: Assignment) => 
-        !a.notes?.includes('PARENT_CANVAS_ID') && // Not already a sub-assignment
-        a.title && // Has a title
-        a.title.length > 10 // Not a trivial assignment
-      );
+      const now = new Date();
+      const twoMonthsFromNow = new Date(now.getTime() + (60 * 24 * 60 * 60 * 1000)); // 60 days
+      
+      return allAssignments.filter((a: Assignment) => {
+        // Must not already be a sub-assignment
+        if (a.notes?.includes('PARENT_CANVAS_ID')) return false;
+        
+        // Must have a meaningful title
+        if (!a.title || a.title.length < 10) return false;
+        
+        // Filter out administrative assignments (fees, forms, etc.)
+        const title = a.title.toLowerCase();
+        if (title.includes('fee') || 
+            title.includes('syllabus') || 
+            title.includes('sign') || 
+            title.includes('honor code') ||
+            title.includes('supply fee') ||
+            title.includes('copy fee')) {
+          return false;
+        }
+        
+        // Only show assignments due within next 60 days (or overdue)
+        if (a.dueDate) {
+          const dueDate = new Date(a.dueDate);
+          if (dueDate > twoMonthsFromNow) return false;
+        }
+        
+        return true;
+      });
     }
   });
 
@@ -153,20 +177,26 @@ export default function ManualSubAssignments() {
                 <Label htmlFor="parent-select">Parent Assignment</Label>
                 <Select value={selectedParentId} onValueChange={setSelectedParentId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose ANY assignment to break down..." />
+                    <SelectValue placeholder="Choose active assignment to break down..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {canvasAssignments.map((assignment: Assignment) => (
-                      <SelectItem key={assignment.id} value={assignment.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{assignment.title}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {assignment.subject} 
-                            {assignment.canvasId && <Badge variant="outline" className="ml-2">Canvas</Badge>}
-                          </span>
-                        </div>
+                    {canvasAssignments.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No active assignments available for breakdown
                       </SelectItem>
-                    ))}
+                    ) : (
+                      canvasAssignments.map((assignment: Assignment) => (
+                        <SelectItem key={assignment.id} value={assignment.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{assignment.title}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {assignment.subject} • Due: {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'No date'}
+                              {assignment.canvasId && <Badge variant="outline" className="ml-2">Canvas</Badge>}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
