@@ -767,6 +767,13 @@ export function GuidedDayView({
   
   // Reset timer when block changes
   useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔄 USEEFFECT TRIGGERED: currentIndex=${currentIndex}, currentBlock exists=${!!currentBlock}`);
+      if (currentBlock) {
+        console.log(`🔄 CURRENT BLOCK: "${currentBlock.title}" (${currentBlock.startTime}-${currentBlock.endTime})`);
+      }
+    }
+    
     if (currentBlock) {
       // CRITICAL FIX: Use actual time block duration
       const getBlockDurationMinutes = (startTime: string, endTime: string): number => {
@@ -784,13 +791,9 @@ export function GuidedDayView({
       if (process.env.NODE_ENV === 'development') {
         console.log(`🔄 BLOCK CHANGE: Timer set to ${blockDurationMinutes} minutes (${currentBlock.startTime}-${currentBlock.endTime}) for "${currentBlock.title}"`);
         console.log(`🔄 SETTING timeRemaining to: ${blockDurationMinutes * 60} seconds (${blockDurationMinutes} minutes)`);
-        // Add a timeout to check what the actual value is after state update
-        setTimeout(() => {
-          console.log(`🔄 VERIFICATION: timeRemaining is now: ${timeRemaining} seconds`);
-        }, 100);
       }
     }
-  }, [currentIndex]);
+  }, [currentIndex, currentBlock?.id, currentBlock?.startTime, currentBlock?.endTime]);
 
   // Fetch Bible curriculum data for Bible blocks
   useEffect(() => {
@@ -1371,10 +1374,18 @@ export function GuidedDayView({
               
               const blockDurationMinutes = getBlockDurationMinutes(currentBlock.startTime, currentBlock.endTime);
               
+              // AUTO-FIX: Force correct timer if it's wrong
+              const expectedSeconds = blockDurationMinutes * 60;
+              if (!timeRemaining || Math.abs(timeRemaining - expectedSeconds) > 120) {
+                console.log(`🔧 AUTO-FIXING TIMER: ${timeRemaining || 'null'} → ${expectedSeconds} seconds`);
+                setTimeRemaining(expectedSeconds);
+              }
+
               if (process.env.NODE_ENV === 'development') {
-                console.log(`⏰ TIMER: Block "${currentBlock.title}" (${currentBlock.startTime}-${currentBlock.endTime}) = ${blockDurationMinutes} minutes`);
-                console.log(`🔧 DEBUG: startTime="${currentBlock.startTime}", endTime="${currentBlock.endTime}"`);
-                console.log(`🔧 DEBUG: Calculation: ${currentBlock.startTime} to ${currentBlock.endTime} = ${blockDurationMinutes} minutes`);
+                console.log(`⏰ TIMER COMPONENT: Block "${currentBlock.title}" (${currentBlock.startTime}-${currentBlock.endTime}) = ${blockDurationMinutes} minutes`);
+                console.log(`🔧 TIMER COMPONENT: startTime="${currentBlock.startTime}", endTime="${currentBlock.endTime}"`);
+                console.log(`🔧 TIMER COMPONENT: timeRemaining state = ${timeRemaining} seconds (${Math.floor((timeRemaining || 0) / 60)} minutes)`);
+                console.log(`🔧 TIMER COMPONENT: durationMinutes passed to CircularTimer = ${blockDurationMinutes}`);
               }
               
               return (
@@ -1384,6 +1395,7 @@ export function GuidedDayView({
                   onComplete={handleBlockComplete}
                   onToggle={() => setIsTimerRunning(!isTimerRunning)}
                   onReset={() => {
+                    console.log(`🔧 RESET CLICKED: Setting timer to ${blockDurationMinutes} minutes (${blockDurationMinutes * 60} seconds)`);
                     setIsTimerRunning(false);
                     setTimeRemaining(blockDurationMinutes * 60);
                   }}
