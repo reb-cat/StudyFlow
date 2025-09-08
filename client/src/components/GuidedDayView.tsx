@@ -615,10 +615,45 @@ export function GuidedDayView({
     });
 
     // Homework items for co-op assignments due today
+    // Group related assignments intelligently to avoid overwhelming lists
+    const groupedAssignments = new Map<string, Assignment[]>();
+    
     dueAssignments.forEach(assignment => {
       if (assignment.completionStatus === 'pending') {
-        // Clean assignment title (remove term/grade info)
-        const cleanTitle = assignment.title
+        // Detect lesson series patterns and group them
+        const title = assignment.title;
+        let groupKey = title;
+        
+        // Group "Read Lesson X + Answer Questions" patterns
+        if (/read lesson \d+ \+ answer questions/i.test(title)) {
+          const subjectMatch = assignment.subject || assignment.courseName || 'Unknown';
+          groupKey = `${subjectMatch} Lessons`; // Group as "History Lessons", "Science Lessons", etc.
+        }
+        // Group "Unit X Worksheet" or similar patterns
+        else if (/unit \d+/i.test(title)) {
+          const unitMatch = title.match(/unit \d+/i);
+          const subjectMatch = assignment.subject || assignment.courseName || 'Unknown';
+          groupKey = `${subjectMatch} ${unitMatch ? unitMatch[0] : 'Assignment'}`;
+        }
+        // Group "Chapter X" patterns
+        else if (/chapter \d+/i.test(title)) {
+          const chapterMatch = title.match(/chapter \d+/i);
+          const subjectMatch = assignment.subject || assignment.courseName || 'Unknown';
+          groupKey = `${subjectMatch} ${chapterMatch ? chapterMatch[0] : 'Assignment'}`;
+        }
+        
+        if (!groupedAssignments.has(groupKey)) {
+          groupedAssignments.set(groupKey, []);
+        }
+        groupedAssignments.get(groupKey)!.push(assignment);
+      }
+    });
+    
+    // Add grouped assignments to checklist (one item per group instead of per lesson)
+    groupedAssignments.forEach((assignments, groupKey) => {
+      if (assignments.length === 1) {
+        // Single assignment - use cleaned title
+        const cleanTitle = assignments[0].title
           .replace(/\d{2}\/\d{2}\s+/g, '') // Remove dates like "25/26 "
           .replace(/T\d+\s+/g, '') // Remove codes like "T2 "
           .replace(/M\d+\s+/g, '') // Remove codes like "M5 "
@@ -628,6 +663,12 @@ export function GuidedDayView({
         
         checklist.push({ 
           item: `Completed: ${cleanTitle}`, 
+          category: 'homework' 
+        });
+      } else {
+        // Multiple related assignments - group them together
+        checklist.push({ 
+          item: `Completed: ${groupKey} (${assignments.length} tasks)`, 
           category: 'homework' 
         });
       }
