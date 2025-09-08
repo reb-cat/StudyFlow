@@ -664,6 +664,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('📝 Assignment data after extracting studentName:', JSON.stringify(assignmentData, null, 2));
       
+      // Convert dueDate string to Date object if present (HTTP serializes Date objects to strings)
+      if (assignmentData.dueDate && typeof assignmentData.dueDate === 'string') {
+        assignmentData.dueDate = new Date(assignmentData.dueDate);
+        console.log('📅 Converted dueDate string to Date object:', assignmentData.dueDate);
+      }
+      
       // Validate the assignment data
       const validatedAssignmentData = insertAssignmentSchema.parse(assignmentData);
       
