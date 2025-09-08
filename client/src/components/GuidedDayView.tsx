@@ -159,26 +159,26 @@ const CircularTimer = ({
     
     if (isRunning && timeRemaining > 0) {
       interval = setInterval(() => {
-        const newTime = timeRemaining - 1;
-        if (newTime <= 0) {
-          onComplete?.();
-          if (onTimeUpdate) {
-            onTimeUpdate(0);
-          } else {
-            setInternalTimeRemaining(0);
+        // CRITICAL FIX: Use state updater function to avoid stale closure values
+        setInternalTimeRemaining(prev => {
+          const newTime = prev - 1;
+          if (newTime <= 0) {
+            onComplete?.();
+            if (onTimeUpdate) {
+              onTimeUpdate(0);
+            }
+            return 0;
           }
-        } else {
           if (onTimeUpdate) {
             onTimeUpdate(newTime);
-          } else {
-            setInternalTimeRemaining(newTime);
           }
-        }
+          return newTime;
+        });
       }, 1000);
     }
     
     return () => clearInterval(interval);
-  }, [isRunning, onComplete, onTimeUpdate]); // FIXED: Removed timeRemaining from dependencies
+  }, [isRunning, onComplete, onTimeUpdate]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
