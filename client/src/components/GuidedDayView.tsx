@@ -1398,7 +1398,13 @@ export function GuidedDayView({
         )}
 
         {/* Timer - Hidden for Co-op class blocks */}
-        {!(currentBlock.type === 'fixed' && currentBlock.title?.includes('Co-op')) && (
+        {(() => {
+          const shouldHideTimer = currentBlock.type === 'fixed' && currentBlock.title?.includes('Co-op');
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`🔧 TIMER CONDITIONAL: shouldHideTimer=${shouldHideTimer}, currentBlock.type="${currentBlock.type}", title="${currentBlock.title}"`);
+          }
+          return !shouldHideTimer;
+        })() && (
           <div style={{ marginBottom: '32px' }}>
             {(() => {
               // CRITICAL FIX: Use actual time block duration, not assignment estimates
