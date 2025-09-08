@@ -637,10 +637,11 @@ export function GuidedDayView({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
   
-  // Always sync with overview completion status to find first incomplete block
-  // This ensures guided view reflects exactly what's in overview
+  // FIXED: Only sync with overview completion status ONCE at startup, not continuously
+  // This prevents auto-sync from interfering with manual progression (Bible reversion bug)
+  const [hasInitializedIndex, setHasInitializedIndex] = useState(false);
   useEffect(() => {
-    if (scheduleBlocks.length > 0 && dailyScheduleStatus.length > 0) {
+    if (scheduleBlocks.length > 0 && dailyScheduleStatus.length > 0 && !hasInitializedIndex) {
       // Find the first block that is NOT completed/done
       const firstIncompleteIndex = scheduleBlocks.findIndex(block => {
         const blockStatus = dailyScheduleStatus.find(status => 
@@ -655,13 +656,14 @@ export function GuidedDayView({
         return !isComplete;
       });
       
-      // Always go to first incomplete block, or start at 0 if all complete
+      // Go to first incomplete block on initial load only
       const targetIndex = firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0;
       
-      console.log(`🎯 Guided sync: Moving to block ${targetIndex} (first incomplete based on overview status)`);
+      console.log(`🎯 Guided INITIAL sync: Moving to block ${targetIndex} (first incomplete based on overview status)`);
       setCurrentIndex(targetIndex);
+      setHasInitializedIndex(true); // Prevent future auto-syncs
     }
-  }, [scheduleBlocks, dailyScheduleStatus]);
+  }, [scheduleBlocks, dailyScheduleStatus, hasInitializedIndex]);
   const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());
   const [timeRemaining, setTimeRemaining] = useState<number | null>(20 * 60);
   const [exitClickCount, setExitClickCount] = useState(0);
