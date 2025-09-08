@@ -151,14 +151,17 @@ const CircularTimer = ({
   const timeRemaining = externalTimeRemaining !== null ? externalTimeRemaining : internalTimeRemaining;
   const totalTime = durationSeconds;
 
-  // Reset timer when duration changes
+  // Reset timer when duration changes (but not when timer is actively running)
   useEffect(() => {
     if (externalTimeRemaining === null) {
       setInternalTimeRemaining(durationSeconds);
-      setStartTime(null);
-      setEndTime(null);
+      // Only reset timestamps if timer isn't running
+      if (!isRunning) {
+        setStartTime(null);
+        setEndTime(null);
+      }
     }
-  }, [durationMinutes, extraTime, externalTimeRemaining, durationSeconds]);
+  }, [durationMinutes, extraTime, externalTimeRemaining, durationSeconds, isRunning]);
 
   // Start/stop timer logic
   useEffect(() => {
