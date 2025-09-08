@@ -658,8 +658,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/assignments - Create new assignment
   app.post('/api/assignments', requireAuth, async (req, res) => {
     try {
+      console.log('🔍 Assignment creation request body:', JSON.stringify(req.body, null, 2));
+      
       const { studentName, ...assignmentData } = req.body;
+      
+      console.log('📝 Assignment data after extracting studentName:', JSON.stringify(assignmentData, null, 2));
+      
+      // Validate the assignment data
       const validatedAssignmentData = insertAssignmentSchema.parse(assignmentData);
+      
+      console.log('✅ Validation passed, validated data:', JSON.stringify(validatedAssignmentData, null, 2));
       
       // Use student-specific user ID or fallback
       let userId = "unknown-user"; // fallback (was demo-user-1 - removed to prevent mock data contamination)
@@ -671,11 +679,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId = studentUserMap[studentName.toLowerCase()] || userId;
       }
       
+      console.log(`👤 Using userId: ${userId} for student: ${studentName}`);
+      
       const assignment = await storage.createAssignment({ ...validatedAssignmentData, userId });
+      console.log('🎉 Assignment created successfully:', assignment.id);
+      
       res.status(201).json(assignment);
     } catch (error) {
+      console.error('❌ Assignment creation failed:', error);
+      
+      // Better error handling for validation errors
+      if (error instanceof Error && error.name === 'ZodError') {
+        console.error('🔍 Zod validation error details:', JSON.stringify(error, null, 2));
+        return res.status(400).json({ 
+          message: 'Validation failed', 
+          details: error.message,
+          issues: (error as any).issues || []
+        });
+      }
+      
       logger.error('API', 'Failed to create assignment', { error: error instanceof Error ? error.message : String(error) });
-      res.status(400).json({ message: 'Failed to create assignment' });
+      res.status(400).json({ 
+        message: 'Failed to create assignment',
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
   
