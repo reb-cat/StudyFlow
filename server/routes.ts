@@ -658,26 +658,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/assignments - Create new assignment
   app.post('/api/assignments', requireAuth, async (req, res) => {
     try {
-      console.log('🔍 Assignment creation request body:', JSON.stringify(req.body, null, 2));
-      
       const { studentName, ...assignmentData } = req.body;
       
-      console.log('📝 Assignment data after extracting studentName:', JSON.stringify(assignmentData, null, 2));
-      
       // Convert dueDate string to Date object if present (HTTP serializes Date objects to strings)
-      if (assignmentData.dueDate) {
-        console.log('🔍 dueDate received type:', typeof assignmentData.dueDate, 'value:', assignmentData.dueDate);
-        if (typeof assignmentData.dueDate === 'string') {
-          const convertedDate = new Date(assignmentData.dueDate);
-          console.log('📅 Converting string to Date:', assignmentData.dueDate, '→', convertedDate);
-          assignmentData.dueDate = convertedDate;
-        }
+      if (assignmentData.dueDate && typeof assignmentData.dueDate === 'string') {
+        assignmentData.dueDate = new Date(assignmentData.dueDate);
       }
       
       // Validate the assignment data
       const validatedAssignmentData = insertAssignmentSchema.parse(assignmentData);
-      
-      console.log('✅ Validation passed, validated data:', JSON.stringify(validatedAssignmentData, null, 2));
       
       // Use student-specific user ID or fallback
       let userId = "unknown-user"; // fallback (was demo-user-1 - removed to prevent mock data contamination)

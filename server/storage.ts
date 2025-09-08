@@ -1410,17 +1410,63 @@ export class DatabaseStorage implements IStorage {
         .from(studentStatus);
 
       const studentsData = [];
+      const today = new Date().toISOString().split('T')[0];
       
       for (const status of statusResults) {
         const profile = await this.getStudentProfile(status.studentName);
+        
+        // Map student name to userId for assignment queries
+        const userId = status.studentName === 'abigail' ? 'abigail-user' : 
+                      status.studentName === 'khalil' ? 'khalil-user' : 
+                      status.studentName + '-user';
+        
+        // Calculate today's assignment progress
+        const todayAssignments = await db
+          .select()
+          .from(assignments)
+          .where(
+            and(
+              eq(assignments.userId, userId),
+              or(
+                eq(assignments.scheduledDate, today),
+                and(
+                  isNull(assignments.scheduledDate),
+                  lte(assignments.dueDate, new Date())
+                )
+              )
+            )
+          );
+        
+        const completedToday = todayAssignments.filter(a => a.completionStatus === 'completed').length;
+        const totalToday = todayAssignments.length;
+        
+        // Find current assignment (in-progress or first pending)
+        let currentAssignmentTitle = 'No current assignment';
+        const inProgressAssignment = todayAssignments.find(a => a.completionStatus === 'in_progress');
+        if (inProgressAssignment) {
+          currentAssignmentTitle = inProgressAssignment.title;
+        } else {
+          const nextPendingAssignment = todayAssignments.find(a => a.completionStatus === 'pending');
+          if (nextPendingAssignment) {
+            currentAssignmentTitle = nextPendingAssignment.title;
+          }
+        }
+        
+        // Determine current mode based on last activity
+        // If currentMode is set in status, use it; otherwise default to overview
+        const currentMode = status.currentMode || 'overview';
+        
         studentsData.push({
           ...status,
-          profile: profile || null
+          profile: profile || null,
+          completedToday,
+          totalToday,
+          currentAssignmentTitle,
+          currentMode
         });
       }
 
       // Get assignments that need parent attention
-      const today = new Date().toISOString().split('T')[0];
       const needsReviewAssignments = await db
         .select()
         .from(assignments)
