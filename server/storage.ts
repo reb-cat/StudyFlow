@@ -885,12 +885,12 @@ export class DatabaseStorage implements IStorage {
           // Record the placement
           assignmentPlacements.push({
             assignment: selectedAssignment,
-            blockNumber: currentBlock.blockNumber
+            blockNumber: currentBlock.blockNumber || 0
           });
           
           schedulingResults.set(selectedAssignment.id, {
             scheduledDate: targetDate,
-            scheduledBlock: currentBlock.blockNumber,
+            scheduledBlock: currentBlock.blockNumber || 0,
             blockStart: currentBlock.startTime,
             blockEnd: currentBlock.endTime
           });
