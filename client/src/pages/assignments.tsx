@@ -171,7 +171,7 @@ export default function AssignmentsPage() {
 
   // Create manual assignment mutation
   const createAssignmentMutation = useMutation({
-    mutationFn: async (assignment: Omit<typeof manualAssignment, 'dueDate'> & { studentName: string; dueDate: string | null }) => {
+    mutationFn: async (assignment: Omit<typeof manualAssignment, 'dueDate'> & { studentName: string; dueDate: Date | null }) => {
       const response = await apiRequest('POST', '/api/assignments', assignment);
       return await response.json();
     },
