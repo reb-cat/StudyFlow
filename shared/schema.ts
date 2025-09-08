@@ -69,8 +69,7 @@ export const assignments = pgTable("assignments", {
   deletedAt: timestamp("deleted_at"), // When assignment was removed from Canvas  
   canvasGradeStatus: text("canvas_grade_status"), // Canvas grading status for completion sync
   
-  // Manual sub-assignment system - Executive function support
-  // NOTE: Using notes field for parent relationships until database migration
+  // Manual sub-assignment system - Using notes field for parent relationships
   // Format: "PARENT_ID:uuid|PARENT_CANVAS_ID:123|ORDER:1"
   
   // Canvas grading notification system - Executive function support
