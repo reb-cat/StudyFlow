@@ -3812,7 +3812,16 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         return res.status(404).json({ message: 'Parent assignment not found' });
       }
       
-      // Allow splitting any assignment (Canvas or manual) for maximum flexibility
+      // CRITICAL VALIDATION: Prevent creating sub-assignments from completed parent assignments
+      if (parentAssignment.completionStatus === 'completed') {
+        return res.status(400).json({ 
+          message: 'Cannot create sub-assignments from a completed assignment',
+          parentTitle: parentAssignment.title,
+          parentStatus: parentAssignment.completionStatus
+        });
+      }
+      
+      // Only allow splitting pending assignments for executive function support
       
       // Create sub-assignments
       const createdSubAssignments = [];
