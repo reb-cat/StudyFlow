@@ -98,22 +98,123 @@ function isCohesiveAssignment(text: string): boolean {
  * Parses reading ranges like "Lessons 6-9" into individual reading tasks
  */
 function parseReadingRanges(text: string, studentName: string): ParsedSubAssignment[] {
-  // PHANTOM ASSIGNMENT FIX: COMPLETELY DISABLED
-  // This function was generating "Read Lesson X + Answer Questions" phantom assignments
-  // that appeared in schedules but didn't exist in the database and couldn't be deleted
-  console.log('🚫 parseReadingRanges called but DISABLED to prevent phantom assignments');
-  return [];
+  const subAssignments: ParsedSubAssignment[] = [];
+  
+  // Match patterns like:
+  // "Read Lessons 6-9" (but not "read lesson 6 and answer questions")
+  // "Chapters 1-3" 
+  // "Pages 45-67" (large page ranges only)
+  // "Lessons 6, 7, 8, and 9"
+  const rangePatterns = [
+    /read\s+(?:lessons?|chapters?|units?)\s+(\d+)[-–—](\d+)/gi,
+    /(?:lessons?|chapters?|units?)\s+(\d+)[-–—](\d+)/gi,
+    /(?:lessons?|chapters?)\s+(\d+)(?:,?\s*(?:and\s+)?(\d+))+/gi
+  ];
 
+  // Don't split page ranges unless they're very large (20+ pages)
+  const pageRangePattern = /pages?\s+(\d+)[-–—](\d+)/gi;
+
+  for (const pattern of rangePatterns) {
+    const matches = Array.from(text.matchAll(pattern));
+    for (const match of matches) {
+      const start = parseInt(match[1]);
+      const end = parseInt(match[2]) || start;
+      
+      // Only split if it's a meaningful range (3+ lessons/chapters)
+      if (end - start + 1 < 3) {
+        continue; // Skip small ranges
+      }
+      
+      // Create individual lesson tasks only for clear multi-lesson assignments
+      for (let lessonNum = start; lessonNum <= end; lessonNum++) {
+        const lessonTitle = `Read Lesson ${lessonNum} + Answer Questions`;
+        const estimatedMinutes = calculateReadingTime(studentName);
+        
+        subAssignments.push({
+          title: lessonTitle,
+          description: `Read textbook lesson ${lessonNum} (approximately 6 pages) and complete associated questions`,
+          estimatedMinutes,
+          priority: 'B',
+          difficulty: 'medium',
+          type: 'combined', // Reading + questions = one 30-min block
+          lessonNumber: lessonNum
+        });
+      }
+    }
+  }
+
+  // Handle large page ranges (20+ pages) separately
+  const pageMatches = Array.from(text.matchAll(pageRangePattern));
+  for (const match of pageMatches) {
+    const start = parseInt(match[1]);
+    const end = parseInt(match[2]);
+    const pageCount = end - start + 1;
+    
+    // Only split very large page ranges (20+ pages)
+    if (pageCount >= 20) {
+      const chunksNeeded = Math.ceil(pageCount / 15); // 15 pages per chunk
+      for (let chunk = 0; chunk < chunksNeeded; chunk++) {
+        const chunkStart = start + (chunk * 15);
+        const chunkEnd = Math.min(start + ((chunk + 1) * 15) - 1, end);
+        
+        subAssignments.push({
+          title: `Read Pages ${chunkStart}-${chunkEnd}`,
+          description: `Read pages ${chunkStart} through ${chunkEnd}`,
+          estimatedMinutes: calculateReadingTime(studentName),
+          priority: 'B',
+          difficulty: 'medium',
+          type: 'reading',
+          lessonNumber: chunk + 1
+        });
+      }
+    }
+  }
+
+  return subAssignments;
 }
 
 /**
  * Parses distinct activities from assignment instructions
  */
 function parseActivities(text: string, fullInstructions: string): ParsedSubAssignment[] {
-  // PHANTOM ASSIGNMENT FIX: COMPLETELY DISABLED
-  // Disabled to prevent any phantom assignment generation
-  console.log('🚫 parseActivities called but DISABLED to prevent phantom assignments');
-  return [];
+  const activities: ParsedSubAssignment[] = [];
+  
+  // Be much more conservative - only look for clearly separate activities
+  // Don't split activities that are naturally cohesive
+  
+  // Only split if we find multiple distinct project-level activities
+  const majorActivityPatterns = [
+    // Large projects that are clearly separate
+    /create.*presentation.*(?:and|&).*write.*essay/gi,
+    /write.*essay.*(?:and|&).*create.*presentation/gi,
+    /complete.*project.*(?:and|&).*(?:write|create|design)/gi,
+  ];
+
+  // Check for major separate activities only
+  for (const pattern of majorActivityPatterns) {
+    const matches = Array.from(fullInstructions.matchAll(pattern));
+    for (const match of matches) {
+      // Split major combined activities
+      const parts = match[0].split(/(?:and|&)/);
+      for (const part of parts) {
+        if (part.trim().length > 5) {
+          activities.push({
+            title: capitalizeFirst(part.trim()),
+            description: part.trim(),
+            estimatedMinutes: 45, // Longer for major activities
+            priority: 'B',
+            difficulty: 'medium',
+            type: 'activity'
+          });
+        }
+      }
+    }
+  }
+
+  // Don't split map+chart, reading+questions, or other cohesive activities
+  // These should be handled as single assignments
+
+  return activities;
 }
 
 /**

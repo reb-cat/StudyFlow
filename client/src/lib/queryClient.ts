@@ -12,28 +12,11 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  // PHANTOM DEBUG: Log every API request to track phantom assignment sources
-  console.log('🌐 FRONTEND API REQUEST:', {
-    method,
-    url,
-    hasData: !!data,
-    timestamp: new Date().toISOString()
-  });
-
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
-  });
-
-  // Log response status to track successful vs failed calls
-  console.log('📡 FRONTEND API RESPONSE:', {
-    method,
-    url,
-    status: res.status,
-    ok: res.ok,
-    timestamp: new Date().toISOString()
   });
 
   await throwIfResNotOk(res);
@@ -46,26 +29,8 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const url = queryKey.join("/") as string;
-    
-    // PHANTOM DEBUG: Log every query fetch to track phantom assignment sources
-    console.log('🔍 QUERY FETCH:', {
-      queryKey,
-      url,
-      timestamp: new Date().toISOString()
-    });
-
-    const res = await fetch(url, {
+    const res = await fetch(queryKey.join("/") as string, {
       credentials: "include",
-    });
-
-    // Log query response to track successful vs failed calls
-    console.log('📊 QUERY RESPONSE:', {
-      queryKey,
-      url,
-      status: res.status,
-      ok: res.ok,
-      timestamp: new Date().toISOString()
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -73,18 +38,7 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    const data = await res.json();
-    
-    // PHANTOM DEBUG: Log response data if it contains assignments
-    if (Array.isArray(data) && data.length > 0 && data[0]?.title) {
-      console.log('📚 QUERY DATA (assignments):', {
-        url,
-        count: data.length,
-        firstFew: data.slice(0, 3).map(a => ({ title: a.title, id: a.id }))
-      });
-    }
-    
-    return data;
+    return await res.json();
   };
 
 export const queryClient = new QueryClient({

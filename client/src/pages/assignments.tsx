@@ -112,12 +112,12 @@ export default function AssignmentsPage() {
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
     queryKey: ['/api/assignments', selectedStudent, dateFilter, filterStatus],
     queryFn: async () => {
-      // Calculate date range - much more restrictive for production usability
+      // Calculate date range for current week plus buffer
       const today = new Date();
       const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - 3); // Only 3 days back
+      weekStart.setDate(today.getDate() - 7); // 1 week back
       const weekEnd = new Date(today);
-      weekEnd.setDate(today.getDate() + 7); // Only 1 week forward
+      weekEnd.setDate(today.getDate() + 14); // 2 weeks forward
       
       // Only include completed assignments when specifically requested
       const shouldIncludeCompleted = filterStatus === 'all' || filterStatus === 'completed';
@@ -422,19 +422,9 @@ export default function AssignmentsPage() {
         return false;
       }
       if (dateFilter === 'this_week') {
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - 1); // Start from yesterday
         const weekEnd = new Date(today);
-        weekEnd.setDate(today.getDate() + 5); // Only 5 days forward
-        if (!dueDate || dueDate < weekStart || dueDate > weekEnd) {
-          return false;
-        }
-      }
-      if (dateFilter === 'upcoming') {
-        // Upcoming: only show assignments due in the next 3 days (much more restrictive)
-        const upcomingEnd = new Date(today);
-        upcomingEnd.setDate(today.getDate() + 3); // Only 3 days forward
-        if (!dueDate || dueDate < today || dueDate > upcomingEnd) {
+        weekEnd.setDate(today.getDate() + 7);
+        if (!dueDate || dueDate > weekEnd) {
           return false;
         }
       }

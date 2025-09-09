@@ -168,20 +168,6 @@ const normalizeStudentName = (name: string): string => {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // UNIVERSAL PHANTOM DEBUG: Log ALL requests to catch phantom source
-  app.use((req, res, next) => {
-    // Log ALL requests that could load assignments
-    if (req.url.includes('/api/') || req.url.includes('assignment') || req.url.includes('khalil')) {
-      console.log('🔍 UNIVERSAL DEBUG: Request detected:', {
-        method: req.method,
-        url: req.url,
-        originalUrl: req.originalUrl,
-        timestamp: new Date().toISOString()
-      });
-    }
-    next();
-  });
-
   // Health check endpoints for production monitoring
   app.get('/health', basicHealthCheck);
   app.get('/health/ready', readinessCheck);
@@ -409,11 +395,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // GET /api/assignments - Get assignments for a user/date
   app.get('/api/assignments', requireAuth, async (req, res) => {
-    console.log('🚨 PHANTOM DEBUG: /api/assignments endpoint called!', {
-      query: req.query,
-      url: req.url,
-      method: req.method
-    });
     try {
       const { date, startDate, endDate, studentName, includeCompleted, unscheduled } = req.query;
       
@@ -445,7 +426,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`🔍 PRODUCTION DEBUG: Fetching assignments for userId="${userId}", date="${filterDate}", includeCompleted="${includeCompletedBool}"`);
       const assignments = await storage.getAssignments(userId, filterDate, includeCompletedBool);
       console.log(`📊 PRODUCTION DEBUG: Found ${assignments.length} assignments in database for ${userId}`);
-      console.log(`🚨 PHANTOM DEBUG: Raw assignments from database:`, assignments.map(a => ({ id: a.id, title: a.title, scheduledDate: a.scheduledDate, scheduledBlock: a.scheduledBlock })));
       
       if (assignments.length === 0) {
         console.log(`❌ PRODUCTION DEBUG: No assignments found! Check:
@@ -463,16 +443,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // NOTE: Bible content is handled separately in Bible-specific endpoints
       // This endpoint should only return actual assignments from the assignments table
       
-      // PHANTOM ASSIGNMENT DEBUG: Log every assignment that flows through this API
-      console.log(`🔍 PHANTOM DEBUG: Processing ${allAssignments.length} assignments from database:`);
-      allAssignments.forEach((assignment, index) => {
-        console.log(`  ${index + 1}. "${assignment.title}" (ID: ${assignment.id})`);
-      });
-
       // Apply normalization to assignment titles for meaningful display
       const normalizedAssignments = allAssignments.map(assignment => {
-        console.log(`🔍 PHANTOM DEBUG: BEFORE normalization: "${assignment.title}"`);
-        
         const normalized = normalizeAssignmentNew({
           id: assignment.id,
           title: assignment.title,
@@ -480,8 +452,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           instructions: assignment.instructions,
           dueAt: assignment.dueDate ? assignment.dueDate.toISOString() : null
         });
-        
-        console.log(`🔍 PHANTOM DEBUG: AFTER normalization: "${normalized.displayTitle}"`);
         
         return {
           ...assignment,
@@ -492,13 +462,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       console.log(`📚 Retrieved ${assignments.length} assignments for daily planning for ${studentName} on ${date}`);
-      console.log(`🚨 PHANTOM DEBUG: Final response being sent:`, normalizedAssignments.map(a => ({ 
-        id: a.id, 
-        title: a.title, 
-        displayTitle: a.displayTitle,
-        scheduledDate: a.scheduledDate, 
-        scheduledBlock: a.scheduledBlock 
-      })));
       res.json(normalizedAssignments);
     } catch (error) {
       console.error('Error fetching assignments:', error);
@@ -573,11 +536,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // PRODUCTION FIX: Create missing endpoints that production frontend is calling
   app.get('/api/assignments-v2', async (req, res) => {
-    console.log('🚨 PHANTOM DEBUG: /api/assignments-v2 endpoint called!', {
-      query: req.query,
-      url: req.url,
-      method: req.method
-    });
     console.log('🔧 PRODUCTION FIX: /api/assignments-v2 called with params:', req.query);
     
     try {
@@ -3727,11 +3685,6 @@ Bumped to make room for: ${continuedTitle}`.trim(),
 
   // GET /api/schedule/:student/:date/preview - Get schedule preview with blocks and assignments
   app.get('/api/schedule/:student/:date/preview', requireAuth, async (req: Request, res: Response) => {
-    console.log('🚨 PHANTOM DEBUG: /api/schedule/:student/:date/preview endpoint called!', {
-      params: req.params,
-      query: req.query,
-      url: req.url
-    });
     try {
       const { student, date } = req.params;
       
@@ -3744,8 +3697,6 @@ Bumped to make room for: ${continuedTitle}`.trim(),
 
       // Get assignments scheduled for this student and date
       const assignments = await storage.getAssignmentsByStudentAndDate(student, date);
-      console.log(`🚨 PHANTOM DEBUG: getAssignmentsByStudentAndDate returned ${assignments.length} assignments:`, 
-        assignments.map(a => ({ id: a.id, title: a.title, scheduledDate: a.scheduledDate, scheduledBlock: a.scheduledBlock })));
       
       // Create a map of assignments by block number
       const assignmentsByBlock = new Map();
