@@ -1821,7 +1821,8 @@ export class DatabaseStorage implements IStorage {
         .from(assignments)
         .where(and(
           eq(assignments.userId, userId),
-          eq(assignments.scheduledDate, date)
+          eq(assignments.scheduledDate, date),
+          isNull(assignments.deletedAt) // CRITICAL: Exclude deleted assignments
         ));
       return result || [];
     } catch (error) {
@@ -1853,7 +1854,8 @@ export class DatabaseStorage implements IStorage {
         .where(and(
           eq(assignments.userId, userId),
           eq(assignments.scheduledBlock, blockNumber),
-          eq(assignments.scheduledDate, dateString)
+          eq(assignments.scheduledDate, dateString),
+          isNull(assignments.deletedAt) // CRITICAL: Exclude deleted assignments
         ));
       
       return result || [];
