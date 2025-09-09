@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
-import { CelebrationAnimation } from './CelebrationAnimation';
+import { ConfettiBurst } from './ConfettiBurst';
 
 interface BibleCurriculum {
   id: string;
@@ -163,11 +163,12 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
         </div>
       )}
       
-      <CelebrationAnimation 
+      <ConfettiBurst 
         trigger={showCelebration} 
         onComplete={() => setShowCelebration(false)}
-        type="burst"
-        size="md"
+        colors={['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#06b6d4']}
+        particleCount={35}
+        duration={2800}
       />
     </div>
   );
