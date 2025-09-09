@@ -519,6 +519,35 @@ export class DatabaseStorage implements IStorage {
     blockEnd?: string | null;
   }): Promise<Assignment | undefined> {
     try {
+      // CRITICAL SAFETY CHECK: Prevent overwriting blocks with completed assignments
+      if (scheduling.scheduledBlock !== null) {
+        // Get the assignment being updated to check its user
+        const [currentAssignment] = await db.select().from(assignments).where(eq(assignments.id, id));
+        if (!currentAssignment) {
+          console.error(`❌ SAFETY CHECK: Assignment ${id} not found`);
+          return undefined;
+        }
+        
+        // Check if target block already has a completed assignment
+        const existingInBlock = await db.select()
+          .from(assignments)
+          .where(
+            and(
+              eq(assignments.userId, currentAssignment.userId),
+              eq(assignments.scheduledDate, scheduling.scheduledDate),
+              eq(assignments.scheduledBlock, scheduling.scheduledBlock),
+              eq(assignments.completionStatus, 'completed'),
+              isNull(assignments.deletedAt) // Exclude deleted assignments
+            )
+          );
+          
+        if (existingInBlock.length > 0) {
+          console.error(`🚨 CRITICAL SAFETY: Cannot place "${currentAssignment.title}" in Block ${scheduling.scheduledBlock} - already contains completed assignment: "${existingInBlock[0].title}"`);
+          console.error(`🛡️ PROTECTED: Preserving completed work, scheduling blocked`);
+          return undefined; // Refuse the placement to protect completed work
+        }
+      }
+      
       const result = await db.update(assignments)
         .set({ 
           scheduledDate: scheduling.scheduledDate,
