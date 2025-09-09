@@ -19,6 +19,7 @@ import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
 import { compareAssignmentTitles, extractUnitNumber } from './lib/assignmentIntelligence';
+import { assignmentCache, scheduleCache } from './lib/cache';
 
 // modify the interface with any CRUD methods
 // you might need
@@ -1035,7 +1036,31 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAssignment(id: string): Promise<boolean> {
     try {
+      // Get assignment before deletion to clear relevant cache entries
+      const assignment = await this.getAssignment(id);
+      
       await db.delete(assignments).where(eq(assignments.id, id));
+      
+      // CACHE INVALIDATION: Clear assignment caches to prevent phantom persistence
+      if (assignment) {
+        const userId = assignment.userId;
+        const scheduledDate = assignment.scheduledDate;
+        
+        // Clear assignment cache for this user and date
+        if (scheduledDate) {
+          const cacheKey = `assignments_${userId}_${scheduledDate}`;
+          assignmentCache.delete(cacheKey);
+          console.log(`🧹 CACHE CLEARED: Assignment cache key ${cacheKey} for deleted assignment "${assignment.title}"`);
+        }
+        
+        // Clear schedule cache if assignment was scheduled
+        if (scheduledDate) {
+          const scheduleKey = `schedule_${userId}_${scheduledDate}`;
+          scheduleCache.delete(scheduleKey);
+          console.log(`🧹 CACHE CLEARED: Schedule cache key ${scheduleKey} for deleted assignment`);
+        }
+      }
+      
       return true;
     } catch (error) {
       console.error('Error deleting assignment:', error);
@@ -1045,11 +1070,35 @@ export class DatabaseStorage implements IStorage {
 
   async markAssignmentDeleted(id: string): Promise<Assignment | undefined> {
     try {
+      // Get assignment before soft deletion to clear relevant cache entries
+      const assignment = await this.getAssignment(id);
+      
       // Soft delete: set deletedAt timestamp instead of removing from database
       const result = await db.update(assignments)
         .set({ deletedAt: new Date() })
         .where(eq(assignments.id, id))
         .returning();
+      
+      // CACHE INVALIDATION: Clear assignment caches to prevent phantom persistence
+      if (assignment) {
+        const userId = assignment.userId;
+        const scheduledDate = assignment.scheduledDate;
+        
+        // Clear assignment cache for this user and date
+        if (scheduledDate) {
+          const cacheKey = `assignments_${userId}_${scheduledDate}`;
+          assignmentCache.delete(cacheKey);
+          console.log(`🧹 CACHE CLEARED: Assignment cache key ${cacheKey} for soft-deleted assignment "${assignment.title}"`);
+        }
+        
+        // Clear schedule cache if assignment was scheduled
+        if (scheduledDate) {
+          const scheduleKey = `schedule_${userId}_${scheduledDate}`;
+          scheduleCache.delete(scheduleKey);
+          console.log(`🧹 CACHE CLEARED: Schedule cache key ${scheduleKey} for soft-deleted assignment`);
+        }
+      }
+      
       return result[0] || undefined;
     } catch (error) {
       console.error('Error marking assignment as deleted:', error);

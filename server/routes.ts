@@ -758,10 +758,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/assignments/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
+      
+      // Get assignment before deletion to clear relevant cache entries
+      const assignment = await storage.getAssignment(id);
+      
       const deleted = await storage.deleteAssignment(id);
       
       if (!deleted) {
         return res.status(404).json({ message: 'Assignment not found' });
+      }
+      
+      // CACHE INVALIDATION: Clear assignment caches to prevent phantom persistence
+      if (assignment) {
+        const userId = assignment.userId;
+        const scheduledDate = assignment.scheduledDate;
+        
+        // Clear assignment cache for this user and date
+        if (scheduledDate) {
+          const cacheKey = `assignments_${userId}_${scheduledDate}`;
+          assignmentCache.delete(cacheKey);
+          console.log(`🧹 CACHE CLEARED: Assignment cache key ${cacheKey} for deleted assignment "${assignment.title}"`);
+        }
+        
+        // Clear schedule cache if assignment was scheduled
+        if (scheduledDate) {
+          const scheduleKey = `schedule_${userId}_${scheduledDate}`;
+          scheduleCache.delete(scheduleKey);
+          console.log(`🧹 CACHE CLEARED: Schedule cache key ${scheduleKey} for deleted assignment`);
+        }
       }
       
       res.status(204).send();
