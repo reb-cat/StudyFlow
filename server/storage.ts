@@ -17,7 +17,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, sql, desc, inArray, isNull, isNotNull, or, lte } from "drizzle-orm";
+import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
 import { compareAssignmentTitles, extractUnitNumber } from './lib/assignmentIntelligence';
 
 // modify the interface with any CRUD methods
@@ -1485,15 +1485,20 @@ export class DatabaseStorage implements IStorage {
                       status.studentName === 'khalil' ? 'khalil-user' : 
                       status.studentName + '-user';
         
-        // Calculate today's assignment progress - ONLY assignments actually scheduled for today
-        // This should match what's shown in the guided day view
+        // Calculate today's assignment progress
         const todayAssignments = await db
           .select()
           .from(assignments)
           .where(
             and(
               eq(assignments.userId, userId),
-              eq(assignments.scheduledDate, today) // ONLY scheduled for today, not random overdue assignments
+              or(
+                eq(assignments.scheduledDate, today),
+                and(
+                  isNull(assignments.scheduledDate),
+                  lte(assignments.dueDate, new Date())
+                )
+              )
             )
           );
         

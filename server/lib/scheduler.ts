@@ -231,12 +231,15 @@ class JobScheduler {
                   console.log(`   ⏰ Availability: ${intelligence.availabilityWindow.availableFrom?.toDateString() || 'open'} → ${intelligence.availabilityWindow.availableUntil?.toDateString() || 'no limit'}`);
                 }
 
-                // DISABLED: NESTED ASSIGNMENT PARSING - PRESERVING CANVAS DATA INTEGRITY
-                // Canvas assignments must be pulled DIRECTLY without modification
-                // This parser was breaking up legitimate Canvas assignments into generic sub-tasks
-                const parsingResult = { shouldSplit: false, subAssignments: [], originalTitle: canvasAssignment.name, parsingConfidence: 1.0 };
+                // NEW: NESTED ASSIGNMENT PARSING - Break down complex assignments into manageable chunks
+                const { parseNestedAssignments, createSubAssignmentRecords } = await import('./nestedAssignmentParser.js');
+                const parsingResult = parseNestedAssignments(
+                  canvasAssignment.name,
+                  canvasAssignment.description || null,
+                  studentName.toLowerCase()
+                );
 
-                if (false && parsingResult.shouldSplit) {  // PERMANENTLY DISABLED
+                if (parsingResult.shouldSplit) {
                   console.log(`🔪 NESTED PARSING: Breaking down "${canvasAssignment.name}" into ${parsingResult.subAssignments.length} sub-assignments`);
                   console.log(`   🎯 Parsing confidence: ${Math.round(parsingResult.parsingConfidence * 100)}%`);
                   
@@ -486,12 +489,15 @@ class JobScheduler {
                   console.log(`   ⚠️ Previous year/template data detected`);
                 }
 
-                // DISABLED: NESTED ASSIGNMENT PARSING - PRESERVING CANVAS DATA INTEGRITY  
-                // Canvas assignments must be pulled DIRECTLY without modification
-                // This parser was breaking up legitimate Canvas assignments into generic sub-tasks
-                const parsingResult = { shouldSplit: false, subAssignments: [], originalTitle: canvasAssignment.name, parsingConfidence: 1.0 };
+                // NEW: NESTED ASSIGNMENT PARSING for Canvas Instance 2 - Break down complex assignments
+                const { parseNestedAssignments } = await import('./nestedAssignmentParser.js');
+                const parsingResult = parseNestedAssignments(
+                  canvasAssignment.name,
+                  canvasAssignment.description || null,
+                  studentName.toLowerCase()
+                );
 
-                if (false && parsingResult.shouldSplit) {  // PERMANENTLY DISABLED
+                if (parsingResult.shouldSplit) {
                   console.log(`🔪 NESTED PARSING (Canvas 2): Breaking down "${canvasAssignment.name}" into ${parsingResult.subAssignments.length} sub-assignments`);
                   console.log(`   🎯 Parsing confidence: ${Math.round(parsingResult.parsingConfidence * 100)}%`);
                   

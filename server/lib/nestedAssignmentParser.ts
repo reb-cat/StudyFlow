@@ -29,14 +29,60 @@ export function parseNestedAssignments(
   instructions: string | null, 
   studentName: string = 'generic'
 ): AssignmentParsingResult {
-  // CANVAS DATA INTEGRITY: COMPLETELY DISABLED
-  // Never split Canvas assignments - preserve them exactly as-is
-  // Canvas is the definitive source of truth for assignment titles and structure
+  const fullText = `${title} ${instructions || ''}`.toLowerCase();
+  
+  // Skip parsing for simple assignments that are already atomic
+  if (isSimpleAssignment(fullText)) {
+    return {
+      shouldSplit: false,
+      subAssignments: [],
+      originalTitle: title,
+      parsingConfidence: 0.9
+    };
+  }
+
+  // Skip parsing for cohesive assignments that should stay together
+  if (isCohesiveAssignment(fullText)) {
+    return {
+      shouldSplit: false,
+      subAssignments: [],
+      originalTitle: title,
+      parsingConfidence: 0.85
+    };
+  }
+
+  const subAssignments: ParsedSubAssignment[] = [];
+  let confidence = 0.5;
+
+  // Parse reading ranges (e.g., "Read Lessons 6-9", "Chapters 1-3")
+  // But be more conservative - only split if it's clearly a range of separate lessons
+  const readingTasks = parseReadingRanges(fullText, studentName);
+  if (readingTasks.length > 1) { // Changed from > 0 to > 1 to be more conservative
+    subAssignments.push(...readingTasks);
+    confidence = 0.85;
+  }
+
+  // Parse individual activities and combined tasks
+  const activityTasks = parseActivities(fullText, instructions || '');
+  if (activityTasks.length > 0) {
+    subAssignments.push(...activityTasks);
+    confidence = Math.max(confidence, 0.8);
+  }
+
+  // Be much more conservative about splitting - require strong evidence
+  // Must have multiple reading tasks OR multiple distinct activities
+  // AND the total count must be significant (3+ components)
+  const hasMultipleReadingTasks = readingTasks.length > 1;
+  const hasMultipleActivities = activityTasks.length > 1;
+  const totalComponents = subAssignments.length;
+  
+  const shouldSplit = (hasMultipleReadingTasks || hasMultipleActivities) && totalComponents >= 3;
+
   return {
-    shouldSplit: false,
-    subAssignments: [],
+    shouldSplit,
+    subAssignments: shouldSplit ? subAssignments : [],
     originalTitle: title,
-    parsingConfidence: 1.0
+    parsingConfidence: confidence
   };
 }
 
@@ -251,8 +297,24 @@ export function createSubAssignmentRecords(
   originalAssignment: any,
   parsedResult: AssignmentParsingResult
 ) {
-  // CANVAS DATA INTEGRITY: COMPLETELY DISABLED
-  // Always return the original assignment unchanged
-  // Never create sub-assignments that modify Canvas data
-  return [originalAssignment];
+  if (!parsedResult.shouldSplit) {
+    return [originalAssignment]; // Return original if no splitting needed
+  }
+
+  return parsedResult.subAssignments.map((subAssignment, index) => ({
+    ...originalAssignment,
+    id: undefined, // Let database generate new IDs
+    title: subAssignment.title,
+    instructions: subAssignment.description,
+    actualEstimatedMinutes: subAssignment.estimatedMinutes,
+    priority: subAssignment.priority,
+    difficulty: subAssignment.difficulty,
+    creationSource: 'auto_split' as const,
+    notes: `Split from: ${originalAssignment.title} (Part ${index + 1}/${parsedResult.subAssignments.length})`,
+    // Preserve Canvas metadata but mark as derived
+    canvasId: null, // These are derived assignments, not direct Canvas imports
+    isCanvasImport: false,
+    // Sequence numbering for proper scheduling
+    sequenceNumber: subAssignment.lessonNumber || index + 1
+  }));
 }

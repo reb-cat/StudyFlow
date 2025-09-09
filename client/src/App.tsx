@@ -19,7 +19,6 @@ import ChecklistManager from "@/pages/checklist-manager";
 import ScheduleManager from "@/pages/schedule-manager";
 import RewardsPage from "@/pages/rewards";
 import UnlockPage from "@/pages/unlock";
-import ManualSubAssignments from "@/pages/manual-sub-assignments";
 import AdminAuth from "@/components/AdminAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -70,7 +69,6 @@ function Router() {
       <Route path="/schedule-templates" component={ScheduleTemplates} />
       <Route path="/checklist-manager" component={ChecklistManager} />
       <Route path="/schedule-manager" component={ScheduleManager} />
-      <Route path="/manual-sub-assignments" component={ManualSubAssignments} />
       <Route path="/rewards" component={RewardsPage} />
       <Route path="/student/:student" component={StudentDashboard} />
       <Route component={NotFound} />
