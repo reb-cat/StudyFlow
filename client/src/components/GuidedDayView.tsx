@@ -7,6 +7,7 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { getTodayString, formatDateShort } from '@shared/dateUtils';
+import { ConfettiBurst } from './ConfettiBurst';
 
 // Timezone-safe New York date string function
 const toNYDateString = (d = new Date()) => {
@@ -706,6 +707,7 @@ export function GuidedDayView({
   const [stuckCountdown, setStuckCountdown] = useState(0);
   const [stuckPendingKey, setStuckPendingKey] = useState<string | null>(null);
   const [isProcessingStuck, setIsProcessingStuck] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const [bibleData, setBibleData] = useState<any>(null);
   const [checkedItems, setCheckedItems] = useState(new Set<string>());
   const [showInstructions, setShowInstructions] = useState(false);
@@ -958,6 +960,9 @@ export function GuidedDayView({
           bankMinutes: bankMinutes || 0
         }) as any;
         
+        // Trigger confetti celebration for assignment completion
+        setShowConfetti(true);
+        
         toast({
           title: "Assignment Completed!",
           description: "Assignment marked as complete",
@@ -986,6 +991,9 @@ export function GuidedDayView({
           readingType: 'daily_reading',
           studentName: studentName
         });
+        
+        // Trigger confetti celebration for Bible reading completion
+        setShowConfetti(true);
         
         toast({
           title: "Bible Reading Completed!",
@@ -1794,6 +1802,15 @@ export function GuidedDayView({
           </div>
         </div>
       )}
+      
+      {/* Confetti Animation */}
+      <ConfettiBurst 
+        trigger={showConfetti} 
+        onComplete={() => setShowConfetti(false)}
+        colors={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16']}
+        particleCount={60}
+        duration={3500}
+      />
     </div>
   );
 }
