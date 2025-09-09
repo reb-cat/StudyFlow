@@ -395,6 +395,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // GET /api/assignments - Get assignments for a user/date
   app.get('/api/assignments', requireAuth, async (req, res) => {
+    console.log('🚨 PHANTOM DEBUG: /api/assignments endpoint called!', {
+      query: req.query,
+      url: req.url,
+      method: req.method
+    });
     try {
       const { date, startDate, endDate, studentName, includeCompleted, unscheduled } = req.query;
       
@@ -426,6 +431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`🔍 PRODUCTION DEBUG: Fetching assignments for userId="${userId}", date="${filterDate}", includeCompleted="${includeCompletedBool}"`);
       const assignments = await storage.getAssignments(userId, filterDate, includeCompletedBool);
       console.log(`📊 PRODUCTION DEBUG: Found ${assignments.length} assignments in database for ${userId}`);
+      console.log(`🚨 PHANTOM DEBUG: Raw assignments from database:`, assignments.map(a => ({ id: a.id, title: a.title, scheduledDate: a.scheduledDate, scheduledBlock: a.scheduledBlock })));
       
       if (assignments.length === 0) {
         console.log(`❌ PRODUCTION DEBUG: No assignments found! Check:
@@ -472,6 +478,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       console.log(`📚 Retrieved ${assignments.length} assignments for daily planning for ${studentName} on ${date}`);
+      console.log(`🚨 PHANTOM DEBUG: Final response being sent:`, normalizedAssignments.map(a => ({ 
+        id: a.id, 
+        title: a.title, 
+        displayTitle: a.displayTitle,
+        scheduledDate: a.scheduledDate, 
+        scheduledBlock: a.scheduledBlock 
+      })));
       res.json(normalizedAssignments);
     } catch (error) {
       console.error('Error fetching assignments:', error);
