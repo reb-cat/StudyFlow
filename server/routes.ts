@@ -4018,6 +4018,74 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     }
   });
 
+  // PRODUCTION FIX: Force assignment reallocation with detailed debugging
+  app.post('/api/force-schedule-reallocate/:studentName/:date', requireAuth, async (req, res) => {
+    try {
+      const { studentName, date } = req.params;
+      
+      console.log(`🔧 PRODUCTION FIX: Force reallocation for ${studentName} on ${date}`);
+      
+      const userId = `${studentName.toLowerCase()}-user`;
+      
+      // Step 1: Show what assignments exist before reallocation
+      const allAssignments = await storage.getAssignments(userId, date, true);
+      const pendingAssignments = allAssignments.filter(a => a.completionStatus === 'pending');
+      const scheduledAssignments = allAssignments.filter(a => a.scheduledDate === date);
+      
+      console.log(`📊 BEFORE REALLOCATION:
+        - Total assignments: ${allAssignments.length}
+        - Pending assignments: ${pendingAssignments.length}
+        - Scheduled for ${date}: ${scheduledAssignments.length}`);
+      
+      // Step 2: Clear ALL scheduling for this date (nuclear option)
+      console.log(`🧹 NUCLEAR CLEAR: Removing all scheduling for ${date}`);
+      
+      const clearedResult = await db.update(assignments)
+        .set({
+          scheduledDate: null,
+          scheduledBlock: null,
+          blockStart: null,
+          blockEnd: null
+        })
+        .where(and(
+          eq(assignments.userId, userId),
+          eq(assignments.scheduledDate, date)
+        ))
+        .returning();
+        
+      console.log(`🧹 CLEARED: ${clearedResult.length} assignments unscheduled`);
+      
+      // Step 3: Force fresh allocation
+      console.log(`🎯 FORCE ALLOCATION: Starting fresh allocation`);
+      const result = await storage.autoScheduleAssignmentsForDate(studentName, date);
+      
+      // Step 4: Show what got scheduled
+      const newScheduledAssignments = await storage.getAssignments(userId, date, true);
+      const newlyScheduled = newScheduledAssignments.filter(a => a.scheduledDate === date);
+      
+      console.log(`📊 AFTER REALLOCATION:
+        - Newly scheduled: ${newlyScheduled.length}
+        - Scheduled result: ${result.scheduled}/${result.total}`);
+      
+      res.json({
+        success: true,
+        before: {
+          total: allAssignments.length,
+          pending: pendingAssignments.length,
+          scheduled: scheduledAssignments.length
+        },
+        after: {
+          scheduled: newlyScheduled.length,
+          result: result
+        },
+        message: `PRODUCTION FIX: ${newlyScheduled.length} assignments now scheduled for ${studentName} on ${date}`
+      });
+    } catch (error) {
+      console.error('Error in production force reallocation:', error);
+      res.status(500).json({ error: 'Failed to force reallocate assignments' });
+    }
+  });
+
   // PHASE A FIX: API 404 handler - must be LAST API route to catch unmatched /api/* paths
   app.use('/api/*', (req: Request, res: Response) => {
     res.status(404).json({ 
