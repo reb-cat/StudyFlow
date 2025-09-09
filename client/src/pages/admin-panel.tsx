@@ -61,14 +61,6 @@ const adminTiles: AdminTile[] = [
     badge: "New"
   },
   {
-    title: "Schedule Preview & Cache",
-    description: "Monitor assignments and clear phantom cache entries",
-    href: "/admin/schedule-preview",
-    icon: Database,
-    color: "red",
-    badge: "Debug"
-  },
-  {
     title: "Family Dashboard",
     description: "Parent overview of all students and family tasks",
     href: "/family",
