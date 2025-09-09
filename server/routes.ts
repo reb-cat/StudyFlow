@@ -559,6 +559,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // PRODUCTION FIX: Create missing endpoints that production frontend is calling
   app.get('/api/assignments-v2', async (req, res) => {
+    console.log('🚨 PHANTOM DEBUG: /api/assignments-v2 endpoint called!', {
+      query: req.query,
+      url: req.url,
+      method: req.method
+    });
     console.log('🔧 PRODUCTION FIX: /api/assignments-v2 called with params:', req.query);
     
     try {
@@ -3708,6 +3713,11 @@ Bumped to make room for: ${continuedTitle}`.trim(),
 
   // GET /api/schedule/:student/:date/preview - Get schedule preview with blocks and assignments
   app.get('/api/schedule/:student/:date/preview', requireAuth, async (req: Request, res: Response) => {
+    console.log('🚨 PHANTOM DEBUG: /api/schedule/:student/:date/preview endpoint called!', {
+      params: req.params,
+      query: req.query,
+      url: req.url
+    });
     try {
       const { student, date } = req.params;
       
@@ -3720,6 +3730,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
 
       // Get assignments scheduled for this student and date
       const assignments = await storage.getAssignmentsByStudentAndDate(student, date);
+      console.log(`🚨 PHANTOM DEBUG: getAssignmentsByStudentAndDate returned ${assignments.length} assignments:`, 
+        assignments.map(a => ({ id: a.id, title: a.title, scheduledDate: a.scheduledDate, scheduledBlock: a.scheduledBlock })));
       
       // Create a map of assignments by block number
       const assignmentsByBlock = new Map();
