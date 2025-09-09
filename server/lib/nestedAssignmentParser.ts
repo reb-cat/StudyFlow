@@ -29,60 +29,15 @@ export function parseNestedAssignments(
   instructions: string | null, 
   studentName: string = 'generic'
 ): AssignmentParsingResult {
-  const fullText = `${title} ${instructions || ''}`.toLowerCase();
+  // CRITICAL FIX: COMPLETELY DISABLE assignment splitting to prevent phantom assignments
+  // Canvas is the definitive source of truth - preserve assignments exactly as they are
+  console.log(`🔒 ASSIGNMENT SPLITTING DISABLED: Preserving "${title}" as single assignment (Canvas source of truth)`);
   
-  // Skip parsing for simple assignments that are already atomic
-  if (isSimpleAssignment(fullText)) {
-    return {
-      shouldSplit: false,
-      subAssignments: [],
-      originalTitle: title,
-      parsingConfidence: 0.9
-    };
-  }
-
-  // Skip parsing for cohesive assignments that should stay together
-  if (isCohesiveAssignment(fullText)) {
-    return {
-      shouldSplit: false,
-      subAssignments: [],
-      originalTitle: title,
-      parsingConfidence: 0.85
-    };
-  }
-
-  const subAssignments: ParsedSubAssignment[] = [];
-  let confidence = 0.5;
-
-  // Parse reading ranges (e.g., "Read Lessons 6-9", "Chapters 1-3")
-  // But be more conservative - only split if it's clearly a range of separate lessons
-  const readingTasks = parseReadingRanges(fullText, studentName);
-  if (readingTasks.length > 1) { // Changed from > 0 to > 1 to be more conservative
-    subAssignments.push(...readingTasks);
-    confidence = 0.85;
-  }
-
-  // Parse individual activities and combined tasks
-  const activityTasks = parseActivities(fullText, instructions || '');
-  if (activityTasks.length > 0) {
-    subAssignments.push(...activityTasks);
-    confidence = Math.max(confidence, 0.8);
-  }
-
-  // Be much more conservative about splitting - require strong evidence
-  // Must have multiple reading tasks OR multiple distinct activities
-  // AND the total count must be significant (3+ components)
-  const hasMultipleReadingTasks = readingTasks.length > 1;
-  const hasMultipleActivities = activityTasks.length > 1;
-  const totalComponents = subAssignments.length;
-  
-  const shouldSplit = (hasMultipleReadingTasks || hasMultipleActivities) && totalComponents >= 3;
-
   return {
-    shouldSplit,
-    subAssignments: shouldSplit ? subAssignments : [],
+    shouldSplit: false,
+    subAssignments: [],
     originalTitle: title,
-    parsingConfidence: confidence
+    parsingConfidence: 0.9
   };
 }
 
