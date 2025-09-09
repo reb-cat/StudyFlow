@@ -170,7 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // UNIVERSAL PHANTOM DEBUG: Log ALL API requests to catch phantom source
   app.use((req, res, next) => {
-    if (req.url.includes('/api/') && (req.url.includes('khalil') || req.url.includes('assignment') || req.url.includes('schedule'))) {
+    if (req.url.includes('/api/')) {
       console.log('🔍 UNIVERSAL DEBUG: API request detected:', {
         method: req.method,
         url: req.url,
