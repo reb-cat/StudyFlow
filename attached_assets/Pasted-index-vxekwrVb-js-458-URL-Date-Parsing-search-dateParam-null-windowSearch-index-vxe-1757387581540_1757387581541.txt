@@ -1,0 +1,59 @@
+index-vxekwrVb.js:458 🔍 URL Date Parsing: {search: '', dateParam: null, windowSearch: ''}
+index-vxekwrVb.js:458 📅 Falling back to today: 2025-09-08
+index-vxekwrVb.js:458 🗓️ Date Debug: {selectedDate: '2025-09-08', selectedDateObj: 'Mon Sep 08 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Monday', dateDisplay: 'Monday, September 8, 2025', today: '2025-09-08'}
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: selectedDate=2025-09-08
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Total assignments=0, Today's assignments=0
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Today's assignments: []
+index-vxekwrVb.js:458 🔄 URL Sync Check: {search: '', dateParam: null, currentSelectedDate: '2025-09-08'}
+index-vxekwrVb.js:48  GET https://study-flow.replit.app/api/bible-curriculum/current/Khalil 404 (Not Found)
+(anonymous) @ index-vxekwrVb.js:48
+i @ index-vxekwrVb.js:48
+b @ index-vxekwrVb.js:48
+start @ index-vxekwrVb.js:48
+fetch @ index-vxekwrVb.js:48
+ei @ index-vxekwrVb.js:48
+onSubscribe @ index-vxekwrVb.js:48
+subscribe @ index-vxekwrVb.js:48
+(anonymous) @ index-vxekwrVb.js:48
+ux @ index-vxekwrVb.js:38
+Fl @ index-vxekwrVb.js:40
+Xs @ index-vxekwrVb.js:40
+(anonymous) @ index-vxekwrVb.js:40
+S @ index-vxekwrVb.js:25
+E @ index-vxekwrVb.js:25
+index-vxekwrVb.js:458 🗓️ Date Debug: {selectedDate: '2025-09-08', selectedDateObj: 'Mon Sep 08 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Monday', dateDisplay: 'Monday, September 8, 2025', today: '2025-09-08'}
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: selectedDate=2025-09-08
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Total assignments=0, Today's assignments=0
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Today's assignments: []
+index-vxekwrVb.js:458 🗓️ Date Debug: {selectedDate: '2025-09-08', selectedDateObj: 'Mon Sep 08 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Monday', dateDisplay: 'Monday, September 8, 2025', today: '2025-09-08'}
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: selectedDate=2025-09-08
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Total assignments=0, Today's assignments=0
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Today's assignments: []
+index-vxekwrVb.js:458 🗓️ Date Debug: {selectedDate: '2025-09-08', selectedDateObj: 'Mon Sep 08 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Monday', dateDisplay: 'Monday, September 8, 2025', today: '2025-09-08'}
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: selectedDate=2025-09-08
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Total assignments=0, Today's assignments=0
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Today's assignments: []
+index-vxekwrVb.js:458 🎯 BLOCK 2: empty [from: none]
+index-vxekwrVb.js:458 🎯 BLOCK 3: empty [from: none]
+index-vxekwrVb.js:458 🎯 BLOCK 6: empty [from: none]
+index-vxekwrVb.js:458 🗓️ Date Debug: {selectedDate: '2025-09-08', selectedDateObj: 'Mon Sep 08 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Monday', dateDisplay: 'Monday, September 8, 2025', today: '2025-09-08'}
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: selectedDate=2025-09-08
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Total assignments=0, Today's assignments=0
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Today's assignments: []
+index-vxekwrVb.js:458 🎯 BLOCK 2: empty [from: none]
+index-vxekwrVb.js:458 🎯 BLOCK 3: empty [from: none]
+index-vxekwrVb.js:458 🎯 BLOCK 6: empty [from: none]
+index-vxekwrVb.js:458 🗓️ Date Debug: {selectedDate: '2025-09-08', selectedDateObj: 'Mon Sep 08 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Monday', dateDisplay: 'Monday, September 8, 2025', today: '2025-09-08'}
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: selectedDate=2025-09-08
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Total assignments=53, Today's assignments=1
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Today's assignments: [{…}]
+index-vxekwrVb.js:458 🎯 BLOCK 2: empty [from: none]
+index-vxekwrVb.js:458 🎯 BLOCK 3: empty [from: none]
+index-vxekwrVb.js:458 🎯 BLOCK 6: Read Lesson 3 + Answer Questions [from: dbScheduled]
+index-vxekwrVb.js:458 🗓️ Date Debug: {selectedDate: '2025-09-08', selectedDateObj: 'Mon Sep 08 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Monday', dateDisplay: 'Monday, September 8, 2025', today: '2025-09-08'}
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: selectedDate=2025-09-08
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Total assignments=53, Today's assignments=1
+index-vxekwrVb.js:458 🔍 FRONTEND DEBUG: Today's assignments: [{…}]
+index-vxekwrVb.js:458 🎯 BLOCK 2: empty [from: none]
+index-vxekwrVb.js:458 🎯 BLOCK 3: empty [from: none]
+index-vxekwrVb.js:458 🎯 BLOCK 6: Read Lesson 3 + Answer Questions [from: dbScheduled]
