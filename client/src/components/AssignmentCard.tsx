@@ -114,11 +114,10 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
 
   const handleStatusUpdate = async (newStatus: Assignment['completionStatus']) => {
     try {
-      const response = await fetch('/api/assignments', {
+      const response = await fetch(`/api/assignments/${assignment.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: assignment.id,
           completionStatus: newStatus,
           timeSpent: assignment.timeSpent || 0,
           notes: newStatus === 'stuck' ? 'Student marked as stuck - needs help' : ''

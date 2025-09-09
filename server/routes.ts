@@ -256,6 +256,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (updateData.completionStatus === 'completed') {
         updateData.completedAt = new Date();
         
+        // 🔗 BLOCK STATUS SYNC: Update corresponding block status when assignment is completed
+        try {
+          const assignment = await storage.getAssignment(id);
+          if (assignment && assignment.scheduledDate && assignment.scheduledBlock) {
+            // Find the template block ID for this scheduled block
+            const studentName = assignment.userId || 'Unknown';
+            const targetDate = assignment.scheduledDate;
+            
+            // Get the schedule template to find the correct templateBlockId
+            const targetDateObj = new Date(targetDate);
+            const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const weekday = weekdays[targetDateObj.getDay()];
+            const templateBlocks = await storage.getScheduleTemplate(studentName, weekday);
+            const matchingBlock = templateBlocks.find(block => block.blockNumber === assignment.scheduledBlock);
+            
+            if (matchingBlock) {
+              console.log(`🔗 SYNCING: Assignment completion to block status for ${studentName}, block ${assignment.scheduledBlock}`);
+              await storage.updateBlockStatus(studentName, targetDate, matchingBlock.id, 'complete');
+            }
+          }
+        } catch (error) {
+          console.error('❌ Block status sync failed:', error);
+          // Continue with assignment update even if block sync fails
+        }
+        
         // 🎯 REWARDBANK HOOK: Award points for completing assignment
         try {
           const studentName = req.params.userId; // Extract student from userId
