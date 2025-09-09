@@ -443,8 +443,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // NOTE: Bible content is handled separately in Bible-specific endpoints
       // This endpoint should only return actual assignments from the assignments table
       
+      // PHANTOM ASSIGNMENT DEBUG: Log every assignment that flows through this API
+      console.log(`🔍 PHANTOM DEBUG: Processing ${allAssignments.length} assignments from database:`);
+      allAssignments.forEach((assignment, index) => {
+        console.log(`  ${index + 1}. "${assignment.title}" (ID: ${assignment.id})`);
+      });
+
       // Apply normalization to assignment titles for meaningful display
       const normalizedAssignments = allAssignments.map(assignment => {
+        console.log(`🔍 PHANTOM DEBUG: BEFORE normalization: "${assignment.title}"`);
+        
         const normalized = normalizeAssignmentNew({
           id: assignment.id,
           title: assignment.title,
@@ -452,6 +460,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           instructions: assignment.instructions,
           dueAt: assignment.dueDate ? assignment.dueDate.toISOString() : null
         });
+        
+        console.log(`🔍 PHANTOM DEBUG: AFTER normalization: "${normalized.displayTitle}"`);
         
         return {
           ...assignment,
