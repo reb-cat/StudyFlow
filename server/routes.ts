@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { logger } from "./lib/logger";
 import { basicHealthCheck, readinessCheck, livenessCheck, metricsEndpoint } from "./lib/health-checks";
 import { generalRateLimit, authRateLimit, apiRateLimit, strictRateLimit, uploadRateLimit } from "./lib/rate-limiting";
+import { assignmentCache, scheduleCache, canvasCache, getAllCacheStats } from "./lib/cache";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
 
@@ -3822,6 +3823,126 @@ Bumped to make room for: ${continuedTitle}`.trim(),
     } catch (error) {
       console.error('Error regenerating schedule:', error);
       res.status(500).json({ message: 'Failed to regenerate schedule' });
+    }
+  });
+
+  // ============================================================================
+  // CACHE DIAGNOSTIC ENDPOINTS
+  // ============================================================================
+  
+  // Cache diagnostic endpoint to debug phantom assignments
+  app.get('/api/debug/assignment-sources/:studentName/:date', async (req, res) => {
+    try {
+      const { studentName, date } = req.params;
+      const userId = `${studentName.toLowerCase()}-user`;
+      
+      // Get assignments directly from database (bypass cache)
+      console.log('🔍 CACHE DEBUG: Fetching fresh assignment data from database');
+      const dbAssignments = await storage.getAssignments(userId, date, false);
+      
+      // Get cache keys and check what's cached
+      const cacheKey = `assignments_${userId}_${date}`;
+      const cachedAssignments = assignmentCache.get(cacheKey);
+      
+      // Get cache statistics
+      const cacheStats = getAllCacheStats();
+      
+      // Compare database vs cache
+      const dbTitles = dbAssignments.map(a => a.title);
+      const cachedTitles = cachedAssignments ? cachedAssignments.map((a: any) => a.title) : [];
+      
+      // Find phantoms (in cache but not in DB)
+      const phantomAssignments = cachedTitles.filter((title: string) => !dbTitles.includes(title));
+      
+      // Find missing (in DB but not in cache)
+      const missingAssignments = dbTitles.filter(title => !cachedTitles.includes(title));
+      
+      const diagnostics = {
+        student: studentName,
+        date,
+        timestamp: new Date().toISOString(),
+        
+        database: {
+          count: dbAssignments.length,
+          assignments: dbAssignments.map(a => ({
+            id: a.id,
+            title: a.title,
+            creationSource: a.creationSource,
+            notes: a.notes
+          }))
+        },
+        
+        cache: {
+          key: cacheKey,
+          exists: !!cachedAssignments,
+          count: cachedAssignments ? cachedAssignments.length : 0,
+          assignments: cachedAssignments ? cachedAssignments.map((a: any) => ({
+            id: a.id,
+            title: a.title,
+            creationSource: a.creationSource,
+            notes: a.notes
+          })) : []
+        },
+        
+        analysis: {
+          phantomCount: phantomAssignments.length,
+          phantomAssignments: phantomAssignments,
+          missingCount: missingAssignments.length,
+          missingAssignments: missingAssignments,
+          cacheInSync: phantomAssignments.length === 0 && missingAssignments.length === 0
+        },
+        
+        cacheStats: cacheStats
+      };
+      
+      console.log('🔍 CACHE DIAGNOSTIC RESULTS:', JSON.stringify(diagnostics, null, 2));
+      res.json(diagnostics);
+      
+    } catch (error) {
+      console.error('❌ Cache diagnostic failed:', error);
+      res.status(500).json({ 
+        error: 'Cache diagnostic failed', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+  
+  // Cache clearing endpoint
+  app.post('/api/debug/clear-cache', async (req, res) => {
+    try {
+      const { cacheType = 'all' } = req.body;
+      
+      let clearedCaches = [];
+      
+      if (cacheType === 'all' || cacheType === 'assignments') {
+        assignmentCache.clear();
+        clearedCaches.push('assignments');
+      }
+      
+      if (cacheType === 'all' || cacheType === 'schedules') {
+        scheduleCache.clear();
+        clearedCaches.push('schedules');
+      }
+      
+      if (cacheType === 'all' || cacheType === 'canvas') {
+        canvasCache.clear();
+        clearedCaches.push('canvas');
+      }
+      
+      console.log(`🧹 CACHE CLEARED: ${clearedCaches.join(', ')} caches cleared`);
+      
+      res.json({
+        message: `Cleared ${clearedCaches.join(', ')} caches`,
+        clearedCaches,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Cache clear failed:', error);
+      res.status(500).json({ 
+        error: 'Cache clear failed', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      });
     }
   });
 
