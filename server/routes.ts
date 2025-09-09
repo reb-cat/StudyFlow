@@ -168,6 +168,19 @@ const normalizeStudentName = (name: string): string => {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // UNIVERSAL PHANTOM DEBUG: Log ALL API requests to catch phantom source
+  app.use((req, res, next) => {
+    if (req.url.includes('/api/') && (req.url.includes('khalil') || req.url.includes('assignment') || req.url.includes('schedule'))) {
+      console.log('🔍 UNIVERSAL DEBUG: API request detected:', {
+        method: req.method,
+        url: req.url,
+        originalUrl: req.originalUrl,
+        userAgent: req.get('User-Agent')?.substring(0, 50)
+      });
+    }
+    next();
+  });
+
   // Health check endpoints for production monitoring
   app.get('/health', basicHealthCheck);
   app.get('/health/ready', readinessCheck);
