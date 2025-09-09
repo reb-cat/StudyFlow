@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { normalizeAssignment } from '@shared/normalize';
 import type { Assignment } from '@shared/schema';
-import { CelebrationAnimation } from './CelebrationAnimation';
+import { ConfettiBurst } from './ConfettiBurst';
 import { useState } from 'react';
 
 interface AssignmentCardProps {
@@ -199,11 +199,12 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
             </Badge>
           </div>
         </CardContent>
-        <CelebrationAnimation 
+        <ConfettiBurst 
           trigger={showCelebration} 
           onComplete={() => setShowCelebration(false)}
-          type="burst"
-          size="sm"
+          colors={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4']}
+          particleCount={30}
+          duration={2500}
         />
       </Card>
     );
@@ -346,11 +347,12 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
           </div>
         )}
       </CardContent>
-      <CelebrationAnimation 
+      <ConfettiBurst 
         trigger={showCelebration} 
         onComplete={() => setShowCelebration(false)}
-        type="burst"
-        size="md"
+        colors={['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4']}
+        particleCount={40}
+        duration={3000}
       />
     </Card>
   );
