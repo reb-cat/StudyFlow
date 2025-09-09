@@ -71,6 +71,7 @@ function Router() {
       <Route path="/schedule-manager" component={ScheduleManager} />
       <Route path="/rewards" component={RewardsPage} />
       <Route path="/student/:student" component={StudentDashboard} />
+      <Route path="/students/:student" component={StudentDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
