@@ -129,11 +129,15 @@ class JobScheduler {
               // Get existing assignments once for efficiency
               const existingAssignments = await storage.getAssignments(userId);
               
-              // COMPLETELY BLOCK all "(Continued)" assignments from Canvas import
-              // These are created locally by "Need More Time" feature and should NEVER be imported from Canvas
+              // Skip continued assignments if original is already completed (prevents re-import of local continuations)
               if (canvasAssignment.name.includes('(Continued)')) {
-                console.log(`🚫 BLOCKED: Canvas continued assignment "${canvasAssignment.name}" - StudyFlow manages continued assignments locally`);
-                continue;
+                const originalTitle = canvasAssignment.name.replace(' (Continued)', '');
+                const originalAssignment = existingAssignments.find(a => a.title === originalTitle);
+                
+                if (originalAssignment && originalAssignment.completionStatus === 'completed' && originalAssignment.notes?.includes('continued in:')) {
+                  console.log(`⏭️ Skipping Canvas continued assignment "${canvasAssignment.name}" - original already completed with local continuation`);
+                  continue;
+                }
               }
               
               // Log the real Canvas assignment being processed
