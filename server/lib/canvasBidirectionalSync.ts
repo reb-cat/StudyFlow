@@ -47,24 +47,14 @@ export async function syncAssignmentDeletions(
       console.log(`🗑️ Canvas sync: Marked "${deletedAssignment.title}" as deleted (no longer in Canvas)`);
     }
     
-    // Restore any previously deleted assignments that reappear in Canvas
-    const restoredAssignments = databaseAssignments.filter(
-      dbAssignment => dbAssignment.userId === studentUserId && 
-                      dbAssignment.canvasId && 
-                      dbAssignment.deletedAt && 
-                      currentCanvasIds.has(dbAssignment.canvasId!)
-    );
+    // RESTORATION LOGIC DISABLED: Caused phantom assignments to reappear
+    // Previously restored soft-deleted assignments that "reappeared" in Canvas,
+    // but this was causing completed assignments to resurrect and create phantom "(Continued)" versions.
+    // Original purpose was to handle graded work checks, but manual management is more reliable.
+    // If restoration is needed in the future, add back with proper completion status checks.
+    console.log(`🔒 RESTORATION DISABLED: Not restoring any previously deleted assignments to prevent phantom resurrections`);
     
-    for (const restoredAssignment of restoredAssignments) {
-      // Clear deletedAt to restore the assignment
-      await storage.updateAssignment(restoredAssignment.id, { 
-        deletedAt: null, 
-        updatedAt: new Date() 
-      } as any);
-      console.log(`✅ Canvas sync: Restored "${restoredAssignment.title}" (reappeared in Canvas)`);
-    }
-    
-    console.log(`🔄 Sync complete: ${deletedAssignments.length} deleted, ${restoredAssignments.length} restored for ${studentUserId}`);
+    console.log(`🔄 Sync complete: ${deletedAssignments.length} deleted, 0 restored (restoration disabled) for ${studentUserId}`);
     
   } catch (error) {
     console.error('Error in Canvas deletion sync:', error);
