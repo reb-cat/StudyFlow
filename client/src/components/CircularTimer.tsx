@@ -22,46 +22,34 @@ export function CircularTimer({
   onReset,
   extraTime = 0,
   hideControls = false,
-  externalTimeRemaining = null,
-  onTimeUpdate
 }: CircularTimerProps) {
-  const [internalTimeRemaining, setInternalTimeRemaining] = useState(durationMinutes * 60 + extraTime * 60);
-  
-  // Use external time if provided, otherwise use internal
-  const timeRemaining = externalTimeRemaining !== null ? externalTimeRemaining : internalTimeRemaining;
-  const totalTime = durationMinutes * 60 + extraTime * 60;
+  const totalSeconds = durationMinutes * 60 + extraTime * 60;
+  const [timeRemaining, setTimeRemaining] = useState(totalSeconds);
 
+  // Reset timer when duration changes
   useEffect(() => {
-    if (externalTimeRemaining === null) {
-      setInternalTimeRemaining(durationMinutes * 60 + extraTime * 60);
-    }
-  }, [durationMinutes, extraTime, externalTimeRemaining]);
+    setTimeRemaining(totalSeconds);
+  }, [totalSeconds]);
 
+  // Countdown logic
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
     if (isRunning && timeRemaining > 0) {
       interval = setInterval(() => {
-        const newTime = timeRemaining - 1;
-        if (newTime <= 0) {
-          onComplete?.();
-          if (onTimeUpdate) {
-            onTimeUpdate(0);
-          } else {
-            setInternalTimeRemaining(0);
+        setTimeRemaining(prev => {
+          const newTime = prev - 1;
+          if (newTime <= 0) {
+            onComplete?.();
+            return 0;
           }
-        } else {
-          if (onTimeUpdate) {
-            onTimeUpdate(newTime);
-          } else {
-            setInternalTimeRemaining(newTime);
-          }
-        }
+          return newTime;
+        });
       }, 1000);
     }
     
     return () => clearInterval(interval);
-  }, [isRunning, timeRemaining, onComplete, onTimeUpdate]);
+  }, [isRunning, timeRemaining, onComplete]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -69,7 +57,7 @@ export function CircularTimer({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const progress = (timeRemaining / totalTime) * 100;
+  const progress = (timeRemaining / totalSeconds) * 100;
   const radius = 130; // 260px diameter - larger circumference for clearance
   const strokeWidth = 14;
   const normalizedRadius = radius - strokeWidth * 2;

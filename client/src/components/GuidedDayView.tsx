@@ -700,7 +700,6 @@ export function GuidedDayView({
     }
   }, [scheduleBlocks, dailyScheduleStatus, hasInitializedIndex]);
   const [completedBlocks, setCompletedBlocks] = useState(new Set<string>());
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [exitClickCount, setExitClickCount] = useState(0);
   const [showDoneDialog, setShowDoneDialog] = useState(false);
   const [showStuckDialog, setShowStuckDialog] = useState(false);
@@ -800,12 +799,10 @@ export function GuidedDayView({
       };
       
       const blockDurationMinutes = getBlockDurationMinutes(currentBlock.startTime, currentBlock.endTime);
-      setTimeRemaining(blockDurationMinutes * 60);
       setIsTimerRunning(true); // Auto-start for new block
       
       if (process.env.NODE_ENV === 'development') {
         console.log(`🔄 BLOCK CHANGE: Timer set to ${blockDurationMinutes} minutes (${currentBlock.startTime}-${currentBlock.endTime}) for "${currentBlock.title}"`);
-        console.log(`🔄 SETTING timeRemaining to: ${blockDurationMinutes * 60} seconds (${blockDurationMinutes} minutes)`);
         console.log(`🔄 SETTING isTimerRunning to: true`);
         // Wait a moment then check the actual state
         setTimeout(() => {
@@ -1410,13 +1407,8 @@ export function GuidedDayView({
                   isRunning={isTimerRunning}
                   onComplete={handleBlockComplete}
                   onToggle={() => setIsTimerRunning(!isTimerRunning)}
-                  onReset={() => {
-                    setIsTimerRunning(false);
-                    setTimeRemaining(blockDurationMinutes * 60);
-                  }}
+                  onReset={() => setIsTimerRunning(false)}
                   hideControls={true}
-                  externalTimeRemaining={timeRemaining}
-                  onTimeUpdate={setTimeRemaining}
                 />
               );
             })()}
@@ -1610,7 +1602,7 @@ export function GuidedDayView({
                 return Math.max(1, endMinutes - startMinutes);
               };
               const totalMinutes = getBlockDurationMinutes(currentBlock.startTime, currentBlock.endTime);
-              const timeSpentMinutes = Math.max(1, totalMinutes - Math.floor((timeRemaining || 0) / 60));
+              const timeSpentMinutes = Math.max(1, Math.floor(totalMinutes / 2)); // Simplified - assume half the time was spent
               const extraMinutes = Math.max(0, totalMinutes - timeSpentMinutes);
               
               if (extraMinutes > 0) {
@@ -1636,13 +1628,12 @@ export function GuidedDayView({
                       </button>
                       <button
                         onClick={() => {
-                          // Take a break - extend timer and let them have the extra time
-                          setTimeRemaining(extraMinutes * 60);
+                          // Take a break - just pause timer
                           setIsTimerRunning(false);
                           setShowDoneDialog(false);
                           toast({
                             title: "Break Time! 🎈",
-                            description: `Enjoy your ${extraMinutes}-minute break!`,
+                            description: `Take a break and resume when ready!`,
                             variant: "default"
                           });
                         }}
