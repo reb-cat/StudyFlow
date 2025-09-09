@@ -1402,12 +1402,6 @@ export function GuidedDayView({
               };
               
               const blockDurationMinutes = getBlockDurationMinutes(currentBlock.startTime, currentBlock.endTime);
-              
-              // Smart auto-fix: Only correct timer if significantly wrong and not currently running
-              const expectedSeconds = blockDurationMinutes * 60;
-              if (!timeRemaining || (Math.abs(timeRemaining - expectedSeconds) > 120 && !isTimerRunning)) {
-                setTimeRemaining(expectedSeconds);
-              }
 
               
               return (
