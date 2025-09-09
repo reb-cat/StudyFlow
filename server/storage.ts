@@ -114,7 +114,13 @@ export class DatabaseStorage implements IStorage {
 
   async getAssignments(userId: string, date?: string, includeCompleted?: boolean): Promise<Assignment[]> {
     try {
-      let result = await db.select().from(assignments).where(eq(assignments.userId, userId));
+      // Filter out soft-deleted assignments (those with deletedAt timestamp)
+      let result = await db.select().from(assignments).where(
+        and(
+          eq(assignments.userId, userId),
+          isNull(assignments.deletedAt) // Exclude deleted assignments
+        )
+      );
       let assignmentList = result || [];
       
       // For daily scheduling: exclude completed assignments and filter by date
