@@ -3930,22 +3930,69 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       });
     }
   });
+
+  // ASSIGNMENT SOURCES ENDPOINT: Get assignment data from different sources for admin preview
+  app.get('/api/debug/assignment-sources/:date?', requireAuth, async (req, res) => {
+    try {
+      const { date } = req.params;
+      const selectedDate = date || new Date().toISOString().split('T')[0];
+      const userId = "65f8c2c8-e9f1-4c2a-b8d3-9e1a2b3c4d5f"; // Khalil's user ID
+      
+      console.log(`🔍 ASSIGNMENT SOURCES: Analyzing for ${selectedDate}`);
+      
+      // Get assignments directly from database (bypass cache)
+      const allDatabaseAssignments = await storage.getAllAssignments();
+      const databaseAssignments = allDatabaseAssignments.filter(a => 
+        a.userId === userId && 
+        a.scheduledDate === selectedDate &&
+        !a.deletedAt
+      );
+      
+      // Get assignments from cache (includes possible phantoms)
+      const cacheKey = `assignments_${userId}_${selectedDate}`;
+      const cachedAssignments = assignmentCache.get(cacheKey) || [];
+      
+      // Find phantom assignments (in cache but not in database)
+      const databaseIds = new Set(databaseAssignments.map(a => a.id));
+      const phantomAssignments = (cachedAssignments as any[]).filter(ca => !databaseIds.has(ca.id));
+      
+      const result = {
+        database: databaseAssignments,
+        cached: cachedAssignments,
+        phantoms: phantomAssignments
+      };
+      
+      console.log(`📊 ASSIGNMENT SOURCES RESULTS:`, {
+        database: result.database.length,
+        cached: result.cached.length,
+        phantoms: result.phantoms.length
+      });
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error('Assignment sources failed:', error);
+      res.status(500).json({ 
+        message: 'Assignment sources failed', 
+        error: error.message 
+      });
+    }
+  });
   
   // Cache clearing endpoint
-  app.post('/api/debug/clear-cache', async (req, res) => {
+  app.post('/api/debug/clear-cache', requireAuth, async (req, res) => {
     try {
       const { cacheType = 'all' } = req.body;
       
       let clearedCaches = [];
       
-      if (cacheType === 'all' || cacheType === 'assignments') {
+      if (cacheType === 'all' || cacheType === 'assignment') {
         assignmentCache.clear();
-        clearedCaches.push('assignments');
+        clearedCaches.push('assignment');
       }
       
-      if (cacheType === 'all' || cacheType === 'schedules') {
+      if (cacheType === 'all' || cacheType === 'schedule') {
         scheduleCache.clear();
-        clearedCaches.push('schedules');
+        clearedCaches.push('schedule');
       }
       
       if (cacheType === 'all' || cacheType === 'canvas') {
@@ -3956,6 +4003,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       console.log(`🧹 CACHE CLEARED: ${clearedCaches.join(', ')} caches cleared`);
       
       res.json({
+        success: true,
         message: `Cleared ${clearedCaches.join(', ')} caches`,
         clearedCaches,
         timestamp: new Date().toISOString()

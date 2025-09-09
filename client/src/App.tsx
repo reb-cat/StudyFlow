@@ -12,6 +12,7 @@ import StudentSelection from "@/pages/student-selection";
 import FamilyDashboard from "@/pages/family-dashboard";
 import StudentDashboard from "@/pages/student-dashboard";
 import AdminPanel from "@/pages/admin-panel";
+import AdminSchedulePreview from "@/pages/AdminSchedulePreview";
 import AssignmentsPage from "@/pages/assignments";
 import PrintQueue from "@/pages/print-queue";
 import ScheduleTemplates from "@/pages/schedule-templates";
@@ -62,6 +63,11 @@ function Router() {
       <Route path="/admin">
         <AdminAuth>
           <AdminPanel />
+        </AdminAuth>
+      </Route>
+      <Route path="/admin/schedule-preview">
+        <AdminAuth>
+          <AdminSchedulePreview />
         </AdminAuth>
       </Route>
       <Route path="/assignments" component={AssignmentsPage} />

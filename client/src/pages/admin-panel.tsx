@@ -15,7 +15,9 @@ import {
   Clock,
   RefreshCw,
   CheckSquare,
-  CalendarCheck
+  CalendarCheck,
+  Database,
+  Search
 } from 'lucide-react';
 
 interface AdminTile {
@@ -57,6 +59,14 @@ const adminTiles: AdminTile[] = [
     icon: CheckSquare,
     color: "emerald",
     badge: "New"
+  },
+  {
+    title: "Schedule Preview & Cache",
+    description: "Monitor assignments and clear phantom cache entries",
+    href: "/admin/schedule-preview",
+    icon: Database,
+    color: "red",
+    badge: "Debug"
   },
   {
     title: "Family Dashboard",
