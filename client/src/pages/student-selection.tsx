@@ -121,19 +121,23 @@ export default function FamilyDashboard() {
             <Settings size={18} />
             Admin
           </Link>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
+          <button
+            onClick={async () => {
               console.log('🔴 LOGOUT BUTTON CLICKED in student-selection page');
-              logout();
+              console.log('🔴 About to call logout function:', typeof logout);
+              try {
+                await logout();
+                console.log('🔴 Logout function completed');
+              } catch (error) {
+                console.error('🔴 Logout function error:', error);
+              }
             }}
-            className="flex items-center gap-2"
+            className="px-3 py-2 bg-transparent border border-border rounded-lg text-foreground text-sm cursor-pointer flex items-center gap-2 transition-all duration-200 hover:bg-secondary hover:border-primary"
             data-testid="button-logout"
           >
             <LogOut size={18} />
             Logout
-          </Button>
+          </button>
           <ThemeToggle />
         </div>
       </header>
