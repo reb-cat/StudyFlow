@@ -507,42 +507,8 @@ export class CanvasClient {
       
       console.log(`      Earliest assessment: "${earliestAssessment.name}" (${earliestDate.toLocaleDateString()})`);
       
-      // Find textbook readings for this module
-      const textbookReadings = allAssignments.filter(assignment => {
-        const isTextbook = assignment.courseName?.includes('TEXTBOOK');
-        const hasNoDate = !assignment.due_at;
-        
-        // Check if this reading belongs to this module
-        const moduleNameMatches = (assignment as any).module_name?.toLowerCase().includes(`module ${moduleNumber}`);
-        
-        // Special handling for known module topics
-        let isFromThisModule = moduleNameMatches;
-        if (!moduleNameMatches) {
-          const title = assignment.name.toLowerCase();
-          if (moduleNumber === 1) {
-            isFromThisModule = title.includes('criminal law') || 
-                             title.includes('civil law') || 
-                             title.includes('evidence') ||
-                             title.includes('legal system') ||
-                             title.includes('introduction');
-          } else if (moduleNumber === 2) {
-            isFromThisModule = title.includes('fingerprint');
-          } else if (moduleNumber === 3) {
-            isFromThisModule = title.includes('trace evidence') || 
-                             title.includes('hair') || 
-                             title.includes('fiber');
-          } else if (moduleNumber === 4) {
-            isFromThisModule = title.includes('handwriting') || 
-                             title.includes('document');
-          } else if (moduleNumber === 5) {
-            isFromThisModule = title.includes('blood') || 
-                             title.includes('serology');
-          }
-          // Add more module mappings as needed
-        }
-        
-        return isTextbook && hasNoDate && isFromThisModule;
-      });
+      // Find textbook readings for this module using proper curriculum sequence
+      const textbookReadings = await this.getTextbookReadingsForModule(moduleNumber, allAssignments);
       
       console.log(`      Found ${textbookReadings.length} textbook readings for Module ${moduleNumber}`);
       
@@ -559,7 +525,7 @@ export class CanvasClient {
         
         console.log(`      Preparation window: ${readingStartDate.toLocaleDateString()} to ${readingEndDate.toLocaleDateString()} (${preparationDays} days, ~${readingsPerDay} readings/day)`);
         
-        // Distribute readings across the preparation period
+        // Distribute readings across the preparation period in proper curriculum order
         textbookReadings.forEach((reading, index) => {
           const dayOffset = Math.floor(index / readingsPerDay);
           const readingDate = new Date(readingStartDate);
@@ -578,10 +544,76 @@ export class CanvasClient {
           }
           
           reading.due_at = readingDate.toISOString();
-          console.log(`         📚 "${reading.name}" scheduled for ${readingDate.toLocaleDateString()}`);
+          const readingNumber = (reading as any).curriculumOrder || index + 1;
+          console.log(`         📚 Module ${moduleNumber}.${readingNumber}: "${reading.name}" scheduled for ${readingDate.toLocaleDateString()}`);
         });
       }
     }
+  }
+
+  /**
+   * Get textbook readings for a module in proper curriculum sequence
+   */
+  private async getTextbookReadingsForModule(moduleNumber: number, allAssignments: CanvasAssignment[]): Promise<CanvasAssignment[]> {
+    try {
+      // Import here to avoid circular dependency
+      const { db } = await import('../db');
+      const { forensicsCurriculum } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      
+      // Get the proper curriculum sequence for this module
+      const curriculumReadings = await db
+        .select()
+        .from(forensicsCurriculum)
+        .where(eq(forensicsCurriculum.moduleNumber, moduleNumber))
+        .orderBy(forensicsCurriculum.readingNumber);
+      
+      console.log(`      Found ${curriculumReadings.length} curriculum readings for Module ${moduleNumber}`);
+      
+      // Match Canvas assignments to curriculum readings
+      const orderedReadings: CanvasAssignment[] = [];
+      
+      for (const curriculumReading of curriculumReadings) {
+        // Find matching Canvas assignment
+        const canvasAssignment = allAssignments.find(assignment => {
+          const isTextbook = assignment.courseName?.includes('TEXTBOOK');
+          const hasNoDate = !assignment.due_at;
+          const titleMatches = this.normalizeTitle(assignment.name) === this.normalizeTitle(curriculumReading.readingTitle);
+          
+          return isTextbook && hasNoDate && titleMatches;
+        });
+        
+        if (canvasAssignment) {
+          // Add curriculum order information
+          (canvasAssignment as any).curriculumOrder = curriculumReading.readingNumber;
+          (canvasAssignment as any).moduleNumber = curriculumReading.moduleNumber;
+          (canvasAssignment as any).isLabExercise = curriculumReading.isLabExercise;
+          (canvasAssignment as any).isCaseNotes = curriculumReading.isCaseNotes;
+          
+          orderedReadings.push(canvasAssignment);
+          console.log(`         ✓ Module ${moduleNumber}.${curriculumReading.readingNumber}: "${canvasAssignment.name}"`);
+        } else {
+          console.log(`         ⚠ Missing Canvas assignment for: "${curriculumReading.readingTitle}"`);
+        }
+      }
+      
+      return orderedReadings;
+      
+    } catch (error) {
+      console.error('Error getting textbook readings for module:', error);
+      // Fallback to no readings if database lookup fails
+      return [];
+    }
+  }
+
+  /**
+   * Normalize title for matching (remove extra spaces, quotes, etc.)
+   */
+  private normalizeTitle(title: string): string {
+    return title.trim()
+      .replace(/[""]/g, '"')  // Normalize quotes
+      .replace(/\s+/g, ' ')   // Normalize spaces
+      .toLowerCase();
   }
 
   async getUpcomingAssignments(daysAhead: number = 7): Promise<CanvasAssignment[]> {
