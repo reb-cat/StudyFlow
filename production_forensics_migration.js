@@ -3,11 +3,20 @@ import pg from 'pg';
 const { Client } = pg;
 
 /**
- * PRODUCTION-SAFE Forensics Textbook Migration Script
+ * PRODUCTION-SAFE Forensics Textbook Migration Script v2.0
+ * 
+ * FIXED: User ID selection bug (was selecting 'id' but reading 'user_id')
  * 
  * This script safely adds Apologia Forensics textbook readings to production
  * without overwriting existing data or causing conflicts.
+ * 
+ * Usage: 
+ *   export PRODUCTION_USER_ID=abigail-user  # or khalil-user
+ *   node production_forensics_migration.js
  */
+
+// Allow override via environment variable
+const TARGET_USER_ID = process.env.PRODUCTION_USER_ID;
 
 // Read and parse the CSV file
 const csvContent = fs.readFileSync('attached_assets/forensics_textbook_chapters_1757513527575.csv', 'utf8');
@@ -84,18 +93,18 @@ async function safeProductionMigration() {
       return;
     }
     
-    // SAFETY CHECK 2: Verify user exists
+    // SAFETY CHECK 2: Verify user exists - FIXED: Select user_id instead of id
     const userCheck = await client.query(`
-      SELECT id FROM assignments WHERE user_id LIKE '%abigail%' LIMIT 1
+      SELECT DISTINCT user_id FROM assignments WHERE user_id IN ('abigail-user', 'khalil-user') LIMIT 1
     `);
     
     if (userCheck.rows.length === 0) {
-      console.log('❌ ERROR: No user found with "abigail" in user_id');
-      console.log('💡 TIP: Update USER_ID variable in script to match production user ID');
+      console.log('❌ ERROR: No user found with "abigail-user" or "khalil-user" user_id');
+      console.log('💡 TIP: Make sure you have existing assignments for these users in production');
       return;
     }
     
-    const PRODUCTION_USER_ID = userCheck.rows[0].user_id || 'abigail-user';
+    const PRODUCTION_USER_ID = userCheck.rows[0].user_id;
     console.log(`👤 Using production user ID: ${PRODUCTION_USER_ID}`);
     
     // SAFETY CHECK 3: Check for conflicting titles
