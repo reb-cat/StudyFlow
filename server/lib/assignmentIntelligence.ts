@@ -38,25 +38,28 @@ export function compareAssignmentTitles(titleA: string, titleB: string, courseNa
   
   if (isForensicsA && isForensicsB) {
     // Both are forensics textbook readings - use curriculum sequence
-    const curriculumOrderA = getForensicsCurriculumOrder(titleA);
-    const curriculumOrderB = getForensicsCurriculumOrder(titleB);
+    const curriculumOrderA = getForensicsCurriculumOrderSync(titleA);
+    const curriculumOrderB = getForensicsCurriculumOrderSync(titleB);
     
     if (curriculumOrderA !== null && curriculumOrderB !== null) {
+      console.log(`📚 CURRICULUM SORT: "${titleA}" (${curriculumOrderA}) vs "${titleB}" (${curriculumOrderB})`);
       return curriculumOrderA - curriculumOrderB;
     }
   }
   
   // If only one is forensics textbook, prioritize curriculum sequence
   if (isForensicsA && !isForensicsB) {
-    const curriculumOrderA = getForensicsCurriculumOrder(titleA);
+    const curriculumOrderA = getForensicsCurriculumOrderSync(titleA);
     if (curriculumOrderA !== null) {
+      console.log(`📚 FORENSICS PRIORITY: "${titleA}" (${curriculumOrderA}) comes before non-forensics`);
       return -1; // Forensics curriculum readings come first
     }
   }
   
   if (isForensicsB && !isForensicsA) {
-    const curriculumOrderB = getForensicsCurriculumOrder(titleB);
+    const curriculumOrderB = getForensicsCurriculumOrderSync(titleB);
     if (curriculumOrderB !== null) {
+      console.log(`📚 FORENSICS PRIORITY: "${titleB}" (${curriculumOrderB}) comes before non-forensics`);
       return 1; // Forensics curriculum readings come first
     }
   }
@@ -83,48 +86,62 @@ export function compareAssignmentTitles(titleA: string, titleB: string, courseNa
 }
 
 // Helper function to get curriculum order for forensics assignments
-function getForensicsCurriculumOrder(title: string): number | null {
-  // Create a mapping based on the curriculum table structure
-  const curriculumMap: Record<string, number> = {
-    // Module 1 (1.x)
-    'module 1 introduction': 1.1,
-    'read module 1 introduction': 1.1,
-    'criminal law': 1.2,
-    'read criminal law': 1.2,
-    'civil law': 1.3,
-    'read civil law': 1.3,
-    'witnesses, testimony, and admissibility': 1.4,
-    'read witnesses, testimony, and admissibility': 1.4,
-    'evidence': 1.5,
-    'read evidence': 1.5,
-    'scientific method & inference': 1.6,
-    'read scientific method & inference': 1.6,
-    'case notes: nothing but the truth': 1.7,
-    'read case notes: nothing but the truth': 1.7,
-    'module 1 laboratory exercise': 1.8,
-    'read module 1 laboratory exercise': 1.8,
+async function getForensicsCurriculumOrder(title: string): Promise<number | null> {
+  try {
+    // Import here to avoid circular dependency
+    const { db } = await import('../db');
+    const { forensicsCurriculum } = await import('@shared/schema');
+    const { eq, or } = await import('drizzle-orm');
     
-    // Module 2 (2.x)
-    'module 2 introduction': 2.1,
-    'read module 2 introduction': 2.1,
-    'recording and collecting of fingerprints': 2.2,
-    'read recording and collecting of fingerprints': 2.2,
-    'classification of fingerprints': 2.3,
-    'read classification of fingerprints': 2.3,
-    'fingerprint databases': 2.4,
-    'read fingerprint databases': 2.4,
-    'crime scenes - lifting prints': 2.5,
-    'read crime scenes - lifting prints': 2.5,
-    'case notes: latent fingerprints versus latent truths': 2.6,
-    'read case notes: latent fingerprints versus latent truths': 2.6,
-    'case notes: jesus\' disciples: the first toolmark/impression evidence analysts?': 2.7,
-    'read case notes: jesus\' disciples: the first toolmark/impression evidence analysts?': 2.7,
-    'module 2 laboratory exercise': 2.8,
-    'read module 2 laboratory exercise': 2.8,
-  };
+    const normalizedTitle = title.toLowerCase().trim();
+    
+    // Try multiple variations to handle "Read" prefixes and exact matches
+    const titleVariations = [
+      normalizedTitle,                           // Exact as-is
+      normalizedTitle.replace(/^read\s+/i, ''), // Remove "Read " prefix
+      `read ${normalizedTitle}`,                 // Add "Read " prefix
+    ];
+    
+    // Query database for any matching variation
+    for (const variation of titleVariations) {
+      const results = await db
+        .select()
+        .from(forensicsCurriculum)
+        .where(eq(forensicsCurriculum.readingTitle, variation.trim()));
+      
+      if (results.length > 0) {
+        const reading = results[0];
+        // Calculate curriculum order as module.reading (e.g., 11.4 for Module 11, Reading 4)
+        const curriculumOrder = reading.moduleNumber + (reading.readingNumber * 0.1);
+        console.log(`📚 FOUND CURRICULUM MATCH: "${title}" → "${reading.readingTitle}" (${reading.moduleNumber}.${reading.readingNumber})`);
+        return curriculumOrder;
+      }
+    }
+    
+    console.log(`📚 NO CURRICULUM MATCH: "${title}" (tried: ${titleVariations.join(', ')})`);
+    return null;
+  } catch (error: any) {
+    console.error('Error looking up curriculum order:', error);
+    return null;
+  }
+}
+
+// Synchronous wrapper with caching for curriculum order lookups
+const curriculumOrderCache = new Map<string, number | null>();
+
+function getForensicsCurriculumOrderSync(title: string): number | null {
+  // Check cache first
+  const cached = curriculumOrderCache.get(title.toLowerCase().trim());
+  if (cached !== undefined) {
+    return cached;
+  }
   
-  const normalizedTitle = title.toLowerCase().trim();
-  return curriculumMap[normalizedTitle] || null;
+  // For sync operation, return null and trigger async lookup
+  getForensicsCurriculumOrder(title).then(order => {
+    curriculumOrderCache.set(title.toLowerCase().trim(), order);
+  });
+  
+  return null;
 }
 
 // CAPACITY TRACKING - Daily and per-course limits for EF support
