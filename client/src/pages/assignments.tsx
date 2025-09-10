@@ -112,12 +112,12 @@ export default function AssignmentsPage() {
   const { data: assignments = [], isLoading } = useQuery<Assignment[]>({
     queryKey: ['/api/assignments', selectedStudent, dateFilter, filterStatus],
     queryFn: async () => {
-      // Calculate date range for current week plus buffer
+      // Optimized date range for better performance
       const today = new Date();
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - 7); // 1 week back
       const weekEnd = new Date(today);
-      weekEnd.setDate(today.getDate() + 14); // 2 weeks forward
+      weekEnd.setDate(today.getDate() + 7); // Only 1 week forward (not 2 weeks)
       
       // Always include completed assignments for filtering - let frontend filter handle it
       // This ensures we see assignments that were just changed from completed→pending
@@ -414,6 +414,7 @@ export default function AssignmentsPage() {
     // Date filter (Bible assignments always pass date filters since they're ongoing curriculum)
     if (!assignment.isBibleItem) {
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
       const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
       
       if (dateFilter === 'overdue' && (!dueDate || dueDate >= today)) {
@@ -423,9 +424,27 @@ export default function AssignmentsPage() {
         return false;
       }
       if (dateFilter === 'this_week') {
-        const weekEnd = new Date(today);
-        weekEnd.setDate(today.getDate() + 7);
-        if (!dueDate || dueDate > weekEnd) {
+        // Get Monday-Friday of current week (classroom context)
+        const monday = new Date(today);
+        const dayOfWeek = today.getDay() === 0 ? 6 : today.getDay() - 1; // Sunday = 6
+        monday.setDate(today.getDate() - dayOfWeek);
+        monday.setHours(0, 0, 0, 0);
+        
+        const friday = new Date(monday);
+        friday.setDate(monday.getDate() + 4);
+        friday.setHours(23, 59, 59, 999);
+        
+        if (!dueDate || dueDate < monday || dueDate > friday) {
+          return false;
+        }
+      }
+      if (dateFilter === 'upcoming') {
+        // Only next 3 days maximum (not weeks!)
+        const threeDaysFromNow = new Date(today);
+        threeDaysFromNow.setDate(today.getDate() + 3);
+        threeDaysFromNow.setHours(23, 59, 59, 999);
+        
+        if (!dueDate || dueDate <= today || dueDate > threeDaysFromNow) {
           return false;
         }
       }
@@ -433,25 +452,44 @@ export default function AssignmentsPage() {
 
     return true;
   }).sort((a, b) => {
-    // Sort by due date first (assignments with due dates come first, sorted by date)
+    // PRIORITY SORTING - Match daily scheduling algorithm exactly
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const aDate = a.dueDate ? new Date(a.dueDate) : null;
     const bDate = b.dueDate ? new Date(b.dueDate) : null;
     
-    // If both have due dates, sort by date (earliest first), then by sequence
-    if (aDate && bDate) {
-      const dateComparison = aDate.getTime() - bDate.getTime();
-      if (dateComparison !== 0) {
-        return dateComparison;
-      }
-      // Same due date - sort by numerical sequence (Unit 2 before Unit 3)
+    // 1. PRIORITY A: Overdue assignments first (highest urgency)
+    const aOverdue = aDate && aDate < today;
+    const bOverdue = bDate && bDate < today;
+    if (aOverdue && !bOverdue) return -1;
+    if (!aOverdue && bOverdue) return 1;
+    
+    // 2. PRIORITY B: Due today assignments (high urgency)
+    const aDueToday = aDate && aDate.toDateString() === today.toDateString();
+    const bDueToday = bDate && bDate.toDateString() === today.toDateString();
+    if (aDueToday && !bDueToday) return -1;
+    if (!aDueToday && bDueToday) return 1;
+    
+    // 3. PRIORITY C: Due within next 3 days (medium urgency)
+    const threeDaysFromNow = new Date(today);
+    threeDaysFromNow.setDate(today.getDate() + 3);
+    const aDueSoon = aDate && aDate > today && aDate <= threeDaysFromNow;
+    const bDueSoon = bDate && bDate > today && bDate <= threeDaysFromNow;
+    if (aDueSoon && !bDueSoon) return -1;
+    if (!aDueSoon && bDueSoon) return 1;
+    
+    // 4. Within same priority group, sort by educational sequence
+    if (aDate && bDate && aDate.getTime() === bDate.getTime()) {
       return compareAssignmentTitles(a.title, b.title);
     }
     
-    // If only one has a due date, prioritize it
+    // 5. Fall back to due date (earliest first)
+    if (aDate && bDate) return aDate.getTime() - bDate.getTime();
     if (aDate && !bDate) return -1;
     if (!aDate && bDate) return 1;
     
-    // If neither has due date, sort by title with smart numerical ordering
+    // 6. No due dates - sort by educational sequence
     return compareAssignmentTitles(a.title, b.title);
   });
 
