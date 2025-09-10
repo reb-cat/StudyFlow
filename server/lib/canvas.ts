@@ -430,74 +430,118 @@ export class CanvasClient {
   }
 
   /**
-   * 🎯 AUTO-DETECT MODULE TIMING: Schedule textbook readings before module tests/labs
-   * This creates a natural learning progression where students read material before testing
+   * 🎯 AUTO-DETECT MODULE TIMING: Schedule textbook readings between module labs
+   * This creates a natural learning progression where students read material in the gap
+   * between completing one module and starting the next
    */
   private scheduleTextbookReadingsForModules(allAssignments: CanvasAssignment[]): void {
-    console.log(`🎯 Auto-detecting module assignments to schedule textbook readings...`);
+    console.log(`🎯 Auto-detecting module sequence to schedule textbook readings...`);
     
-    // Find module assignments that have due dates (tests, labs, etc.)
-    const moduleAssignments = allAssignments.filter(assignment => {
+    // Find module lab assignments that have due dates
+    const moduleLabs = allAssignments.filter(assignment => {
       const title = assignment.name.toLowerCase();
       const hasModulePattern = /module\s+(\d+)/i.test(title);
-      const isTestOrLab = title.includes('test') || title.includes('lab') || title.includes('quiz') || title.includes('exam');
+      const isLab = title.includes('lab');
       const hasDueDate = assignment.due_at;
       
-      return hasModulePattern && isTestOrLab && hasDueDate;
+      return hasModulePattern && isLab && hasDueDate;
     });
     
-    console.log(`   Found ${moduleAssignments.length} module assignments with due dates`);
+    // Sort by module number first (logical order), then by date (fallback)
+    moduleLabs.sort((a, b) => {
+      const moduleA = parseInt(a.name.match(/module\s+(\d+)/i)?.[1] || '0');
+      const moduleB = parseInt(b.name.match(/module\s+(\d+)/i)?.[1] || '0');
+      
+      if (moduleA !== moduleB) {
+        return moduleA - moduleB; // Module 1 before Module 2, regardless of dates
+      }
+      
+      // If same module number, sort by date
+      return new Date(a.due_at!).getTime() - new Date(b.due_at!).getTime();
+    });
     
-    // For each module assignment, find and schedule related textbook readings
-    for (const moduleAssignment of moduleAssignments) {
-      const moduleMatch = moduleAssignment.name.match(/module\s+(\d+)/i);
-      if (!moduleMatch) continue;
+    console.log(`   Found ${moduleLabs.length} module labs in logical sequence:`);
+    moduleLabs.forEach(lab => {
+      const moduleNum = lab.name.match(/module\s+(\d+)/i)?.[1];
+      const date = new Date(lab.due_at!).toLocaleDateString();
+      console.log(`     Module ${moduleNum}: "${lab.name}" (${date})`);
+    });
+    
+    // Schedule textbook readings in the gaps between modules
+    for (let i = 0; i < moduleLabs.length; i++) {
+      const currentLab = moduleLabs[i];
+      const nextLab = moduleLabs[i + 1];
       
-      const moduleNumber = parseInt(moduleMatch[1]);
-      console.log(`   📖 Processing Module ${moduleNumber}: "${moduleAssignment.name}" (due: ${new Date(moduleAssignment.due_at!).toLocaleDateString()})`);
+      const currentModuleNum = parseInt(currentLab.name.match(/module\s+(\d+)/i)?.[1] || '0');
+      const nextModuleNum = nextLab ? parseInt(nextLab.name.match(/module\s+(\d+)/i)?.[1] || '0') : currentModuleNum + 1;
       
-      // Find textbook readings for this module
+      // For the gap after this lab, schedule readings for the NEXT module
+      const targetModuleNum = currentModuleNum + 1;
+      
+      console.log(`   📖 Gap after Module ${currentModuleNum}: Scheduling Module ${targetModuleNum} readings`);
+      
+      // Find textbook readings for the target module
       const textbookReadings = allAssignments.filter(assignment => {
         const isTextbook = assignment.courseName?.includes('TEXTBOOK');
         const hasNoDate = !assignment.due_at;
         
-        // Check if this reading comes from the same module by checking the stored module_name property
-        // that was added during module item processing
-        const moduleNameMatches = (assignment as any).module_name?.toLowerCase().includes(`module ${moduleNumber}`);
+        // Check if this reading belongs to the target module
+        const moduleNameMatches = (assignment as any).module_name?.toLowerCase().includes(`module ${targetModuleNum}`);
         
-        // Alternative approach: for Module 1, match common textbook topics
-        let isFromSameModule = moduleNameMatches;
-        if (!moduleNameMatches && moduleNumber === 1) {
+        // Special handling for known module topics
+        let isFromTargetModule = moduleNameMatches;
+        if (!moduleNameMatches) {
           const title = assignment.name.toLowerCase();
-          const isModule1Topic = title.includes('criminal law') || 
-                                 title.includes('civil law') || 
-                                 title.includes('evidence') ||
-                                 title.includes('legal system') ||
-                                 title.includes('introduction');
-          isFromSameModule = isModule1Topic;
+          if (targetModuleNum === 1) {
+            isFromTargetModule = title.includes('criminal law') || 
+                               title.includes('civil law') || 
+                               title.includes('evidence') ||
+                               title.includes('legal system') ||
+                               title.includes('introduction');
+          } else if (targetModuleNum === 2) {
+            isFromTargetModule = title.includes('fingerprint');
+          } else if (targetModuleNum === 3) {
+            isFromTargetModule = title.includes('trace evidence') || 
+                               title.includes('hair') || 
+                               title.includes('fiber');
+          }
+          // Add more module mappings as needed
         }
         
-        return isTextbook && hasNoDate && isFromSameModule;
+        return isTextbook && hasNoDate && isFromTargetModule;
       });
       
-      console.log(`      Found ${textbookReadings.length} textbook readings for Module ${moduleNumber}`);
+      console.log(`      Found ${textbookReadings.length} textbook readings for Module ${targetModuleNum}`);
       
       if (textbookReadings.length > 0) {
-        // Schedule readings 3-5 days before the module assignment
-        const moduleDate = new Date(moduleAssignment.due_at!);
-        const startDate = new Date(moduleDate);
-        startDate.setDate(moduleDate.getDate() - 5); // Start 5 days before
+        // Calculate the gap period
+        const gapStart = new Date(currentLab.due_at!);
+        gapStart.setDate(gapStart.getDate() + 1); // Start day after current lab
         
-        // Distribute readings across the days leading up to the module assignment
+        const gapEnd = nextLab ? new Date(nextLab.due_at!) : new Date(gapStart.getTime() + 14 * 24 * 60 * 60 * 1000); // 2 weeks if no next lab
+        gapEnd.setDate(gapEnd.getDate() - 2); // End 2 days before next lab
+        
+        const gapDays = Math.ceil((gapEnd.getTime() - gapStart.getTime()) / (24 * 60 * 60 * 1000));
+        const readingsPerDay = Math.max(1, Math.ceil(textbookReadings.length / Math.max(1, gapDays)));
+        
+        console.log(`      Gap: ${gapStart.toLocaleDateString()} to ${gapEnd.toLocaleDateString()} (${gapDays} days, ~${readingsPerDay} readings/day)`);
+        
+        // Distribute readings across the gap period
         textbookReadings.forEach((reading, index) => {
-          const readingDate = new Date(startDate);
-          readingDate.setDate(startDate.getDate() + Math.floor(index / 3)); // ~3 readings per day
+          const dayOffset = Math.floor(index / readingsPerDay);
+          const readingDate = new Date(gapStart);
+          readingDate.setDate(gapStart.getDate() + dayOffset);
           
-          // Don't schedule on weekends - move to Friday or Monday
+          // Don't schedule on weekends - move to Monday
           if (readingDate.getDay() === 0) { // Sunday -> Monday
             readingDate.setDate(readingDate.getDate() + 1);
-          } else if (readingDate.getDay() === 6) { // Saturday -> Friday
-            readingDate.setDate(readingDate.getDate() - 1);
+          } else if (readingDate.getDay() === 6) { // Saturday -> Monday
+            readingDate.setDate(readingDate.getDate() + 2);
+          }
+          
+          // Ensure we don't go past the gap end
+          if (readingDate > gapEnd) {
+            readingDate.setTime(gapEnd.getTime());
           }
           
           reading.due_at = readingDate.toISOString();
