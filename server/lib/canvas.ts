@@ -461,8 +461,21 @@ export class CanvasClient {
         const isTextbook = assignment.courseName?.includes('TEXTBOOK');
         const hasNoDate = !assignment.due_at;
         
-        // For now, check if this reading comes from the same module by checking the module_name
-        const isFromSameModule = assignment.module_name?.toLowerCase().includes(`module ${moduleNumber}`);
+        // Check if this reading comes from the same module by checking the stored module_name property
+        // that was added during module item processing
+        const moduleNameMatches = (assignment as any).module_name?.toLowerCase().includes(`module ${moduleNumber}`);
+        
+        // Alternative approach: for Module 1, match common textbook topics
+        let isFromSameModule = moduleNameMatches;
+        if (!moduleNameMatches && moduleNumber === 1) {
+          const title = assignment.name.toLowerCase();
+          const isModule1Topic = title.includes('criminal law') || 
+                                 title.includes('civil law') || 
+                                 title.includes('evidence') ||
+                                 title.includes('legal system') ||
+                                 title.includes('introduction');
+          isFromSameModule = isModule1Topic;
+        }
         
         return isTextbook && hasNoDate && isFromSameModule;
       });
