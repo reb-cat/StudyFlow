@@ -21,6 +21,8 @@ export function detectPrintNeeds(assignment: {
   submissionTypes?: string[] | null;
   courseName?: string | null;
   subject?: string | null;
+  canvasPageSlug?: string | null;  // For Canvas page URLs
+  canvasModuleItemId?: number | null;  // For module item IDs
 }): PrintDetection {
   
   const result: PrintDetection = {
@@ -30,21 +32,24 @@ export function detectPrintNeeds(assignment: {
     priority: 'low'
   };
 
-  // Generate Canvas URL with fallbacks for better usability
-  if (assignment.canvasId && assignment.canvasCourseId && assignment.canvasInstance) {
+  // Generate Canvas URL with preference for page format
+  if (assignment.canvasPageSlug && assignment.canvasModuleItemId && assignment.canvasCourseId && assignment.canvasInstance) {
+    // Canvas page URL with module_item_id (preferred format for textbook content)
+    const baseUrl = assignment.canvasInstance === 1 
+      ? process.env.CANVAS_BASE_URL 
+      : process.env.CANVAS_BASE_URL_2;
+    if (baseUrl) {
+      const cleanUrl = baseUrl.replace(/\/$/, '');
+      result.canvasUrl = `${cleanUrl}/courses/${assignment.canvasCourseId}/pages/${assignment.canvasPageSlug}?module_item_id=${assignment.canvasModuleItemId}`;
+    }
+  } else if (assignment.canvasId && assignment.canvasCourseId && assignment.canvasInstance) {
     // Full Canvas assignment URL when all data available
     const baseUrl = assignment.canvasInstance === 1 
       ? process.env.CANVAS_BASE_URL 
       : process.env.CANVAS_BASE_URL_2;
     if (baseUrl) {
       const cleanUrl = baseUrl.replace(/\/$/, '');
-      if (assignment.canvasInstance === 2) {
-        // Apologia Canvas uses assignments format with module_item_id
-        // TODO: Need to store module_item_id separately from canvas_id
-        result.canvasUrl = `${cleanUrl}/courses/541/assignments/${assignment.canvasId}`;
-      } else {
-        result.canvasUrl = `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
-      }
+      result.canvasUrl = `${cleanUrl}/courses/${assignment.canvasCourseId}/assignments/${assignment.canvasId}`;
     }
   } else if (assignment.canvasId && assignment.canvasInstance) {
     // Fallback: Direct assignment link when course ID missing
@@ -53,13 +58,7 @@ export function detectPrintNeeds(assignment: {
       : process.env.CANVAS_BASE_URL_2;
     if (baseUrl) {
       const cleanUrl = baseUrl.replace(/\/$/, '');
-      if (assignment.canvasInstance === 2) {
-        // Apologia Canvas uses assignments format with module_item_id
-        // TODO: Need to store module_item_id separately from canvas_id
-        result.canvasUrl = `${cleanUrl}/courses/541/assignments/${assignment.canvasId}`;
-      } else {
-        result.canvasUrl = `${cleanUrl}/assignments/${assignment.canvasId}`;
-      }
+      result.canvasUrl = `${cleanUrl}/assignments/${assignment.canvasId}`;
     }
   } else if (assignment.canvasInstance) {
     // Final fallback: Canvas dashboard when assignment data incomplete

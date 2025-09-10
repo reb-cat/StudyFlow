@@ -61,6 +61,10 @@ export const assignments = pgTable("assignments", {
   printedAt: timestamp("printed_at"), // When parent marked as printed
   canvasUrl: text("canvas_url"), // Direct Canvas assignment link for easy printing
   
+  // Canvas page/module item fields for correct URL generation
+  canvasPageSlug: text("canvas_page_slug"), // Page slug for Canvas page URLs
+  canvasModuleItemId: integer("canvas_module_item_id"), // Module item ID for Canvas page URLs
+  
   // Smart fallback for missing dates
   needsManualDueDate: boolean("needs_manual_due_date").default(false), // Flag for assignments missing Canvas dates
   suggestedDueDate: timestamp("suggested_due_date"), // AI-suggested due date from related assignments

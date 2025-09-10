@@ -329,27 +329,44 @@ export class CanvasClient {
           console.log(`  📺 Found ${moduleItems.length} educational module items in "${course.name}"`);
           
           // Convert module items to assignment-like objects
-          const moduleItemAssignments = moduleItems.map(item => ({
-            id: parseInt(`9999${item.id}`, 10), // Convert to number ID with prefix to avoid conflicts
-            name: item.title,
-            description: `Educational content from module: ${item.module_name}`,
-            due_at: undefined, // Module items typically don't have due dates
-            unlock_at: undefined,
-            lock_at: undefined,
-            course_id: item.course_id,
-            courseName: item.courseName,
-            submission_types: ['none'], // These are typically for viewing/studying
-            canvas_category: 'assignments' as const,
-            is_recurring: false,
-            academic_year: this.determineAcademicYear({ created_at: null, name: item.title } as any, course),
-            // Canvas assignment fields
-            html_url: item.html_url,
-            external_url: item.external_url,
-            workflow_state: 'published',
-            created_at: undefined,
-            updated_at: undefined,
-            points_possible: undefined
-          } as CanvasAssignment));
+          const moduleItemAssignments = moduleItems.map(item => {
+            // Extract page slug from page_url for proper Canvas links
+            let pageSlug = null;
+            if (item.type === 'Page' && item.page_url) {
+              pageSlug = item.page_url;
+            } else if (item.html_url) {
+              // Fallback: extract slug from html_url
+              const match = item.html_url.match(/\/pages\/([^/?]+)/);
+              if (match) {
+                pageSlug = match[1];
+              }
+            }
+            
+            return {
+              id: parseInt(`9999${item.id}`, 10), // Convert to number ID with prefix to avoid conflicts
+              name: item.title,
+              description: `Educational content from module: ${item.module_name}`,
+              due_at: undefined, // Module items typically don't have due dates
+              unlock_at: undefined,
+              lock_at: undefined,
+              course_id: item.course_id,
+              courseName: item.courseName,
+              submission_types: ['none'], // These are typically for viewing/studying
+              canvas_category: 'assignments' as const,
+              is_recurring: false,
+              academic_year: this.determineAcademicYear({ created_at: null, name: item.title } as any, course),
+              // Canvas assignment fields
+              html_url: item.html_url,
+              external_url: item.external_url,
+              workflow_state: 'published',
+              created_at: undefined,
+              updated_at: undefined,
+              // Store Canvas page information for correct URL generation
+              canvas_page_slug: pageSlug,
+              canvas_module_item_id: item.id,
+              points_possible: undefined
+            } as CanvasAssignment;
+          });
 
           // Combine regular assignments with module item assignments
           const allCourseAssignments = [...assignments, ...moduleItemAssignments];
