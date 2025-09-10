@@ -966,6 +966,9 @@ export function GuidedDayView({
           variant: "default"
         });
         
+        // CRITICAL: Invalidate assignment cache to sync across all app components
+        queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+        
         // Refetch assignments and re-derive blocks
         if (onAssignmentUpdate) {
           onAssignmentUpdate();
