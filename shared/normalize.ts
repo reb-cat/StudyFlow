@@ -2,10 +2,10 @@ export type AssignmentLike = { id:string; title:string; course?:string|null; ins
 export type NormalizedAssignment = { displayTitle:string; effectiveDueAt?:string|null; courseLabel?:string|null; };
 
 /**
- * Derive assignment priority from due date - CRITICAL FOR PROPER SCHEDULING
+ * Derive assignment priority from due date - CRITICAL FOR EXECUTIVE FUNCTION SUPPORT
  * @param dueDate - Assignment due date (string, Date, or null)
  * @param referenceDate - Reference date (defaults to today in Eastern Time)
- * @returns 'A' for overdue, 'B' for due today, 'C' for future assignments
+ * @returns 'A' for overdue, 'B' for due tomorrow (must do today), 'C' for future assignments
  */
 export function derivePriorityFromDueDate(
   dueDate: string | Date | null, 
@@ -20,14 +20,19 @@ export function derivePriorityFromDueDate(
   // This ensures consistent day boundaries regardless of timezone
   const startOfToday = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate());
   const startOfDueDate = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+  const startOfTomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
   
-  // Compare dates
-  if (startOfDueDate < startOfToday) {
-    return 'A'; // Overdue - highest priority
-  } else if (startOfDueDate.getTime() === startOfToday.getTime()) {
-    return 'B'; // Due today - medium priority  
+  // EXECUTIVE FUNCTION PRIORITY RULES:
+  // - Due today or earlier = A (highest priority - overdue/urgent)
+  // - Due tomorrow = B (urgent - must complete today)  
+  // - Due later = C (future - only after A & B are done)
+  
+  if (startOfDueDate <= startOfToday) {
+    return 'A'; // Due today or overdue - highest priority
+  } else if (startOfDueDate.getTime() === startOfTomorrow.getTime()) {
+    return 'B'; // Due tomorrow - urgent (must be done today)
   } else {
-    return 'C'; // Future - lowest priority
+    return 'C'; // Due later - future (only after A & B completed)
   }
 }
 
