@@ -27,9 +27,11 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const AuthContext = createContext<{
   isAuthenticated: boolean | null;
   setIsAuthenticated: (auth: boolean) => void;
+  logout: () => Promise<void>;
 }>({
   isAuthenticated: null,
   setIsAuthenticated: () => {},
+  logout: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -104,8 +106,27 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, []);
 
+  const logout = async () => {
+    try {
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        setIsAuthenticated(false);
+      } else {
+        console.error('Logout failed');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still set to false to show login page
+      setIsAuthenticated(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated }}>
+    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { User, Settings, Clock, Calendar, Star, Camera } from 'lucide-react';
+import { User, Settings, Clock, Calendar, Star, Camera, LogOut } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Link } from 'wouter';
 import { ObjectUploader } from '@/components/ObjectUploader';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/App';
+import { Button } from '@/components/ui/button';
 
 // StudyFlow theme colors - updated to match new design
 const colors = {
@@ -24,6 +26,7 @@ export default function FamilyDashboard() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { logout } = useAuth();
   
   // Current date/time
   const now = new Date();
@@ -118,6 +121,16 @@ export default function FamilyDashboard() {
             <Settings size={18} />
             Admin
           </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={logout}
+            className="flex items-center gap-2"
+            data-testid="button-logout"
+          >
+            <LogOut size={18} />
+            Logout
+          </Button>
           <ThemeToggle />
         </div>
       </header>

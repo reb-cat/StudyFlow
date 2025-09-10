@@ -17,8 +17,10 @@ import {
   CheckSquare,
   CalendarCheck,
   Database,
-  Search
+  Search,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '@/App';
 
 interface AdminTile {
   title: string;
@@ -131,6 +133,8 @@ const getColorClasses = (color: string) => {
 };
 
 export default function AdminPanel() {
+  const { logout } = useAuth();
+  
   const handleTileClick = (href: string) => {
     if (href.startsWith('#')) {
       // For future features, show a placeholder
@@ -145,7 +149,16 @@ export default function AdminPanel() {
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-between">
-          <div></div> {/* Spacer for centering */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={logout}
+            className="flex items-center gap-2"
+            data-testid="button-logout-admin"
+          >
+            <LogOut size={18} />
+            Logout
+          </Button>
           <div className="flex items-center gap-3">
             <Target className="w-10 h-10 text-primary" />
             <h1 className="text-4xl font-bold text-foreground" data-testid="admin-title">
