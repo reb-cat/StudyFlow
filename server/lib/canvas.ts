@@ -256,9 +256,14 @@ export class CanvasClient {
       for (const course of courses) {
         // Skip TEXTBOOK courses as they contain only reference material, not actual assignments
         // EXCEPTION: Allow Apologia course (570) for forensics textbook readings
-        if (course.name.toUpperCase().includes('TEXTBOOK') && course.id !== 570) {
-          console.log(`  📖 Skipping TEXTBOOK course: "${course.name}" (reference material only)`);
+        if (course.name.toUpperCase().includes('TEXTBOOK') && parseInt(course.id.toString()) !== 570) {
+          console.log(`  📖 Skipping TEXTBOOK course: "${course.name}" (ID: ${course.id}) - reference material only`);
           continue;
+        }
+        
+        // Special logging for the Apologia textbook course
+        if (parseInt(course.id.toString()) === 570) {
+          console.log(`  📚 APOLOGIA TEXTBOOK: Processing course "${course.name}" (ID: ${course.id}) for forensics readings`);
         }
         
         try {
