@@ -859,20 +859,27 @@ export default function AssignmentsPage() {
                             size="sm"
                             className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white"
                             onClick={async () => {
+                              console.log('🔄 Completing assignment:', assignment.id, assignment.title);
                               try {
-                                await apiRequest('PATCH', `/api/assignments/${assignment.id}`, {
+                                console.log('📡 Making API call to complete assignment...');
+                                const response = await apiRequest('PATCH', `/api/assignments/${assignment.id}`, {
                                   completionStatus: 'completed',
                                   completedAt: new Date().toISOString()
                                 });
+                                console.log('✅ API call successful:', response);
+                                
                                 queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+                                console.log('🔄 Cache invalidated');
+                                
                                 toast({
                                   title: "Assignment Complete! 🎉",
                                   description: "Great work! Assignment marked as completed.",
                                 });
                               } catch (error) {
+                                console.error('❌ Error completing assignment:', error);
                                 toast({
                                   title: "Error",
-                                  description: "Failed to complete assignment. Please try again.",
+                                  description: `Failed to complete assignment: ${error}`,
                                   variant: "destructive",
                                 });
                               }

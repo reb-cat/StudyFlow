@@ -4040,20 +4040,18 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       // Step 2: Clear ALL scheduling for this date (nuclear option)
       console.log(`🧹 NUCLEAR CLEAR: Removing all scheduling for ${date}`);
       
-      const clearedResult = await db.update(assignments)
-        .set({
+      // Clear assignment scheduling for this date
+      const allAssignments = await storage.getAssignments(userId, date, true);
+      const scheduledForDate = allAssignments.filter(a => a.scheduledDate === date);
+      
+      for (const assignment of scheduledForDate) {
+        await storage.updateAssignment(assignment.id, {
           scheduledDate: null,
-          scheduledBlock: null,
-          blockStart: null,
-          blockEnd: null
-        })
-        .where(and(
-          eq(assignments.userId, userId),
-          eq(assignments.scheduledDate, date)
-        ))
-        .returning();
-        
-      console.log(`🧹 CLEARED: ${clearedResult.length} assignments unscheduled`);
+          scheduledBlock: null
+        });
+      }
+      
+      console.log(`🧹 CLEARED: ${scheduledForDate.length} assignments unscheduled`);
       
       // Step 3: Force fresh allocation
       console.log(`🎯 FORCE ALLOCATION: Starting fresh allocation`);
