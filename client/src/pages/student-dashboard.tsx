@@ -748,24 +748,6 @@ export default function StudentDashboard() {
             />
           </div>
         ) : (
-          // Check if critical Overview data is still loading or incomplete
-          (isLoading || isStatusLoading || scheduleTemplate.length === 0 || !isInitialized) ? (
-            <div className="space-y-4">
-              <Card className="bg-card rounded-xl border border-border/50">
-                <CardContent className="p-8">
-                  <div className="flex flex-col items-center justify-center space-y-4">
-                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <div className="text-center">
-                      <h3 className="text-lg font-semibold text-foreground mb-2">Loading Your Schedule</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Preparing your daily schedule with assignments and progress...
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
           <div className="space-y-4">
             {/* Progress Bar - Apple Fitness style with real-time progress */}
             <div className="bg-card rounded-xl p-4 border border-border/50 no-print">
@@ -1022,8 +1004,7 @@ export default function StudentDashboard() {
                     })}
                 </div>
               </div>
-            </div>
-          )
+          </div>
         )}
         
         {/* Print Footer - Hidden on screen, visible in print */}
