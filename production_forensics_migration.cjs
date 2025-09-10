@@ -42,7 +42,7 @@ const pg = new Client({ connectionString: dbUrl });
 
   // ---- CSV PARSING ----
   const fs = require('fs');
-  const csvContent = fs.readFileSync('attached_assets/forensics_textbook_chapters_1757513527575.csv', 'utf8');
+  const csvContent = fs.readFileSync('attached_assets/forensics_textbook_chapters_1757527953988.csv', 'utf8');
   const lines = csvContent.split('\n');
 
   // Parse CSV data
@@ -74,10 +74,17 @@ const pg = new Client({ connectionString: dbUrl });
         const link = row[3];
         const dueDateStr = row[4];
         
-        // Parse MM/DD/YY format to proper date
+        // Parse MM/DD/YY format to Eastern Time end-of-day date (matches StudyFlow's timezone handling)
         const [month, day, year] = dueDateStr.split('/');
         const fullYear = parseInt(year) + 2000; // Convert 25 to 2025
-        const dueDate = new Date(fullYear, parseInt(month) - 1, parseInt(day));
+        
+        // Create date as Eastern Time end-of-day to match classroom context
+        // Add UTC offset to ensure Eastern Time dates display correctly
+        const parsedMonth = parseInt(month) - 1; // JavaScript months are 0-based
+        const parsedDay = parseInt(day);
+        const isDST = parsedMonth >= 2 && parsedMonth <= 10; // Rough DST check (March-November)
+        const utcOffsetHours = isDST ? 4 : 5; // EDT is UTC-4, EST is UTC-5
+        const dueDate = new Date(fullYear, parsedMonth, parsedDay, 23 + utcOffsetHours, 59, 0, 0);
         
         readings.push({
           title,
