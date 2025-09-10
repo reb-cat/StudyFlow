@@ -3181,48 +3181,52 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       // Create unique key for this pending action
       const pendingKey = `${studentName}-${assignmentId}-${Date.now()}`;
       
-      // Set up 15-second timeout to mark as stuck
+      // IMMEDIATE processing - no delay for stuck assignments (parent notification urgency)
+      try {
+        console.log(`🚩 IMMEDIATE: Marking assignment ${assignmentId} as stuck and notifying parent`);
+        
+        // Mark the assignment as stuck immediately
+        await storage.markStuckWithUndo(assignmentId);
+        
+        // Send parent notification if requested - IMMEDIATELY
+        if (needsHelp) {
+          try {
+            // Get assignment details for notification
+            const assignment = await storage.getAssignment(assignmentId);
+            if (assignment) {
+              await fetch('http://localhost:5000/api/notify-parent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  studentName: studentName, // Use actual student name
+                  assignmentTitle: assignment.title,
+                  message: `Student is stuck on assignment: ${reason}`
+                })
+              });
+              console.log('📧 Parent notification sent IMMEDIATELY for stuck assignment');
+            }
+          } catch (notifyError) {
+            console.warn('Parent notification failed:', notifyError);
+          }
+        }
+        
+        console.log(`✅ Assignment ${assignmentId} marked as stuck immediately`);
+      } catch (error) {
+        console.error('Error marking assignment as stuck:', error);
+      }
+      
+      // Set up 15-second timeout for undo functionality only (notification already sent)
       const timeout = setTimeout(async () => {
         try {
-          // Check if the action is still pending (not cancelled)
+          // Just clean up the pending action after undo window expires
           if (stuckPendingActions.has(pendingKey)) {
-            console.log(`⏱️ 15 seconds elapsed - marking assignment ${assignmentId} as stuck`);
-            
-            // Mark the assignment as stuck
-            await storage.markStuckWithUndo(assignmentId);
-            
-            // Send parent notification if requested
-            if (needsHelp) {
-              try {
-                // Get assignment details for notification
-                const assignment = await storage.getAssignment(assignmentId);
-                if (assignment) {
-                  await fetch('http://localhost:5000/api/notify-parent', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      studentName: studentName, // Use actual student name
-                      assignmentTitle: assignment.title,
-                      message: `Student is stuck on assignment: ${reason}`
-                    })
-                  });
-                  console.log('📧 Parent notification sent for stuck assignment');
-                }
-              } catch (notifyError) {
-                console.warn('Parent notification failed:', notifyError);
-              }
-            }
-            
-            // Clean up the pending action
             stuckPendingActions.delete(pendingKey);
-            
-            console.log(`✅ Assignment ${assignmentId} marked as stuck and added to needs review`);
+            console.log(`⏱️ Undo window expired for assignment ${assignmentId}`);
           }
         } catch (error) {
-          console.error('Error marking assignment as stuck after timeout:', error);
-          stuckPendingActions.delete(pendingKey);
+          console.error('Error cleaning up undo window:', error);
         }
-      }, 15000); // 15 seconds
+      }, 15000); // 15 seconds for undo only
       
       // Store the pending action
       stuckPendingActions.set(pendingKey, {
