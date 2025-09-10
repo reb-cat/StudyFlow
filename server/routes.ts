@@ -62,9 +62,20 @@ const setupFamilyAuth = (app: Express) => {
     }
   });
   
-  // Check authentication status
+  // Check authentication status - FIXED: Verify both session and userId
   app.get('/api/auth/status', (req: Request, res: Response) => {
-    res.json({ authenticated: !!req.session.authenticated });
+    const isAuthenticated = !!(req.session && req.session.authenticated === true && typeof req.session.userId === 'string');
+    
+    // Debug logging for session verification
+    console.log('🔍 AUTH STATUS CHECK:', {
+      sessionId: req.sessionID?.slice(0, 8) + '...',
+      hasSession: !!req.session,
+      authenticated: req.session?.authenticated,
+      userId: req.session?.userId,
+      finalResult: isAuthenticated
+    });
+    
+    res.json({ authenticated: isAuthenticated });
   });
 
   // Who am I endpoint - required for acceptance proof
