@@ -1,0 +1,67 @@
+index-DvbAro3G.js:453 🔍 URL Date Parsing: {search: 'date=2025-09-10', dateParam: '2025-09-10', windowSearch: '?date=2025-09-10'}
+index-DvbAro3G.js:453 ✅ Using URL date parameter: 2025-09-10
+index-DvbAro3G.js:453 🗓️ Date Debug: {selectedDate: '2025-09-10', selectedDateObj: 'Wed Sep 10 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Wednesday', dateDisplay: 'Wednesday, September 10, 2025', today: '2025-09-09'}
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: selectedDate=2025-09-10
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Total assignments=0, Today's assignments=0
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Today's assignments: []
+index-DvbAro3G.js:453 🔄 URL Sync Check: {search: 'date=2025-09-10', dateParam: '2025-09-10', currentSelectedDate: '2025-09-10'}
+index-DvbAro3G.js:48  GET https://study-flow.replit.app/api/bible-curriculum/current/Khalil 404 (Not Found)
+(anonymous) @ index-DvbAro3G.js:48
+i @ index-DvbAro3G.js:48
+b @ index-DvbAro3G.js:48
+start @ index-DvbAro3G.js:48
+fetch @ index-DvbAro3G.js:48
+Jo @ index-DvbAro3G.js:48
+onSubscribe @ index-DvbAro3G.js:48
+subscribe @ index-DvbAro3G.js:48
+(anonymous) @ index-DvbAro3G.js:48
+cx @ index-DvbAro3G.js:38
+Ol @ index-DvbAro3G.js:40
+Gs @ index-DvbAro3G.js:40
+(anonymous) @ index-DvbAro3G.js:40
+S @ index-DvbAro3G.js:25
+E @ index-DvbAro3G.js:25
+index-DvbAro3G.js:453 🗓️ Date Debug: {selectedDate: '2025-09-10', selectedDateObj: 'Wed Sep 10 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Wednesday', dateDisplay: 'Wednesday, September 10, 2025', today: '2025-09-09'}
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: selectedDate=2025-09-10
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Total assignments=0, Today's assignments=0
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Today's assignments: []
+index-DvbAro3G.js:453 🗓️ Date Debug: {selectedDate: '2025-09-10', selectedDateObj: 'Wed Sep 10 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Wednesday', dateDisplay: 'Wednesday, September 10, 2025', today: '2025-09-09'}
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: selectedDate=2025-09-10
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Total assignments=0, Today's assignments=0
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Today's assignments: []
+index-DvbAro3G.js:453 🗓️ Date Debug: {selectedDate: '2025-09-10', selectedDateObj: 'Wed Sep 10 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Wednesday', dateDisplay: 'Wednesday, September 10, 2025', today: '2025-09-09'}
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: selectedDate=2025-09-10
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Total assignments=0, Today's assignments=0
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Today's assignments: []
+index-DvbAro3G.js:453 🎯 BLOCK 2: empty [from: none]
+index-DvbAro3G.js:453 🎯 BLOCK 3: empty [from: none]
+index-DvbAro3G.js:453 🎯 BLOCK 5: empty [from: none]
+index-DvbAro3G.js:453 🎯 BLOCK 6: empty [from: none]
+index-DvbAro3G.js:453 🎯 BLOCK 7: empty [from: none]
+index-DvbAro3G.js:453 🗓️ Date Debug: {selectedDate: '2025-09-10', selectedDateObj: 'Wed Sep 10 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Wednesday', dateDisplay: 'Wednesday, September 10, 2025', today: '2025-09-09'}
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: selectedDate=2025-09-10
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Total assignments=0, Today's assignments=0
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Today's assignments: []
+index-DvbAro3G.js:453 🎯 BLOCK 2: empty [from: none]
+index-DvbAro3G.js:453 🎯 BLOCK 3: empty [from: none]
+index-DvbAro3G.js:453 🎯 BLOCK 5: empty [from: none]
+index-DvbAro3G.js:453 🎯 BLOCK 6: empty [from: none]
+index-DvbAro3G.js:453 🎯 BLOCK 7: empty [from: none]
+index-DvbAro3G.js:453 🗓️ Date Debug: {selectedDate: '2025-09-10', selectedDateObj: 'Wed Sep 10 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Wednesday', dateDisplay: 'Wednesday, September 10, 2025', today: '2025-09-09'}
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: selectedDate=2025-09-10
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Total assignments=29, Today's assignments=5
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Today's assignments: (5) [{…}, {…}, {…}, {…}, {…}]
+index-DvbAro3G.js:453 🎯 BLOCK 2: Unit 1: This Is Our Country [from: dbScheduled]
+index-DvbAro3G.js:453 🎯 BLOCK 3: METEOROLOGY Ch 2 Worksheet 1&2 [from: dbScheduled]
+index-DvbAro3G.js:453 🎯 BLOCK 5: Unit 2 - English Settlement of America (Continued) [from: dbScheduled]
+index-DvbAro3G.js:453 🎯 BLOCK 6: Unit 3 - English Colonies in the 1700's (Continued) [from: dbScheduled]
+index-DvbAro3G.js:453 🎯 BLOCK 7: 13 Colonies Map [from: dbScheduled]
+index-DvbAro3G.js:453 🗓️ Date Debug: {selectedDate: '2025-09-10', selectedDateObj: 'Wed Sep 10 2025 08:00:00 GMT-0400 (Eastern Daylight Time)', dayName: 'Wednesday', dateDisplay: 'Wednesday, September 10, 2025', today: '2025-09-09'}
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: selectedDate=2025-09-10
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Total assignments=29, Today's assignments=5
+index-DvbAro3G.js:453 🔍 FRONTEND DEBUG: Today's assignments: (5) [{…}, {…}, {…}, {…}, {…}]
+index-DvbAro3G.js:453 🎯 BLOCK 2: Unit 1: This Is Our Country [from: dbScheduled]
+index-DvbAro3G.js:453 🎯 BLOCK 3: METEOROLOGY Ch 2 Worksheet 1&2 [from: dbScheduled]
+index-DvbAro3G.js:453 🎯 BLOCK 5: Unit 2 - English Settlement of America (Continued) [from: dbScheduled]
+index-DvbAro3G.js:453 🎯 BLOCK 6: Unit 3 - English Colonies in the 1700's (Continued) [from: dbScheduled]
+index-DvbAro3G.js:453 🎯 BLOCK 7: 13 Colonies Map [from: dbScheduled]

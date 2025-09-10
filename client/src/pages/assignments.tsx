@@ -852,6 +852,38 @@ export default function AssignmentsPage() {
                           </Button>
                         )}
 
+                        {/* Regular Assignment Completion Button */}
+                        {!assignment.isBibleItem && assignment.completionStatus !== 'completed' && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white"
+                            onClick={async () => {
+                              try {
+                                await apiRequest('PATCH', `/api/assignments/${assignment.id}`, {
+                                  completionStatus: 'completed',
+                                  completedAt: new Date().toISOString()
+                                });
+                                queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+                                toast({
+                                  title: "Assignment Complete! 🎉",
+                                  description: "Great work! Assignment marked as completed.",
+                                });
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to complete assignment. Please try again.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            data-testid={`button-complete-assignment-${assignment.id}`}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                            ✅ Complete
+                          </Button>
+                        )}
+
                         {/* Stuck Assignment - Parent Resolution Button */}
                         {assignment.completionStatus === 'stuck' && (
                           <Button
