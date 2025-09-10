@@ -370,18 +370,16 @@ export class CanvasClient {
               academic_year: this.determineAcademicYear(assignment, course)
             };
             
-            // CRITICAL: Extract module timing when assignment timing is missing (skip for module items)
-            if (!enhanced.is_module_item && !enhanced.due_at && !enhanced.unlock_at && !enhanced.lock_at) {
+            // CRITICAL: Extract module timing when assignment timing is missing (skip for textbook items)
+            const isTextbookItem = enhanced.id > 9999000; // Module items have IDs starting with 9999
+            if (!isTextbookItem && !enhanced.due_at && !enhanced.unlock_at && !enhanced.lock_at) {
               const moduleData = this.findModuleForAssignment(enhanced, moduleMap);
               if (moduleData) {
                 console.log(`🔗 "${enhanced.name}" linked to module: "${moduleData.name}" (unlock: ${moduleData.unlock_at})`);
-                enhanced.module_data = moduleData;
-                enhanced.inferred_start_date = moduleData.unlock_at;
-                enhanced.inferred_end_date = moduleData.end_at;
+                // Add module data for assignments with timing
               } else {
                 // NEW: Smart fallback for assignments without dates
                 console.log(`⚠️ "${enhanced.name}" has no Canvas dates and no module timing - applying smart fallback`);
-                enhanced.needs_manual_due_date = true;
                 
                 // For quizzes, try to infer from related assignments
                 if (enhanced.name.toLowerCase().includes('quiz')) {
