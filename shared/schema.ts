@@ -128,18 +128,6 @@ export const bibleCurriculum = pgTable("bible_curriculum", {
   completedAt: timestamp("completed_at"),
 });
 
-// Forensics curriculum - module/reading sequence for proper textbook ordering
-export const forensicsCurriculum = pgTable("forensics_curriculum", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  moduleNumber: integer("module_number").notNull(),
-  readingNumber: integer("reading_number").notNull(), // Sequential order within module
-  readingTitle: text("reading_title").notNull(), // "Criminal Law", "Case Notes: Latent Fingerprints versus Latent Truths", etc.
-  readingType: text("reading_type").default("textbook_reading"), // "textbook_reading", "lab_exercise", "case_notes"
-  isLabExercise: boolean("is_lab_exercise").default(false), // True for "Module X Laboratory Exercise"
-  isCaseNotes: boolean("is_case_notes").default(false), // True for "Case Notes: ..." readings
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 // Progress tracking for executive function support
 export const progressSessions = pgTable("progress_sessions", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -257,12 +245,6 @@ export const insertBibleCurriculumSchema = createInsertSchema(bibleCurriculum).o
 export const insertBibleCurriculumPositionSchema = createInsertSchema(bibleCurriculumPosition).omit({
   id: true,
   lastUpdated: true,
-});
-
-// Forensics curriculum schemas
-export const insertForensicsCurriculumSchema = createInsertSchema(forensicsCurriculum).omit({
-  id: true,
-  createdAt: true,
 });
 
 // Student profile schemas
@@ -436,9 +418,6 @@ export type BibleCurriculum = typeof bibleCurriculum.$inferSelect;
 
 export type InsertBibleCurriculumPosition = z.infer<typeof insertBibleCurriculumPositionSchema>;
 export type BibleCurriculumPosition = typeof bibleCurriculumPosition.$inferSelect;
-
-export type InsertForensicsCurriculum = z.infer<typeof insertForensicsCurriculumSchema>;
-export type ForensicsCurriculum = typeof forensicsCurriculum.$inferSelect;
 
 export type InsertProgressSession = z.infer<typeof insertProgressSessionSchema>;
 export type ProgressSession = typeof progressSessions.$inferSelect;

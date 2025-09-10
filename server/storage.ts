@@ -807,38 +807,6 @@ export class DatabaseStorage implements IStorage {
       
       // ENHANCED ASSIGNMENT PRIORITIZATION with urgency-based bumping
       const prioritizedAssignments = assignmentsToSchedule.sort((a, b) => {
-        // SPECIAL CASE: Forensics textbook readings - curriculum sequence overrides due dates
-        const aIsForensics = a.courseName?.includes('TEXTBOOK') || false;
-        const bIsForensics = b.courseName?.includes('TEXTBOOK') || false;
-        
-        if (aIsForensics && bIsForensics) {
-          // Both are forensics textbook - use curriculum sequence regardless of due dates
-          console.log(`📚 CURRICULUM ORDERING: Comparing "${a.title}" vs "${b.title}"`);
-          return compareAssignmentTitles(a.title || '', b.title || '', a.courseName, b.courseName);
-        }
-        
-        // If only one is forensics and it's Module 1 foundation content, prioritize it
-        if (aIsForensics && !bIsForensics) {
-          const aIsModule1 = (a.title || '').toLowerCase().includes('module 1') || 
-                             (a.title || '').toLowerCase().includes('criminal law') ||
-                             (a.title || '').toLowerCase().includes('civil law');
-          if (aIsModule1) {
-            console.log(`📚 PRIORITIZING MODULE 1: "${a.title}" comes before non-forensics`);
-            return -1; // Module 1 forensics readings come first
-          }
-        }
-        
-        if (bIsForensics && !aIsForensics) {
-          const bIsModule1 = (b.title || '').toLowerCase().includes('module 1') || 
-                             (b.title || '').toLowerCase().includes('criminal law') ||
-                             (b.title || '').toLowerCase().includes('civil law');
-          if (bIsModule1) {
-            console.log(`📚 PRIORITIZING MODULE 1: "${b.title}" comes before non-forensics`);
-            return 1; // Module 1 forensics readings come first
-          }
-        }
-        
-        // STANDARD PRIORITIZATION for non-forensics or mixed assignments
         // Priority 1: URGENT - Overdue assignments (must be scheduled today)
         const aOverdue = a.dueDate && new Date(a.dueDate) < new Date(targetDate);
         const bOverdue = b.dueDate && new Date(b.dueDate) < new Date(targetDate);
@@ -859,8 +827,8 @@ export class DatabaseStorage implements IStorage {
         if (a.dueDate && !b.dueDate) return -1;
         if (!a.dueDate && b.dueDate) return 1;
         
-        // Priority 4: Use intelligent sequence sorting (Unit 2 → Unit 3, Module 1 → Module 2)
-        return compareAssignmentTitles(a.title || '', b.title || '', a.courseName, b.courseName);
+        // Priority 4: Use intelligent sequence sorting (Unit 2 → Unit 3)
+        return compareAssignmentTitles(a.title || '', b.title || '');
       });
       
       // URGENCY CLASSIFICATION: Separate critical vs moveable assignments

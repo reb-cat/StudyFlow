@@ -21,7 +21,7 @@ export function extractSequenceNumbers(title: string): number[] {
   ];
   
   for (const pattern of patterns) {
-    const matches = Array.from(title.matchAll(pattern));
+    const matches = [...title.matchAll(pattern)];
     if (matches.length > 0) {
       return matches.map(match => parseInt(match[1], 10)).filter(n => !isNaN(n));
     }
@@ -31,40 +31,7 @@ export function extractSequenceNumbers(title: string): number[] {
 }
 
 // Smart title comparison that handles numerical sequences - PRESERVES Unit 2 → Unit 3 order
-export function compareAssignmentTitles(titleA: string, titleB: string, courseNameA?: string, courseNameB?: string): number {
-  // SPECIAL CASE: Forensics textbook readings - use curriculum sequence
-  const isForensicsA = courseNameA?.includes('TEXTBOOK') || false;
-  const isForensicsB = courseNameB?.includes('TEXTBOOK') || false;
-  
-  if (isForensicsA && isForensicsB) {
-    // Both are forensics textbook readings - use curriculum sequence
-    const curriculumOrderA = getForensicsCurriculumOrderSync(titleA);
-    const curriculumOrderB = getForensicsCurriculumOrderSync(titleB);
-    
-    if (curriculumOrderA !== null && curriculumOrderB !== null) {
-      console.log(`📚 CURRICULUM SORT: "${titleA}" (${curriculumOrderA}) vs "${titleB}" (${curriculumOrderB})`);
-      return curriculumOrderA - curriculumOrderB;
-    }
-  }
-  
-  // If only one is forensics textbook, prioritize curriculum sequence
-  if (isForensicsA && !isForensicsB) {
-    const curriculumOrderA = getForensicsCurriculumOrderSync(titleA);
-    if (curriculumOrderA !== null) {
-      console.log(`📚 FORENSICS PRIORITY: "${titleA}" (${curriculumOrderA}) comes before non-forensics`);
-      return -1; // Forensics curriculum readings come first
-    }
-  }
-  
-  if (isForensicsB && !isForensicsA) {
-    const curriculumOrderB = getForensicsCurriculumOrderSync(titleB);
-    if (curriculumOrderB !== null) {
-      console.log(`📚 FORENSICS PRIORITY: "${titleB}" (${curriculumOrderB}) comes before non-forensics`);
-      return 1; // Forensics curriculum readings come first
-    }
-  }
-  
-  // GENERAL CASE: Use existing numerical sequence logic
+export function compareAssignmentTitles(titleA: string, titleB: string): number {
   const numbersA = extractSequenceNumbers(titleA);
   const numbersB = extractSequenceNumbers(titleB);
   
@@ -83,65 +50,6 @@ export function compareAssignmentTitles(titleA: string, titleB: string, courseNa
   
   // Fall back to alphabetical comparison
   return titleA.localeCompare(titleB);
-}
-
-// Helper function to get curriculum order for forensics assignments
-async function getForensicsCurriculumOrder(title: string): Promise<number | null> {
-  try {
-    // Import here to avoid circular dependency
-    const { db } = await import('../db');
-    const { forensicsCurriculum } = await import('@shared/schema');
-    const { eq, or } = await import('drizzle-orm');
-    
-    const normalizedTitle = title.toLowerCase().trim();
-    
-    // Try multiple variations to handle "Read" prefixes and exact matches
-    const titleVariations = [
-      normalizedTitle,                           // Exact as-is
-      normalizedTitle.replace(/^read\s+/i, ''), // Remove "Read " prefix
-      `read ${normalizedTitle}`,                 // Add "Read " prefix
-    ];
-    
-    // Query database for any matching variation
-    for (const variation of titleVariations) {
-      const results = await db
-        .select()
-        .from(forensicsCurriculum)
-        .where(eq(forensicsCurriculum.readingTitle, variation.trim()));
-      
-      if (results.length > 0) {
-        const reading = results[0];
-        // Calculate curriculum order as module.reading (e.g., 11.4 for Module 11, Reading 4)
-        const curriculumOrder = reading.moduleNumber + (reading.readingNumber * 0.1);
-        console.log(`📚 FOUND CURRICULUM MATCH: "${title}" → "${reading.readingTitle}" (${reading.moduleNumber}.${reading.readingNumber})`);
-        return curriculumOrder;
-      }
-    }
-    
-    console.log(`📚 NO CURRICULUM MATCH: "${title}" (tried: ${titleVariations.join(', ')})`);
-    return null;
-  } catch (error: any) {
-    console.error('Error looking up curriculum order:', error);
-    return null;
-  }
-}
-
-// Synchronous wrapper with caching for curriculum order lookups
-const curriculumOrderCache = new Map<string, number | null>();
-
-function getForensicsCurriculumOrderSync(title: string): number | null {
-  // Check cache first
-  const cached = curriculumOrderCache.get(title.toLowerCase().trim());
-  if (cached !== undefined) {
-    return cached;
-  }
-  
-  // For sync operation, return null and trigger async lookup
-  getForensicsCurriculumOrder(title).then(order => {
-    curriculumOrderCache.set(title.toLowerCase().trim(), order);
-  });
-  
-  return null;
 }
 
 // CAPACITY TRACKING - Daily and per-course limits for EF support
