@@ -1,0 +1,67 @@
+// ---- HARD GUARDRAILS ----
+const assert = (cond, msg) => { if (!cond) { console.error("❌ " + msg); process.exit(1); } };
+
+const rawEnv = process.env.PRODUCTION_USER_ID;
+const targetUserId = rawEnv && rawEnv.trim();
+assert(!!targetUserId, "PRODUCTION_USER_ID is missing. Example: PRODUCTION_USER_ID=\"abigail-user\" node production_forensics_migration.js");
+
+// Log exactly what we’ll use, then hard-fail if it’s not one of your known IDs (optional but safer)
+const allowed = new Set(["abigail-user", "khalil-user"]);
+assert(allowed.has(targetUserId), `Unexpected PRODUCTION_USER_ID: ${targetUserId}`); 
+console.log("🔐 Using PRODUCTION_USER_ID =", JSON.stringify(targetUserId));
+
+// If your CSV has a user column, DO NOT trust it:
+function withForcedUserId(row) {
+  const { user_id, userId, ...rest } = row;   // strip any incoming user field
+  return { ...rest, user_id: targetUserId };   // force to target
+}
+
+// Before doing anything, prove we’re on the right DB
+const { Client } = require("pg");
+const dbUrl = process.env.DATABASE_URL;
+assert(!!dbUrl, "DATABASE_URL missing. Pass inline to be safe.");
+const pg = new Client({ connectionString: dbUrl });
+(async () => {
+  await pg.connect();
+  const loc = await pg.query(`SELECT current_database() AS db, inet_server_addr() AS host, inet_server_port() AS port`);
+  console.log("🛰️ Connected to:", loc.rows[0]);
+
+  // ---- SAFETY CHECK (only block if textbook rows already exist FOR THIS USER) ----
+  const check = await pg.query(
+    `SELECT COUNT(*)::int AS n
+     FROM assignments
+     WHERE course_name = 'Apologia Forensics Textbook'
+       AND user_id = $1`,
+    [targetUserId]
+  );
+  if (check.rows[0].n > 0) {
+    console.error("❌ ABORTING: Textbook readings already exist for this user.");
+    process.exit(1);
+  }
+
+  // … your CSV parsing here …
+  // const rows = parseCsv(...); // each row is an object
+
+  // Example insert using forced user id + parameterization:
+  // (wrap in a transaction)
+  await pg.query("BEGIN");
+  try {
+    for (const row of rows) {
+      const r = withForcedUserId(row);
+      await pg.query(
+        `INSERT INTO assignments
+           (user_id, course_name, title, module_number, reading_number, creation_source, academic_year)
+         VALUES ($1,'Apologia Forensics Textbook',$2,$3,$4,'textbook','2024-2025')`,
+        [r.user_id, r.title, r.module_number, r.reading_number]
+      );
+    }
+    await pg.query("COMMIT");
+    console.log(`✅ Imported ${rows.length} textbook readings for ${targetUserId}`);
+  } catch (e) {
+    await pg.query("ROLLBACK");
+    console.error("❌ Import failed; rolled back.", e);
+    process.exit(1);
+  } finally {
+    await pg.end();
+  }
+})();
