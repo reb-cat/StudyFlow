@@ -1,6 +1,36 @@
 export type AssignmentLike = { id:string; title:string; course?:string|null; instructions?:string|null; dueAt?:string|null; };
 export type NormalizedAssignment = { displayTitle:string; effectiveDueAt?:string|null; courseLabel?:string|null; };
 
+/**
+ * Derive assignment priority from due date - CRITICAL FOR PROPER SCHEDULING
+ * @param dueDate - Assignment due date (string, Date, or null)
+ * @param referenceDate - Reference date (defaults to today in Eastern Time)
+ * @returns 'A' for overdue, 'B' for due today, 'C' for future assignments
+ */
+export function derivePriorityFromDueDate(
+  dueDate: string | Date | null, 
+  referenceDate: Date = new Date()
+): 'A' | 'B' | 'C' {
+  if (!dueDate) return 'C';
+  
+  const due = new Date(dueDate);
+  const reference = new Date(referenceDate);
+  
+  // Normalize both dates to midnight for comparison
+  // This ensures consistent day boundaries regardless of timezone
+  const startOfToday = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate());
+  const startOfDueDate = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+  
+  // Compare dates
+  if (startOfDueDate < startOfToday) {
+    return 'A'; // Overdue - highest priority
+  } else if (startOfDueDate.getTime() === startOfToday.getTime()) {
+    return 'B'; // Due today - medium priority  
+  } else {
+    return 'C'; // Future - lowest priority
+  }
+}
+
 function inferDueDateFromText(text:string, now=new Date()): Date | null {
   if (!text) return null;
   const s = text.replace(/\u00A0/g,' ');

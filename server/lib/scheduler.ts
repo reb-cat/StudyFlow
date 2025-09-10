@@ -2,6 +2,7 @@ import { getAllAssignmentsForStudent } from './canvas';
 import { storage } from '../storage';
 import { analyzeAssignmentWithCanvas, getSmartSchedulingDate, extractDueDateFromTitle } from './assignmentIntelligence';
 import { performBidirectionalSync } from './canvasBidirectionalSync';
+import { derivePriorityFromDueDate } from '@shared/normalize';
 
 interface ScheduledJob {
   name: string;
@@ -253,7 +254,7 @@ class JobScheduler {
                     scheduledDate: smartScheduledDate,
                     actualEstimatedMinutes: 60,
                     completionStatus: completionStatus,
-                    priority: 'B',
+                    priority: derivePriorityFromDueDate(dueDate),
                     difficulty: 'medium',
                     blockType: intelligence.blockType,
                     isAssignmentBlock: intelligence.isSchedulable,
@@ -456,7 +457,7 @@ class JobScheduler {
                     scheduledDate: smartScheduledDate,
                     actualEstimatedMinutes: 60,
                     completionStatus: completionStatus,
-                    priority: 'B',
+                    priority: derivePriorityFromDueDate(dueDate),
                     difficulty: 'medium',
                     blockType: intelligence.blockType,
                     isAssignmentBlock: intelligence.isSchedulable,
