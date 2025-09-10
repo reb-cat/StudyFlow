@@ -440,7 +440,7 @@ export class CanvasClient {
       console.log(`📊 Total assignments across all courses: ${allAssignments.length}`);
       
       // 🎯 AUTO-DETECT MODULE TIMING: Schedule textbook readings before module tests/labs
-      this.scheduleTextbookReadingsForModules(allAssignments);
+      await this.scheduleTextbookReadingsForModules(allAssignments);
       
       return allAssignments;
     }
@@ -450,7 +450,7 @@ export class CanvasClient {
    * 🎯 AUTO-DETECT MODULE TIMING: Schedule textbook readings before earliest assessment (quiz/test/lab)
    * This prioritizes test/quiz dates over lab dates for proper exam preparation
    */
-  private scheduleTextbookReadingsForModules(allAssignments: CanvasAssignment[]): void {
+  private async scheduleTextbookReadingsForModules(allAssignments: CanvasAssignment[]): Promise<void> {
     console.log(`🎯 Auto-detecting module assessments to schedule textbook readings...`);
     
     // Find all module assignments with due dates (tests, quizzes, labs, exams)
@@ -574,11 +574,25 @@ export class CanvasClient {
       const orderedReadings: CanvasAssignment[] = [];
       
       for (const curriculumReading of curriculumReadings) {
-        // Find matching Canvas assignment
+        // Find matching Canvas assignment (handle "Read" prefixes)
         const canvasAssignment = allAssignments.find(assignment => {
           const isTextbook = assignment.courseName?.includes('TEXTBOOK');
           const hasNoDate = !assignment.due_at;
-          const titleMatches = this.normalizeTitle(assignment.name) === this.normalizeTitle(curriculumReading.readingTitle);
+          
+          // Try exact match first
+          let titleMatches = this.normalizeTitle(assignment.name) === this.normalizeTitle(curriculumReading.readingTitle);
+          
+          // If not found, try with "Read" prefix
+          if (!titleMatches) {
+            const withReadPrefix = `Read ${curriculumReading.readingTitle}`;
+            titleMatches = this.normalizeTitle(assignment.name) === this.normalizeTitle(withReadPrefix);
+          }
+          
+          // If still not found, try removing "Read" from assignment name
+          if (!titleMatches && assignment.name.toLowerCase().startsWith('read ')) {
+            const withoutRead = assignment.name.substring(5).trim(); // Remove "Read "
+            titleMatches = this.normalizeTitle(withoutRead) === this.normalizeTitle(curriculumReading.readingTitle);
+          }
           
           return isTextbook && hasNoDate && titleMatches;
         });
