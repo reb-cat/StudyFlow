@@ -295,8 +295,14 @@ export class CanvasClient {
             try {
               const items = await this.makeRequest<any[]>(`/courses/${course.id}/modules/${module.id}/items?per_page=100`);
               // Filter for educational content that should be treated as assignments
-              const educationalItems = items.filter(item => 
-                (item.type === 'Page' && (
+              const educationalItems = items.filter(item => {
+                // For Apologia textbook course (570): Include ALL pages as they are textbook readings
+                if (course.id === 570 && item.type === 'Page') {
+                  return true;
+                }
+                
+                // For other courses: Use selective filtering
+                return (item.type === 'Page' && (
                   item.title?.toLowerCase().includes('video') ||
                   item.title?.toLowerCase().includes('pre-class') ||
                   item.title?.toLowerCase().includes('lesson') ||
@@ -307,7 +313,7 @@ export class CanvasClient {
                   item.title?.toLowerCase().includes('video') ||
                   item.title?.toLowerCase().includes('lesson')
                 ))
-              );
+              });
               moduleItems.push(...educationalItems.map(item => ({
                 ...item,
                 course_id: course.id,
@@ -327,27 +333,23 @@ export class CanvasClient {
             id: parseInt(`9999${item.id}`, 10), // Convert to number ID with prefix to avoid conflicts
             name: item.title,
             description: `Educational content from module: ${item.module_name}`,
-            due_at: null, // Module items typically don't have due dates
-            unlock_at: null,
-            lock_at: null,
+            due_at: undefined, // Module items typically don't have due dates
+            unlock_at: undefined,
+            lock_at: undefined,
             course_id: item.course_id,
             courseName: item.courseName,
             submission_types: ['none'], // These are typically for viewing/studying
             canvas_category: 'assignments' as const,
             is_recurring: false,
             academic_year: this.determineAcademicYear({ created_at: null, name: item.title } as any, course),
-            // Custom fields to identify these as module items
-            is_module_item: true,
-            module_id: item.module_id,
-            module_name: item.module_name,
-            module_item_type: item.type,
+            // Canvas assignment fields
             html_url: item.html_url,
             external_url: item.external_url,
             workflow_state: 'published',
-            created_at: null,
-            updated_at: null,
-            points_possible: null
-          }));
+            created_at: undefined,
+            updated_at: undefined,
+            points_possible: undefined
+          } as CanvasAssignment));
 
           // Combine regular assignments with module item assignments
           const allCourseAssignments = [...assignments, ...moduleItemAssignments];
