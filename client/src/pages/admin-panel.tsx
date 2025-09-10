@@ -149,19 +149,14 @@ export default function AdminPanel() {
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-between">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              console.log('🔴 LOGOUT BUTTON CLICKED in admin panel');
-              logout();
-            }}
-            className="flex items-center gap-2"
+          <button
+            onClick={logout}
+            className="px-3 py-2 bg-transparent border border-border rounded-lg text-foreground text-sm cursor-pointer flex items-center gap-2 transition-all duration-200 hover:bg-secondary hover:border-primary"
             data-testid="button-logout-admin"
           >
             <LogOut size={18} />
             Logout
-          </Button>
+          </button>
           <div className="flex items-center gap-3">
             <Target className="w-10 h-10 text-primary" />
             <h1 className="text-4xl font-bold text-foreground" data-testid="admin-title">

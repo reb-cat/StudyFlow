@@ -107,23 +107,19 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = async () => {
-    console.log('🔴 LOGOUT BUTTON CLICKED - Starting logout process');
     try {
       const response = await fetch('/api/logout', {
         method: 'POST',
         credentials: 'include'
       });
       
-      console.log('🔴 LOGOUT RESPONSE:', response.status, response.ok);
-      
       if (response.ok) {
-        console.log('🔴 LOGOUT SUCCESS - Setting authenticated to false');
         setIsAuthenticated(false);
       } else {
-        console.error('🔴 LOGOUT FAILED - Response not OK');
+        console.error('Logout failed');
       }
     } catch (error) {
-      console.error('🔴 LOGOUT ERROR:', error);
+      console.error('Logout error:', error);
       // Still set to false to show login page
       setIsAuthenticated(false);
     }

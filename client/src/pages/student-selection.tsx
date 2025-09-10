@@ -122,16 +122,7 @@ export default function FamilyDashboard() {
             Admin
           </Link>
           <button
-            onClick={async () => {
-              console.log('🔴 LOGOUT BUTTON CLICKED in student-selection page');
-              console.log('🔴 About to call logout function:', typeof logout);
-              try {
-                await logout();
-                console.log('🔴 Logout function completed');
-              } catch (error) {
-                console.error('🔴 Logout function error:', error);
-              }
-            }}
+            onClick={logout}
             className="px-3 py-2 bg-transparent border border-border rounded-lg text-foreground text-sm cursor-pointer flex items-center gap-2 transition-all duration-200 hover:bg-secondary hover:border-primary"
             data-testid="button-logout"
           >
