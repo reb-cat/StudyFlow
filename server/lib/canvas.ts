@@ -255,7 +255,8 @@ export class CanvasClient {
       
       for (const course of courses) {
         // Skip TEXTBOOK courses as they contain only reference material, not actual assignments
-        if (course.name.toUpperCase().includes('TEXTBOOK')) {
+        // EXCEPTION: Allow Apologia course (570) for forensics textbook readings
+        if (course.name.toUpperCase().includes('TEXTBOOK') && course.id !== 570) {
           console.log(`  📖 Skipping TEXTBOOK course: "${course.name}" (reference material only)`);
           continue;
         }
