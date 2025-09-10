@@ -114,15 +114,30 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
 
   const handleStatusUpdate = async (newStatus: Assignment['completionStatus']) => {
     try {
-      const response = await fetch(`/api/assignments/${assignment.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          completionStatus: newStatus,
-          timeSpent: assignment.timeSpent || 0,
-          notes: newStatus === 'stuck' ? 'Student marked as stuck - needs help' : ''
-        })
-      });
+      let response;
+      
+      // Special handling for stuck assignments - use dedicated endpoint with notifications
+      if (newStatus === 'stuck') {
+        response = await fetch(`/api/assignments/${assignment.id}/stuck`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reason: 'Student marked as stuck - needs help',
+            needsHelp: true // Always send parent notification
+          })
+        });
+      } else {
+        // Use regular PATCH endpoint for other status updates
+        response = await fetch(`/api/assignments/${assignment.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            completionStatus: newStatus,
+            timeSpent: assignment.timeSpent || 0,
+            notes: newStatus === 'stuck' ? 'Student marked as stuck - needs help' : ''
+          })
+        });
+      }
 
       if (!response.ok) throw new Error('Failed to update assignment');
 
@@ -133,7 +148,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
 
       const messages = {
         completed: { title: "Great work! 🎉", description: "Assignment completed successfully." },
-        stuck: { title: "Help is on the way!", description: "This task has been flagged for assistance." },
+        stuck: { title: "Help is on the way! 📧", description: "Parent notification sent - assistance coming soon." },
         in_progress: { title: "Keep going!", description: "Assignment marked as in progress." },
         needs_more_time: { title: "No worries!", description: "Take the time you need." }
       };
