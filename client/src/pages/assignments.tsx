@@ -119,8 +119,9 @@ export default function AssignmentsPage() {
       const weekEnd = new Date(today);
       weekEnd.setDate(today.getDate() + 14); // 2 weeks forward
       
-      // Only include completed assignments when specifically requested
-      const shouldIncludeCompleted = filterStatus === 'all' || filterStatus === 'completed';
+      // Always include completed assignments for filtering - let frontend filter handle it
+      // This ensures we see assignments that were just changed from completed→pending
+      const shouldIncludeCompleted = true;
       
       const params = new URLSearchParams({
         studentName: selectedStudent,
