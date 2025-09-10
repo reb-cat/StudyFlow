@@ -827,8 +827,8 @@ export class DatabaseStorage implements IStorage {
         if (a.dueDate && !b.dueDate) return -1;
         if (!a.dueDate && b.dueDate) return 1;
         
-        // Priority 4: Use intelligent sequence sorting (Unit 2 → Unit 3)
-        return compareAssignmentTitles(a.title || '', b.title || '');
+        // Priority 4: Use intelligent sequence sorting (Unit 2 → Unit 3, Module 1 → Module 2)
+        return compareAssignmentTitles(a.title || '', b.title || '', a.courseName, b.courseName);
       });
       
       // URGENCY CLASSIFICATION: Separate critical vs moveable assignments

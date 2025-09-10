@@ -21,7 +21,7 @@ export function extractSequenceNumbers(title: string): number[] {
   ];
   
   for (const pattern of patterns) {
-    const matches = [...title.matchAll(pattern)];
+    const matches = Array.from(title.matchAll(pattern));
     if (matches.length > 0) {
       return matches.map(match => parseInt(match[1], 10)).filter(n => !isNaN(n));
     }
@@ -31,7 +31,37 @@ export function extractSequenceNumbers(title: string): number[] {
 }
 
 // Smart title comparison that handles numerical sequences - PRESERVES Unit 2 → Unit 3 order
-export function compareAssignmentTitles(titleA: string, titleB: string): number {
+export function compareAssignmentTitles(titleA: string, titleB: string, courseNameA?: string, courseNameB?: string): number {
+  // SPECIAL CASE: Forensics textbook readings - use curriculum sequence
+  const isForensicsA = courseNameA?.includes('TEXTBOOK') || false;
+  const isForensicsB = courseNameB?.includes('TEXTBOOK') || false;
+  
+  if (isForensicsA && isForensicsB) {
+    // Both are forensics textbook readings - use curriculum sequence
+    const curriculumOrderA = getForensicsCurriculumOrder(titleA);
+    const curriculumOrderB = getForensicsCurriculumOrder(titleB);
+    
+    if (curriculumOrderA !== null && curriculumOrderB !== null) {
+      return curriculumOrderA - curriculumOrderB;
+    }
+  }
+  
+  // If only one is forensics textbook, prioritize curriculum sequence
+  if (isForensicsA && !isForensicsB) {
+    const curriculumOrderA = getForensicsCurriculumOrder(titleA);
+    if (curriculumOrderA !== null) {
+      return -1; // Forensics curriculum readings come first
+    }
+  }
+  
+  if (isForensicsB && !isForensicsA) {
+    const curriculumOrderB = getForensicsCurriculumOrder(titleB);
+    if (curriculumOrderB !== null) {
+      return 1; // Forensics curriculum readings come first
+    }
+  }
+  
+  // GENERAL CASE: Use existing numerical sequence logic
   const numbersA = extractSequenceNumbers(titleA);
   const numbersB = extractSequenceNumbers(titleB);
   
@@ -50,6 +80,51 @@ export function compareAssignmentTitles(titleA: string, titleB: string): number 
   
   // Fall back to alphabetical comparison
   return titleA.localeCompare(titleB);
+}
+
+// Helper function to get curriculum order for forensics assignments
+function getForensicsCurriculumOrder(title: string): number | null {
+  // Create a mapping based on the curriculum table structure
+  const curriculumMap: Record<string, number> = {
+    // Module 1 (1.x)
+    'module 1 introduction': 1.1,
+    'read module 1 introduction': 1.1,
+    'criminal law': 1.2,
+    'read criminal law': 1.2,
+    'civil law': 1.3,
+    'read civil law': 1.3,
+    'witnesses, testimony, and admissibility': 1.4,
+    'read witnesses, testimony, and admissibility': 1.4,
+    'evidence': 1.5,
+    'read evidence': 1.5,
+    'scientific method & inference': 1.6,
+    'read scientific method & inference': 1.6,
+    'case notes: nothing but the truth': 1.7,
+    'read case notes: nothing but the truth': 1.7,
+    'module 1 laboratory exercise': 1.8,
+    'read module 1 laboratory exercise': 1.8,
+    
+    // Module 2 (2.x)
+    'module 2 introduction': 2.1,
+    'read module 2 introduction': 2.1,
+    'recording and collecting of fingerprints': 2.2,
+    'read recording and collecting of fingerprints': 2.2,
+    'classification of fingerprints': 2.3,
+    'read classification of fingerprints': 2.3,
+    'fingerprint databases': 2.4,
+    'read fingerprint databases': 2.4,
+    'crime scenes - lifting prints': 2.5,
+    'read crime scenes - lifting prints': 2.5,
+    'case notes: latent fingerprints versus latent truths': 2.6,
+    'read case notes: latent fingerprints versus latent truths': 2.6,
+    'case notes: jesus\' disciples: the first toolmark/impression evidence analysts?': 2.7,
+    'read case notes: jesus\' disciples: the first toolmark/impression evidence analysts?': 2.7,
+    'module 2 laboratory exercise': 2.8,
+    'read module 2 laboratory exercise': 2.8,
+  };
+  
+  const normalizedTitle = title.toLowerCase().trim();
+  return curriculumMap[normalizedTitle] || null;
 }
 
 // CAPACITY TRACKING - Daily and per-course limits for EF support
