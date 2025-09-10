@@ -827,7 +827,28 @@ export class DatabaseStorage implements IStorage {
         if (a.dueDate && !b.dueDate) return -1;
         if (!a.dueDate && b.dueDate) return 1;
         
-        // Priority 4: Use intelligent sequence sorting (Unit 2 → Unit 3)
+        // Priority 4: FORENSICS TEXTBOOK SEQUENCE FIRST - Use module.reading numbers for proper ordering
+        const isAForensicsTextbook = a.courseName === 'Apologia Forensics Textbook';
+        const isBForensicsTextbook = b.courseName === 'Apologia Forensics Textbook';
+        
+        if (isAForensicsTextbook && isBForensicsTextbook) {
+          // Both are forensics textbook - sort by module.reading sequence
+          if (a.moduleNumber !== b.moduleNumber) {
+            return (a.moduleNumber || 999) - (b.moduleNumber || 999);
+          }
+          // Same module - sort by reading number
+          if (a.readingNumber !== b.readingNumber) {
+            return (a.readingNumber || 999) - (b.readingNumber || 999);
+          }
+          // Same module and reading - maintain original order
+          return 0;
+        }
+        
+        // If only one is forensics textbook, prioritize it for proper sequencing
+        if (isAForensicsTextbook && !isBForensicsTextbook) return -1;
+        if (!isAForensicsTextbook && isBForensicsTextbook) return 1;
+        
+        // Original logic for non-textbook assignments: Use intelligent sequence sorting (Unit 2 → Unit 3)
         return compareAssignmentTitles(a.title || '', b.title || '');
       });
       

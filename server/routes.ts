@@ -1809,6 +1809,26 @@ Partially completed - continued in: ${continuedTitle}`.trim(),
               return false; // Don't bump if continuation is C priority
             })
             .sort((a, b) => {
+              // CRITICAL: Sort forensics textbook assignments by module.reading sequence FIRST
+              const isAForensicsTextbook = a.courseName === 'Apologia Forensics Textbook';
+              const isBForensicsTextbook = b.courseName === 'Apologia Forensics Textbook';
+              
+              if (isAForensicsTextbook && isBForensicsTextbook) {
+                // Both are forensics textbook - sort by module.reading sequence
+                if (a.moduleNumber !== b.moduleNumber) {
+                  return (a.moduleNumber || 999) - (b.moduleNumber || 999);
+                }
+                // Same module - sort by reading number
+                if (a.readingNumber !== b.readingNumber) {
+                  return (a.readingNumber || 999) - (b.readingNumber || 999);
+                }
+              }
+              
+              // If only one is forensics textbook, prioritize it for proper sequencing
+              if (isAForensicsTextbook && !isBForensicsTextbook) return -1;
+              if (!isAForensicsTextbook && isBForensicsTextbook) return 1;
+              
+              // Original sorting logic for non-textbook assignments
               // Sort by priority (C first, then B) and then by due date (furthest first)
               if (a.priority !== b.priority) {
                 if (a.priority === 'C') return -1;

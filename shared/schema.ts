@@ -65,6 +65,10 @@ export const assignments = pgTable("assignments", {
   canvasPageSlug: text("canvas_page_slug"), // Page slug for Canvas page URLs
   canvasModuleItemId: integer("canvas_module_item_id"), // Module item ID for Canvas page URLs
   
+  // TEXTBOOK SEQUENCING FIELDS - Critical for proper forensics module ordering
+  moduleNumber: integer("module_number"), // Module number (1, 2, 3, etc.) for textbook sequencing
+  readingNumber: integer("reading_number"), // Reading number within module (1, 2, 3, etc.)
+  
   // Smart fallback for missing dates
   needsManualDueDate: boolean("needs_manual_due_date").default(false), // Flag for assignments missing Canvas dates
   suggestedDueDate: timestamp("suggested_due_date"), // AI-suggested due date from related assignments
