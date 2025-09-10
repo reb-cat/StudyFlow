@@ -887,7 +887,7 @@ export default function AssignmentsPage() {
                             data-testid={`button-complete-assignment-${assignment.id}`}
                           >
                             <CheckCircle2 className="w-4 h-4 mr-1" />
-                            ✅ Complete
+                            Complete
                           </Button>
                         )}
 
