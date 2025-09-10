@@ -36,7 +36,7 @@ export default function FamilyDashboard() {
   const greeting = `Good ${timeOfDay}! Let's make it a great day!`;
 
   // Fetch student profiles
-  const { data: profiles = {} } = useQuery({
+  const { data: profiles = { abigail: null, khalil: null } } = useQuery({
     queryKey: ['/api/students/profiles'],
     queryFn: async () => {
       const abigailProfile = await apiRequest('GET', '/api/students/abigail/profile').then(res => res.json()).catch(() => null);
@@ -124,7 +124,10 @@ export default function FamilyDashboard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={logout}
+            onClick={() => {
+              console.log('🔴 LOGOUT BUTTON CLICKED in student-selection page');
+              logout();
+            }}
             className="flex items-center gap-2"
             data-testid="button-logout"
           >

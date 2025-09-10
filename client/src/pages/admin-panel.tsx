@@ -152,7 +152,10 @@ export default function AdminPanel() {
           <Button
             variant="outline"
             size="sm"
-            onClick={logout}
+            onClick={() => {
+              console.log('🔴 LOGOUT BUTTON CLICKED in admin panel');
+              logout();
+            }}
             className="flex items-center gap-2"
             data-testid="button-logout-admin"
           >
