@@ -124,7 +124,24 @@ async function safeProductionMigration() {
     
     console.log('✅ All safety checks passed - proceeding with import');
     
-    // Prepare the insert query
+    // CRITICAL: Add module_number and reading_number fields to production database first
+    console.log('🔧 Adding sequencing fields to production database...');
+    try {
+      await client.query(`
+        ALTER TABLE assignments 
+        ADD COLUMN IF NOT EXISTS module_number INTEGER,
+        ADD COLUMN IF NOT EXISTS reading_number INTEGER
+      `);
+      console.log('✅ Sequencing fields added to production database');
+    } catch (err) {
+      if (err.message.includes('already exists')) {
+        console.log('✅ Sequencing fields already exist in production database');
+      } else {
+        throw err;
+      }
+    }
+    
+    // Prepare the insert query with proper sequencing
     const insertQuery = `
       INSERT INTO assignments (
         user_id,
@@ -142,9 +159,11 @@ async function safeProductionMigration() {
         canvas_course_id,
         canvas_instance,
         academic_year,
+        module_number,
+        reading_number,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
     `;
     
     let successCount = 0;
@@ -168,6 +187,8 @@ async function safeProductionMigration() {
           '570',                                      // canvas_course_id
           '2',                                        // canvas_instance
           '2024-2025',                               // academic_year
+          reading.moduleNumber,                       // module_number - CRITICAL for sequencing
+          reading.readingNumber,                      // reading_number - CRITICAL for sequencing
           new Date().toISOString(),                   // created_at
           new Date().toISOString()                    // updated_at
         ]);
