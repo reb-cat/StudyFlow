@@ -4041,8 +4041,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       console.log(`🧹 NUCLEAR CLEAR: Removing all scheduling for ${date}`);
       
       // Clear assignment scheduling for this date
-      const allAssignments = await storage.getAssignments(userId, date, true);
-      const scheduledForDate = allAssignments.filter(a => a.scheduledDate === date);
+      const dateAssignments = await storage.getAssignments(userId, date, true);
+      const scheduledForDate = dateAssignments.filter(a => a.scheduledDate === date);
       
       for (const assignment of scheduledForDate) {
         await storage.updateAssignment(assignment.id, {
