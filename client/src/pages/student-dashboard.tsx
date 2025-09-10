@@ -748,8 +748,8 @@ export default function StudentDashboard() {
             />
           </div>
         ) : (
-          // Check if critical Overview data is still loading
-          (isLoading || isStatusLoading) ? (
+          // Check if critical Overview data is still loading or incomplete
+          (isLoading || isStatusLoading || scheduleTemplate.length === 0 || !isInitialized) ? (
             <div className="space-y-4">
               <Card className="bg-card rounded-xl border border-border/50">
                 <CardContent className="p-8">
