@@ -421,7 +421,76 @@ export class CanvasClient {
       }
       
       console.log(`📊 Total assignments across all courses: ${allAssignments.length}`);
+      
+      // 🎯 AUTO-DETECT MODULE TIMING: Schedule textbook readings before module tests/labs
+      this.scheduleTextbookReadingsForModules(allAssignments);
+      
       return allAssignments;
+    }
+  }
+
+  /**
+   * 🎯 AUTO-DETECT MODULE TIMING: Schedule textbook readings before module tests/labs
+   * This creates a natural learning progression where students read material before testing
+   */
+  private scheduleTextbookReadingsForModules(allAssignments: CanvasAssignment[]): void {
+    console.log(`🎯 Auto-detecting module assignments to schedule textbook readings...`);
+    
+    // Find module assignments that have due dates (tests, labs, etc.)
+    const moduleAssignments = allAssignments.filter(assignment => {
+      const title = assignment.name.toLowerCase();
+      const hasModulePattern = /module\s+(\d+)/i.test(title);
+      const isTestOrLab = title.includes('test') || title.includes('lab') || title.includes('quiz') || title.includes('exam');
+      const hasDueDate = assignment.due_at;
+      
+      return hasModulePattern && isTestOrLab && hasDueDate;
+    });
+    
+    console.log(`   Found ${moduleAssignments.length} module assignments with due dates`);
+    
+    // For each module assignment, find and schedule related textbook readings
+    for (const moduleAssignment of moduleAssignments) {
+      const moduleMatch = moduleAssignment.name.match(/module\s+(\d+)/i);
+      if (!moduleMatch) continue;
+      
+      const moduleNumber = parseInt(moduleMatch[1]);
+      console.log(`   📖 Processing Module ${moduleNumber}: "${moduleAssignment.name}" (due: ${new Date(moduleAssignment.due_at!).toLocaleDateString()})`);
+      
+      // Find textbook readings for this module
+      const textbookReadings = allAssignments.filter(assignment => {
+        const isTextbook = assignment.courseName?.includes('TEXTBOOK');
+        const hasNoDate = !assignment.due_at;
+        
+        // For now, check if this reading comes from the same module by checking the module_name
+        const isFromSameModule = assignment.module_name?.toLowerCase().includes(`module ${moduleNumber}`);
+        
+        return isTextbook && hasNoDate && isFromSameModule;
+      });
+      
+      console.log(`      Found ${textbookReadings.length} textbook readings for Module ${moduleNumber}`);
+      
+      if (textbookReadings.length > 0) {
+        // Schedule readings 3-5 days before the module assignment
+        const moduleDate = new Date(moduleAssignment.due_at!);
+        const startDate = new Date(moduleDate);
+        startDate.setDate(moduleDate.getDate() - 5); // Start 5 days before
+        
+        // Distribute readings across the days leading up to the module assignment
+        textbookReadings.forEach((reading, index) => {
+          const readingDate = new Date(startDate);
+          readingDate.setDate(startDate.getDate() + Math.floor(index / 3)); // ~3 readings per day
+          
+          // Don't schedule on weekends - move to Friday or Monday
+          if (readingDate.getDay() === 0) { // Sunday -> Monday
+            readingDate.setDate(readingDate.getDate() + 1);
+          } else if (readingDate.getDay() === 6) { // Saturday -> Friday
+            readingDate.setDate(readingDate.getDate() - 1);
+          }
+          
+          reading.due_at = readingDate.toISOString();
+          console.log(`         📚 "${reading.name}" scheduled for ${readingDate.toLocaleDateString()}`);
+        });
+      }
     }
   }
 
