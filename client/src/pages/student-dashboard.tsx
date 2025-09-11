@@ -584,6 +584,18 @@ export default function StudentDashboard() {
     );
   }
 
+  // Show loading state during schedule initialization
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+          <p className="text-muted-foreground">Preparing your schedule...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-4 sm:p-6 print-page bg-background">
       <div className="max-w-5xl mx-auto">
