@@ -393,7 +393,8 @@ export default function StudentDashboard() {
   };
 
   // Use real schedule template data from database (fix field mapping)
-  const allScheduleBlocks = scheduleTemplate.map((block) => ({
+  // Add safety check to prevent crash if scheduleTemplate is null after database sync
+  const allScheduleBlocks = (scheduleTemplate || []).map((block) => ({
     id: block.id,
     title: block.subject,
     blockType: block.blockType?.toLowerCase() || 'unknown',
