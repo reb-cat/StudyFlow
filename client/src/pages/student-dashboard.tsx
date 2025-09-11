@@ -122,17 +122,14 @@ export default function StudentDashboard() {
       console.warn('URL parameter parsing failed:', error);
     }
     
-    console.log('🔍 URL Date Parsing:', { search, dateParam, windowSearch: typeof window !== 'undefined' ? window.location.search : 'N/A' });
     
     // Validate date parameter format (YYYY-MM-DD)
     if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
-      console.log('✅ Using URL date parameter:', dateParam);
       return dateParam;
     }
     
     // Fallback to today using timezone-safe function
     const fallbackDate = toNYDateString();
-    console.log('📅 Falling back to today:', fallbackDate);
     return fallbackDate;
   });
   
@@ -162,11 +159,9 @@ export default function StudentDashboard() {
       console.warn('URL sync failed:', error);
     }
     
-    console.log('🔄 URL Sync Check:', { search, dateParam, currentSelectedDate: selectedDate });
     
     // If URL has valid date parameter different from current state, update state
     if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && dateParam !== selectedDate) {
-      console.log('🔄 Updating selectedDate from URL:', dateParam);
       setSelectedDate(dateParam);
     }
   }, [search, selectedDate]);
@@ -360,14 +355,6 @@ export default function StudentDashboard() {
   const dayName = getDayName(selectedDate);
   const dateDisplay = formatDateDisplay(selectedDate);
   
-  // Debug current date calculation
-  console.log('🗓️ Date Debug:', {
-    selectedDate,
-    selectedDateObj: selectedDateObj.toString(),
-    dayName,
-    dateDisplay,
-    today: todayString
-  });
 
   // Schedule template for the selected day
   const isThursday = selectedDateObj.getDay() === 4;
@@ -419,14 +406,6 @@ export default function StudentDashboard() {
       a.scheduledDate === selectedDate && a.scheduledBlock !== null
     );
     
-    console.info(`🔍 FRONTEND DEBUG: selectedDate=${selectedDate}`);
-    console.info(`🔍 FRONTEND DEBUG: Total assignments=${assignments.length}, Today's assignments=${todaysAssignments.length}`);
-    console.info(`🔍 FRONTEND DEBUG: Today's assignments:`, todaysAssignments.map((a: Assignment) => ({
-      title: a.title, 
-      scheduledDate: a.scheduledDate, 
-      scheduledBlock: a.scheduledBlock,
-      subject: a.subject
-    })));
     
     // Create a copy of today's assignments for scheduling
     const availableAssignments = [...todaysAssignments];
@@ -476,7 +455,6 @@ export default function StudentDashboard() {
       // NO FALLBACK LOGIC: Only show assignments explicitly scheduled by backend
       // This ensures sequence blocking and other backend rules are respected
       
-      console.info(`🎯 BLOCK ${block.blockNumber}: ${selectedAssignment ? selectedAssignment.title : 'empty'} [from: ${selectionSource}]`);
       
       scheduledAssignments.push(selectedAssignment);
       

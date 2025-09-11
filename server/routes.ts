@@ -460,15 +460,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filterDate = `${startDate},${endDate}`;
       }
       
-      console.log(`🔍 PRODUCTION DEBUG: Fetching assignments for userId="${userId}", date="${filterDate}", includeCompleted="${includeCompletedBool}"`);
       const assignments = await storage.getAssignments(userId, filterDate, includeCompletedBool);
-      console.log(`📊 PRODUCTION DEBUG: Found ${assignments.length} assignments in database for ${userId}`);
       
       if (assignments.length === 0) {
-        console.log(`❌ PRODUCTION DEBUG: No assignments found! Check:
-          1. Is data in database for userId="${userId}"?
-          2. Is date filtering too restrictive for date="${filterDate}"?
-          3. Is student name mapping correct for studentName="${studentName}"?`);
       }
       
       // FIXED: Proper data separation architecture
@@ -498,7 +492,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
-      console.log(`📚 Retrieved ${assignments.length} assignments for daily planning for ${studentName} on ${date}`);
       res.json(normalizedAssignments);
     } catch (error) {
       console.error('Error fetching assignments:', error);
