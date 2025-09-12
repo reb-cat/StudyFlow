@@ -17,7 +17,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, or, sql, desc, inArray, isNull, isNotNull, gte, lte, asc } from "drizzle-orm";
 import { compareAssignmentTitles, extractUnitNumber } from './lib/assignmentIntelligence';
 import { assignmentCache, scheduleCache } from './lib/cache';
 
@@ -577,7 +577,8 @@ export class DatabaseStorage implements IStorage {
         // This includes assignments scheduled for other days, other blocks, etc.
         // The scheduler should redistribute workload dynamically on every refresh!
         
-        // CRITICAL: Exclude parent/administrative assignments AND Bible assignments from student scheduling
+        // CRITICAL: Exclude parent/administrative assignments from student scheduling
+        // Bible assignments are now included in regular scheduling
         const title = a.title.toLowerCase();
         const subject = (a.subject || '').toLowerCase();
         const isParentTask = title.includes('fee') || 
@@ -589,25 +590,15 @@ export class DatabaseStorage implements IStorage {
                             title.includes('syllabus') ||
                             title.includes('honor code');
         
-        const isBibleAssignment = title.includes('bible') || 
-                                 subject.includes('bible') ||
-                                 title.includes('scripture') ||
-                                 subject.includes('scripture');
-        
         if (isParentTask) {
           console.log(`🚫 Excluding parent task from student scheduling: ${a.title}`);
-          return false;
-        }
-        
-        if (isBibleAssignment) {
-          console.log(`📖 Excluding Bible assignment from regular scheduling (Bible blocks only): ${a.title}`);
           return false;
         }
         
         return true;
       });
       
-      console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent/bible tasks`);
+      console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent tasks`);
       
       
       // SMART CLEARING: Only clear unworked assignments, preserve completed/marked work
@@ -884,7 +875,7 @@ export class DatabaseStorage implements IStorage {
       
       // ENHANCED ASSIGNMENT WITH SUBJECT VARIETY: Avoid back-to-back same subjects while preserving educational sequencing
       const assignmentPlacements: Array<{assignment: any, blockNumber: number}> = [];
-      const assignmentsToPlace = [...assignmentsToAssign];
+      const assignmentsToPlace: (Assignment | null)[] = [...assignmentsToAssign];
       const availableBlocks = [...availableBlocksToFill];
       
       // Track subjects by block for diversity checking
@@ -924,8 +915,8 @@ export class DatabaseStorage implements IStorage {
             if (assignmentsToPlace[i]) {
               selectedAssignment = assignmentsToPlace[i];
               selectedIndex = i;
-              blockSubjects[currentBlockIndex] = selectedAssignment.subject || 'Unknown';
-              console.log(`🔄 FALLBACK: No subject diversity possible, using sequenced assignment "${selectedAssignment.title}"`);
+              blockSubjects[currentBlockIndex] = selectedAssignment?.subject || 'Unknown';
+              console.log(`🔄 FALLBACK: No subject diversity possible, using sequenced assignment "${selectedAssignment?.title}"`);
               break;
             }
           }
@@ -963,7 +954,100 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      // OVERFLOW HANDLING: Move unscheduled MOVEABLE assignments to next day
+      // PHASE 2 LOOK-AHEAD: Fill remaining empty blocks with earliest Priority C assignments
+      const remainingBlocks = blocksToFill.slice(assignmentPlacements.length);
+      if (remainingBlocks.length > 0) {
+        console.log(`🔍 LOOK-AHEAD: ${remainingBlocks.length} empty blocks remain, searching for Priority C assignments`);
+        
+        // Get additional Priority C assignments that weren't in the original pool
+        // Look for assignments with future due dates, sorted by earliest first
+        const additionalAssignments = await db.select()
+          .from(assignments)
+          .where(
+            and(
+              eq(assignments.userId, `${studentName.toLowerCase()}-user`),
+              eq(assignments.completionStatus, 'pending'),
+              // CRITICAL FIX: Only select unscheduled assignments
+              isNull(assignments.scheduledDate),
+              // Look for assignments due in the future (Priority C only - not today)
+              // Use a reasonable lookahead window (next 14 days)
+              gte(assignments.dueDate, new Date(new Date(targetDate).getTime() + 24 * 60 * 60 * 1000)), // Tomorrow or later
+              lte(assignments.dueDate, new Date(new Date(targetDate).getTime() + 14 * 24 * 60 * 60 * 1000))
+            )
+          )
+          .orderBy(asc(assignments.dueDate)); // Earliest due date first
+        
+        // Filter out assignments already scheduled and apply parent task filtering
+        const lookAheadCandidates = additionalAssignments.filter(a => {
+          // Skip if already in current assignment pool
+          if (assignmentsToAssign.find(assigned => assigned.id === a.id)) return false;
+          
+          // Apply same parent task filtering as main pool
+          const title = a.title.toLowerCase();
+          const isParentTask = title.includes('fee') || 
+                              title.includes('supply') || 
+                              title.includes('permission') || 
+                              title.includes('form') ||
+                              title.includes('waiver') ||
+                              title.includes('registration') ||
+                              title.includes('syllabus') ||
+                              title.includes('honor code');
+          
+          return !isParentTask;
+        });
+        
+        console.log(`📚 LOOK-AHEAD CANDIDATES: Found ${lookAheadCandidates.length} Priority C assignments`);
+        
+        // Fill remaining blocks with Priority C assignments (earliest due first)
+        let lookAheadIndex = 0;
+        for (let blockIndex = 0; blockIndex < remainingBlocks.length && lookAheadIndex < lookAheadCandidates.length; blockIndex++) {
+          const block = remainingBlocks[blockIndex];
+          const assignment = lookAheadCandidates[lookAheadIndex];
+          
+          // Prevent double-booking by checking if already scheduled
+          if (schedulingResults.has(assignment.id)) {
+            console.log(`⚠️ SKIP: Assignment "${assignment.title}" already scheduled`);
+            lookAheadIndex++;
+            continue;
+          }
+          
+          // Schedule this Priority C assignment
+          assignmentPlacements.push({
+            assignment: assignment,
+            blockNumber: block.blockNumber || 0
+          });
+          
+          schedulingResults.set(assignment.id, {
+            scheduledDate: targetDate,
+            scheduledBlock: block.blockNumber || 0,
+            blockStart: block.startTime,
+            blockEnd: block.endTime
+          });
+          
+          scheduledAssignments.push(assignment);
+          
+          const dueDateStr = assignment.dueDate ? new Date(assignment.dueDate).toISOString().split('T')[0] : 'no due date';
+          console.log(`📍 LOOK-AHEAD SCHEDULED: "${assignment.title}" → Block ${block.blockNumber} (due: ${dueDateStr})`);
+          
+          lookAheadIndex++;
+        }
+        
+        // Log any assignments that couldn't be placed
+        if (lookAheadIndex < lookAheadCandidates.length) {
+          const unplacedCount = lookAheadCandidates.length - lookAheadIndex;
+          console.log(`⚠️ LOOK-AHEAD OVERFLOW: ${unplacedCount} Priority C assignments couldn't be placed (no remaining blocks)`);
+        }
+        
+        console.log(`✅ LOOK-AHEAD COMPLETE: Filled ${lookAheadIndex} blocks with Priority C assignments`);
+        
+        // VALIDATION: Ensure look-ahead assignments are properly added to schedulingResults
+        const lookAheadScheduled = Array.from(schedulingResults.entries()).filter(([id]) => 
+          lookAheadCandidates.some(candidate => candidate.id === id)
+        );
+        console.log(`🔍 LOOK-AHEAD VALIDATION: ${lookAheadScheduled.length} Priority C assignments added to schedulingResults`);
+      }
+
+      // OVERFLOW HANDLING: Move remaining unscheduled MOVEABLE assignments to next day
       const unscheduled = assignmentsToAssign.slice(blocksToFill.length);
       const unscheduledMoveable = unscheduled.filter(a => moveableAssignments.includes(a));
       if (unscheduledMoveable.length > 0) {
