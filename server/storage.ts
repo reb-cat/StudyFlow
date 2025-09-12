@@ -482,8 +482,49 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
+      // Get assignment info before update to check parent relationships
+      const assignmentBeforeUpdate = await db.select().from(assignments).where(eq(assignments.id, id)).limit(1);
+      const assignment = assignmentBeforeUpdate[0];
+      
+      if (!assignment) {
+        console.log(`Assignment ${id} not found for update`);
+        return undefined;
+      }
+
+      // Protect against direct parent completion when it has children
+      if (assignment.parentId === null && update.completionStatus === 'completed') {
+        // This is potentially a parent - check if it has children
+        const children = await db.select().from(assignments)
+          .where(and(
+            eq(assignments.parentId, id),
+            isNull(assignments.deletedAt)
+          ));
+        
+        if (children.length > 0) {
+          console.log(`🚫 Blocked direct completion of parent assignment "${assignment.title}" - it has ${children.length} child assignments that must be completed first`);
+          // Remove completionStatus from update to prevent direct parent completion
+          const { completionStatus, ...safeUpdate } = update;
+          finalUpdate = safeUpdate as UpdateAssignment;
+        }
+      }
+
+      // Add completedAt timestamp when marking as completed
+      if (finalUpdate.completionStatus === 'completed' && !finalUpdate.completedAt) {
+        finalUpdate.completedAt = new Date();
+      } else if (finalUpdate.completionStatus && finalUpdate.completionStatus !== 'completed') {
+        finalUpdate.completedAt = null;
+      }
+
       const result = await db.update(assignments).set(finalUpdate).where(eq(assignments.id, id)).returning();
-      return result[0] || undefined;
+      const updatedAssignment = result[0];
+      
+      // If this is a child assignment and completion status changed, recompute parent completion
+      if (updatedAssignment && assignment.parentId && update.completionStatus) {
+        console.log(`🔗 Child assignment updated - recomputing parent completion for ${assignment.parentId}`);
+        await this.recomputeParentCompletion(assignment.parentId);
+      }
+      
+      return updatedAssignment || undefined;
     } catch (error) {
       console.error('Error updating assignment:', error);
       return undefined;
@@ -492,14 +533,48 @@ export class DatabaseStorage implements IStorage {
 
   async updateAssignmentStatus(id: string, completionStatus: string): Promise<Assignment | undefined> {
     try {
+      // Get the assignment being updated to check if it has a parent
+      const assignmentBeforeUpdate = await db.select().from(assignments).where(eq(assignments.id, id)).limit(1);
+      const assignment = assignmentBeforeUpdate[0];
+      
+      if (!assignment) {
+        console.log(`Assignment ${id} not found for status update`);
+        return undefined;
+      }
+
+      // Protect against direct parent completion when it has children
+      if (assignment.parentId === null) {
+        // This is potentially a parent - check if it has children
+        const children = await db.select().from(assignments)
+          .where(and(
+            eq(assignments.parentId, id),
+            isNull(assignments.deletedAt)
+          ));
+        
+        if (children.length > 0 && completionStatus === 'completed') {
+          console.log(`🚫 Blocked direct completion of parent assignment "${assignment.title}" - it has ${children.length} child assignments that must be completed first`);
+          return assignment; // Return unchanged
+        }
+      }
+
       const result = await db.update(assignments)
         .set({ 
           completionStatus: completionStatus as Assignment['completionStatus'],
+          completedAt: completionStatus === 'completed' ? new Date() : null,
           updatedAt: new Date()
         })
         .where(eq(assignments.id, id))
         .returning();
-      return result[0] || undefined;
+      
+      const updatedAssignment = result[0];
+      
+      // If this is a child assignment, recompute parent completion
+      if (updatedAssignment && assignment.parentId) {
+        console.log(`🔗 Child assignment status changed - recomputing parent completion for ${assignment.parentId}`);
+        await this.recomputeParentCompletion(assignment.parentId);
+      }
+      
+      return updatedAssignment || undefined;
     } catch (error) {
       console.error('Error updating assignment status:', error);
       return undefined;
@@ -576,6 +651,14 @@ export class DatabaseStorage implements IStorage {
         // OTHERWISE: ALL pending assignments are eligible for rescheduling
         // This includes assignments scheduled for other days, other blocks, etc.
         // The scheduler should redistribute workload dynamically on every refresh!
+        
+        // CRITICAL: Exclude parent assignments that have children - they should never be scheduled
+        // Only child assignments and standalone assignments (no children) should be schedulable
+        const hasChildren = allUserAssignments.some(child => child.parentId === a.id);
+        if (hasChildren) {
+          console.log(`🎯 Excluding parent assignment from scheduling (has ${allUserAssignments.filter(child => child.parentId === a.id).length} children): ${a.title}`);
+          return false;
+        }
         
         // CRITICAL: Exclude parent/administrative assignments AND Bible assignments from student scheduling
         const title = a.title.toLowerCase();
@@ -2431,6 +2514,62 @@ export class DatabaseStorage implements IStorage {
       return { request: updatedRequest, pointsDeducted };
     } catch (error) {
       console.error('❌ Error deciding redemption request:', error);
+      throw error;
+    }
+  }
+
+  // Parent-child assignment completion logic
+  async recomputeParentCompletion(parentId: string): Promise<void> {
+    try {
+      console.log(`🔄 Recomputing parent completion for assignment ID: ${parentId}`);
+      
+      // Get all children of this parent assignment
+      const children = await db.select()
+        .from(assignments)
+        .where(and(
+          eq(assignments.parentId, parentId),
+          isNull(assignments.deletedAt) // Only count non-deleted children
+        ));
+      
+      if (children.length === 0) {
+        console.log(`👶 No children found for parent ${parentId} - parent completion unchanged`);
+        return;
+      }
+      
+      // Check if ALL children are completed
+      const completedChildren = children.filter(child => child.completionStatus === 'completed');
+      const allChildrenComplete = completedChildren.length === children.length;
+      
+      console.log(`👨‍👩‍👧‍👦 Parent ${parentId}: ${completedChildren.length}/${children.length} children completed`);
+      
+      // Update parent completion status based on children
+      if (allChildrenComplete) {
+        // All children complete → mark parent as complete
+        const [updatedParent] = await db.update(assignments)
+          .set({
+            completionStatus: 'completed',
+            completedAt: new Date(),
+            updatedAt: new Date()
+          })
+          .where(eq(assignments.id, parentId))
+          .returning();
+        
+        console.log(`✅ Parent assignment auto-completed: ${updatedParent?.title}`);
+      } else {
+        // Some children still pending → ensure parent is pending
+        const [updatedParent] = await db.update(assignments)
+          .set({
+            completionStatus: 'pending',
+            completedAt: null,
+            updatedAt: new Date()
+          })
+          .where(eq(assignments.id, parentId))
+          .returning();
+        
+        console.log(`⏳ Parent assignment kept pending: ${updatedParent?.title} (${children.length - completedChildren.length} children still pending)`);
+      }
+    } catch (error) {
+      console.error('Error recomputing parent completion:', error);
       throw error;
     }
   }

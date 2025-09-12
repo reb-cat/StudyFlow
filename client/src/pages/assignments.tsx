@@ -441,6 +441,29 @@ export default function AssignmentsPage() {
   // Combine assignments and Bible items for display
   const allDisplayItems = [...assignments, ...bibleAsAssignments];
 
+  // Helper function to detect parent assignments (assignments that have children)
+  const isParentAssignment = (assignmentId: string): boolean => {
+    return allDisplayItems.some(assignment => assignment.parentId === assignmentId);
+  };
+
+  // Helper function to get children of a parent assignment
+  const getChildrenOfParent = (parentId: string) => {
+    return allDisplayItems.filter(assignment => assignment.parentId === parentId)
+      .sort((a, b) => (a.segmentOrder || 0) - (b.segmentOrder || 0));
+  };
+
+  // Helper function to calculate parent progress
+  const getParentProgress = (parentId: string) => {
+    const children = getChildrenOfParent(parentId);
+    if (children.length === 0) return { completed: 0, total: 0, percentage: 0 };
+    
+    const completed = children.filter(child => child.completionStatus === 'completed').length;
+    const total = children.length;
+    const percentage = Math.round((completed / total) * 100);
+    
+    return { completed, total, percentage };
+  };
+
   // Filter assignments based on current filters
   const filteredAssignments = allDisplayItems.filter(assignment => {
     // Search filter
@@ -820,29 +843,39 @@ export default function AssignmentsPage() {
           const isSelected = selectedAssignments.has(assignment.id);
           const isOverdue = assignment.dueDate && new Date(assignment.dueDate) < new Date();
           const parentTask = isParentTask(assignment.title, assignment.courseName);
+          const isParent = isParentAssignment(assignment.id);
+          const isChild = assignment.parentId !== null && assignment.parentId !== undefined;
+          const parentProgress = isParent ? getParentProgress(assignment.id) : null;
           
           return (
             <Card
               key={assignment.id}
-              className={`transition-all duration-200 ${isSelected ? 'ring-2 ring-primary' : ''} ${parentTask ? 'border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/30' : ''}`}
+              className={`transition-all duration-200 ${isSelected ? 'ring-2 ring-primary' : ''} ${parentTask ? 'border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/30' : ''} ${isParent ? 'border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/30' : ''} ${isChild ? 'border-blue-200 dark:border-blue-800 bg-blue-50/20 dark:bg-blue-950/20 ml-6' : ''}`}
               data-testid={`assignment-${assignment.id}`}
             >
               <CardContent className="pt-4">
                 <div className="flex items-center gap-4">
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={(checked) => {
-                      const newSelected = new Set(selectedAssignments);
-                      if (checked) {
-                        newSelected.add(assignment.id);
-                      } else {
-                        newSelected.delete(assignment.id);
-                      }
-                      setSelectedAssignments(newSelected);
-                    }}
-                    className="flex-shrink-0 w-5 h-5 min-w-5 min-h-5 max-w-5 max-h-5"
-                    data-testid={`checkbox-${assignment.id}`}
-                  />
+                  {/* Disable checkbox for parent assignments */}
+                  {!isParent ? (
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(checked) => {
+                        const newSelected = new Set(selectedAssignments);
+                        if (checked) {
+                          newSelected.add(assignment.id);
+                        } else {
+                          newSelected.delete(assignment.id);
+                        }
+                        setSelectedAssignments(newSelected);
+                      }}
+                      className="flex-shrink-0 w-5 h-5 min-w-5 min-h-5 max-w-5 max-h-5"
+                      data-testid={`checkbox-${assignment.id}`}
+                    />
+                  ) : (
+                    <div className="flex-shrink-0 w-5 h-5 min-w-5 min-h-5 max-w-5 max-h-5 flex items-center justify-center">
+                      <div className="w-3 h-3 rounded-full bg-orange-500 dark:bg-orange-400" title="Parent assignment - managed automatically" />
+                    </div>
+                  )}
                   
                   <div className="flex-1">
                     <div className="flex items-start justify-between">
@@ -850,31 +883,57 @@ export default function AssignmentsPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold text-foreground">{assignment.title}</h3>
                           
-                          {/* Parent Task Pill */}
-                          {parentTask && (
+                          {/* Parent Assignment Badge */}
+                          {isParent && (
+                            <Badge className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700 flex items-center gap-1">
+                              <ChevronRight className="w-3 h-3" />
+                              Parent ({parentProgress?.completed}/{parentProgress?.total})
+                            </Badge>
+                          )}
+                          
+                          {/* Child Assignment Badge */}
+                          {isChild && (
+                            <Badge className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700 flex items-center gap-1">
+                              <ChevronDown className="w-3 h-3" />
+                              Segment {assignment.segmentOrder || 1}
+                            </Badge>
+                          )}
+                          
+                          {/* Legacy Parent Task Pill */}
+                          {parentTask && !isParent && (
                             <Badge className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-700 flex items-center gap-1">
                               <User className="w-3 h-3" />
                               Parent
                             </Badge>
                           )}
                           
-                          {/* Status Badge */}
-                          <Badge
-                            variant={assignment.completionStatus === 'completed' ? 'default' : 'secondary'}
-                            className={
-                              assignment.completionStatus === 'completed' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
-                              assignment.completionStatus === 'pending' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
-                              assignment.completionStatus === 'stuck' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
-                              'bg-muted text-muted-foreground'
-                            }
-                          >
-                            {assignment.completionStatus === 'completed' && <CheckCircle className="w-3 h-3 mr-1" />}
-                            {assignment.completionStatus === 'stuck' && <AlertCircle className="w-3 h-3 mr-1" />}
-                            {assignment.completionStatus === 'needs_more_time' && <Clock className="w-3 h-3 mr-1" />}
-                            {assignment.completionStatus === 'grading_delay' && <HelpCircle className="w-3 h-3 mr-1" />}
-                            {assignment.completionStatus === 'pending' && <Circle className="w-3 h-3 mr-1" />}
-                            {(assignment.completionStatus || 'pending').replace('_', ' ')}
-                          </Badge>
+                          {/* Status Badge - Show progress for parents, regular status for others */}
+                          {isParent ? (
+                            <Badge
+                              variant="secondary"
+                              className={`${parentProgress?.percentage === 100 ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'}`}
+                            >
+                              {parentProgress?.percentage === 100 ? <CheckCircle className="w-3 h-3 mr-1" /> : <Circle className="w-3 h-3 mr-1" />}
+                              {parentProgress?.percentage === 100 ? 'Completed' : `${parentProgress?.percentage || 0}% complete`}
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant={assignment.completionStatus === 'completed' ? 'default' : 'secondary'}
+                              className={
+                                assignment.completionStatus === 'completed' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
+                                assignment.completionStatus === 'pending' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
+                                assignment.completionStatus === 'stuck' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
+                                'bg-muted text-muted-foreground'
+                              }
+                            >
+                              {assignment.completionStatus === 'completed' && <CheckCircle className="w-3 h-3 mr-1" />}
+                              {assignment.completionStatus === 'stuck' && <AlertCircle className="w-3 h-3 mr-1" />}
+                              {assignment.completionStatus === 'needs_more_time' && <Clock className="w-3 h-3 mr-1" />}
+                              {assignment.completionStatus === 'grading_delay' && <HelpCircle className="w-3 h-3 mr-1" />}
+                              {assignment.completionStatus === 'pending' && <Circle className="w-3 h-3 mr-1" />}
+                              {(assignment.completionStatus || 'pending').replace('_', ' ')}
+                            </Badge>
+                          )}
 
 
                           {/* Overdue Indicator */}
@@ -947,8 +1006,8 @@ export default function AssignmentsPage() {
                           </Button>
                         )}
 
-                        {/* Regular Assignment Completion Button */}
-                        {!assignment.isBibleItem && assignment.completionStatus !== 'completed' && (
+                        {/* Regular Assignment Completion Button - Disabled for parent assignments */}
+                        {!assignment.isBibleItem && assignment.completionStatus !== 'completed' && !isParent && (
                           <Button
                             variant="default"
                             size="sm"
@@ -986,8 +1045,8 @@ export default function AssignmentsPage() {
                           </Button>
                         )}
 
-                        {/* Stuck Assignment - Parent Resolution Button */}
-                        {assignment.completionStatus === 'stuck' && (
+                        {/* Stuck Assignment - Parent Resolution Button - Disabled for parent assignments */}
+                        {assignment.completionStatus === 'stuck' && !isParent && (
                           <Button
                             variant="default"
                             size="sm"
@@ -1026,14 +1085,30 @@ export default function AssignmentsPage() {
                           </Button>
                         )}
                         
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditAssignment(assignment)}
-                          data-testid={`button-edit-${assignment.id}`}
-                        >
-                          Edit
-                        </Button>
+                        {/* Edit button - Show differently for parent assignments */}
+                        {isParent ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="opacity-50"
+                            title="Parent assignments are managed automatically when all child segments are completed"
+                            data-testid={`button-edit-${assignment.id}`}
+                          >
+                            <GitBranch className="w-4 h-4 mr-1" />
+                            Auto-Managed
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditAssignment(assignment)}
+                            data-testid={`button-edit-${assignment.id}`}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                        
                         <Button
                           variant="outline"
                           size="sm"
