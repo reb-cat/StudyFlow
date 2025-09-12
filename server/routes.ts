@@ -799,6 +799,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/assignments/:id/breakdown - Break assignment into segments
+  app.post('/api/assignments/:id/breakdown', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { segments } = req.body;
+      
+      if (!id || !segments || !Array.isArray(segments) || segments.length === 0) {
+        return res.status(400).json({ message: 'Assignment ID and segments array are required' });
+      }
+      
+      // Get the parent assignment
+      const parentAssignment = await storage.getAssignment(id);
+      if (!parentAssignment) {
+        return res.status(404).json({ message: 'Assignment not found' });
+      }
+      
+      console.log(`📝 Breaking assignment "${parentAssignment.title}" into ${segments.length} segments`);
+      
+      // Create child assignments
+      const createdSegments = [];
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+        
+        const childAssignment = {
+          userId: parentAssignment.userId,
+          title: segment.title,
+          subject: parentAssignment.subject,
+          courseName: parentAssignment.courseName,
+          instructions: parentAssignment.instructions,
+          dueDate: segment.dueDate ? new Date(segment.dueDate) : null,
+          actualEstimatedMinutes: segment.estimatedMinutes || 30,
+          priority: parentAssignment.priority,
+          completionStatus: 'pending' as const,
+          parentId: id,
+          segmentOrder: i + 1,
+          creationSource: 'manual' as const,
+          // Copy other relevant fields
+          canvasId: null,
+          canvasInstance: null,
+          isCanvasImport: false,
+          canvasCategory: null,
+          submissionTypes: [],
+          pointsValue: null,
+          availableFrom: null,
+          availableUntil: null,
+          isRecurring: false,
+          academicYear: parentAssignment.academicYear,
+          confidenceScore: null,
+          needsPrinting: false,
+          printStatus: 'not_needed' as const,
+          printReason: null,
+          printedAt: null,
+          canvasUrl: null,
+          canvasCourseId: null,
+          needsManualDueDate: false,
+          suggestedDueDate: null,
+          completedAt: null,
+          gradingDelayDetectedAt: null,
+          isPortable: true,
+          portabilityReason: null,
+          deletedAt: null,
+          canvasGradeStatus: null,
+          moduleNumber: null,
+          readingNumber: null,
+          canvasPageSlug: null,
+          canvasModuleItemId: null
+        };
+        
+        const createdChild = await storage.createAssignment(childAssignment);
+        createdSegments.push(createdChild);
+        console.log(`✅ Created segment ${i + 1}: "${segment.title}"`);
+      }
+      
+      console.log(`🎉 Successfully broke assignment into ${createdSegments.length} segments`);
+      
+      res.status(201).json({
+        message: 'Assignment successfully broken into segments',
+        parentId: id,
+        segments: createdSegments
+      });
+      
+    } catch (error) {
+      console.error('❌ Assignment breakdown failed:', error);
+      logger.error('API', 'Failed to break assignment into segments', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      res.status(500).json({ 
+        message: 'Failed to break assignment into segments',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // POST /api/assignments/extract-due-dates - Retroactive due date extraction
   app.post('/api/assignments/extract-due-dates', async (req, res) => {
     try {

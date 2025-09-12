@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp, Plus, Calendar, ArrowLeft, User, HelpCircle, CheckCircle2, Calendar as CalendarIcon, ExternalLink } from 'lucide-react';
+import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp, Plus, Calendar, ArrowLeft, User, HelpCircle, CheckCircle2, Calendar as CalendarIcon, ExternalLink, ChevronRight, Split } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -101,6 +103,15 @@ export default function AssignmentsPage() {
   // Edit assignment state
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [showEditForm, setShowEditForm] = useState(false);
+  
+  // Assignment breakdown state
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [segments, setSegments] = useState<Array<{
+    id: string;
+    title: string;
+    dueDate: string;
+    estimatedMinutes: number;
+  }>>([]);
 
   // Parent resolution state
   const [showResolutionDialog, setShowResolutionDialog] = useState(false);
@@ -160,11 +171,47 @@ export default function AssignmentsPage() {
       });
       setShowEditForm(false);
       setEditingAssignment(null);
+      setSegments([]);
+      setShowBreakdown(false);
     },
     onError: (error) => {
       toast({
         title: "Error",
         description: `Failed to update assignment: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Assignment breakdown mutation
+  const breakdownAssignmentMutation = useMutation({
+    mutationFn: async ({ assignmentId, segments }: { 
+      assignmentId: string, 
+      segments: Array<{
+        id: string;
+        title: string;
+        dueDate: string;
+        estimatedMinutes: number;
+      }> 
+    }) => {
+      const response = await apiRequest('POST', `/api/assignments/${assignmentId}/breakdown`, { segments });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+      toast({
+        title: "Assignment Broken Down! 🎯",
+        description: `Successfully created ${data.segments.length} segments. Each segment will appear as a separate task.`,
+      });
+      setShowEditForm(false);
+      setEditingAssignment(null);
+      setSegments([]);
+      setShowBreakdown(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to break down assignment: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -537,7 +584,16 @@ export default function AssignmentsPage() {
 
   const handleSaveEdit = () => {
     if (editingAssignment) {
-      editAssignmentMutation.mutate(editingAssignment);
+      // If there are segments, break down the assignment
+      if (segments.length > 0) {
+        breakdownAssignmentMutation.mutate({
+          assignmentId: editingAssignment.id,
+          segments: segments
+        });
+      } else {
+        // Otherwise, just update the assignment normally
+        editAssignmentMutation.mutate(editingAssignment);
+      }
     }
   };
   
@@ -1227,6 +1283,126 @@ export default function AssignmentsPage() {
                 />
               </div>
             </div>
+            
+            {/* Assignment Breakdown Section */}
+            <Separator className="my-6" />
+            
+            <Collapsible open={showBreakdown} onOpenChange={setShowBreakdown}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full justify-between" data-testid="button-toggle-breakdown">
+                  <div className="flex items-center gap-2">
+                    <Split className="w-4 h-4" />
+                    Break into segments
+                  </div>
+                  {showBreakdown ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </Button>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent className="space-y-4 mt-4">
+                <div className="bg-muted/50 p-4 rounded-lg border">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Break this assignment into smaller, manageable segments. Each segment will appear as a separate task with its own due date and can be scheduled individually.
+                  </p>
+                  
+                  {segments.map((segment, index) => (
+                    <div key={segment.id} className="flex gap-2 mb-3 items-end">
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium mb-1">Segment {index + 1} Title</label>
+                        <Input
+                          value={segment.title}
+                          onChange={(e) => {
+                            const newSegments = [...segments];
+                            newSegments[index].title = e.target.value;
+                            setSegments(newSegments);
+                          }}
+                          placeholder={`Part ${index + 1}`}
+                          data-testid={`input-segment-title-${index}`}
+                        />
+                      </div>
+                      <div className="w-32">
+                        <label className="block text-xs font-medium mb-1">Due Date</label>
+                        <Input
+                          type="date"
+                          value={segment.dueDate}
+                          onChange={(e) => {
+                            const newSegments = [...segments];
+                            newSegments[index].dueDate = e.target.value;
+                            setSegments(newSegments);
+                          }}
+                          data-testid={`input-segment-date-${index}`}
+                        />
+                      </div>
+                      <div className="w-20">
+                        <label className="block text-xs font-medium mb-1">Minutes</label>
+                        <Input
+                          type="number"
+                          value={segment.estimatedMinutes}
+                          onChange={(e) => {
+                            const newSegments = [...segments];
+                            newSegments[index].estimatedMinutes = parseInt(e.target.value) || 30;
+                            setSegments(newSegments);
+                          }}
+                          min="1"
+                          data-testid={`input-segment-minutes-${index}`}
+                        />
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newSegments = segments.filter((_, i) => i !== index);
+                          setSegments(newSegments);
+                        }}
+                        className="text-red-600 hover:text-red-700"
+                        data-testid={`button-remove-segment-${index}`}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newSegment = {
+                          id: `segment-${Date.now()}-${Math.random()}`,
+                          title: `Part ${segments.length + 1}`,
+                          dueDate: editingAssignment?.dueDate ? 
+                            new Date(editingAssignment.dueDate).toISOString().split('T')[0] : '',
+                          estimatedMinutes: Math.floor((editingAssignment?.actualEstimatedMinutes || 30) / Math.max(segments.length + 1, 2))
+                        };
+                        setSegments([...segments, newSegment]);
+                      }}
+                      data-testid="button-add-segment"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Segment
+                    </Button>
+                    
+                    {segments.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const totalMinutes = editingAssignment?.actualEstimatedMinutes || 30;
+                          const minutesPerSegment = Math.floor(totalMinutes / segments.length);
+                          const newSegments = segments.map((segment, index) => ({
+                            ...segment,
+                            estimatedMinutes: minutesPerSegment
+                          }));
+                          setSegments(newSegments);
+                        }}
+                        data-testid="button-auto-distribute-time"
+                      >
+                        Auto-distribute time
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
             </div>
 
             <DialogFooter className="flex gap-2 pt-4">
