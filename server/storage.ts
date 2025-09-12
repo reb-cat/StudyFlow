@@ -176,10 +176,10 @@ export class DatabaseStorage implements IStorage {
           // Set futureLimit to end of day (23:59:59) to include assignments due anytime on endDate
           futureLimit.setHours(23, 59, 59, 999);
         } else {
-          // Single date - use existing logic for daily scheduling
+          // Single date - use intelligent window sizing for daily scheduling
           const requestDate = new Date(date);
           futureLimit = new Date(requestDate);
-          futureLimit.setDate(requestDate.getDate() + 7); // 1 week ahead for focused student planning
+          futureLimit.setDate(requestDate.getDate() + 21); // Extended to 3 weeks ahead to ensure sufficient work
           
           // Allow overdue assignments up to 30 days back (for catch-up work)
           pastLimit = new Date(requestDate);
