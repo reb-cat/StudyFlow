@@ -778,15 +778,6 @@ export function GuidedDayView({
     }
     return null;
   }, [currentBlock]);
-
-  // CRITICAL FIX: Check after all hooks are called to prevent hooks violation
-  if (currentIndex === null || !currentBlock) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Loading schedule...
-      </div>
-    );
-  }
   
   // Reset timer when block changes
   useEffect(() => {
@@ -1271,6 +1262,15 @@ export function GuidedDayView({
             Return to Overview
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // CRITICAL FIX: Check after all hooks are called to prevent hooks violation
+  if (currentIndex === null || !currentBlock) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Loading schedule...
       </div>
     );
   }
