@@ -599,10 +599,12 @@ export class DatabaseStorage implements IStorage {
           return false;
         }
         
-        if (isBibleAssignment) {
-          console.log(`📖 Excluding Bible assignment from regular scheduling (Bible blocks only): ${a.title}`);
-          return false;
-        }
+        // FIXED: Allow Bible assignments to be scheduled - they should appear in Bible blocks
+        // Removing this filter allows Bible assignments to be available for scheduling
+        // if (isBibleAssignment) {
+        //   console.log(`📖 Excluding Bible assignment from regular scheduling (Bible blocks only): ${a.title}`);
+        //   return false;
+        // }
         
         return true;
       });
