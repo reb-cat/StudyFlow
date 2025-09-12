@@ -611,6 +611,71 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent/bible tasks`);
       
+      // RECIPE REVIEW SPECIAL HANDLING: Only schedule once and the week prior to needing them
+      const recipeReviews = unscheduledAssignments.filter(a => 
+        a.title.toLowerCase().includes('review recipe') || 
+        a.title.toLowerCase().includes('recipe review')
+      );
+      
+      if (recipeReviews.length > 0) {
+        console.log(`🥘 RECIPE REVIEWS: Found ${recipeReviews.length} recipe review assignments`);
+        
+        // Check if any recipes are already scheduled (avoid duplicates)
+        const alreadyScheduledRecipes = await db.select()
+          .from(assignments)
+          .where(
+            and(
+              eq(assignments.userId, userId),
+              isNotNull(assignments.scheduledDate),
+              or(
+                sql`${assignments.title} ILIKE '%review recipe%'`,
+                sql`${assignments.title} ILIKE '%recipe review%'`
+              )
+            )
+          );
+        
+        console.log(`🥘 ALREADY SCHEDULED: ${alreadyScheduledRecipes.length} recipes already have scheduled dates`);
+        
+        // Filter out recipes that are already scheduled (prevent duplicates)
+        const scheduledRecipeIds = new Set(alreadyScheduledRecipes.map(r => r.id));
+        const newRecipesToSchedule = recipeReviews.filter(r => !scheduledRecipeIds.has(r.id));
+        
+        console.log(`🥘 NEW TO SCHEDULE: ${newRecipesToSchedule.length} recipes need initial scheduling`);
+        
+        // For recipes that need scheduling, check if this is the right week (week prior to due date)
+        const recipesForThisWeek = newRecipesToSchedule.filter(r => {
+          if (!r.dueDate) return false;
+          
+          const dueDate = new Date(r.dueDate);
+          const weekPrior = new Date(dueDate);
+          weekPrior.setDate(dueDate.getDate() - 7); // One week before due date
+          
+          const targetDateObj = new Date(targetDate);
+          
+          // Check if target date is within the "week prior" window (7 days before due)
+          const isWeekPrior = targetDateObj >= weekPrior && targetDateObj < dueDate;
+          
+          if (isWeekPrior) {
+            console.log(`🥘 WEEK PRIOR MATCH: "${r.title}" due ${r.dueDate} should be scheduled this week`);
+          }
+          
+          return isWeekPrior;
+        });
+        
+        console.log(`🥘 THIS WEEK: ${recipesForThisWeek.length} recipes should be scheduled this week (week prior to due)`);
+        
+        // Remove recipes that shouldn't be scheduled yet from the general pool
+        const nonRecipeAssignments = unscheduledAssignments.filter(a => 
+          !recipeReviews.includes(a)
+        );
+        
+        // Add back only the recipes that should be scheduled this week
+        unscheduledAssignments.splice(0, unscheduledAssignments.length);
+        unscheduledAssignments.push(...nonRecipeAssignments, ...recipesForThisWeek);
+        
+        console.log(`🥘 FINAL POOL: ${unscheduledAssignments.length} assignments after recipe review filtering (${recipesForThisWeek.length} recipes added for this week)`);
+      }
+      
       
       // SMART CLEARING: Only clear unworked assignments, preserve completed/marked work
       // This preserves "Need More Time", completed, and in-progress assignments
