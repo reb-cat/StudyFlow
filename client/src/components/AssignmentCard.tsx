@@ -8,6 +8,7 @@ import { normalizeAssignment } from '@shared/normalize';
 import type { Assignment } from '@shared/schema';
 import { ConfettiBurst } from './ConfettiBurst';
 import { useState } from 'react';
+import { invalidateAssignmentRelatedQueries } from '@/lib/cacheUtils';
 
 interface AssignmentCardProps {
   assignment: Assignment;
@@ -134,7 +135,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
           body: JSON.stringify({
             completionStatus: newStatus,
             timeSpent: assignment.timeSpent || 0,
-            notes: newStatus === 'stuck' ? 'Student marked as stuck - needs help' : ''
+            notes: ''
           })
         });
       }
@@ -145,6 +146,15 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
       if (newStatus === 'completed') {
         setShowCelebration(true);
       }
+
+      // Extract student name from assignment.userId (format: "name-user")
+      const studentName = assignment.userId?.replace('-user', '') || '';
+      
+      // Atomic cache invalidation for all assignment-related queries
+      await invalidateAssignmentRelatedQueries(
+        studentName, 
+        assignment.scheduledDate || undefined
+      );
 
       const messages = {
         completed: { title: "Great work! 🎉", description: "Assignment completed successfully." },

@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Clock, Save, RotateCcw, Home, Edit3, Users, Upload, FileText, Calendar, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Link } from 'wouter';
+import { invalidateScheduleRelatedQueries, invalidateFamilyDashboardQueries } from '@/lib/cacheUtils';
 
 interface ScheduleBlock {
   id: string;
@@ -71,8 +72,8 @@ export default function ScheduleTemplates() {
     mutationFn: async (blocks: ScheduleBlock[]) => {
       return apiRequest('PUT', `/api/schedule-template/${selectedStudent}/${selectedWeekday}`, { blocks });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/schedule-template'] });
+    onSuccess: async () => {
+      await invalidateScheduleRelatedQueries(selectedStudent);
       setHasChanges(false);
       toast({
         title: "Success",
@@ -93,8 +94,8 @@ export default function ScheduleTemplates() {
     mutationFn: async (csvData: any[]) => {
       return apiRequest('POST', '/api/schedule-template/upload-csv', { csvData });
     },
-    onSuccess: (response: any) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/schedule-template'] });
+    onSuccess: async (response: any) => {
+      await invalidateScheduleRelatedQueries(selectedStudent);
       setCsvFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -140,7 +141,7 @@ export default function ScheduleTemplates() {
     onError: (error, variables) => {
       console.error('Error updating Saturday settings:', error);
       // Revert optimistic update on error
-      queryClient.invalidateQueries({ queryKey: ['/api/students/profiles/saturday-settings'] });
+      invalidateFamilyDashboardQueries();
       toast({ 
         title: "Error", 
         description: "Failed to update Saturday scheduling settings.",

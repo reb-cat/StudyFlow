@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import type { ChecklistItem, InsertChecklistItem } from '@shared/schema';
+import { invalidateChecklistRelatedQueries } from '@/lib/cacheUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,8 +57,8 @@ export default function ChecklistManager() {
       const response = await apiRequest('POST', '/api/checklist', { body: JSON.stringify(data) });
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/checklist/${selectedStudent}`] });
+    onSuccess: async () => {
+      await invalidateChecklistRelatedQueries(selectedStudent);
       toast({ title: "Success", description: "Checklist item added successfully!" });
       setIsAddingNew(false);
       setNewItem({ studentName: selectedStudent, subject: '', itemName: '', category: 'materials' });
@@ -79,8 +80,8 @@ export default function ChecklistManager() {
       });
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/checklist/${selectedStudent}`] });
+    onSuccess: async () => {
+      await invalidateChecklistRelatedQueries(selectedStudent);
       toast({ title: "Success", description: "Item updated successfully!" });
       setEditingItem(null);
     },
@@ -94,8 +95,8 @@ export default function ChecklistManager() {
     mutationFn: async (id: string) => {
       await apiRequest('DELETE', `/api/checklist/${id}`);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/checklist/${selectedStudent}`] });
+    onSuccess: async () => {
+      await invalidateChecklistRelatedQueries(selectedStudent);
       toast({ title: "Success", description: "Item deleted successfully!" });
     },
     onError: (error: any) => {

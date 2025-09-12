@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getTodayString, formatDateShort } from '@shared/dateUtils';
 import { ConfettiBurst } from './ConfettiBurst';
 import { CircularTimer } from './CircularTimer';
+import { invalidateAssignmentRelatedQueries, invalidateScheduleRelatedQueries } from '@/lib/cacheUtils';
 
 // Simple color system for the GuidedDayView (minimal replacement)
 const colors = {
@@ -730,8 +731,8 @@ export function GuidedDayView({
       
       console.log(`✅ Updated block status to 'complete' for block ${currentBlock.templateBlockId || currentBlock.id}`);
       
-      // Invalidate schedule status cache to sync with Overview mode
-      queryClient.invalidateQueries({ queryKey: ['/api/schedule', studentName, selectedDate, 'status'] });
+      // Atomic cache invalidation to sync with Overview mode
+      await invalidateScheduleRelatedQueries(studentName, selectedDate);
       
       if (onAssignmentUpdate) {
         onAssignmentUpdate(); // This will refresh both assignment and schedule status data
@@ -760,8 +761,8 @@ export function GuidedDayView({
           variant: "default"
         });
         
-        // CRITICAL: Invalidate assignment cache to sync across all app components
-        queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
+        // CRITICAL: Atomic cache invalidation to sync across all app components
+        await invalidateAssignmentRelatedQueries(studentName, selectedDate);
         
         // Refetch assignments and re-derive blocks
         if (onAssignmentUpdate) {
@@ -842,8 +843,8 @@ export function GuidedDayView({
           variant: "default"
         });
         
-        // Trigger status refetch for overview pills
-        queryClient.invalidateQueries({ queryKey: ['/api/schedule', studentName, selectedDate, 'status'] });
+        // Atomic cache invalidation for overview pills
+        await invalidateScheduleRelatedQueries(studentName, selectedDate);
         
         // Primary flow: refetch assignments and re-derive blocks
         if (onAssignmentUpdate) {
@@ -890,8 +891,8 @@ export function GuidedDayView({
           variant: "default"
         });
         
-        // Trigger status refetch for overview pills
-        queryClient.invalidateQueries({ queryKey: ['/api/schedule', studentName, selectedDate, 'status'] });
+        // Atomic cache invalidation for overview pills
+        await invalidateScheduleRelatedQueries(studentName, selectedDate);
         
         // Trigger refetch to update schedule
         if (onAssignmentUpdate) {
@@ -947,8 +948,8 @@ export function GuidedDayView({
         needsHelp: needsHelp
       }) as any;
       
-      // Trigger status refetch for overview pills
-      queryClient.invalidateQueries({ queryKey: ['/api/schedule', studentName, selectedDate, 'status'] });
+      // Atomic cache invalidation for overview pills
+      await invalidateScheduleRelatedQueries(studentName, selectedDate);
       
       // Start 15-second countdown
       setStuckCountdown(15);
