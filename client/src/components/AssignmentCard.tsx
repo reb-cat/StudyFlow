@@ -148,7 +148,7 @@ export function AssignmentCard({ assignment, onUpdate, variant = 'default' }: As
 
       const messages = {
         completed: { title: "Great work! 🎉", description: "Assignment completed successfully." },
-        stuck: { title: "Help is on the way! 📧", description: "Parent notification sent - assistance coming soon." },
+        stuck: { title: "Help is on the way! 📧", description: "Help notification sent - assistance coming soon." },
         in_progress: { title: "Keep going!", description: "Assignment marked as in progress." },
         needs_more_time: { title: "No worries!", description: "Take the time you need." }
       };

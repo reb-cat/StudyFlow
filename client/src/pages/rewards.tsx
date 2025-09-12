@@ -459,7 +459,7 @@ export default function RewardsPage() {
           <DialogHeader>
             <DialogTitle className="text-foreground">Confirm Redemption</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Request parent approval to redeem this reward?
+              Request approval to redeem this reward?
             </DialogDescription>
           </DialogHeader>
           
