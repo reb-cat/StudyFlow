@@ -237,17 +237,27 @@ export async function getAvailableScheduleSlots(
         ? await storage.getAssignmentsByBlock(studentName, weekday, block.blockNumber)
         : []; // Empty - null blockNumber blocks have full capacity available
       
-      // Calculate used minutes
-      const usedMinutes = assignedAssignments.reduce((total: number, assignment: any) => {
+      // Filter out completed assignments - only count active work toward block occupancy
+      const activeAssignments = assignedAssignments.filter((assignment: any) => 
+        assignment.completionStatus !== 'completed'
+      );
+      
+      // Calculate used minutes from active assignments only
+      const usedMinutes = activeAssignments.reduce((total: number, assignment: any) => {
         return total + (assignment.actualEstimatedMinutes || 30);
       }, 0);
       
       // Debug what assignments are currently in this block
       if (assignedAssignments.length > 0) {
-        console.log(`   🚨 Block ${block.blockNumber} (${block.blockType}) already has ${assignedAssignments.length} assignments:`);
+        const completedCount = assignedAssignments.length - activeAssignments.length;
+        console.log(`   🚨 Block ${block.blockNumber} (${block.blockType}) has ${assignedAssignments.length} total assignments (${activeAssignments.length} active, ${completedCount} completed):`);
         assignedAssignments.forEach((a: any) => {
-          console.log(`      - ${a.title} (due: ${a.dueDate}, ${a.actualEstimatedMinutes || 30}min)`);
+          const status = a.completionStatus === 'completed' ? '✅ COMPLETED' : '📝 ACTIVE';
+          console.log(`      - ${status} ${a.title} (due: ${a.dueDate}, ${a.actualEstimatedMinutes || 30}min)`);
         });
+        if (activeAssignments.length !== assignedAssignments.length) {
+          console.log(`   ⚡ CAPACITY FIX: Only counting ${activeAssignments.length} active assignments toward block occupancy (ignoring ${completedCount} completed)`);
+        }
       }
       
       availableSlots.push({
