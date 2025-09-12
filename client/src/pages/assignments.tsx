@@ -453,10 +453,11 @@ export default function AssignmentsPage() {
 
     return true;
   }).sort((a, b) => {
-    // PRIORITY SORTING - Match daily scheduling algorithm exactly
+    // PRIORITY SORTING - Match daily scheduling algorithm exactly using effectiveDueAt
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    // Use dueDate for priority calculation (fallback pattern for effective due date)
     const aDate = a.dueDate ? new Date(a.dueDate) : null;
     const bDate = b.dueDate ? new Date(b.dueDate) : null;
     
