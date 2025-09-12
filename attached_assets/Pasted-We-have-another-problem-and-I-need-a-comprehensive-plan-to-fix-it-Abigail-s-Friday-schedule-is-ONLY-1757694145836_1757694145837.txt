@@ -1,0 +1,18 @@
+We have another problem and I need a comprehensive plan to fix it.
+Abigail's Friday schedule is ONLY showing Open Blocks even when I refresh. If there is nothing "urgent" to schedule, the system should be able to look ahead and populate work. They should always be working on a school day. That said, it should never pull work from the farthest date if there is earlier work due. This is all in our logic, but something is preventing today from being scheduled. You will not be able to use Dev data to check this because it doesn't reflect completed work. Only use the codebase to draw conclusions about what is happening based on my description of Prod.
+I'm also finding that I often have to reload their pages due to open blocks even after the "page loading" page runs.
+Abigail's /assignments is also missing Bible.  Minimal Fix Plan - Fix Existing Code Only
+1. Bible Assignment Filtering Issue
+Problem: Bible assignments are being excluded from scheduling/assignments page Root Cause: Existing filtering logic in storage.ts is incorrectly excluding Bible assignments Fix: Remove or modify the existing filter that's blocking Bible assignments from appearing
+2. Timer Duration Bug
+Problem: Khalil's 30-minute blocks immediately cut to 20 minutes Root Cause: Existing time calculation logic in timer component or schedule template is incorrect Fix: Correct the existing time calculation logic (likely in getBlockDurationMinutes or similar function)
+3. Friday Scheduling Failure
+Problem: Friday shows "Open Blocks" instead of assignments Root Cause Analysis Needed: Either
+* A. Existing template validation logic has wrong minimum block requirement, OR
+* B. Existing assignment allocation logic isn't working for Friday's current 4-block template Fix Strategy: Identify which existing logic is broken and fix it (don't add new blocks or new lookahead logic)
+Approach:
+1. Investigate existing code to find what's broken
+2. Fix the broken logic with minimal changes
+3. Test each fix independently
+4. No new features or code additions
+This focuses on fixing what should already work rather than building new functionality.

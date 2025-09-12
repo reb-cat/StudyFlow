@@ -17,7 +17,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, or, sql, desc, inArray, isNull, isNotNull, lte } from "drizzle-orm";
 import { compareAssignmentTitles, extractUnitNumber } from './lib/assignmentIntelligence';
 import { assignmentCache, scheduleCache } from './lib/cache';
 
