@@ -36,6 +36,10 @@ export const assignments = pgTable("assignments", {
   creationSource: text("creation_source", { 
     enum: ["manual", "canvas_sync", "auto_split", "student_need_more_time"] 
   }).default("manual"), // Track assignment origin
+  
+  // Parent-child assignment breakdown fields
+  parentId: text("parent_id"), // Foreign key to parent assignment (self-reference)
+  segmentOrder: integer("segment_order"), // Order of segments within parent (1, 2, 3...)
   // Canvas integration fields
   canvasId: integer("canvas_id"), // Canvas assignment ID for sync tracking
   canvasCourseId: integer("canvas_course_id"), // Canvas course ID for building URLs
