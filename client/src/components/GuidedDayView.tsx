@@ -124,7 +124,7 @@ const colors = {
 interface CircularTimerProps {
   durationMinutes: number;
   isRunning: boolean;
-  onComplete?: () => void;
+  onComplete?: (timeRemaining?: number) => void;
   onToggle: () => void;
   onReset: () => void;
   extraTime?: number;
@@ -193,7 +193,7 @@ const CircularTimer = ({
         
         if (remainingSeconds <= 0) {
           // Timer completed
-          onComplete?.();
+          onComplete?.(timeRemaining);
           if (onTimeUpdate) {
             onTimeUpdate(0);
           } else {
@@ -705,6 +705,7 @@ export function GuidedDayView({
   const [showStuckDialog, setShowStuckDialog] = useState(false);
   const [stuckCountdown, setStuckCountdown] = useState(0);
   const [stuckPendingKey, setStuckPendingKey] = useState<string | null>(null);
+  const [actualTimeRemaining, setActualTimeRemaining] = useState<number | null>(null);
   const [isProcessingStuck, setIsProcessingStuck] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [bibleData, setBibleData] = useState<any>(null);
@@ -887,8 +888,11 @@ export function GuidedDayView({
     }
   }, [stuckCountdown, stuckPendingKey, onAssignmentUpdate]);
 
-  const handleBlockComplete = async () => {
+  const handleBlockComplete = async (timeRemainingSeconds?: number) => {
     if (!currentBlock) return;
+    
+    // Store the actual time remaining when user clicked "Done" for accurate completion dialog
+    setActualTimeRemaining(timeRemainingSeconds || 0);
     
     if (currentBlock.type === 'assignment' && currentBlock.assignment) {
       // Show Done dialog for assignments
@@ -1458,7 +1462,7 @@ export function GuidedDayView({
                 <CircularTimer
                   durationMinutes={blockDurationMinutes}
                   isRunning={isTimerRunning}
-                  onComplete={handleBlockComplete}
+                  onComplete={(timeRemaining) => handleBlockComplete(timeRemaining)}
                   onToggle={() => setIsTimerRunning(!isTimerRunning)}
                   onReset={() => setIsTimerRunning(false)}
                   hideControls={true}
@@ -1666,8 +1670,10 @@ export function GuidedDayView({
                 return Math.max(1, endMinutes - startMinutes);
               };
               const totalMinutes = getBlockDurationMinutes(currentBlock.startTime, currentBlock.endTime, currentBlock.blockType, currentBlock.title);
-              const timeSpentMinutes = Math.max(1, Math.floor(totalMinutes / 2)); // Simplified - assume half the time was spent
-              const extraMinutes = Math.max(0, totalMinutes - timeSpentMinutes);
+              // FIXED: Use actual time remaining instead of hardcoded assumption
+              const timeRemainingMinutes = actualTimeRemaining !== null ? Math.floor(actualTimeRemaining / 60) : 0;
+              const timeSpentMinutes = Math.max(1, totalMinutes - timeRemainingMinutes);
+              const extraMinutes = Math.max(0, timeRemainingMinutes);
               
               if (extraMinutes > 0) {
                 return (
