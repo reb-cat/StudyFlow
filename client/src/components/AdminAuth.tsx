@@ -89,8 +89,8 @@ export default function AdminAuth({ children }: AdminAuthProps) {
 
   return (
     <div className="relative">
-      {/* Logout button in top-right corner */}
-      <div className="fixed top-4 right-4 z-50">
+      {/* Logout button in top-left corner to avoid theme toggle */}
+      <div className="fixed top-4 left-4 z-50">
         <Button
           variant="outline"
           size="sm"
