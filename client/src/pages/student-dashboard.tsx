@@ -465,46 +465,54 @@ export default function StudentDashboard() {
     });
   })();
 
-  // NEW: Compose the exact sequence Guided should show (mirrors Overview)
-  const composedForGuided = allScheduleBlocks.map((block) => {
-    const base = {
-      id: block.id ?? `block-${block.blockNumber ?? crypto.randomUUID()}`,
-      startTime: block.startTime?.slice(0,5) || '00:00',
-      endTime: block.endTime?.slice(0,5) || '00:00',
-    };
-    
-    // 🎯 FIX: Calculate estimatedMinutes for ALL blocks using same logic as Overview
-    const estimatedMinutes = toMinutes(block.endTime) - toMinutes(block.startTime);
-    
-    if (block.blockType === 'assignment' || block.blockType === 'Study Hall') {
-      const pb = populatedAssignmentBlocks.find(pb => pb.id === block.id);
-      const a = pb?.assignment;
-      return {
-        ...base,
-        type: 'assignment' as const,
-        title: a?.displayTitle || a?.title || 'Open Assignment Block',
-        estimatedMinutes: a?.estimatedMinutes ?? 30, // Use assignment-specific time for assignments
-        assignmentId: a?.id ?? null,
-        assignment: a, // 🎯 FIX: Pass full assignment object with instructions
-        blockType: block.blockType, // 🎯 NEW: Track original block type for Study Hall handling
+  // NEW: Compose the exact sequence Guided should show (mirrors Overview) - SINGLE SOURCE OF TRUTH
+  const composedForGuided = allScheduleBlocks
+    .map((block) => {
+      const base = {
+        id: block.id ?? `block-${block.blockNumber ?? crypto.randomUUID()}`,
+        startTime: block.startTime?.slice(0,5) || '00:00',
+        endTime: block.endTime?.slice(0,5) || '00:00',
       };
-    }
-    if (block.blockType === 'bible') {
+      
+      // 🎯 FIX: Calculate estimatedMinutes for ALL blocks using same logic as Overview
+      const estimatedMinutes = toMinutes(block.endTime) - toMinutes(block.startTime);
+      
+      if (block.blockType === 'assignment' || block.blockType === 'Study Hall') {
+        const pb = populatedAssignmentBlocks.find(pb => pb.id === block.id);
+        const a = pb?.assignment;
+        
+        // 🔥 CRITICAL FIX: Only return assignment blocks that have actual assignments
+        if (!a) {
+          return null; // Filter out unbound assignment blocks
+        }
+        
+        return {
+          ...base,
+          type: 'assignment' as const,
+          title: a.displayTitle || a.title,
+          estimatedMinutes: a.estimatedMinutes ?? 30,
+          assignmentId: a.id,
+          assignment: a,
+          blockType: block.blockType,
+        };
+      }
+      if (block.blockType === 'bible') {
+        return { 
+          ...base, 
+          type: 'bible' as const, 
+          title: 'Bible',
+          estimatedMinutes: estimatedMinutes
+        };
+      }
+      // fixed: travel, co-op, lunch, movement, prep/load, etc.
       return { 
         ...base, 
-        type: 'bible' as const, 
-        title: 'Bible',
-        estimatedMinutes: estimatedMinutes // Use calculated time
+        type: 'fixed' as const, 
+        title: block.subject || 'Fixed Block',
+        estimatedMinutes: estimatedMinutes
       };
-    }
-    // fixed: travel, co-op, lunch, movement, prep/load, etc.
-    return { 
-      ...base, 
-      type: 'fixed' as const, 
-      title: block.subject || 'Fixed Block',
-      estimatedMinutes: estimatedMinutes // 🎯 CRITICAL: Use calculated time, not default!
-    };
-  });
+    })
+    .filter(Boolean); // Remove null entries (unbound assignment blocks)
 
   // DEBUG LOGGING: Client Overview composition
   const DEBUG_ORDERING = process.env.NODE_ENV === 'development' && false; // Enable when needed
