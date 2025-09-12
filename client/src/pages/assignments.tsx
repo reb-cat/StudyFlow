@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp, Plus, Calendar, ArrowLeft, User, HelpCircle, CheckCircle2, Calendar as CalendarIcon, ExternalLink, ChevronRight, Split } from 'lucide-react';
+import { CheckCircle, Circle, RefreshCw, Search, Filter, Clock, AlertCircle, ChevronDown, ChevronUp, Plus, Calendar, ArrowLeft, User, HelpCircle, CheckCircle2, Calendar as CalendarIcon, ExternalLink, ChevronRight, Split, GitBranch } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -874,7 +874,7 @@ export default function AssignmentsPage() {
                   ) : (
                     <div 
                       className="flex-shrink-0 w-5 h-5 min-w-5 min-h-5 max-w-5 max-h-5 flex items-center justify-center"
-                      title="Parent assignment - managed automatically when all child segments are completed. Cannot be selected for bulk operations."
+                      title="Container assignment - managed automatically when all segments are completed. Cannot be selected for bulk operations."
                     >
                       <div className="w-3 h-3 rounded-full bg-orange-500 dark:bg-orange-400" />
                     </div>
@@ -886,11 +886,11 @@ export default function AssignmentsPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold text-foreground">{assignment.title}</h3>
                           
-                          {/* Parent Assignment Badge */}
+                          {/* Container Assignment Badge */}
                           {isParent && (
                             <Badge className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700 flex items-center gap-1">
                               <ChevronRight className="w-3 h-3" />
-                              Parent ({parentProgress?.completed}/{parentProgress?.total})
+                              {parentProgress?.completed}/{parentProgress?.total} Complete
                             </Badge>
                           )}
                           
@@ -902,13 +902,7 @@ export default function AssignmentsPage() {
                             </Badge>
                           )}
                           
-                          {/* Legacy Parent Task Pill */}
-                          {parentTask && !isParent && (
-                            <Badge className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-700 flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              Parent
-                            </Badge>
-                          )}
+                          {/* Remove legacy parent task pill - no longer needed */}
                           
                           {/* Status Badge - Show progress for parents, regular status for others */}
                           {isParent ? (
@@ -1095,7 +1089,7 @@ export default function AssignmentsPage() {
                             size="sm"
                             disabled
                             className="opacity-50"
-                            title="Parent assignments are managed automatically when all child segments are completed"
+                            title="Container assignments are managed automatically when all segments are completed"
                             data-testid={`button-edit-${assignment.id}`}
                           >
                             <GitBranch className="w-4 h-4 mr-1" />

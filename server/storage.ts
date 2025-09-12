@@ -661,25 +661,25 @@ export class DatabaseStorage implements IStorage {
           return false;
         }
         
-        // CRITICAL: Exclude parent/administrative assignments AND Bible assignments from student scheduling
+        // CRITICAL: Exclude administrative assignments (fees, forms, etc.) from student scheduling
         const title = a.title.toLowerCase();
         const subject = (a.subject || '').toLowerCase();
-        const isParentTask = title.includes('fee') || 
-                            title.includes('supply') || 
-                            title.includes('permission') || 
-                            title.includes('form') ||
-                            title.includes('waiver') ||
-                            title.includes('registration') ||
-                            title.includes('syllabus') ||
-                            title.includes('honor code');
+        const isAdministrativeTask = title.includes('fee') || 
+                                    title.includes('supply') || 
+                                    title.includes('permission') || 
+                                    title.includes('form') ||
+                                    title.includes('waiver') ||
+                                    title.includes('registration') ||
+                                    title.includes('syllabus') ||
+                                    title.includes('honor code');
         
         const isBibleAssignment = title.includes('bible') || 
                                  subject.includes('bible') ||
                                  title.includes('scripture') ||
                                  subject.includes('scripture');
         
-        if (isParentTask) {
-          console.log(`🚫 Excluding parent task from student scheduling: ${a.title}`);
+        if (isAdministrativeTask) {
+          console.log(`🗂️ Excluding administrative task from student scheduling: ${a.title}`);
           return false;
         }
         
@@ -694,6 +694,49 @@ export class DatabaseStorage implements IStorage {
       });
       
       console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent/bible tasks`);
+      
+      // SEQUENTIAL ORDERING CONSTRAINT: For child assignments, only schedule the next unfinished one in sequence
+      const sequentiallyFilteredAssignments = unscheduledAssignments.filter(assignment => {
+        // If this is not a child assignment, include it normally
+        if (!assignment.parentId) {
+          return true;
+        }
+        
+        // This IS a child assignment - check if it's the next one in sequence
+        const siblings = allUserAssignments.filter(a => a.parentId === assignment.parentId && !a.deletedAt);
+        if (siblings.length === 0) return true; // Safety check
+        
+        // Sort siblings by segment order
+        const sortedSiblings = siblings.sort((a, b) => (a.segmentOrder || 0) - (b.segmentOrder || 0));
+        
+        // Find the first incomplete sibling in the sequence
+        const nextIncompleteIndex = sortedSiblings.findIndex(sibling => sibling.completionStatus !== 'completed');
+        
+        if (nextIncompleteIndex === -1) {
+          // All siblings are complete - don't schedule any (parent should be auto-completed)
+          console.log(`📝 All segments complete for parent - skipping child: ${assignment.title}`);
+          return false;
+        }
+        
+        const nextIncompleteAssignment = sortedSiblings[nextIncompleteIndex];
+        const isThisTheNextOne = assignment.id === nextIncompleteAssignment.id;
+        
+        if (!isThisTheNextOne) {
+          console.log(`⏭️  Skipping sequential assignment "${assignment.title}" (segment ${assignment.segmentOrder}) - waiting for segment ${nextIncompleteAssignment.segmentOrder} to complete first`);
+        } else {
+          console.log(`📝 Allowing sequential assignment "${assignment.title}" (segment ${assignment.segmentOrder}) - next in sequence`);
+        }
+        
+        return isThisTheNextOne;
+      });
+      
+      const sequentialFilteredCount = unscheduledAssignments.length - sequentiallyFilteredAssignments.length;
+      if (sequentialFilteredCount > 0) {
+        console.log(`🔢 SEQUENTIAL FILTER: Excluded ${sequentialFilteredCount} assignments waiting for earlier segments to complete`);
+      }
+      
+      // Update the assignment list for further processing
+      unscheduledAssignments = sequentiallyFilteredAssignments;
       
       // RECIPE REVIEW SPECIAL HANDLING: Only schedule once and the week prior to needing them
       const recipeReviews = unscheduledAssignments.filter(a => 
