@@ -26,6 +26,42 @@ export function CircularTimer({
   const totalSeconds = durationMinutes * 60 + extraTime * 60;
   const [timeRemaining, setTimeRemaining] = useState(totalSeconds);
 
+  // Audio completion chime - gentle and supportive
+  const playCompletionChime = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create a gentle two-tone chime
+      const playTone = (frequency: number, startTime: number, duration: number) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequency, startTime);
+        oscillator.type = 'sine'; // Gentle sine wave
+        
+        // Gentle fade in and out
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(0.1, startTime + 0.1); // Soft volume
+        gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+        
+        oscillator.start(startTime);
+        oscillator.stop(startTime + duration);
+      };
+      
+      const now = audioContext.currentTime;
+      // Two-tone gentle chime: C5 -> G5 (pleasant, not jarring)
+      playTone(523.25, now, 0.8); // C5
+      playTone(783.99, now + 0.4, 0.8); // G5
+      
+    } catch (error) {
+      console.log('Audio not available:', error);
+      // Gracefully fail - visual feedback will still work
+    }
+  };
+
   // Reset timer when duration changes
   useEffect(() => {
     setTimeRemaining(totalSeconds);
@@ -40,6 +76,7 @@ export function CircularTimer({
         setTimeRemaining(prev => {
           const newTime = prev - 1;
           if (newTime <= 0) {
+            playCompletionChime(); // 🔊 Play gentle completion sound
             onComplete?.();
             return 0;
           }
