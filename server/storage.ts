@@ -1053,6 +1053,81 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
+      // FRIDAY LOOKAHEAD LOGIC: If it's Friday and we still have empty blocks, pull future assignments
+      const emptyBlocks = blocksToFill.slice(scheduledCount);
+      if (weekday === 'Friday' && emptyBlocks.length > 0) {
+        console.log(`🔮 FRIDAY LOOKAHEAD: ${emptyBlocks.length} empty blocks available on Friday - checking for future assignments`);
+        
+        // Expand search window to include next Monday/Tuesday assignments (3-4 days ahead)
+        const expandedEndDate = new Date(targetDate);
+        expandedEndDate.setDate(expandedEndDate.getDate() + 4); // Friday + 4 days = Tuesday
+        const expandedDateRange = `${targetDate},${expandedEndDate.toISOString().split('T')[0]}`;
+        
+        console.log(`🔍 FRIDAY LOOKAHEAD: Searching for assignments in range ${expandedDateRange}`);
+        
+        // Get expanded assignment pool (including future Monday/Tuesday assignments)
+        const expandedAssignments = await this.getAssignments(userId, expandedDateRange);
+        
+        // Filter to get only unscheduled future assignments (exclude already handled assignments)
+        const futureAssignments = expandedAssignments.filter(a => {
+          // Must be pending
+          if (a.completionStatus !== 'pending') return false;
+          
+          // Must not be already scheduled for today
+          if (schedulingResults.has(a.id)) return false;
+          
+          // Must have a due date beyond Friday (Monday/Tuesday work)
+          if (!a.dueDate) return false;
+          const dueDate = new Date(a.dueDate);
+          const fridayDate = new Date(targetDate);
+          if (dueDate <= fridayDate) return false; // Not future work
+          
+          // Exclude parent/administrative tasks
+          const title = a.title.toLowerCase();
+          const isParentTask = title.includes('fee') || title.includes('supply') || 
+                              title.includes('permission') || title.includes('form') ||
+                              title.includes('waiver') || title.includes('registration') ||
+                              title.includes('syllabus') || title.includes('honor code');
+          if (isParentTask) return false;
+          
+          return true;
+        });
+        
+        console.log(`📚 FRIDAY LOOKAHEAD: Found ${futureAssignments.length} future assignments to consider`);
+        
+        // Prioritize future assignments by due date (earliest first)
+        const prioritizedFutureAssignments = futureAssignments.sort((a, b) => {
+          if (!a.dueDate || !b.dueDate) return 0;
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        });
+        
+        // Fill empty Friday blocks with future assignments
+        let fridayLookaheadCount = 0;
+        for (let i = 0; i < Math.min(emptyBlocks.length, prioritizedFutureAssignments.length); i++) {
+          const block = emptyBlocks[i];
+          const assignment = prioritizedFutureAssignments[i];
+          
+          console.log(`🔮 FRIDAY LOOKAHEAD: Pulling future assignment "${assignment.title}" into Friday Block ${block.blockNumber}`);
+          
+          // Schedule this future assignment on Friday
+          const updated = await this.updateAssignmentScheduling(assignment.id, {
+            scheduledDate: targetDate,
+            scheduledBlock: block.blockNumber,
+            blockStart: block.startTime,
+            blockEnd: block.endTime
+          });
+          
+          if (updated) {
+            updatedAssignments.push(updated);
+            scheduledCount++;
+            fridayLookaheadCount++;
+            console.log(`✅ FRIDAY LOOKAHEAD: Successfully scheduled "${updated.title}" on Friday`);
+          }
+        }
+        
+        console.log(`🔮 FRIDAY LOOKAHEAD COMPLETE: Pulled ${fridayLookaheadCount} future assignments into Friday`);
+      }
+      
       console.log(`🎯 Auto-Scheduling Complete: ${scheduledCount}/${unscheduledAssignments.length} assignments scheduled for ${studentName} on ${targetDate}`);
       
       return {
