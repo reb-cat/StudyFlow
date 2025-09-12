@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { getTodayString, formatDateShort } from '@shared/dateUtils';
 import { ConfettiBurst } from './ConfettiBurst';
+import { CircularTimer } from '@/components/CircularTimer';
 
 // Timezone-safe New York date string function
 const toNYDateString = (d = new Date()) => {
@@ -120,213 +121,15 @@ const colors = {
   textMuted: 'var(--muted-foreground)'
 };
 
-// CircularTimer component with StudyFlow colors
-interface CircularTimerProps {
-  durationMinutes: number;
-  isRunning: boolean;
-  onComplete?: (timeRemaining?: number) => void;
-  onToggle: () => void;
-  onReset: () => void;
-  extraTime?: number;
-  hideControls?: boolean;
-  externalTimeRemaining?: number | null;
-  onTimeUpdate?: (time: number) => void;
-}
-
-const CircularTimer = ({ 
-  durationMinutes, 
-  isRunning, 
-  onComplete, 
-  onToggle, 
-  onReset,
-  extraTime = 0,
-  hideControls = false,
-  externalTimeRemaining = null,
-  onTimeUpdate
-}: CircularTimerProps) => {
-  const durationSeconds = durationMinutes * 60 + extraTime * 60;
-  const [internalTimeRemaining, setInternalTimeRemaining] = useState(durationSeconds);
-  const [startTime, setStartTime] = useState<number | null>(null);
-  const [endTime, setEndTime] = useState<number | null>(null);
-  
-  const timeRemaining = externalTimeRemaining !== null ? externalTimeRemaining : internalTimeRemaining;
-  const totalTime = durationSeconds;
-
-  // Reset timer when duration changes (but not when timer is actively running)
-  useEffect(() => {
-    if (externalTimeRemaining === null) {
-      setInternalTimeRemaining(durationSeconds);
-      // Only reset timestamps if timer isn't running
-      if (!isRunning) {
-        setStartTime(null);
-        setEndTime(null);
-      }
-    }
-  }, [durationMinutes, extraTime, externalTimeRemaining, durationSeconds, isRunning]);
-
-  // Start/stop timer logic
-  useEffect(() => {
-    if (isRunning && !startTime) {
-      // Starting timer - record exact timestamps
-      const now = Date.now();
-      setStartTime(now);
-      setEndTime(now + (durationSeconds * 1000));
-      
-    } else if (!isRunning) {
-      // Stopping timer - clear timestamps
-      setStartTime(null);
-      setEndTime(null);
-      
-    }
-  }, [isRunning, startTime, durationSeconds]);
-
-  // Timer countdown logic using real timestamps
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isRunning && startTime && endTime) {
-      interval = setInterval(() => {
-        const now = Date.now();
-        const remainingMs = Math.max(0, endTime - now);
-        const remainingSeconds = Math.ceil(remainingMs / 1000);
-        
-        
-        if (remainingSeconds <= 0) {
-          // Timer completed
-          onComplete?.(timeRemaining);
-          if (onTimeUpdate) {
-            onTimeUpdate(0);
-          } else {
-            setInternalTimeRemaining(0);
-          }
-          setStartTime(null);
-          setEndTime(null);
-        } else {
-          // Update remaining time
-          if (onTimeUpdate) {
-            onTimeUpdate(remainingSeconds);
-          } else {
-            setInternalTimeRemaining(remainingSeconds);
-          }
-        }
-      }, 100); // Check every 100ms for accuracy
-    }
-    
-    return () => clearInterval(interval);
-  }, [isRunning, startTime, endTime, onComplete, onTimeUpdate]);
-
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  const progress = (timeRemaining / totalTime) * 100;
-  const radius = 130;
-  const strokeWidth = 14;
-  const normalizedRadius = radius - strokeWidth * 2;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDasharray = `${circumference} ${circumference}`;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
-
-  // Color based on time remaining - using StudyFlow color system
-  const getTimerColor = () => {
-    if (timeRemaining > 300) return colors.complete; // More than 5 min - green
-    if (timeRemaining > 60) return colors.progress;  // 1-5 min - blue
-    return colors.support;  // Less than 1 min - gray (not alarming red!)
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-      <div style={{ position: 'relative' }}>
-        <svg height={radius * 2} width={radius * 2} style={{ transform: 'rotate(-90deg)' }}>
-          {/* Background circle - soft gray */}
-          <circle
-            stroke={colors.background}
-            fill="transparent"
-            strokeWidth={strokeWidth}
-            r={normalizedRadius}
-            cx={radius}
-            cy={radius}
-          />
-          {/* Progress circle with StudyFlow colors */}
-          <circle
-            stroke={getTimerColor()}
-            fill="transparent"
-            strokeWidth={strokeWidth}
-            strokeDasharray={strokeDasharray}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            r={normalizedRadius}
-            cx={radius}
-            cy={radius}
-            style={{ transition: 'all 1s linear' }}
-          />
-        </svg>
-        
-        {/* Time display in center */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column'
-        }}>
-          <div style={{ fontSize: '48px', fontWeight: 'bold', color: colors.text }}>
-            {formatTime(timeRemaining)}
-          </div>
-          {extraTime > 0 && (
-            <div style={{ fontSize: '14px', color: colors.textMuted }}>
-              +{extraTime}min
-            </div>
-          )}
-        </div>
-      </div>
-
-      {!hideControls && (
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={onToggle}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: `1px solid ${colors.primary}`,
-              backgroundColor: isRunning ? 'transparent' : colors.primary,
-              color: isRunning ? colors.primary : 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              transition: 'all 0.2s'
-            }}
-          >
-            {isRunning ? <Pause size={16} /> : <Play size={16} />}
-            {isRunning ? 'Pause' : 'Start'}
-          </button>
-          
-          <button
-            onClick={onReset}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: `1px solid ${colors.textMuted}`,
-              backgroundColor: 'transparent',
-              color: colors.textMuted,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            <RotateCcw size={16} />
-            Reset
-          </button>
-        </div>
-      )}
-    </div>
-  );
+// SINGLE DURATION CALCULATION FUNCTION - THE SOURCE OF TRUTH
+const calculateBlockDuration = (startTime: string, endTime: string): number => {
+  const [startHour, startMin] = startTime.split(':').map(Number);
+  const [endHour, endMin] = endTime.split(':').map(Number);
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+  return Math.max(1, endMinutes - startMinutes);
 };
+
 
 interface ScheduleBlock {
   id: string;
@@ -934,8 +737,8 @@ export function GuidedDayView({
         }
         
         // Advance to the next block
-        if (currentIndex < scheduleBlocks.length - 1) {
-          setCurrentIndex(prev => prev + 1);
+        if (currentIndex !== null && currentIndex < scheduleBlocks.length - 1) {
+          setCurrentIndex(prev => prev !== null ? prev + 1 : 0);
           setIsTimerRunning(true);
         } else {
           // Day complete
@@ -1046,8 +849,8 @@ export function GuidedDayView({
     }
     
     // Move to next block (fallback - primary flow should refetch and re-derive)
-    if (currentIndex < scheduleBlocks.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+    if (currentIndex !== null && currentIndex < scheduleBlocks.length - 1) {
+      setCurrentIndex(prev => prev !== null ? prev + 1 : 0);
       setIsTimerRunning(true);
     } else {
       // Day complete
@@ -1092,8 +895,8 @@ export function GuidedDayView({
         
         // Fallback: Move to next block if refetch doesn't update currentIndex
         setTimeout(() => {
-          if (currentIndex < scheduleBlocks.length - 1) {
-            setCurrentIndex(prev => prev + 1);
+          if (currentIndex !== null && currentIndex < scheduleBlocks.length - 1) {
+            setCurrentIndex(prev => prev !== null ? prev + 1 : 0);
             setIsTimerRunning(true);
           }
         }, 100);
@@ -1139,8 +942,8 @@ export function GuidedDayView({
         }
         
         // Move to next block
-        if (currentIndex < scheduleBlocks.length - 1) {
-          setCurrentIndex(prev => prev + 1);
+        if (currentIndex !== null && currentIndex < scheduleBlocks.length - 1) {
+          setCurrentIndex(prev => prev !== null ? prev + 1 : 0);
           setIsTimerRunning(true);
         } else {
           onModeToggle?.();
@@ -1155,8 +958,8 @@ export function GuidedDayView({
         });
         
         // Still move to next block even if API fails
-        if (currentIndex < scheduleBlocks.length - 1) {
-          setCurrentIndex(prev => prev + 1);
+        if (currentIndex !== null && currentIndex < scheduleBlocks.length - 1) {
+          setCurrentIndex(prev => prev !== null ? prev + 1 : 0);
           setIsTimerRunning(true);
         } else {
           onModeToggle?.();
@@ -1201,8 +1004,8 @@ export function GuidedDayView({
       });
       
       // Move to next block immediately (fallback)
-      if (currentIndex < scheduleBlocks.length - 1) {
-        setCurrentIndex(prev => prev + 1);
+      if (currentIndex !== null && currentIndex < scheduleBlocks.length - 1) {
+        setCurrentIndex(prev => prev !== null ? prev + 1 : 0);
         setIsTimerRunning(true);
       }
       
@@ -1248,7 +1051,7 @@ export function GuidedDayView({
   };
 
   // Completion screen
-  if (!currentBlock || currentIndex >= scheduleBlocks.length) {
+  if (!currentBlock || currentIndex === null || currentIndex >= scheduleBlocks.length) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-5">
         <div style={{ textAlign: 'center' }}>
@@ -1480,7 +1283,7 @@ export function GuidedDayView({
                 <CircularTimer
                   durationMinutes={blockDurationMinutes}
                   isRunning={isTimerRunning}
-                  onComplete={(timeRemaining) => handleBlockComplete(timeRemaining)}
+                  onComplete={() => handleBlockComplete()}
                   onToggle={() => setIsTimerRunning(!isTimerRunning)}
                   onReset={() => setIsTimerRunning(false)}
                   hideControls={true}
@@ -1529,7 +1332,7 @@ export function GuidedDayView({
           {/* Simple Co-op Attendance Button */}
           {currentBlock.type === 'fixed' && currentBlock.title?.includes('Co-op') ? (
             <button
-              onClick={handleBlockComplete}
+              onClick={() => handleBlockComplete()}
               style={{
                 width: '100%',
                 padding: '16px',
@@ -1551,7 +1354,7 @@ export function GuidedDayView({
             </button>
           ) : (
             <button
-              onClick={handleBlockComplete}
+              onClick={() => handleBlockComplete()}
               style={{
                 width: '100%',
                 padding: '16px',
