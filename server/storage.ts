@@ -17,7 +17,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, or, sql, desc, inArray, isNull, isNotNull, gte, lte, asc } from "drizzle-orm";
+import { eq, and, sql, desc, inArray, isNull, isNotNull } from "drizzle-orm";
 import { compareAssignmentTitles, extractUnitNumber } from './lib/assignmentIntelligence';
 import { assignmentCache, scheduleCache } from './lib/cache';
 
@@ -577,8 +577,7 @@ export class DatabaseStorage implements IStorage {
         // This includes assignments scheduled for other days, other blocks, etc.
         // The scheduler should redistribute workload dynamically on every refresh!
         
-        // CRITICAL: Exclude parent/administrative assignments from student scheduling
-        // Bible assignments are now included in regular scheduling
+        // CRITICAL: Exclude parent/administrative assignments AND Bible assignments from student scheduling
         const title = a.title.toLowerCase();
         const subject = (a.subject || '').toLowerCase();
         const isParentTask = title.includes('fee') || 
@@ -590,15 +589,25 @@ export class DatabaseStorage implements IStorage {
                             title.includes('syllabus') ||
                             title.includes('honor code');
         
+        const isBibleAssignment = title.includes('bible') || 
+                                 subject.includes('bible') ||
+                                 title.includes('scripture') ||
+                                 subject.includes('scripture');
+        
         if (isParentTask) {
           console.log(`🚫 Excluding parent task from student scheduling: ${a.title}`);
+          return false;
+        }
+        
+        if (isBibleAssignment) {
+          console.log(`📖 Excluding Bible assignment from regular scheduling (Bible blocks only): ${a.title}`);
           return false;
         }
         
         return true;
       });
       
-      console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent tasks`);
+      console.log(`🔍 FILTERED: ${unscheduledAssignments.length} assignments after filtering out completed/parent/bible tasks`);
       
       
       // SMART CLEARING: Only clear unworked assignments, preserve completed/marked work
@@ -875,7 +884,7 @@ export class DatabaseStorage implements IStorage {
       
       // ENHANCED ASSIGNMENT WITH SUBJECT VARIETY: Avoid back-to-back same subjects while preserving educational sequencing
       const assignmentPlacements: Array<{assignment: any, blockNumber: number}> = [];
-      const assignmentsToPlace: (Assignment | null)[] = [...assignmentsToAssign];
+      const assignmentsToPlace = [...assignmentsToAssign];
       const availableBlocks = [...availableBlocksToFill];
       
       // Track subjects by block for diversity checking
@@ -915,8 +924,8 @@ export class DatabaseStorage implements IStorage {
             if (assignmentsToPlace[i]) {
               selectedAssignment = assignmentsToPlace[i];
               selectedIndex = i;
-              blockSubjects[currentBlockIndex] = selectedAssignment?.subject || 'Unknown';
-              console.log(`🔄 FALLBACK: No subject diversity possible, using sequenced assignment "${selectedAssignment?.title}"`);
+              blockSubjects[currentBlockIndex] = selectedAssignment.subject || 'Unknown';
+              console.log(`🔄 FALLBACK: No subject diversity possible, using sequenced assignment "${selectedAssignment.title}"`);
               break;
             }
           }
@@ -954,62 +963,7 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      // SIMPLE FALLBACK: Fill remaining empty blocks with unplaced assignments
-      const remainingBlocks = blocksToFill.slice(assignmentPlacements.length);
-      if (remainingBlocks.length > 0) {
-        console.log(`📝 SIMPLE FALLBACK: ${remainingBlocks.length} empty blocks remain`);
-        
-        // Get remaining unplaced assignments from original pool, sorted by due date
-        const unplacedAssignments = assignmentsToPlace
-          .filter(a => a !== null && !schedulingResults.has(a.id))
-          .sort((a, b) => {
-            // Add null checks for TypeScript safety
-            if (!a || !b) return 0;
-            
-            // Sort by dueDate - earliest first
-            const aDate = a.dueDate;
-            const bDate = b.dueDate;
-            
-            if (!aDate && !bDate) return 0;
-            if (!aDate) return 1; // No due date goes last
-            if (!bDate) return -1;
-            
-            return new Date(aDate).getTime() - new Date(bDate).getTime();
-          });
-        
-        console.log(`📚 FALLBACK CANDIDATES: ${unplacedAssignments.length} unplaced assignments sorted by due date`);
-        
-        // Fill remaining blocks with unplaced assignments (earliest due first)
-        for (let blockIndex = 0; blockIndex < remainingBlocks.length && blockIndex < unplacedAssignments.length; blockIndex++) {
-          const block = remainingBlocks[blockIndex];
-          const assignment = unplacedAssignments[blockIndex];
-          
-          // Schedule this assignment
-          assignmentPlacements.push({
-            assignment: assignment,
-            blockNumber: block.blockNumber || 0
-          });
-          
-          // Add null check for TypeScript safety
-          if (assignment) {
-            schedulingResults.set(assignment.id, {
-              scheduledDate: targetDate,
-              scheduledBlock: block.blockNumber || 0,
-              blockStart: block.startTime,
-              blockEnd: block.endTime
-            });
-            
-            scheduledAssignments.push(assignment);
-            
-            const dueDateStr = assignment.dueDate ? new Date(assignment.dueDate).toISOString().split('T')[0] : 'no due date';
-            console.log(`📍 FALLBACK SCHEDULED: "${assignment.title}" → Block ${block.blockNumber} (due: ${dueDateStr})`);
-          }
-        }
-        
-        console.log(`✅ FALLBACK COMPLETE: Filled ${Math.min(remainingBlocks.length, unplacedAssignments.length)} blocks`);
-      }
-
-      // OVERFLOW HANDLING: Move remaining unscheduled MOVEABLE assignments to next day
+      // OVERFLOW HANDLING: Move unscheduled MOVEABLE assignments to next day
       const unscheduled = assignmentsToAssign.slice(blocksToFill.length);
       const unscheduledMoveable = unscheduled.filter(a => moveableAssignments.includes(a));
       if (unscheduledMoveable.length > 0) {
@@ -1051,81 +1005,6 @@ export class DatabaseStorage implements IStorage {
         } else {
           console.log(`❌ FAILED to update assignment ${assignmentId}`);
         }
-      }
-      
-      // FRIDAY LOOKAHEAD LOGIC: If it's Friday and we still have empty blocks, pull future assignments
-      const emptyBlocks = blocksToFill.slice(scheduledCount);
-      if (weekday === 'Friday' && emptyBlocks.length > 0) {
-        console.log(`🔮 FRIDAY LOOKAHEAD: ${emptyBlocks.length} empty blocks available on Friday - checking for future assignments`);
-        
-        // Expand search window to include next Monday/Tuesday assignments (3-4 days ahead)
-        const expandedEndDate = new Date(targetDate);
-        expandedEndDate.setDate(expandedEndDate.getDate() + 4); // Friday + 4 days = Tuesday
-        const expandedDateRange = `${targetDate},${expandedEndDate.toISOString().split('T')[0]}`;
-        
-        console.log(`🔍 FRIDAY LOOKAHEAD: Searching for assignments in range ${expandedDateRange}`);
-        
-        // Get expanded assignment pool (including future Monday/Tuesday assignments)
-        const expandedAssignments = await this.getAssignments(userId, expandedDateRange);
-        
-        // Filter to get only unscheduled future assignments (exclude already handled assignments)
-        const futureAssignments = expandedAssignments.filter(a => {
-          // Must be pending
-          if (a.completionStatus !== 'pending') return false;
-          
-          // Must not be already scheduled for today
-          if (schedulingResults.has(a.id)) return false;
-          
-          // Must have a due date beyond Friday (Monday/Tuesday work)
-          if (!a.dueDate) return false;
-          const dueDate = new Date(a.dueDate);
-          const fridayDate = new Date(targetDate);
-          if (dueDate <= fridayDate) return false; // Not future work
-          
-          // Exclude parent/administrative tasks
-          const title = a.title.toLowerCase();
-          const isParentTask = title.includes('fee') || title.includes('supply') || 
-                              title.includes('permission') || title.includes('form') ||
-                              title.includes('waiver') || title.includes('registration') ||
-                              title.includes('syllabus') || title.includes('honor code');
-          if (isParentTask) return false;
-          
-          return true;
-        });
-        
-        console.log(`📚 FRIDAY LOOKAHEAD: Found ${futureAssignments.length} future assignments to consider`);
-        
-        // Prioritize future assignments by due date (earliest first)
-        const prioritizedFutureAssignments = futureAssignments.sort((a, b) => {
-          if (!a.dueDate || !b.dueDate) return 0;
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        });
-        
-        // Fill empty Friday blocks with future assignments
-        let fridayLookaheadCount = 0;
-        for (let i = 0; i < Math.min(emptyBlocks.length, prioritizedFutureAssignments.length); i++) {
-          const block = emptyBlocks[i];
-          const assignment = prioritizedFutureAssignments[i];
-          
-          console.log(`🔮 FRIDAY LOOKAHEAD: Pulling future assignment "${assignment.title}" into Friday Block ${block.blockNumber}`);
-          
-          // Schedule this future assignment on Friday
-          const updated = await this.updateAssignmentScheduling(assignment.id, {
-            scheduledDate: targetDate,
-            scheduledBlock: block.blockNumber,
-            blockStart: block.startTime,
-            blockEnd: block.endTime
-          });
-          
-          if (updated) {
-            updatedAssignments.push(updated);
-            scheduledCount++;
-            fridayLookaheadCount++;
-            console.log(`✅ FRIDAY LOOKAHEAD: Successfully scheduled "${updated.title}" on Friday`);
-          }
-        }
-        
-        console.log(`🔮 FRIDAY LOOKAHEAD COMPLETE: Pulled ${fridayLookaheadCount} future assignments into Friday`);
       }
       
       console.log(`🎯 Auto-Scheduling Complete: ${scheduledCount}/${unscheduledAssignments.length} assignments scheduled for ${studentName} on ${targetDate}`);

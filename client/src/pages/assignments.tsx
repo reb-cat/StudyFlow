@@ -15,7 +15,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { Assignment } from '@shared/schema';
-import { invalidateAssignmentRelatedQueries, invalidateBibleRelatedQueries, invalidateByMutationType } from '@/lib/cacheUtils';
 
 // Helper function to detect parent-only tasks
 function isParentTask(title: string, courseName?: string | null): boolean {
@@ -153,8 +152,8 @@ export default function AssignmentsPage() {
       const response = await apiRequest('PATCH', `/api/assignments/${updatedAssignment.id}`, updatedAssignment);
       return await response.json();
     },
-    onSuccess: async () => {
-      await invalidateByMutationType('assignment', { studentName: selectedStudent });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
       toast({
         title: "Assignment Updated",
         description: "Assignment has been successfully updated.",
@@ -177,8 +176,8 @@ export default function AssignmentsPage() {
       const response = await apiRequest('POST', '/api/assignments', assignment);
       return await response.json();
     },
-    onSuccess: async () => {
-      await invalidateByMutationType('assignment', { studentName: selectedStudent });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
       toast({
         title: "Assignment Created",
         description: "Manual assignment has been created successfully.",
@@ -218,8 +217,8 @@ export default function AssignmentsPage() {
       });
       return await response.json();
     },
-    onSuccess: async () => {
-      await invalidateBibleRelatedQueries(selectedStudent);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/bible-curriculum'] });
       refetchBible();
       toast({
         title: "Bible Assignment Complete",
@@ -244,8 +243,8 @@ export default function AssignmentsPage() {
         )
       );
     },
-    onSuccess: async () => {
-      await invalidateByMutationType('assignment', { studentName: selectedStudent });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
       setSelectedAssignments(new Set());
       setBulkOperation('');
       toast({
@@ -277,8 +276,8 @@ export default function AssignmentsPage() {
       });
       return await response.json();
     },
-    onSuccess: async (data, variables) => {
-      await invalidateByMutationType('assignment', { studentName: variables.studentName });
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
       
       const actionMessages = {
         helped: 'Assignment resolved and rescheduled for today!',
@@ -310,8 +309,8 @@ export default function AssignmentsPage() {
     mutationFn: async (assignmentId: string) => {
       await apiRequest('DELETE', `/api/assignments/${assignmentId}`);
     },
-    onSuccess: async () => {
-      await invalidateByMutationType('assignment', { studentName: selectedStudent });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
       toast({
         title: "Assignment Deleted",
         description: "Assignment has been successfully deleted.",
@@ -332,8 +331,8 @@ export default function AssignmentsPage() {
       const response = await apiRequest('POST', `/api/sync-canvas-completion/${studentName}`);
       return await response.json();
     },
-    onSuccess: async (data) => {
-      await invalidateByMutationType('assignment', { studentName: selectedStudent });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
       toast({
         title: "Canvas Sync Complete",
         description: `${data.updated} assignments updated from Canvas completion status`,
@@ -357,8 +356,8 @@ export default function AssignmentsPage() {
       });
       return await response.json();
     },
-    onSuccess: async (data) => {
-      await invalidateByMutationType('assignment', { studentName: selectedStudent });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
       toast({
         title: "Due Date Extraction Complete", 
         description: `Updated ${data.results.updated} assignments with extracted due dates.`,
@@ -453,11 +452,10 @@ export default function AssignmentsPage() {
 
     return true;
   }).sort((a, b) => {
-    // PRIORITY SORTING - Match daily scheduling algorithm exactly using effectiveDueAt
+    // PRIORITY SORTING - Match daily scheduling algorithm exactly
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Use dueDate for priority calculation (fallback pattern for effective due date)
     const aDate = a.dueDate ? new Date(a.dueDate) : null;
     const bDate = b.dueDate ? new Date(b.dueDate) : null;
     

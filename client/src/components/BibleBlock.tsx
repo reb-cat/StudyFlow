@@ -4,7 +4,6 @@ import { Check, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { ConfettiBurst } from './ConfettiBurst';
-import { invalidateBibleRelatedQueries } from '@/lib/cacheUtils';
 
 interface BibleCurriculum {
   id: string;
@@ -34,7 +33,7 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
     enabled: !!studentName,
   });
   
-  const bibleData = (bibleResponse as any)?.curriculum;
+  const bibleData = bibleResponse?.curriculum;
 
   // Get today's reading from student's sequential curriculum progression
   const today = new Date(date);
@@ -57,13 +56,13 @@ export function BibleBlock({ date, blockStart = "9:00", blockEnd = "9:20", class
       if (!response.ok) throw new Error('Failed to update Bible completion');
       return response.json();
     },
-    onSuccess: async (data, variables) => {
+    onSuccess: (data, variables) => {
       // Trigger celebration animation when marking as complete
       if (variables.completed) {
         setShowCelebration(true);
       }
-      // Atomic cache invalidation for all Bible-related queries
-      await invalidateBibleRelatedQueries(studentName);
+      // Refresh the Bible curriculum data
+      queryClient.invalidateQueries({ queryKey: ['/api/bible-curriculum/current', studentName] });
     }
   });
 

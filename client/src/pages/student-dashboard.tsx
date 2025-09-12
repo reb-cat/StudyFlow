@@ -4,7 +4,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { invalidateAssignmentRelatedQueries, invalidateScheduleRelatedQueries } from '@/lib/cacheUtils';
 import { 
   RefreshCw, 
   ChevronLeft, 
@@ -257,9 +256,9 @@ export default function StudentDashboard() {
   
   const bibleData = (bibleResponse as any)?.curriculum || {};
 
-  const handleAssignmentUpdate = async () => {
+  const handleAssignmentUpdate = () => {
     refetch();
-    await invalidateAssignmentRelatedQueries(studentName, selectedDate);
+    queryClient.invalidateQueries({ queryKey: ['/api/assignments', selectedDate, studentName] });
   };
 
   // Status badge helpers for Overview Mode
@@ -320,8 +319,8 @@ export default function StudentDashboard() {
       await apiRequest('PATCH', `/api/schedule/${studentName}/${selectedDate}/block/${blockId}/status`, {
         status: newStatus
       });
-      // Atomic cache invalidation for status data
-      await invalidateScheduleRelatedQueries(studentName, selectedDate);
+      // Refresh status data immediately
+      queryClient.invalidateQueries({ queryKey: ['/api/schedule', studentName, selectedDate, 'status'] });
     } catch (error) {
       console.error('Failed to update block status:', error);
     }

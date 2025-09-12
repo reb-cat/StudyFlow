@@ -207,14 +207,6 @@ class JobScheduler {
                   continue;
                 }
                 
-                // PRIORITY CALCULATION FIX: Calculate priority using the normalized due date
-                const calculatedPriority = derivePriorityFromDueDate(dueDate);
-                if (dueDate) {
-                  console.log(`⚡ PRIORITY (Canvas 1): "${canvasAssignment.name}" due ${dueDate.toDateString()} → Priority ${calculatedPriority}`);
-                } else {
-                  console.log(`⚡ PRIORITY (Canvas 1): "${canvasAssignment.name}" no due date → Priority ${calculatedPriority}`);
-                }
-                
                 // Smart scheduling based on assignment type
                 const smartScheduledDate = getSmartSchedulingDate(intelligence, this.getNextAssignmentDate());
                 
@@ -262,7 +254,7 @@ class JobScheduler {
                     scheduledDate: smartScheduledDate,
                     actualEstimatedMinutes: 60,
                     completionStatus: completionStatus,
-                    priority: calculatedPriority,
+                    priority: derivePriorityFromDueDate(dueDate),
                     difficulty: 'medium',
                     blockType: intelligence.blockType,
                     isAssignmentBlock: intelligence.isSchedulable,
@@ -465,7 +457,7 @@ class JobScheduler {
                     scheduledDate: smartScheduledDate,
                     actualEstimatedMinutes: 60,
                     completionStatus: completionStatus,
-                    priority: calculatedPriority,
+                    priority: derivePriorityFromDueDate(dueDate),
                     difficulty: 'medium',
                     blockType: intelligence.blockType,
                     isAssignmentBlock: intelligence.isSchedulable,
