@@ -1216,6 +1216,19 @@ export class DatabaseStorage implements IStorage {
       
       const result = await db.select().from(scheduleTemplate).where(whereCondition).orderBy(sql`${scheduleTemplate.startTime}::time`);
       
+      // DEBUG: Trace timer bug - log exact database values vs what we return
+      if (studentName === 'Khalil' && weekday === 'Friday') {
+        console.log(`🐛 DB SCHEDULE TEMPLATE DEBUG for ${studentName} ${weekday}:`);
+        result.forEach((block, i) => {
+          if (block.blockType === 'Assignment') {
+            console.log(`  [DB-${i}] Block ${block.blockNumber}: startTime="${block.startTime}", endTime="${block.endTime}" (subject: ${block.subject})`);
+            if (block.subject?.includes('Grammar')) {
+              console.log(`  🎯 GRAMMAR BLOCK FOUND: startTime="${block.startTime}", endTime="${block.endTime}" - Raw DB values`);
+            }
+          }
+        });
+      }
+      
       return result || [];
     } catch (error) {
       console.error('Error getting schedule template:', error);
