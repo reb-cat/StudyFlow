@@ -712,17 +712,7 @@ export function GuidedDayView({
   const [showInstructions, setShowInstructions] = useState(false);
   const { toast } = useToast();
 
-  // CRITICAL FIX: Don't render anything until currentIndex is properly initialized
-  // This prevents the flash of completed blocks before jumping to the correct current block
-  if (currentIndex === null) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Loading schedule...
-      </div>
-    );
-  }
-
-  const currentBlock = scheduleBlocks[currentIndex];
+  const currentBlock = currentIndex !== null ? scheduleBlocks[currentIndex] : null;
   
   if (process.env.NODE_ENV === 'development') {
     console.log(`🎯 CURRENT BLOCK DEBUG: currentIndex=${currentIndex}, scheduleBlocks.length=${scheduleBlocks.length}, currentBlock exists=${!!currentBlock}`);
@@ -788,6 +778,15 @@ export function GuidedDayView({
     }
     return null;
   }, [currentBlock]);
+
+  // CRITICAL FIX: Check after all hooks are called to prevent hooks violation
+  if (currentIndex === null || !currentBlock) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Loading schedule...
+      </div>
+    );
+  }
   
   // Reset timer when block changes
   useEffect(() => {
