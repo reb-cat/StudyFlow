@@ -593,46 +593,8 @@ export function GuidedDayView({
     }
     
     if (currentBlock) {
-      // CRITICAL FIX: Use actual time block duration with safety net
-      const getBlockDurationMinutes = (block: any): number => {
-        const { startTime, endTime, blockType, title, estimatedMinutes, type } = block;
-        
-        // SAFETY NET: Force correct durations for specific block types regardless of API data
-        if (blockType === 'Movement' || title?.toLowerCase().includes('movement')) {
-          console.log(`🚨 SAFETY NET: Movement block forced to 10 minutes (API sent: ${startTime}-${endTime})`);
-          return 10;
-        }
-        if (blockType === 'Travel' || title?.toLowerCase().includes('travel')) {
-          console.log(`🚨 SAFETY NET: Travel block forced to 10 minutes (API sent: ${startTime}-${endTime})`);
-          return 10;
-        }
-        if (blockType === 'Lunch' || title?.toLowerCase().includes('lunch')) {
-          console.log(`🚨 SAFETY NET: Lunch block forced to 30 minutes (API sent: ${startTime}-${endTime})`);
-          return 30;
-        }
-        
-        // CRITICAL FIX: For assignment blocks, prefer estimatedMinutes over time slot calculation
-        if (type === 'assignment' && estimatedMinutes && estimatedMinutes > 0) {
-          console.log(`🎯 ASSIGNMENT: Using estimatedMinutes (${estimatedMinutes}) instead of time slot (${startTime}-${endTime}) for "${title}"`);
-          return estimatedMinutes;
-        }
-        
-        // For other blocks, calculate from time slot
-        const [startHour, startMin] = startTime.split(':').map(Number);
-        const [endHour, endMin] = endTime.split(':').map(Number);
-        const startMinutes = startHour * 60 + startMin;
-        const endMinutes = endHour * 60 + endMin;
-        const calculatedDuration = Math.max(1, endMinutes - startMinutes);
-        
-        // DEBUG: Log when API times produce suspicious durations
-        if (calculatedDuration > 60 || calculatedDuration < 5) {
-          console.log(`🐛 SUSPICIOUS DURATION: ${title} calculated as ${calculatedDuration} minutes from ${startTime}-${endTime}`);
-        }
-        
-        return calculatedDuration;
-      };
-      
-      const blockDurationMinutes = getBlockDurationMinutes(currentBlock);
+      // Use the single duration calculation function
+      const blockDurationMinutes = calculateBlockDuration(currentBlock.startTime, currentBlock.endTime);
       setIsTimerRunning(true); // Auto-start for new block
       
       if (process.env.NODE_ENV === 'development') {
@@ -1238,46 +1200,8 @@ export function GuidedDayView({
         })() && (
           <div style={{ marginBottom: '32px' }}>
             {(() => {
-              // CRITICAL FIX: Use actual time block duration, not assignment estimates
-              const getBlockDurationMinutes = (block: any): number => {
-                const { startTime, endTime, blockType, title, estimatedMinutes, type } = block;
-                
-                // SAFETY NET: Force correct durations for specific block types regardless of API data
-                if (blockType === 'Movement' || title?.toLowerCase().includes('movement')) {
-                  console.log(`🚨 SAFETY NET: Movement block forced to 10 minutes (API sent: ${startTime}-${endTime})`);
-                  return 10;
-                }
-                if (blockType === 'Travel' || title?.toLowerCase().includes('travel')) {
-                  console.log(`🚨 SAFETY NET: Travel block forced to 10 minutes (API sent: ${startTime}-${endTime})`);
-                  return 10;
-                }
-                if (blockType === 'Lunch' || title?.toLowerCase().includes('lunch')) {
-                  console.log(`🚨 SAFETY NET: Lunch block forced to 30 minutes (API sent: ${startTime}-${endTime})`);
-                  return 30;
-                }
-                
-                // CRITICAL FIX: For assignment blocks, prefer estimatedMinutes over time slot calculation
-                if (type === 'assignment' && estimatedMinutes && estimatedMinutes > 0) {
-                  console.log(`🎯 ASSIGNMENT: Using estimatedMinutes (${estimatedMinutes}) instead of time slot (${startTime}-${endTime}) for "${title}"`);
-                  return estimatedMinutes;
-                }
-                
-                // For other blocks, calculate from time slot
-                const [startHour, startMin] = startTime.split(':').map(Number);
-                const [endHour, endMin] = endTime.split(':').map(Number);
-                const startMinutes = startHour * 60 + startMin;
-                const endMinutes = endHour * 60 + endMin;
-                const calculatedDuration = Math.max(1, endMinutes - startMinutes);
-                
-                // DEBUG: Log when API times produce suspicious durations
-                if (calculatedDuration > 60 || calculatedDuration < 5) {
-                  console.log(`🐛 SUSPICIOUS DURATION: ${title} calculated as ${calculatedDuration} minutes from ${startTime}-${endTime}`);
-                }
-                
-                return calculatedDuration;
-              };
-              
-              const blockDurationMinutes = getBlockDurationMinutes(currentBlock);
+              // Use the single duration calculation function
+              const blockDurationMinutes = calculateBlockDuration(currentBlock.startTime, currentBlock.endTime);
 
               return (
                 <CircularTimer
@@ -1471,34 +1395,8 @@ export function GuidedDayView({
               Great work! 🎉
             </h3>
             {(() => {
-              // FIXED: Use actual block duration, not estimatedMinutes
-              const getBlockDurationMinutes = (block: any): number => {
-                const { startTime, endTime, blockType, title, estimatedMinutes, type } = block;
-                
-                // SAFETY NET: Force correct durations for specific block types regardless of API data
-                if (blockType === 'Movement' || title?.toLowerCase().includes('movement')) {
-                  return 10;
-                }
-                if (blockType === 'Travel' || title?.toLowerCase().includes('travel')) {
-                  return 10;
-                }
-                if (blockType === 'Lunch' || title?.toLowerCase().includes('lunch')) {
-                  return 30;
-                }
-                
-                // CRITICAL FIX: For assignment blocks, prefer estimatedMinutes over time slot calculation
-                if (type === 'assignment' && estimatedMinutes && estimatedMinutes > 0) {
-                  return estimatedMinutes;
-                }
-                
-                // For other blocks, calculate from time slot
-                const [startHour, startMin] = startTime.split(':').map(Number);
-                const [endHour, endMin] = endTime.split(':').map(Number);
-                const startMinutes = startHour * 60 + startMin;
-                const endMinutes = endHour * 60 + endMin;
-                return Math.max(1, endMinutes - startMinutes);
-              };
-              const totalMinutes = getBlockDurationMinutes(currentBlock);
+              // Use the single duration calculation function
+              const totalMinutes = calculateBlockDuration(currentBlock.startTime, currentBlock.endTime);
               // FIXED: Use actual time remaining instead of hardcoded assumption
               const timeRemainingMinutes = actualTimeRemaining !== null ? Math.floor(actualTimeRemaining / 60) : 0;
               const timeSpentMinutes = Math.max(1, totalMinutes - timeRemainingMinutes);
