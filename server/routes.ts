@@ -1438,6 +1438,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Found ${enhancedScheduleBlocks.length} schedule blocks:`, scheduleBlocks);
       
+      // DEBUG: Log exact time data to trace the 9:50 → 10:00 transformation bug
+      if (studentName === 'Khalil') {
+        console.log(`🐛 TIMER DEBUG for ${studentName} on ${weekday}:`);
+        enhancedScheduleBlocks.forEach((block, i) => {
+          if (block.blockType === 'Assignment') {
+            console.log(`  [${i}] Block ${block.blockNumber}: ${block.startTime} → ${block.endTime} (${block.subject})`);
+          }
+        });
+      }
+      
       // The fields are already in camelCase from Drizzle
       console.log('DEBUG: First block sample:', enhancedScheduleBlocks[0]);
       
