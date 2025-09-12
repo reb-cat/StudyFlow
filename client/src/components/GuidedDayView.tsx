@@ -669,7 +669,7 @@ export function GuidedDayView({
     }
   }
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null); // Start with null - don't show anything until sync
   const [isTimerRunning, setIsTimerRunning] = useState(true); // Auto-start timer
   
   // FIXED: Only sync with overview completion status ONCE at startup, not continuously
@@ -711,6 +711,16 @@ export function GuidedDayView({
   const [checkedItems, setCheckedItems] = useState(new Set<string>());
   const [showInstructions, setShowInstructions] = useState(false);
   const { toast } = useToast();
+
+  // CRITICAL FIX: Don't render anything until currentIndex is properly initialized
+  // This prevents the flash of completed blocks before jumping to the correct current block
+  if (currentIndex === null) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Loading schedule...
+      </div>
+    );
+  }
 
   const currentBlock = scheduleBlocks[currentIndex];
   
@@ -1445,12 +1455,8 @@ export function GuidedDayView({
               
               const blockDurationMinutes = getBlockDurationMinutes(currentBlock.startTime, currentBlock.endTime, currentBlock.blockType, currentBlock.title);
 
-              // CRITICAL DEBUG: Log what duration we're actually passing to CircularTimer
-              console.log(`🔥 TIMER DEBUG: Passing ${blockDurationMinutes} minutes to CircularTimer for block "${currentBlock.title}"`);
-              
               return (
                 <CircularTimer
-                  key={`${currentBlock.id}-${blockDurationMinutes}`} // Force React to remount timer when duration changes
                   durationMinutes={blockDurationMinutes}
                   isRunning={isTimerRunning}
                   onComplete={handleBlockComplete}
