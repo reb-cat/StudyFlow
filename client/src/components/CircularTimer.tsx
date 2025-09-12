@@ -24,6 +24,10 @@ export function CircularTimer({
   hideControls = false,
 }: CircularTimerProps) {
   const totalSeconds = durationMinutes * 60 + extraTime * 60;
+  
+  // CRITICAL DEBUG: Log what duration the CircularTimer component received
+  console.log(`🔥 CIRCULAR TIMER: Received ${durationMinutes} minutes = ${totalSeconds} seconds`);
+  
   const [timeRemaining, setTimeRemaining] = useState(totalSeconds);
 
   // Reset timer when duration changes

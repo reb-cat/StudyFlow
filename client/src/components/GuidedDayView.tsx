@@ -1445,9 +1445,12 @@ export function GuidedDayView({
               
               const blockDurationMinutes = getBlockDurationMinutes(currentBlock.startTime, currentBlock.endTime, currentBlock.blockType, currentBlock.title);
 
+              // CRITICAL DEBUG: Log what duration we're actually passing to CircularTimer
+              console.log(`🔥 TIMER DEBUG: Passing ${blockDurationMinutes} minutes to CircularTimer for block "${currentBlock.title}"`);
               
               return (
                 <CircularTimer
+                  key={`${currentBlock.id}-${blockDurationMinutes}`} // Force React to remount timer when duration changes
                   durationMinutes={blockDurationMinutes}
                   isRunning={isTimerRunning}
                   onComplete={handleBlockComplete}
