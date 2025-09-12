@@ -1167,7 +1167,7 @@ export default function AssignmentsPage() {
       {/* Edit Assignment Form */}
       {showEditForm && editingAssignment && (
         <Dialog open={showEditForm} onOpenChange={setShowEditForm}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Assignment</DialogTitle>
               <DialogDescription>
@@ -1285,7 +1285,7 @@ export default function AssignmentsPage() {
             </div>
             
             {/* Assignment Breakdown Section */}
-            <Separator className="my-6" />
+            <Separator className="my-4" />
             
             <Collapsible open={showBreakdown} onOpenChange={setShowBreakdown}>
               <CollapsibleTrigger asChild>
@@ -1298,9 +1298,9 @@ export default function AssignmentsPage() {
                 </Button>
               </CollapsibleTrigger>
               
-              <CollapsibleContent className="space-y-4 mt-4">
-                <div className="bg-muted/50 p-4 rounded-lg border">
-                  <p className="text-sm text-muted-foreground mb-4">
+              <CollapsibleContent className="space-y-3 mt-3">
+                <div className="bg-muted/50 p-3 rounded-lg border">
+                  <p className="text-xs text-muted-foreground mb-3">
                     Break this assignment into smaller, manageable segments. Each segment will appear as a separate task with its own due date and can be scheduled individually.
                   </p>
                   
