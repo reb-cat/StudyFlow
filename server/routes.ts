@@ -264,6 +264,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // 🚫 PARENT-CHILD PROTECTION: Block direct parent completion attempts
+      if (updateData.completionStatus === 'completed') {
+        const assignment = await storage.getAssignment(id);
+        if (assignment && assignment.parentId === null) {
+          // Check if this is a parent assignment (has children)
+          const children = await storage.getAssignmentChildren(id);
+          if (children && children.length > 0) {
+            console.log(`🚫 API: Blocked PATCH completion attempt on parent assignment "${assignment.title}" - it has ${children.length} child assignments`);
+            return res.status(422).json({ 
+              message: `Cannot directly complete parent assignment "${assignment.title}". Please complete all child segments first.`,
+              error: 'PARENT_COMPLETION_BLOCKED',
+              childCount: children.length
+            });
+          }
+        }
+      }
+
       // Track when assignment is marked complete for grading delay detection
       if (updateData.completionStatus === 'completed') {
         updateData.completedAt = new Date();
@@ -745,6 +762,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const validatedUpdate = updateAssignmentSchema.parse(updateData);
+      
+      // 🚫 PARENT-CHILD PROTECTION: Block direct parent completion attempts  
+      if (validatedUpdate.completionStatus === 'completed') {
+        const assignment = await storage.getAssignment(id);
+        if (assignment && assignment.parentId === null) {
+          // Check if this is a parent assignment (has children)
+          const children = await storage.getAssignmentChildren(id);
+          if (children && children.length > 0) {
+            console.log(`🚫 API: Blocked PATCH completion attempt on parent assignment "${assignment.title}" - it has ${children.length} child assignments`);
+            return res.status(422).json({ 
+              message: `Cannot directly complete parent assignment "${assignment.title}". Please complete all child segments first.`,
+              error: 'PARENT_COMPLETION_BLOCKED',
+              childCount: children.length
+            });
+          }
+        }
+      }
+      
       const assignment = await storage.updateAssignment(id, validatedUpdate);
       
       if (!assignment) {

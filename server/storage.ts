@@ -34,6 +34,7 @@ export interface IStorage {
   updateAssignmentStatus(id: string, completionStatus: string): Promise<Assignment | undefined>;
   deleteAssignment(id: string): Promise<boolean>;
   markAssignmentDeleted(id: string): Promise<Assignment | undefined>; // Soft delete for Canvas sync
+  getAssignmentChildren(parentId: string): Promise<Assignment[]>; // Get children of a parent assignment
   getDeletedAssignments(): Promise<Assignment[]>; // Admin audit trail
   updateAdministrativeAssignments(): Promise<void>;
   
@@ -2515,6 +2516,23 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('❌ Error deciding redemption request:', error);
       throw error;
+    }
+  }
+
+  // Get children of a parent assignment
+  async getAssignmentChildren(parentId: string): Promise<Assignment[]> {
+    try {
+      const children = await db.select().from(assignments)
+        .where(and(
+          eq(assignments.parentId, parentId),
+          isNull(assignments.deletedAt)
+        ))
+        .orderBy(assignments.segmentOrder || assignments.createdAt);
+      
+      return children;
+    } catch (error) {
+      console.error('Error getting assignment children:', error);
+      return [];
     }
   }
 

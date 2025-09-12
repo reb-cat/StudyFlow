@@ -855,7 +855,7 @@ export default function AssignmentsPage() {
             >
               <CardContent className="pt-4">
                 <div className="flex items-center gap-4">
-                  {/* Disable checkbox for parent assignments */}
+                  {/* Disable checkbox for parent assignments - completely exclude from bulk operations */}
                   {!isParent ? (
                     <Checkbox
                       checked={isSelected}
@@ -872,8 +872,11 @@ export default function AssignmentsPage() {
                       data-testid={`checkbox-${assignment.id}`}
                     />
                   ) : (
-                    <div className="flex-shrink-0 w-5 h-5 min-w-5 min-h-5 max-w-5 max-h-5 flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-orange-500 dark:bg-orange-400" title="Parent assignment - managed automatically" />
+                    <div 
+                      className="flex-shrink-0 w-5 h-5 min-w-5 min-h-5 max-w-5 max-h-5 flex items-center justify-center"
+                      title="Parent assignment - managed automatically when all child segments are completed. Cannot be selected for bulk operations."
+                    >
+                      <div className="w-3 h-3 rounded-full bg-orange-500 dark:bg-orange-400" />
                     </div>
                   )}
                   
