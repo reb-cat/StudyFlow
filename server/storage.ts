@@ -954,97 +954,59 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      // PHASE 2 LOOK-AHEAD: Fill remaining empty blocks with earliest Priority C assignments
+      // SIMPLE FALLBACK: Fill remaining empty blocks with unplaced assignments
       const remainingBlocks = blocksToFill.slice(assignmentPlacements.length);
       if (remainingBlocks.length > 0) {
-        console.log(`🔍 LOOK-AHEAD: ${remainingBlocks.length} empty blocks remain, searching for Priority C assignments`);
+        console.log(`📝 SIMPLE FALLBACK: ${remainingBlocks.length} empty blocks remain`);
         
-        // Get additional Priority C assignments that weren't in the original pool
-        // Look for assignments with future due dates, sorted by earliest first
-        const additionalAssignments = await db.select()
-          .from(assignments)
-          .where(
-            and(
-              eq(assignments.userId, `${studentName.toLowerCase()}-user`),
-              eq(assignments.completionStatus, 'pending'),
-              // CRITICAL FIX: Only select unscheduled assignments
-              isNull(assignments.scheduledDate),
-              // Look for assignments due in the future (Priority C only - not today)
-              // Use a reasonable lookahead window (next 14 days)
-              gte(assignments.dueDate, new Date(new Date(targetDate).getTime() + 24 * 60 * 60 * 1000)), // Tomorrow or later
-              lte(assignments.dueDate, new Date(new Date(targetDate).getTime() + 14 * 24 * 60 * 60 * 1000))
-            )
-          )
-          .orderBy(asc(assignments.dueDate)); // Earliest due date first
+        // Get remaining unplaced assignments from original pool, sorted by due date
+        const unplacedAssignments = assignmentsToPlace
+          .filter(a => a !== null && !schedulingResults.has(a.id))
+          .sort((a, b) => {
+            // Add null checks for TypeScript safety
+            if (!a || !b) return 0;
+            
+            // Sort by dueDate - earliest first
+            const aDate = a.dueDate;
+            const bDate = b.dueDate;
+            
+            if (!aDate && !bDate) return 0;
+            if (!aDate) return 1; // No due date goes last
+            if (!bDate) return -1;
+            
+            return new Date(aDate).getTime() - new Date(bDate).getTime();
+          });
         
-        // Filter out assignments already scheduled and apply parent task filtering
-        const lookAheadCandidates = additionalAssignments.filter(a => {
-          // Skip if already in current assignment pool
-          if (assignmentsToAssign.find(assigned => assigned.id === a.id)) return false;
-          
-          // Apply same parent task filtering as main pool
-          const title = a.title.toLowerCase();
-          const isParentTask = title.includes('fee') || 
-                              title.includes('supply') || 
-                              title.includes('permission') || 
-                              title.includes('form') ||
-                              title.includes('waiver') ||
-                              title.includes('registration') ||
-                              title.includes('syllabus') ||
-                              title.includes('honor code');
-          
-          return !isParentTask;
-        });
+        console.log(`📚 FALLBACK CANDIDATES: ${unplacedAssignments.length} unplaced assignments sorted by due date`);
         
-        console.log(`📚 LOOK-AHEAD CANDIDATES: Found ${lookAheadCandidates.length} Priority C assignments`);
-        
-        // Fill remaining blocks with Priority C assignments (earliest due first)
-        let lookAheadIndex = 0;
-        for (let blockIndex = 0; blockIndex < remainingBlocks.length && lookAheadIndex < lookAheadCandidates.length; blockIndex++) {
+        // Fill remaining blocks with unplaced assignments (earliest due first)
+        for (let blockIndex = 0; blockIndex < remainingBlocks.length && blockIndex < unplacedAssignments.length; blockIndex++) {
           const block = remainingBlocks[blockIndex];
-          const assignment = lookAheadCandidates[lookAheadIndex];
+          const assignment = unplacedAssignments[blockIndex];
           
-          // Prevent double-booking by checking if already scheduled
-          if (schedulingResults.has(assignment.id)) {
-            console.log(`⚠️ SKIP: Assignment "${assignment.title}" already scheduled`);
-            lookAheadIndex++;
-            continue;
-          }
-          
-          // Schedule this Priority C assignment
+          // Schedule this assignment
           assignmentPlacements.push({
             assignment: assignment,
             blockNumber: block.blockNumber || 0
           });
           
-          schedulingResults.set(assignment.id, {
-            scheduledDate: targetDate,
-            scheduledBlock: block.blockNumber || 0,
-            blockStart: block.startTime,
-            blockEnd: block.endTime
-          });
-          
-          scheduledAssignments.push(assignment);
-          
-          const dueDateStr = assignment.dueDate ? new Date(assignment.dueDate).toISOString().split('T')[0] : 'no due date';
-          console.log(`📍 LOOK-AHEAD SCHEDULED: "${assignment.title}" → Block ${block.blockNumber} (due: ${dueDateStr})`);
-          
-          lookAheadIndex++;
+          // Add null check for TypeScript safety
+          if (assignment) {
+            schedulingResults.set(assignment.id, {
+              scheduledDate: targetDate,
+              scheduledBlock: block.blockNumber || 0,
+              blockStart: block.startTime,
+              blockEnd: block.endTime
+            });
+            
+            scheduledAssignments.push(assignment);
+            
+            const dueDateStr = assignment.dueDate ? new Date(assignment.dueDate).toISOString().split('T')[0] : 'no due date';
+            console.log(`📍 FALLBACK SCHEDULED: "${assignment.title}" → Block ${block.blockNumber} (due: ${dueDateStr})`);
+          }
         }
         
-        // Log any assignments that couldn't be placed
-        if (lookAheadIndex < lookAheadCandidates.length) {
-          const unplacedCount = lookAheadCandidates.length - lookAheadIndex;
-          console.log(`⚠️ LOOK-AHEAD OVERFLOW: ${unplacedCount} Priority C assignments couldn't be placed (no remaining blocks)`);
-        }
-        
-        console.log(`✅ LOOK-AHEAD COMPLETE: Filled ${lookAheadIndex} blocks with Priority C assignments`);
-        
-        // VALIDATION: Ensure look-ahead assignments are properly added to schedulingResults
-        const lookAheadScheduled = Array.from(schedulingResults.entries()).filter(([id]) => 
-          lookAheadCandidates.some(candidate => candidate.id === id)
-        );
-        console.log(`🔍 LOOK-AHEAD VALIDATION: ${lookAheadScheduled.length} Priority C assignments added to schedulingResults`);
+        console.log(`✅ FALLBACK COMPLETE: Filled ${Math.min(remainingBlocks.length, unplacedAssignments.length)} blocks`);
       }
 
       // OVERFLOW HANDLING: Move remaining unscheduled MOVEABLE assignments to next day
