@@ -270,9 +270,9 @@ export class CanvasClient {
           // Fetch assignments AND modules for comprehensive timing data
           const [assignments, modules] = await Promise.all([
             this.makeRequest<CanvasAssignment[]>(
-              `/courses/${course.id}/assignments?per_page=50&include[]=all_dates&include[]=submission&include[]=assignment_group&include[]=overrides&include[]=assessment_question_bank&include[]=discussion_topic&include[]=module_items&order_by=due_at`
+              `/courses/${course.id}/assignments?per_page=100&include[]=all_dates&include[]=submission&include[]=assignment_group&include[]=overrides&include[]=assessment_question_bank&include[]=discussion_topic&include[]=module_items&order_by=due_at`
             ),
-            this.makeRequest<any[]>(`/courses/${course.id}/modules?per_page=50`)
+            this.makeRequest<any[]>(`/courses/${course.id}/modules?per_page=100`)
           ]);
           
           console.log(`  📖 Course "${course.name}" (${course.id}): ${assignments.length} assignments, ${modules.length} modules`);
@@ -364,7 +364,10 @@ export class CanvasClient {
               // Store Canvas page information for correct URL generation
               canvas_page_slug: pageSlug,
               canvas_module_item_id: item.id,
-              points_possible: undefined
+              points_possible: undefined,
+              // CRITICAL: Preserve module metadata for cross-course coordination
+              module_id: item.module_id,
+              module_name: item.module_name
             } as CanvasAssignment;
           });
 
