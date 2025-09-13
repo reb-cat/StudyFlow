@@ -176,10 +176,52 @@ app.get('/api/me', requireAuth, (req, res) => {
   });
 });
 
-// Message for other API routes (will be replaced with full functionality once TypeScript server is working)
+// Basic API endpoints to prevent frontend crashes
+app.get('/api/assignments', requireAuth, (req, res) => {
+  res.json([]);
+});
+
+app.get('/api/schedule-templates', requireAuth, (req, res) => {
+  res.json([]);
+});
+
+app.get('/api/daily-schedule', requireAuth, (req, res) => {
+  res.json({
+    blocks: [],
+    assignments: [],
+    bibleReading: null
+  });
+});
+
+app.get('/api/schedule/:student/:date', requireAuth, (req, res) => {
+  res.json({
+    blocks: [],
+    assignments: [],
+    bibleReading: null
+  });
+});
+
+app.get('/api/bible-curriculum', requireAuth, (req, res) => {
+  res.json({ currentDay: null, nextDay: null });
+});
+
+app.get('/api/print-queue', requireAuth, (req, res) => {
+  res.json([]);
+});
+
+// Status endpoint for system info
+app.get('/api/status', (req, res) => {
+  res.json({ 
+    status: 'running',
+    note: 'Authentication restored and secure! Full API functionality being restored...',
+    authenticated: !!(req.session && req.session.authenticated === true)
+  });
+});
+
+// Catch-all for other API routes
 app.all('/api/*', (req, res) => {
   res.json({ 
-    message: 'Authentication restored and secure! Working on restoring full API functionality...',
+    message: 'API endpoint not yet implemented',
     authenticated: !!(req.session && req.session.authenticated === true)
   });
 });
