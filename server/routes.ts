@@ -3553,8 +3553,8 @@ Bumped to make room for: ${continuedTitle}`.trim(),
           // Assignment excused/skipped - mark complete
           updateData.completionStatus = 'completed';
           updateData.notes = `${assignment.notes || ''}\nPARENT EXCUSED: ${notes || 'Assignment excused by parent'}`.trim();
-          updateData.scheduledDate = null;
-          updateData.scheduledBlock = null;
+          // CRITICAL FIX: Keep block associations for completed assignments so they display properly
+          // Don't clear scheduledDate and scheduledBlock - completed assignments should stay locked to their blocks
           break;
           
         case 'still_needs_work':
@@ -3914,17 +3914,6 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       // Get assignments scheduled for this student and date
       const assignments = await storage.getAssignmentsByStudentAndDate(student, date);
       
-      // CRITICAL FIX: Also get completed assignments that may have lost their block associations
-      const userId = `${student.toLowerCase()}-user`;
-      const completedAssignments = await storage.getAllAssignments()
-        .then(allAssignments => allAssignments.filter(a => 
-          a.userId === userId && 
-          a.completionStatus === 'completed' && 
-          !a.scheduledDate // Find completed assignments missing block associations
-        ));
-      
-      console.log(`📍 SCHEDULE PREVIEW: Found ${assignments.length} scheduled assignments + ${completedAssignments.length} unlinked completed assignments for ${student} on ${date}`);
-      
       // Create a map of assignments by block number
       const assignmentsByBlock = new Map();
       assignments.forEach(assignment => {
@@ -3933,33 +3922,7 @@ Bumped to make room for: ${continuedTitle}`.trim(),
         }
       });
       
-      // RESTORATION LOGIC: For blocks marked "complete" but missing assignments,
-      // attempt to restore from completed assignments that lost their block associations
-      let completedAssignmentIndex = 0;
-      blocks.forEach(blockStatus => {
-        const blockNumber = blockStatus.template.blockNumber;
-        const blockType = blockStatus.template.blockType;
-        
-        // If block is marked complete but has no assignment, try to restore it
-        if (blockStatus.status === 'complete' && !assignmentsByBlock.has(blockNumber) && blockType === 'Assignment') {
-          // Find a completed assignment that could belong to this block
-          if (completedAssignmentIndex < completedAssignments.length) {
-            const completedAssignment = completedAssignments[completedAssignmentIndex];
-            console.log(`🔧 RESTORING: Linking completed assignment "${completedAssignment.title}" to block ${blockNumber}`);
-            
-            // Link the completed assignment to this block
-            assignmentsByBlock.set(blockNumber, completedAssignment);
-            
-            // PERMANENT LOCK: Update the assignment with proper block association
-            storage.updateAssignmentScheduling(completedAssignment.id, {
-              scheduledDate: date,
-              scheduledBlock: blockNumber
-            }).catch(err => console.error('Error locking completed assignment:', err));
-            
-            completedAssignmentIndex++;
-          }
-        }
-      });
+      console.log(`📍 SCHEDULE PREVIEW: Found ${assignments.length} scheduled assignments for ${student} on ${date}`);
 
       // Format response with assignment details
       const schedulePreview = {
@@ -4245,18 +4208,20 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       // Step 2: Clear ALL scheduling for this date (nuclear option)
       console.log(`🧹 NUCLEAR CLEAR: Removing all scheduling for ${date}`);
       
-      // Clear assignment scheduling for this date
+      // Clear assignment scheduling for this date (CRITICAL: Only unschedule pending assignments to preserve completed ones)
       const dateAssignments = await storage.getAssignments(userId, date, true);
       const scheduledForDate = dateAssignments.filter(a => a.scheduledDate === date);
+      const pendingScheduled = scheduledForDate.filter(a => a.completionStatus === 'pending');
+      const completedScheduled = scheduledForDate.filter(a => a.completionStatus === 'completed');
       
-      for (const assignment of scheduledForDate) {
+      for (const assignment of pendingScheduled) {
         await storage.updateAssignment(assignment.id, {
           scheduledDate: null,
           scheduledBlock: null
         });
       }
       
-      console.log(`🧹 CLEARED: ${scheduledForDate.length} assignments unscheduled`);
+      console.log(`🧹 CLEARED: ${pendingScheduled.length} pending assignments unscheduled, ${completedScheduled.length} completed assignments preserved`);
       
       // Step 3: Force fresh allocation
       console.log(`🎯 FORCE ALLOCATION: Starting fresh allocation`);
