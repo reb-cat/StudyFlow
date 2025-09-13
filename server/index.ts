@@ -81,7 +81,7 @@ const sessionMiddleware = session({
   cookie: {
     secure: isProduction, // HTTPS required in production
     httpOnly: true, // Prevent XSS
-    sameSite: isProduction ? 'none' : 'lax', // Production-safe: SameSite=None
+    sameSite: 'lax', // SECURITY FIX: Always use Lax for CSRF protection
     path: '/', // Explicit path for whole app
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     domain: undefined // Let browser handle domain
@@ -89,37 +89,28 @@ const sessionMiddleware = session({
 });
 console.log('✅ SESSION MIDDLEWARE CONFIGURED: Will apply only to /api/* routes');
 
-// Security middleware for production
+// HTTPS enforcement in production
 if (isProduction) {
-  // HTTPS enforcement
   app.use((req, res, next) => {
     if (req.header('x-forwarded-proto') !== 'https') {
       return res.redirect(`https://${req.header('host')}${req.url}`);
     }
     next();
   });
-
-  // Security headers (Replit-compatible)
-  app.use((req, res, next) => {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    // Step 7: X-Frame-Options REMOVED to prevent breaking Replit iframe preview
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    next();
-  });
 }
+
+// SECURITY FIX: Use centralized security headers
+setupSecurityHeaders(app);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session debugging middleware (for troubleshooting auth issues)
+// SECURITY FIX: Session debugging middleware (no session ID exposure)
 app.use((req: Request, res: Response, next: NextFunction) => {
-  // Step 6 Evidence: Log first line of schedule handlers
+  // Debug auth status without exposing session ID - check session exists first
   if (req.path.startsWith('/api/schedule/') || req.path.startsWith('/api/assignments')) {
     console.log('✅ SCHEDULE HIT:', { 
-      sessionId: req.sessionID, 
-      hasUserId: !!req.session.userId,
+      hasUserId: !!(req.session && req.session.userId),
       path: req.path
     });
   }

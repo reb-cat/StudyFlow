@@ -16,7 +16,7 @@ const getSecurityConfig = (): SecurityConfig => {
   return {
     enableCORS: true,
     allowedOrigins: isProduction 
-      ? [process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'] 
+      ? [process.env.REPLIT_DOMAINS?.split(',')[0] || 'https://studyflow.replit.app'] 
       : ['http://localhost:5000', 'http://127.0.0.1:5000'],
     enableCSP: isProduction,
     enableHSTS: isProduction,
@@ -32,14 +32,17 @@ export function setupSecurityHeaders(app: Express): void {
     app.use((req: Request, res: Response, next: NextFunction) => {
       const origin = req.headers.origin;
       
-      if (config.allowedOrigins.includes('*') || 
-          (origin && config.allowedOrigins.some(allowed => origin.includes(allowed)))) {
-        res.header('Access-Control-Allow-Origin', origin || '*');
+      // SECURITY FIX: Exact origin matching only, conditional credentials
+      if (origin && config.allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Credentials', 'true');
+      } else if (config.allowedOrigins.includes('*')) {
+        res.header('Access-Control-Allow-Origin', '*');
+        // Never set Allow-Credentials with wildcard origin
       }
       
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-      res.header('Access-Control-Allow-Credentials', 'true');
       res.header('Access-Control-Max-Age', '86400'); // 24 hours
       
       if (req.method === 'OPTIONS') {

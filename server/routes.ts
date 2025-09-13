@@ -49,9 +49,8 @@ const setupFamilyAuth = (app: Express) => {
           return res.status(500).json({ message: 'Session save failed' });
         }
         
-        // Step 5 Evidence: Log sessionId and userId after saving session
+        // SECURITY FIX: Log login success without exposing session ID
         console.log('✅ LOGIN OK:', { 
-          sessionId: req.sessionID, 
           userId: req.session.userId 
         });
         
@@ -68,7 +67,6 @@ const setupFamilyAuth = (app: Express) => {
     
     // Debug logging for session verification
     console.log('🔍 AUTH STATUS CHECK:', {
-      sessionId: req.sessionID?.slice(0, 8) + '...',
       hasSession: !!req.session,
       authenticated: req.session?.authenticated,
       userId: req.session?.userId,
@@ -82,8 +80,7 @@ const setupFamilyAuth = (app: Express) => {
   app.get('/api/me', requireAuth, (req: Request, res: Response) => {
     res.json({
       authenticated: true,
-      userId: req.session.userId,
-      sessionId: req.sessionID
+      userId: req.session.userId
     });
   });
 
@@ -123,7 +120,6 @@ const setupFamilyAuth = (app: Express) => {
       nodeEnv: process.env.NODE_ENV,
       replitDeployment: process.env.REPLIT_DEPLOYMENT,
       isProduction: process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1',
-      sessionId: req.sessionID,
       hasSession: !!req.session,
       authenticated: req.session.authenticated,
       userId: req.session.userId,
