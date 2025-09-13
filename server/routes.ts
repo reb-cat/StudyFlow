@@ -31,12 +31,28 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 
 // Simple unlock endpoint for family password
 const setupFamilyAuth = (app: Express) => {
-  app.post('/api/unlock', (req: Request, res: Response) => {
+  app.post('/api/unlock', authRateLimit, (req: Request, res: Response) => {
     const { password } = req.body;
     
-    if (!password) {
+    if (!password || typeof password !== 'string') {
+      logger.warn('Auth', 'Invalid password format in unlock attempt', { 
+        ip: req.ip,
+        sessionId: req.sessionID?.substring(0, 8) 
+      });
       return res.status(400).json({ message: 'Password required' });
     }
+    
+    // Input validation and sanitization
+    if (password.length > 256) {
+      logger.warn('Auth', 'Password too long in unlock attempt', { 
+        ip: req.ip,
+        length: password.length 
+      });
+      return res.status(400).json({ message: 'Password too long' });
+    }
+    
+    // Rate limiting specific to this IP for auth attempts
+    const authKey = `auth_${req.ip}`;
     
     if (password === process.env.FAMILY_PASSWORD) {
       // CRITICAL: Write user into session and save before responding
@@ -58,7 +74,16 @@ const setupFamilyAuth = (app: Express) => {
         res.json({ success: true, authenticated: true });
       });
     } else {
-      res.status(401).json({ message: 'Invalid password' });
+      logger.warn('Auth', 'Failed authentication attempt', {
+        ip: req.ip,
+        sessionId: req.sessionID?.substring(0, 8),
+        timestamp: new Date().toISOString()
+      });
+      
+      // Add small delay to prevent timing attacks
+      setTimeout(() => {
+        res.status(401).json({ message: 'Invalid password' });
+      }, 1000 + Math.random() * 500); // 1-1.5 second delay
     }
   });
   
@@ -119,19 +144,20 @@ const setupFamilyAuth = (app: Express) => {
 
   // Debug endpoint for production troubleshooting
   app.get('/api/debug', (req: Request, res: Response) => {
+    // Sanitized debug info - no sensitive data
     res.json({
       nodeEnv: process.env.NODE_ENV,
       replitDeployment: process.env.REPLIT_DEPLOYMENT,
       isProduction: process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1',
-      sessionId: req.sessionID,
+      sessionId: req.sessionID ? req.sessionID.substring(0, 8) + '...' : 'none',
       hasSession: !!req.session,
-      authenticated: req.session.authenticated,
-      userId: req.session.userId,
+      authenticated: !!req.session?.authenticated,
+      hasUserId: !!req.session?.userId,
       cookieSecure: req.secure,
       protocol: req.protocol,
       headers: {
         'x-forwarded-proto': req.get('x-forwarded-proto'),
-        'host': req.get('host')
+        'host': req.get('host')?.split('.')[0] + '...' // Obfuscate full host
       }
     });
   });
@@ -196,12 +222,30 @@ export async function registerRoutes(app: Express, sessionMiddleware?: any): Pro
   setupFamilyAuth(app);
 
   // Text-to-Speech route for Khalil's guided day (Victor voice)
-  app.post('/api/tts/speak', async (req, res) => {
+  app.post('/api/tts/speak', requireAuth, async (req, res) => {
     try {
       const { text, voice = 'Victor' } = req.body;
       
-      if (!text) {
-        return res.status(400).json({ error: 'Text is required' });
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ error: 'Text is required and must be a string' });
+      }
+      
+      // Input validation and sanitization
+      if (text.length > 1000) {
+        return res.status(400).json({ error: 'Text too long (max 1000 characters)' });
+      }
+      
+      // Sanitize text to prevent injection
+      const sanitizedText = text.replace(/<[^>]*>/g, '').trim();
+      
+      if (!sanitizedText) {
+        return res.status(400).json({ error: 'Text cannot be empty after sanitization' });
+      }
+      
+      // Validate voice parameter
+      const allowedVoices = ['Victor', 'Rachel', 'Domi', 'Bella'];
+      if (!allowedVoices.includes(voice)) {
+        return res.status(400).json({ error: 'Invalid voice selection' });
       }
 
       // Eleven Labs Victor voice ID (found from API)
@@ -213,7 +257,7 @@ export async function registerRoutes(app: Express, sessionMiddleware?: any): Pro
           'xi-api-key': process.env.ELEVEN_LABS_API_KEY!,
         },
         body: JSON.stringify({
-          text: text,
+          text: sanitizedText,
           model_id: 'eleven_monolingual_v1',
           voice_settings: {
             stability: 0.5,
