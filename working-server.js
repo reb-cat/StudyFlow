@@ -3,13 +3,14 @@
 // Full-featured server to restore functionality while packages are being fixed
 import express from 'express';
 import session from 'express-session';
+import bcrypt from 'bcrypt';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-console.log('🚀 Starting StudyFlow server (temporary JS mode)...');
+console.log('🚀 Starting StudyFlow server (secure authentication restored)...');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -41,7 +42,7 @@ app.use(session({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Basic rate limiting (simple implementation)
+// Basic rate limiting
 const rateLimitStore = new Map();
 const rateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
   return (req, res, next) => {
@@ -54,7 +55,6 @@ const rateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
     }
     
     const requests = rateLimitStore.get(key);
-    // Remove old requests
     const validRequests = requests.filter(time => time > windowStart);
     
     if (validRequests.length >= maxRequests) {
@@ -104,7 +104,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Authentication routes
+// Authentication routes with proper bcrypt hashing
 app.post('/api/unlock', rateLimit(5, 15 * 60 * 1000), async (req, res) => {
   const { password } = req.body;
   
@@ -112,54 +112,45 @@ app.post('/api/unlock', rateLimit(5, 15 * 60 * 1000), async (req, res) => {
     return res.status(400).json({ message: 'Password required' });
   }
   
-  // Check if we have the bcrypt hash or fallback to plaintext temporarily
+  // Use the properly configured FAMILY_PASSWORD_HASH
   const passwordHash = process.env.FAMILY_PASSWORD_HASH;
-  const plaintextPassword = process.env.FAMILY_PASSWORD;
-  
-  let isValidPassword = false;
-  
-  if (passwordHash) {
-    // Use bcrypt if hash is available (requires import)
-    console.log('🔒 Using bcrypt authentication');
-    try {
-      // For now, try to import bcrypt dynamically
-      const bcrypt = await import('bcrypt');
-      isValidPassword = await bcrypt.compare(password, passwordHash);
-    } catch (error) {
-      console.log('⚠️ bcrypt not available, falling back to plaintext comparison');
-      isValidPassword = password === plaintextPassword;
-    }
-  } else if (plaintextPassword) {
-    console.log('⚠️ Using plaintext password (temporary - will be secured)');
-    isValidPassword = password === plaintextPassword;
-  } else {
+  if (!passwordHash) {
+    console.log('⚠️ FAMILY_PASSWORD_HASH not configured');
     return res.status(500).json({ message: 'Authentication system not configured' });
   }
   
-  if (isValidPassword) {
-    // Regenerate session to prevent session fixation
-    req.session.regenerate((err) => {
-      if (err) {
-        console.error('Session regeneration failed:', err);
-        return res.status(500).json({ message: 'Session regeneration failed' });
-      }
-      
-      req.session.authenticated = true;
-      req.session.userId = 'family';
-      
-      req.session.save((saveErr) => {
-        if (saveErr) {
-          console.error('Session save failed:', saveErr);
-          return res.status(500).json({ message: 'Session save failed' });
+  try {
+    console.log('🔒 Using secure bcrypt authentication');
+    const isValidPassword = await bcrypt.compare(password, passwordHash);
+    
+    if (isValidPassword) {
+      // Regenerate session to prevent session fixation
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Session regeneration failed:', err);
+          return res.status(500).json({ message: 'Session regeneration failed' });
         }
         
-        console.log('✅ LOGIN SUCCESS');
-        res.json({ success: true, authenticated: true });
+        req.session.authenticated = true;
+        req.session.userId = 'family';
+        
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Session save failed:', saveErr);
+            return res.status(500).json({ message: 'Session save failed' });
+          }
+          
+          console.log('✅ LOGIN SUCCESS - User authenticated');
+          res.json({ success: true, authenticated: true });
+        });
       });
-    });
-  } else {
-    console.log('❌ LOGIN FAILED: Invalid password');
-    res.status(401).json({ message: 'Invalid password' });
+    } else {
+      console.log('❌ LOGIN FAILED: Invalid password');
+      res.status(401).json({ message: 'Invalid password' });
+    }
+  } catch (error) {
+    console.error('🚨 Bcrypt error:', error.message);
+    res.status(500).json({ message: 'Authentication error' });
   }
 });
 
@@ -185,11 +176,11 @@ app.get('/api/me', requireAuth, (req, res) => {
   });
 });
 
-// Temporary message for other API routes
+// Message for other API routes (will be replaced with full functionality once TypeScript server is working)
 app.all('/api/*', (req, res) => {
   res.json({ 
-    message: 'API temporarily running in compatibility mode',
-    note: 'Full functionality being restored - authentication is working!'
+    message: 'Authentication restored and secure! Working on restoring full API functionality...',
+    authenticated: !!(req.session && req.session.authenticated === true)
   });
 });
 
@@ -203,8 +194,10 @@ app.get('*', (req, res) => {
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`📱 StudyFlow server running on http://0.0.0.0:${port}`);
-  console.log(`🔐 Authentication: ${process.env.FAMILY_PASSWORD_HASH ? 'bcrypt (secure)' : 'plaintext (temporary)'}`);
+  console.log(`🔐 Authentication: ${process.env.FAMILY_PASSWORD_HASH ? 'bcrypt (secure) ✅' : 'not configured ❌'}`);
   console.log(`🛡️ CSRF protection: enabled`);
   console.log(`⚡ Rate limiting: enabled`);
   console.log(`🔄 Session management: enabled`);
+  console.log('');
+  console.log('🎯 Login restored! Full API functionality being restored...');
 });
