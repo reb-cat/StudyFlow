@@ -409,7 +409,7 @@ export class CanvasClient {
                   if (relatedAssignments.length > 0) {
                     // Use the earliest related assignment's due date as reference
                     const earliestDate = relatedAssignments
-                      .map(a => new Date(a.due_at))
+                      .map(a => new Date(a.due_at!))
                       .sort((a, b) => a.getTime() - b.getTime())[0];
                     
                     // Set quiz to be due one day before the related assignment
