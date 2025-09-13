@@ -1022,16 +1022,17 @@ export class DatabaseStorage implements IStorage {
         if (a.dueDate && !b.dueDate) return -1;
         if (!a.dueDate && b.dueDate) return 1;
         
-        // Priority 4: FORENSICS TEXTBOOK SEQUENCE FIRST - Use module.reading numbers for proper ordering
-        const isAForensicsTextbook = a.courseName === 'Apologia Forensics Textbook';
-        const isBForensicsTextbook = b.courseName === 'Apologia Forensics Textbook';
+        // Priority 4: FORENSICS MODULE SEQUENCE - Use module.reading numbers for proper educational ordering
+        // Include both textbook assignments AND lab assignments with module metadata
+        const isAForensicsModule = a.courseName === 'Apologia Forensics Textbook' || (a.moduleNumber !== null && a.moduleNumber !== undefined);
+        const isBForensicsModule = b.courseName === 'Apologia Forensics Textbook' || (b.moduleNumber !== null && b.moduleNumber !== undefined);
         
-        if (isAForensicsTextbook && isBForensicsTextbook) {
-          // Both are forensics textbook - sort by module.reading sequence
+        if (isAForensicsModule && isBForensicsModule) {
+          // Both have forensics module metadata - sort by module.reading sequence
           if (a.moduleNumber !== b.moduleNumber) {
             return (a.moduleNumber || 999) - (b.moduleNumber || 999);
           }
-          // Same module - sort by reading number
+          // Same module - sort by reading number (labs should come after readings)
           if (a.readingNumber !== b.readingNumber) {
             return (a.readingNumber || 999) - (b.readingNumber || 999);
           }
@@ -1039,9 +1040,9 @@ export class DatabaseStorage implements IStorage {
           return 0;
         }
         
-        // If only one is forensics textbook, prioritize it for proper sequencing
-        if (isAForensicsTextbook && !isBForensicsTextbook) return -1;
-        if (!isAForensicsTextbook && isBForensicsTextbook) return 1;
+        // If only one has forensics module metadata, prioritize it for proper sequencing
+        if (isAForensicsModule && !isBForensicsModule) return -1;
+        if (!isAForensicsModule && isBForensicsModule) return 1;
         
         // Original logic for non-textbook assignments: Use intelligent sequence sorting (Unit 2 → Unit 3)
         return compareAssignmentTitles(a.title || '', b.title || '');
