@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 
-// Full-featured server to restore functionality while packages are being fixed
+// Production-optimized server that avoids TypeScript and vite dependencies
 import express from 'express';
 import session from 'express-session';
 import bcrypt from 'bcrypt';
+import path from 'path';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-console.log('🚀 Starting StudyFlow server (secure authentication restored)...');
+console.log('🚀 Starting StudyFlow in production mode...');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -31,7 +31,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: isProduction, // HTTPS only in production
+    secure: isProduction,
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: isProduction ? 'none' : 'lax'
@@ -42,7 +42,7 @@ app.use(session({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Basic rate limiting
+// Rate limiting
 const rateLimitStore = new Map();
 const rateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
   return (req, res, next) => {
@@ -75,7 +75,7 @@ const requireAuth = (req, res, next) => {
   res.status(401).json({ error: 'Authentication required' });
 };
 
-// CSRF protection for state-changing requests
+// CSRF protection
 const csrfProtection = (req, res, next) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     const origin = req.get('origin');
@@ -96,7 +96,6 @@ const csrfProtection = (req, res, next) => {
   next();
 };
 
-// Apply security middleware
 app.use(csrfProtection);
 
 // Health check
@@ -104,7 +103,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Authentication routes with proper bcrypt hashing
+// Authentication endpoints with bcrypt
 app.post('/api/unlock', rateLimit(5, 15 * 60 * 1000), async (req, res) => {
   const { password } = req.body;
   
@@ -112,7 +111,6 @@ app.post('/api/unlock', rateLimit(5, 15 * 60 * 1000), async (req, res) => {
     return res.status(400).json({ message: 'Password required' });
   }
   
-  // Use the properly configured FAMILY_PASSWORD_HASH
   const passwordHash = process.env.FAMILY_PASSWORD_HASH;
   if (!passwordHash) {
     console.log('⚠️ FAMILY_PASSWORD_HASH not configured');
@@ -124,7 +122,6 @@ app.post('/api/unlock', rateLimit(5, 15 * 60 * 1000), async (req, res) => {
     const isValidPassword = await bcrypt.compare(password, passwordHash);
     
     if (isValidPassword) {
-      // Regenerate session to prevent session fixation
       req.session.regenerate((err) => {
         if (err) {
           console.error('Session regeneration failed:', err);
@@ -176,7 +173,7 @@ app.get('/api/me', requireAuth, (req, res) => {
   });
 });
 
-// Basic API endpoints to prevent frontend crashes
+// Placeholder API endpoints (to be replaced with full functionality)
 app.get('/api/assignments', requireAuth, (req, res) => {
   res.json([]);
 });
@@ -186,19 +183,11 @@ app.get('/api/schedule-templates', requireAuth, (req, res) => {
 });
 
 app.get('/api/daily-schedule', requireAuth, (req, res) => {
-  res.json({
-    blocks: [],
-    assignments: [],
-    bibleReading: null
-  });
+  res.json({ blocks: [], assignments: [], bibleReading: null });
 });
 
 app.get('/api/schedule/:student/:date', requireAuth, (req, res) => {
-  res.json({
-    blocks: [],
-    assignments: [],
-    bibleReading: null
-  });
+  res.json({ blocks: [], assignments: [], bibleReading: null });
 });
 
 app.get('/api/bible-curriculum', requireAuth, (req, res) => {
@@ -209,37 +198,31 @@ app.get('/api/print-queue', requireAuth, (req, res) => {
   res.json([]);
 });
 
-// Status endpoint for system info
+// Status endpoint
 app.get('/api/status', (req, res) => {
   res.json({ 
     status: 'running',
-    note: 'Authentication restored and secure! Full API functionality being restored...',
+    mode: 'production-optimized',
     authenticated: !!(req.session && req.session.authenticated === true)
   });
 });
 
-// Catch-all for other API routes
-app.all('/api/*', (req, res) => {
-  res.json({ 
-    message: 'API endpoint not yet implemented',
-    authenticated: !!(req.session && req.session.authenticated === true)
-  });
-});
-
-// Serve static files
-app.use(express.static(join(__dirname, 'server', 'public')));
+// Serve static files (built frontend)
+const distPath = path.resolve(__dirname, 'public');
+app.use(express.static(distPath));
 
 // SPA fallback
 app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, 'server', 'public', 'index.html'));
+  res.sendFile(path.resolve(distPath, 'index.html'));
 });
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`📱 StudyFlow server running on http://0.0.0.0:${port}`);
+  console.log(`📱 StudyFlow production server running on http://0.0.0.0:${port}`);
   console.log(`🔐 Authentication: ${process.env.FAMILY_PASSWORD_HASH ? 'bcrypt (secure) ✅' : 'not configured ❌'}`);
   console.log(`🛡️ CSRF protection: enabled`);
-  console.log(`⚡ Rate limiting: enabled`);
+  console.log(`⚡ Rate limiting: enabled`);  
   console.log(`🔄 Session management: enabled`);
+  console.log(`📁 Serving static files from: ${distPath}`);
   console.log('');
-  console.log('🎯 Login restored! Full API functionality being restored...');
+  console.log('🎯 Authentication restored with production-optimized server!');
 });

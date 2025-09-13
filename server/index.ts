@@ -10,7 +10,7 @@ declare module 'express-session' {
   }
 }
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic } from "./vite";
+import { serveStatic } from "./vite";
 import { jobScheduler } from "./lib/scheduler";
 import { logger } from "./lib/logger";
 import { runMigrations } from "./lib/migrations";
@@ -31,12 +31,12 @@ console.log('✅ PROXY TRUST ENABLED: Server will recognize HTTPS behind Replit 
 const isProduction = isProductionEnvironment();
 
 // Require SESSION_SECRET for session management
-if (!process.env.SESSION_SECRET) {
-  console.log('⚠️  SESSION_SECRET not found, falling back to FAMILY_PASSWORD');
-}
-const sessionSecret = process.env.SESSION_SECRET || process.env.FAMILY_PASSWORD;
+const sessionSecret = process.env.SESSION_SECRET || (isProduction ? null : 'dev-secret-key');
 if (!sessionSecret) {
-  throw new Error('SESSION_SECRET or FAMILY_PASSWORD environment variable is required');
+  throw new Error('SESSION_SECRET environment variable is required in production');
+}
+if (!process.env.SESSION_SECRET) {
+  console.log('⚠️  SESSION_SECRET not found, using development default');
 }
 
 // Log production environment detection
@@ -167,7 +167,14 @@ app.use((req, res, next) => {
   // CRITICAL: Mount frontend AFTER API routes to prevent catch-all interference
   // Use our production detection (not Express env) for proper Replit deployment handling
   if (!isProduction) {
-    await setupVite(app, server);
+    try {
+      // Dynamic import to avoid vite dependency in production builds
+      const { setupVite } = await import("./vite");
+      await setupVite(app, server);
+    } catch (error) {
+      console.warn('⚠️  Vite setup failed, falling back to static serving:', error.message);
+      serveStatic(app);
+    }
   } else {
     serveStatic(app);
   }
