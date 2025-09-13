@@ -10,7 +10,7 @@ declare module 'express-session' {
   }
 }
 import { registerRoutes } from "./routes";
-import { serveStatic } from "./vite";
+// serveStatic will be imported dynamically when needed
 import { jobScheduler } from "./lib/scheduler";
 import { logger } from "./lib/logger";
 import { runMigrations } from "./lib/migrations";
@@ -173,10 +173,20 @@ app.use((req, res, next) => {
       await setupVite(app, server);
     } catch (error) {
       console.warn('⚠️  Vite setup failed, falling back to static serving:', error.message);
-      serveStatic(app);
+      // Simple static serving without vite dependency
+      const path = await import('path');
+      app.use(express.static(path.resolve('client/public')));
+      app.get('*', (req, res) => {
+        res.sendFile(path.resolve('client/public/index.html'));
+      });
     }
   } else {
-    serveStatic(app);
+    // Production static serving without vite dependency  
+    const path = await import('path');
+    app.use(express.static(path.resolve('client/public')));
+    app.get('*', (req, res) => {
+      res.sendFile(path.resolve('client/public/index.html'));
+    });
   }
 
   // Environment-specific server startup
