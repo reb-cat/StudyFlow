@@ -148,7 +148,7 @@ const setupFamilyAuth = (app: Express) => {
 
   // Debug endpoint for production troubleshooting
   // SECURITY FIX: Protect debug endpoint in production
-  app.get('/api/debug', requireAuth, (req: Request, res: Response) => {
+  app.get('/api/debug', requireAuth, strictRateLimit, (req: Request, res: Response) => {
     res.json({
       nodeEnv: process.env.NODE_ENV,
       replitDeployment: process.env.REPLIT_DEPLOYMENT,
@@ -228,7 +228,8 @@ export async function registerRoutes(app: Express, sessionMiddleware?: any): Pro
   setupFamilyAuth(app);
 
   // Text-to-Speech route for Khalil's guided day (Victor voice)
-  app.post('/api/tts/speak', async (req, res) => {
+  // SECURITY FIX: Protect TTS endpoint from API key abuse
+  app.post('/api/tts/speak', requireAuth, strictRateLimit, async (req, res) => {
     try {
       const { text, voice = 'Victor' } = req.body;
       
@@ -553,7 +554,8 @@ export async function registerRoutes(app: Express, sessionMiddleware?: any): Pro
   });
 
   // PRODUCTION DIAGNOSTIC: Comprehensive database and user validation
-  app.get('/api/production-diagnostic', async (req, res) => {
+  // SECURITY FIX: Protect production diagnostic endpoint
+  app.get('/api/production-diagnostic', requireAuth, strictRateLimit, async (req, res) => {
     console.log('🔧 PRODUCTION DIAGNOSTIC: Comprehensive system check');
     
     try {
@@ -617,7 +619,8 @@ export async function registerRoutes(app: Express, sessionMiddleware?: any): Pro
   });
 
   // PRODUCTION FIX: Create missing endpoints that production frontend is calling
-  app.get('/api/assignments-v2', async (req, res) => {
+  // SECURITY FIX: Protect assignments-v2 endpoint 
+  app.get('/api/assignments-v2', requireAuth, strictRateLimit, async (req, res) => {
     console.log('🔧 PRODUCTION FIX: /api/assignments-v2 called with params:', req.query);
     
     try {
@@ -677,7 +680,8 @@ export async function registerRoutes(app: Express, sessionMiddleware?: any): Pro
     }
   });
 
-  app.get('/api/debug-fetch', async (req, res) => {
+  // SECURITY FIX: Protect debug-fetch endpoint
+  app.get('/api/debug-fetch', requireAuth, strictRateLimit, async (req, res) => {
     console.log('🔧 PRODUCTION FIX: /api/debug-fetch called with params:', req.query);
     
     try {
