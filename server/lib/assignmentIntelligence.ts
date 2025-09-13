@@ -13,7 +13,30 @@ export function extractUnitNumber(title?: string): number | null {
 
 // Extract all numbers from assignment titles for comprehensive sequencing
 export function extractSequenceNumbers(title: string): number[] {
-  // Match patterns like "Unit 2", "Module 3", "Chapter 1", "Ch 1", "Page 5", etc.
+  // ENHANCED: Check for ordinal patterns first (1st, 2nd, 3rd, 4th)
+  const ordinalPatterns = [
+    // Match "1st, 2nd, 3rd, 4th" patterns
+    /\b(\d+)(?:st|nd|rd|th)\b/gi,
+    // Match "first, second, third, fourth" patterns
+    /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\b/gi
+  ];
+  
+  for (const pattern of ordinalPatterns) {
+    const matches = [...title.matchAll(pattern)];
+    if (matches.length > 0) {
+      return matches.map(match => {
+        const value = match[1].toLowerCase();
+        // Convert word ordinals to numbers
+        const wordToNumber: {[key: string]: number} = {
+          'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5,
+          'sixth': 6, 'seventh': 7, 'eighth': 8, 'ninth': 9, 'tenth': 10
+        };
+        return wordToNumber[value] || parseInt(value, 10);
+      }).filter(n => !isNaN(n));
+    }
+  }
+  
+  // Original numeric patterns
   const patterns = [
     /(?:unit|u|module|mod|chapter|ch\.?|lesson|section|part|page|step|week|day)\s*(\d+)/gi,
     /(\d+)\s*(?:unit|u|module|mod|chapter|ch\.?|lesson|section|part|page|step|week|day)/gi,
