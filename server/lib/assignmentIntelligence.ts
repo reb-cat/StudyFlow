@@ -53,7 +53,55 @@ export function extractSequenceNumbers(title: string): number[] {
   return [];
 }
 
-// Smart title comparison that handles numerical sequences - PRESERVES Unit 2 → Unit 3 order
+// Smart assignment comparison that preserves both educational sequences AND creation order
+export function compareAssignments(a: any, b: any): number {
+  const titleA = a.title || '';
+  const titleB = b.title || '';
+  
+  const numbersA = extractSequenceNumbers(titleA);
+  const numbersB = extractSequenceNumbers(titleB);
+  
+  // If both have numbers, compare numerically (Unit 2 before Unit 3)
+  if (numbersA.length > 0 && numbersB.length > 0) {
+    // Compare each number in sequence
+    const maxLength = Math.max(numbersA.length, numbersB.length);
+    for (let i = 0; i < maxLength; i++) {
+      const numA = numbersA[i] || 0;
+      const numB = numbersB[i] || 0;
+      if (numA !== numB) {
+        return numA - numB;
+      }
+    }
+  }
+  
+  // If both are siblings (same parentId) and no numeric patterns, use creation order
+  if (a.parentId && b.parentId && a.parentId === b.parentId && numbersA.length === 0 && numbersB.length === 0) {
+    console.log(`🔢 Using creation order for sibling assignments: "${titleA}" vs "${titleB}"`);
+    // Use segmentOrder if available, otherwise fall back to createdAt
+    if (a.segmentOrder !== null && b.segmentOrder !== null) {
+      return a.segmentOrder - b.segmentOrder;
+    }
+    if (a.createdAt && b.createdAt) {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+  }
+  
+  // If no numeric patterns and not siblings, use creation time if available
+  if (numbersA.length === 0 && numbersB.length === 0) {
+    if (a.createdAt && b.createdAt) {
+      const timeDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (Math.abs(timeDiff) > 1000) { // Only if meaningful time difference (> 1 second)
+        console.log(`📅 Using creation time for assignment order: "${titleA}" vs "${titleB}"`);
+        return timeDiff;
+      }
+    }
+  }
+  
+  // Fall back to alphabetical comparison
+  return titleA.localeCompare(titleB);
+}
+
+// Backward compatibility - keep the original function for title-only comparisons
 export function compareAssignmentTitles(titleA: string, titleB: string): number {
   const numbersA = extractSequenceNumbers(titleA);
   const numbersB = extractSequenceNumbers(titleB);

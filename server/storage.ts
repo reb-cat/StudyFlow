@@ -18,7 +18,7 @@ import {
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, or, sql, desc, inArray, isNull, isNotNull, lte } from "drizzle-orm";
-import { compareAssignmentTitles, extractUnitNumber } from './lib/assignmentIntelligence';
+import { compareAssignmentTitles, compareAssignments, extractUnitNumber } from './lib/assignmentIntelligence';
 import { assignmentCache, scheduleCache } from './lib/cache';
 
 // modify the interface with any CRUD methods
@@ -1044,8 +1044,8 @@ export class DatabaseStorage implements IStorage {
         if (isAForensicsModule && !isBForensicsModule) return -1;
         if (!isAForensicsModule && isBForensicsModule) return 1;
         
-        // Original logic for non-textbook assignments: Use intelligent sequence sorting (Unit 2 → Unit 3)
-        return compareAssignmentTitles(a.title || '', b.title || '');
+        // ENHANCED logic for non-textbook assignments: Use intelligent sequence sorting AND creation order
+        return compareAssignments(a, b);
       });
       
       // URGENCY CLASSIFICATION: Separate critical vs moveable assignments
