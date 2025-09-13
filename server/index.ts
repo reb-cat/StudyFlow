@@ -32,11 +32,18 @@ const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT
 
 // Require SESSION_SECRET for session management
 if (!process.env.SESSION_SECRET) {
-  console.log('⚠️  SESSION_SECRET not found, falling back to FAMILY_PASSWORD');
+  console.error('⚠️ SESSION_SECRET not found - this is required for security');
+  console.error('💡 Generate a secure session secret: openssl rand -base64 32');
+  throw new Error('SESSION_SECRET environment variable is required');
 }
-const sessionSecret = process.env.SESSION_SECRET || process.env.FAMILY_PASSWORD;
-if (!sessionSecret) {
-  throw new Error('SESSION_SECRET or FAMILY_PASSWORD environment variable is required');
+
+const sessionSecret = process.env.SESSION_SECRET;
+
+// Validate session secret strength
+if (sessionSecret.length < 32) {
+  console.error('⚠️ SESSION_SECRET is too short - must be at least 32 characters');
+  console.error('💡 Generate a secure session secret: openssl rand -base64 32');
+  throw new Error('SESSION_SECRET must be at least 32 characters long');
 }
 
 // Log production environment detection
@@ -85,7 +92,9 @@ const sessionMiddleware = session({
     path: '/', // Explicit path for whole app
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     domain: undefined // Let browser handle domain
-  }
+  },
+  rolling: true, // Reset expiration on activity
+  proxy: true // Trust proxy headers for secure cookies
 });
 console.log('✅ SESSION MIDDLEWARE CONFIGURED: Will apply only to /api/* routes');
 
@@ -184,7 +193,10 @@ app.use((req, res, next) => {
     hasAbigailToken2: !!process.env.ABIGAIL_CANVAS_TOKEN_2,
     hasKhalilToken: !!process.env.KHALIL_CANVAS_TOKEN,
     hasBaseUrl: !!process.env.CANVAS_BASE_URL,
-    hasBaseUrl2: !!process.env.CANVAS_BASE_URL_2
+    hasBaseUrl2: !!process.env.CANVAS_BASE_URL_2,
+    // SECURITY: Never log actual tokens/URLs
+    abigailTokenLength: process.env.ABIGAIL_CANVAS_TOKEN?.length || 0,
+    khalilTokenLength: process.env.KHALIL_CANVAS_TOKEN?.length || 0
   });
 
   // Validate environment before starting services
@@ -227,7 +239,8 @@ app.use((req, res, next) => {
       environment: process.env.NODE_ENV || 'development',
       abigailThursdayBlocks: abigailThursdayStatus.count,
       isProduction: process.env.REPLIT_DEPLOYMENT === '1',
-      databaseHost: process.env.DATABASE_URL ? process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown' : 'unknown'
+      // SECURITY: Don't log full database host
+      databaseHost: process.env.DATABASE_URL ? 'configured' : 'missing'
     });
   } catch (error: any) {
     logger.warn('Database', 'Failed to generate fingerprint', { error: error.message });
