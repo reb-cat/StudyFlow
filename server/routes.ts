@@ -178,7 +178,7 @@ const normalizeStudentName = (name: string): string => {
   return name.toLowerCase().trim();
 };
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, sessionMiddleware?: any): Promise<Server> {
   
   // Health check endpoints for production monitoring
   app.get('/health', basicHealthCheck);
@@ -186,7 +186,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/health/live', livenessCheck);
   app.get('/metrics', strictRateLimit, metricsEndpoint);
   
-  // Apply general rate limiting to all API routes
+  // Apply session middleware and rate limiting to all API routes
+  if (sessionMiddleware) {
+    app.use('/api', sessionMiddleware);
+  }
   app.use('/api', generalRateLimit);
   
   // Setup family authentication

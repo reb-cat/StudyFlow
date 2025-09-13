@@ -71,8 +71,8 @@ if (process.env.DATABASE_URL) {
   sessionStore = undefined;
 }
 
-// Session middleware - MUST be before all other middleware and routes  
-app.use(session({
+// Session middleware configuration (applied to API routes only)
+const sessionMiddleware = session({
   store: sessionStore,
   secret: sessionSecret,
   resave: false,
@@ -86,8 +86,8 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     domain: undefined // Let browser handle domain
   }
-}));
-console.log('✅ SESSION MIDDLEWARE MOUNTED: One shared session system for login and all /api/* routes');
+});
+console.log('✅ SESSION MIDDLEWARE CONFIGURED: Will apply only to /api/* routes');
 
 // Security middleware for production
 if (isProduction) {
@@ -148,7 +148,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  const server = await registerRoutes(app, sessionMiddleware);
 
   // Production-ready error handling middleware
   app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
