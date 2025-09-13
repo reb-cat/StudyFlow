@@ -32,7 +32,7 @@ interface StudentProfile {
   allowSaturdayScheduling: boolean;
 }
 
-const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const BLOCK_TYPES = ['Bible', 'Assignment', 'Travel', 'Co-op', 'Study Hall', 'Prep/Load', 'Movement', 'Lunch'];
 
 const formatTime = (time: string): string => {
