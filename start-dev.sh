@@ -6,4 +6,4 @@ echo "📁 Watching: server/, shared/ directories"
 echo "🔄 Will restart automatically on file changes"
 echo "=============================================="
 
-NODE_ENV=development npx tsx --watch server/index.ts
+NODE_ENV=development tsx --watch server/index.ts

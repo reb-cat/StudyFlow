@@ -12,7 +12,7 @@ const ENVIRONMENT_CONFIG: EnvironmentConfig = {
     'NODE_ENV',
     'PORT',
     'DATABASE_URL',
-    'FAMILY_PASSWORD_HASH'
+    'FAMILY_PASSWORD'
   ],
   optional: [
     'CANVAS_BASE_URL',
@@ -27,7 +27,7 @@ const ENVIRONMENT_CONFIG: EnvironmentConfig = {
     'ABIGAIL_CANVAS_TOKEN_2',
     'KHALIL_CANVAS_TOKEN',
     'DATABASE_URL',
-    'FAMILY_PASSWORD_HASH',
+    'FAMILY_PASSWORD',
     'RESEND_API_KEY',
     'ELEVEN_LABS_API_KEY'
   ]

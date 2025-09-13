@@ -10,18 +10,13 @@ interface SecurityConfig {
   maxAge: number;
 }
 
-// SECURITY FIX: Unified production detection across codebase
-export function isProductionEnvironment(): boolean {
-  return process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
-}
-
 const getSecurityConfig = (): SecurityConfig => {
-  const isProduction = isProductionEnvironment();
+  const isProduction = process.env.NODE_ENV === 'production';
   
   return {
     enableCORS: true,
     allowedOrigins: isProduction 
-      ? [process.env.REPLIT_DOMAINS?.split(',')[0] || 'https://studyflow.replit.app'] 
+      ? [process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'] 
       : ['http://localhost:5000', 'http://127.0.0.1:5000'],
     enableCSP: isProduction,
     enableHSTS: isProduction,
@@ -37,17 +32,14 @@ export function setupSecurityHeaders(app: Express): void {
     app.use((req: Request, res: Response, next: NextFunction) => {
       const origin = req.headers.origin;
       
-      // SECURITY FIX: Exact origin matching only, conditional credentials
-      if (origin && config.allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
-        res.header('Access-Control-Allow-Credentials', 'true');
-      } else if (config.allowedOrigins.includes('*')) {
-        res.header('Access-Control-Allow-Origin', '*');
-        // Never set Allow-Credentials with wildcard origin
+      if (config.allowedOrigins.includes('*') || 
+          (origin && config.allowedOrigins.some(allowed => origin.includes(allowed)))) {
+        res.header('Access-Control-Allow-Origin', origin || '*');
       }
       
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+      res.header('Access-Control-Allow-Credentials', 'true');
       res.header('Access-Control-Max-Age', '86400'); // 24 hours
       
       if (req.method === 'OPTIONS') {
@@ -82,11 +74,10 @@ export function setupSecurityHeaders(app: Express): void {
   // Content Security Policy (production only)
   if (config.enableCSP) {
     app.use((req: Request, res: Response, next: NextFunction) => {
-      // SECURITY FIX: Hardened CSP - removed unsafe-inline and unsafe-eval
       const csp = [
         "default-src 'self'",
-        "script-src 'self'", // Removed 'unsafe-inline' 'unsafe-eval'
-        "style-src 'self' 'unsafe-inline'", // Keep for CSS-in-JS frameworks  
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Relaxed for development frameworks
+        "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob:",
         "font-src 'self'",
         "connect-src 'self' https:",
@@ -121,63 +112,6 @@ export function setupSecurityHeaders(app: Express): void {
     hsts: config.enableHSTS,
     allowedOrigins: config.allowedOrigins
   });
-}
-
-// CSRF protection via Origin/Referer validation
-export function validateOrigin(req: Request, res: Response, next: NextFunction): void {
-  const config = getSecurityConfig();
-  const origin = req.headers.origin;
-  const referer = req.headers.referer;
-  
-  // Skip validation in development for localhost
-  if (!isProductionEnvironment()) {
-    return next();
-  }
-  
-  // Check Origin header first (more reliable)
-  if (origin) {
-    if (config.allowedOrigins.includes(origin)) {
-      return next();
-    } else {
-      logger.warn('Security', 'CSRF attempt blocked - invalid Origin', { 
-        origin, 
-        path: req.path, 
-        method: req.method 
-      });
-      return res.status(403).json({ message: 'Invalid origin' });
-    }
-  }
-  
-  // Fallback to Referer header - SECURITY FIX: Robust URL parsing
-  if (referer) {
-    try {
-      const refererOrigin = new URL(referer).origin;
-      if (config.allowedOrigins.includes(refererOrigin)) {
-        return next();
-      } else {
-        logger.warn('Security', 'CSRF attempt blocked - invalid Referer', { 
-          referer: refererOrigin, 
-          path: req.path, 
-          method: req.method 
-        });
-        return res.status(403).json({ message: 'Invalid referer' });
-      }
-    } catch (err) {
-      logger.warn('Security', 'CSRF attempt blocked - malformed Referer', { 
-        referer, 
-        path: req.path, 
-        method: req.method 
-      });
-      return res.status(403).json({ message: 'Invalid referer format' });
-    }
-  }
-  
-  // No valid origin/referer found
-  logger.warn('Security', 'CSRF attempt blocked - no Origin/Referer', { 
-    path: req.path, 
-    method: req.method 
-  });
-  res.status(403).json({ message: 'Origin validation required' });
 }
 
 // Rate limiting headers for API responses

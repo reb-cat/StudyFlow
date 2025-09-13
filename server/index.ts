@@ -10,7 +10,7 @@ declare module 'express-session' {
   }
 }
 import { registerRoutes } from "./routes";
-// serveStatic will be imported dynamically when needed
+import { setupVite, serveStatic } from "./vite";
 import { jobScheduler } from "./lib/scheduler";
 import { logger } from "./lib/logger";
 import { runMigrations } from "./lib/migrations";
@@ -18,7 +18,7 @@ import { connectionManager } from "./lib/db-connection";
 import { seedAbigailThursdayTemplate, getTemplateStatus } from "./lib/seed-schedule-templates";
 import { startResourceMonitoring } from "./lib/resource-monitoring";
 import { validateRequiredEnvironment } from "./lib/env-validation";
-import { setupSecurityHeaders, validateOrigin, isProductionEnvironment } from "./lib/security-headers";
+import { setupSecurityHeaders } from "./lib/security-headers";
 
 const app = express();
 
@@ -27,16 +27,16 @@ app.set('trust proxy', 1);
 console.log('✅ PROXY TRUST ENABLED: Server will recognize HTTPS behind Replit proxy');
 
 // Production-ready session configuration  
-// SECURITY FIX: Use unified production detection
-const isProduction = isProductionEnvironment();
+// FIXED: Detect production via Replit deployment environment
+const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
 
 // Require SESSION_SECRET for session management
-const sessionSecret = process.env.SESSION_SECRET || (isProduction ? null : 'dev-secret-key');
-if (!sessionSecret) {
-  throw new Error('SESSION_SECRET environment variable is required in production');
-}
 if (!process.env.SESSION_SECRET) {
-  console.log('⚠️  SESSION_SECRET not found, using development default');
+  console.log('⚠️  SESSION_SECRET not found, falling back to FAMILY_PASSWORD');
+}
+const sessionSecret = process.env.SESSION_SECRET || process.env.FAMILY_PASSWORD;
+if (!sessionSecret) {
+  throw new Error('SESSION_SECRET or FAMILY_PASSWORD environment variable is required');
 }
 
 // Log production environment detection
@@ -71,8 +71,8 @@ if (process.env.DATABASE_URL) {
   sessionStore = undefined;
 }
 
-// Session middleware configuration (applied to API routes only)
-const sessionMiddleware = session({
+// Session middleware - MUST be before all other middleware and routes  
+app.use(session({
   store: sessionStore,
   secret: sessionSecret,
   resave: false,
@@ -81,36 +81,45 @@ const sessionMiddleware = session({
   cookie: {
     secure: isProduction, // HTTPS required in production
     httpOnly: true, // Prevent XSS
-    sameSite: 'lax', // SECURITY FIX: Always use Lax for CSRF protection
+    sameSite: isProduction ? 'none' : 'lax', // Production-safe: SameSite=None
     path: '/', // Explicit path for whole app
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     domain: undefined // Let browser handle domain
   }
-});
-console.log('✅ SESSION MIDDLEWARE CONFIGURED: Will apply only to /api/* routes');
+}));
+console.log('✅ SESSION MIDDLEWARE MOUNTED: One shared session system for login and all /api/* routes');
 
-// HTTPS enforcement in production
+// Security middleware for production
 if (isProduction) {
+  // HTTPS enforcement
   app.use((req, res, next) => {
     if (req.header('x-forwarded-proto') !== 'https') {
       return res.redirect(`https://${req.header('host')}${req.url}`);
     }
     next();
   });
-}
 
-// SECURITY FIX: Use centralized security headers
-setupSecurityHeaders(app);
+  // Security headers (Replit-compatible)
+  app.use((req, res, next) => {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // Step 7: X-Frame-Options REMOVED to prevent breaking Replit iframe preview
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// SECURITY FIX: Session debugging middleware (no session ID exposure)
+// Session debugging middleware (for troubleshooting auth issues)
 app.use((req: Request, res: Response, next: NextFunction) => {
-  // Debug auth status without exposing session ID - check session exists first
+  // Step 6 Evidence: Log first line of schedule handlers
   if (req.path.startsWith('/api/schedule/') || req.path.startsWith('/api/assignments')) {
     console.log('✅ SCHEDULE HIT:', { 
-      hasUserId: !!(req.session && req.session.userId),
+      sessionId: req.sessionID, 
+      hasUserId: !!req.session.userId,
       path: req.path
     });
   }
@@ -122,20 +131,16 @@ app.use((req, res, next) => {
   const start = Date.now();
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-  // SECURITY FIX: Only capture response bodies in development
-  if (!isProduction) {
-    const originalResJson = res.json;
-    res.json = function (bodyJson, ...args) {
-      capturedJsonResponse = bodyJson;
-      return originalResJson.apply(res, [bodyJson, ...args]);
-    };
-  }
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (req.path.startsWith("/api")) {
-      // In production, log without response body for security
-      logger.api(req.method, req.path, res.statusCode, duration, isProduction ? undefined : capturedJsonResponse);
+      logger.api(req.method, req.path, res.statusCode, duration, capturedJsonResponse);
     }
   });
 
@@ -143,7 +148,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app, sessionMiddleware);
+  const server = await registerRoutes(app);
 
   // Production-ready error handling middleware
   app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
@@ -167,26 +172,9 @@ app.use((req, res, next) => {
   // CRITICAL: Mount frontend AFTER API routes to prevent catch-all interference
   // Use our production detection (not Express env) for proper Replit deployment handling
   if (!isProduction) {
-    try {
-      // Dynamic import to avoid vite dependency in production builds
-      const { setupVite } = await import("./vite");
-      await setupVite(app, server);
-    } catch (error) {
-      console.warn('⚠️  Vite setup failed, falling back to static serving:', error.message);
-      // Simple static serving without vite dependency
-      const path = await import('path');
-      app.use(express.static(path.resolve('client/public')));
-      app.get('*', (req, res) => {
-        res.sendFile(path.resolve('client/public/index.html'));
-      });
-    }
+    await setupVite(app, server);
   } else {
-    // Production static serving without vite dependency  
-    const path = await import('path');
-    app.use(express.static(path.resolve('client/public')));
-    app.get('*', (req, res) => {
-      res.sendFile(path.resolve('client/public/index.html'));
-    });
+    serveStatic(app);
   }
 
   // Environment-specific server startup

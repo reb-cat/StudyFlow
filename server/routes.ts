@@ -4,20 +4,9 @@ import { storage } from "./storage";
 import { logger } from "./lib/logger";
 import { basicHealthCheck, readinessCheck, livenessCheck, metricsEndpoint } from "./lib/health-checks";
 import { generalRateLimit, authRateLimit, apiRateLimit, strictRateLimit, uploadRateLimit } from "./lib/rate-limiting";
-import { validateOrigin } from "./lib/security-headers";
 import { assignmentCache, scheduleCache, canvasCache, getAllCacheStats } from "./lib/cache";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import bcrypt from 'bcrypt';
-
-// CSRF protection middleware for all state-changing routes
-const csrfProtection = (req: Request, res: Response, next: NextFunction) => {
-  // Apply CSRF protection to state-changing methods
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    return validateOrigin(req, res, next);
-  }
-  next();
-};
 
 // Family authentication middleware - reads the same field set during login
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
@@ -42,54 +31,34 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 
 // Simple unlock endpoint for family password
 const setupFamilyAuth = (app: Express) => {
-  app.post('/api/unlock', authRateLimit, async (req: Request, res: Response) => {
+  app.post('/api/unlock', (req: Request, res: Response) => {
     const { password } = req.body;
     
     if (!password) {
       return res.status(400).json({ message: 'Password required' });
     }
     
-    // SECURITY FIX: Use bcrypt to compare password against stored hash
-    const passwordHash = process.env.FAMILY_PASSWORD_HASH;
-    if (!passwordHash) {
-      logger.error('Auth', 'FAMILY_PASSWORD_HASH not configured');
-      return res.status(500).json({ message: 'Authentication system not configured' });
-    }
-    
-    try {
-      const isValidPassword = await bcrypt.compare(password, passwordHash);
-      if (isValidPassword) {
-      // SECURITY FIX: Regenerate session to prevent session fixation
-      req.session.regenerate((err) => {
+    if (password === process.env.FAMILY_PASSWORD) {
+      // CRITICAL: Write user into session and save before responding
+      req.session.authenticated = true;
+      req.session.userId = 'family'; // Same field that auth guards will check
+      
+      req.session.save((err) => {
         if (err) {
-          logger.error('Auth', 'Session regeneration failed', { error: err.message });
-          return res.status(500).json({ message: 'Session regeneration failed' });
+          logger.error('Auth', 'Session save failed', { error: err.message });
+          return res.status(500).json({ message: 'Session save failed' });
         }
         
-        // Set authentication after session regeneration
-        req.session.authenticated = true;
-        req.session.userId = 'family'; // Same field that auth guards will check
-        
-        req.session.save((saveErr) => {
-          if (saveErr) {
-            logger.error('Auth', 'Session save failed', { error: saveErr.message });
-            return res.status(500).json({ message: 'Session save failed' });
-          }
-          
-          // SECURITY FIX: Log login success without exposing session ID
-          console.log('✅ LOGIN OK:', { 
-            userId: req.session.userId 
-          });
-          
-          res.json({ success: true, authenticated: true });
+        // Step 5 Evidence: Log sessionId and userId after saving session
+        console.log('✅ LOGIN OK:', { 
+          sessionId: req.sessionID, 
+          userId: req.session.userId 
         });
+        
+        res.json({ success: true, authenticated: true });
       });
-      } else {
-        res.status(401).json({ message: 'Invalid password' });
-      }
-    } catch (error: any) {
-      logger.error('Auth', 'bcrypt.compare failed', { error: error.message });
-      return res.status(500).json({ message: 'Authentication error' });
+    } else {
+      res.status(401).json({ message: 'Invalid password' });
     }
   });
   
@@ -99,6 +68,7 @@ const setupFamilyAuth = (app: Express) => {
     
     // Debug logging for session verification
     console.log('🔍 AUTH STATUS CHECK:', {
+      sessionId: req.sessionID?.slice(0, 8) + '...',
       hasSession: !!req.session,
       authenticated: req.session?.authenticated,
       userId: req.session?.userId,
@@ -112,7 +82,8 @@ const setupFamilyAuth = (app: Express) => {
   app.get('/api/me', requireAuth, (req: Request, res: Response) => {
     res.json({
       authenticated: true,
-      userId: req.session.userId
+      userId: req.session.userId,
+      sessionId: req.sessionID
     });
   });
 
@@ -147,12 +118,12 @@ const setupFamilyAuth = (app: Express) => {
   });
 
   // Debug endpoint for production troubleshooting
-  // SECURITY FIX: Protect debug endpoint in production
-  app.get('/api/debug', requireAuth, strictRateLimit, (req: Request, res: Response) => {
+  app.get('/api/debug', (req: Request, res: Response) => {
     res.json({
       nodeEnv: process.env.NODE_ENV,
       replitDeployment: process.env.REPLIT_DEPLOYMENT,
       isProduction: process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1',
+      sessionId: req.sessionID,
       hasSession: !!req.session,
       authenticated: req.session.authenticated,
       userId: req.session.userId,
@@ -207,7 +178,7 @@ const normalizeStudentName = (name: string): string => {
   return name.toLowerCase().trim();
 };
 
-export async function registerRoutes(app: Express, sessionMiddleware?: any): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<Server> {
   
   // Health check endpoints for production monitoring
   app.get('/health', basicHealthCheck);
@@ -215,21 +186,14 @@ export async function registerRoutes(app: Express, sessionMiddleware?: any): Pro
   app.get('/health/live', livenessCheck);
   app.get('/metrics', strictRateLimit, metricsEndpoint);
   
-  // Apply session middleware and rate limiting to all API routes
-  if (sessionMiddleware) {
-    app.use('/api', sessionMiddleware);
-  }
+  // Apply general rate limiting to all API routes
   app.use('/api', generalRateLimit);
-  
-  // SECURITY FIX: Apply CSRF protection to all state-changing API routes
-  app.use('/api', csrfProtection);
   
   // Setup family authentication
   setupFamilyAuth(app);
 
   // Text-to-Speech route for Khalil's guided day (Victor voice)
-  // SECURITY FIX: Protect TTS endpoint from API key abuse
-  app.post('/api/tts/speak', requireAuth, strictRateLimit, async (req, res) => {
+  app.post('/api/tts/speak', async (req, res) => {
     try {
       const { text, voice = 'Victor' } = req.body;
       
@@ -554,8 +518,7 @@ export async function registerRoutes(app: Express, sessionMiddleware?: any): Pro
   });
 
   // PRODUCTION DIAGNOSTIC: Comprehensive database and user validation
-  // SECURITY FIX: Protect production diagnostic endpoint
-  app.get('/api/production-diagnostic', requireAuth, strictRateLimit, async (req, res) => {
+  app.get('/api/production-diagnostic', async (req, res) => {
     console.log('🔧 PRODUCTION DIAGNOSTIC: Comprehensive system check');
     
     try {
@@ -619,8 +582,7 @@ export async function registerRoutes(app: Express, sessionMiddleware?: any): Pro
   });
 
   // PRODUCTION FIX: Create missing endpoints that production frontend is calling
-  // SECURITY FIX: Protect assignments-v2 endpoint 
-  app.get('/api/assignments-v2', requireAuth, strictRateLimit, async (req, res) => {
+  app.get('/api/assignments-v2', async (req, res) => {
     console.log('🔧 PRODUCTION FIX: /api/assignments-v2 called with params:', req.query);
     
     try {
@@ -680,8 +642,7 @@ export async function registerRoutes(app: Express, sessionMiddleware?: any): Pro
     }
   });
 
-  // SECURITY FIX: Protect debug-fetch endpoint
-  app.get('/api/debug-fetch', requireAuth, strictRateLimit, async (req, res) => {
+  app.get('/api/debug-fetch', async (req, res) => {
     console.log('🔧 PRODUCTION FIX: /api/debug-fetch called with params:', req.query);
     
     try {
