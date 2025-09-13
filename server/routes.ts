@@ -4,9 +4,19 @@ import { storage } from "./storage";
 import { logger } from "./lib/logger";
 import { basicHealthCheck, readinessCheck, livenessCheck, metricsEndpoint } from "./lib/health-checks";
 import { generalRateLimit, authRateLimit, apiRateLimit, strictRateLimit, uploadRateLimit } from "./lib/rate-limiting";
+import { validateOrigin } from "./lib/security-headers";
 import { assignmentCache, scheduleCache, canvasCache, getAllCacheStats } from "./lib/cache";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
+
+// CSRF protection middleware for all state-changing routes
+const csrfProtection = (req: Request, res: Response, next: NextFunction) => {
+  // Apply CSRF protection to state-changing methods
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    return validateOrigin(req, res, next);
+  }
+  next();
+};
 
 // Family authentication middleware - reads the same field set during login
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
@@ -31,7 +41,7 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 
 // Simple unlock endpoint for family password
 const setupFamilyAuth = (app: Express) => {
-  app.post('/api/unlock', (req: Request, res: Response) => {
+  app.post('/api/unlock', authRateLimit, (req: Request, res: Response) => {
     const { password } = req.body;
     
     if (!password) {
@@ -39,22 +49,30 @@ const setupFamilyAuth = (app: Express) => {
     }
     
     if (password === process.env.FAMILY_PASSWORD) {
-      // CRITICAL: Write user into session and save before responding
-      req.session.authenticated = true;
-      req.session.userId = 'family'; // Same field that auth guards will check
-      
-      req.session.save((err) => {
+      // SECURITY FIX: Regenerate session to prevent session fixation
+      req.session.regenerate((err) => {
         if (err) {
-          logger.error('Auth', 'Session save failed', { error: err.message });
-          return res.status(500).json({ message: 'Session save failed' });
+          logger.error('Auth', 'Session regeneration failed', { error: err.message });
+          return res.status(500).json({ message: 'Session regeneration failed' });
         }
         
-        // SECURITY FIX: Log login success without exposing session ID
-        console.log('✅ LOGIN OK:', { 
-          userId: req.session.userId 
-        });
+        // Set authentication after session regeneration
+        req.session.authenticated = true;
+        req.session.userId = 'family'; // Same field that auth guards will check
         
-        res.json({ success: true, authenticated: true });
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            logger.error('Auth', 'Session save failed', { error: saveErr.message });
+            return res.status(500).json({ message: 'Session save failed' });
+          }
+          
+          // SECURITY FIX: Log login success without exposing session ID
+          console.log('✅ LOGIN OK:', { 
+            userId: req.session.userId 
+          });
+          
+          res.json({ success: true, authenticated: true });
+        });
       });
     } else {
       res.status(401).json({ message: 'Invalid password' });
@@ -187,6 +205,9 @@ export async function registerRoutes(app: Express, sessionMiddleware?: any): Pro
     app.use('/api', sessionMiddleware);
   }
   app.use('/api', generalRateLimit);
+  
+  // SECURITY FIX: Apply CSRF protection to all state-changing API routes
+  app.use('/api', csrfProtection);
   
   // Setup family authentication
   setupFamilyAuth(app);

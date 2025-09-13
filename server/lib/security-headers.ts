@@ -10,8 +10,13 @@ interface SecurityConfig {
   maxAge: number;
 }
 
+// SECURITY FIX: Unified production detection across codebase
+export function isProductionEnvironment(): boolean {
+  return process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+}
+
 const getSecurityConfig = (): SecurityConfig => {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = isProductionEnvironment();
   
   return {
     enableCORS: true,
@@ -115,6 +120,63 @@ export function setupSecurityHeaders(app: Express): void {
     hsts: config.enableHSTS,
     allowedOrigins: config.allowedOrigins
   });
+}
+
+// CSRF protection via Origin/Referer validation
+export function validateOrigin(req: Request, res: Response, next: NextFunction): void {
+  const config = getSecurityConfig();
+  const origin = req.headers.origin;
+  const referer = req.headers.referer;
+  
+  // Skip validation in development for localhost
+  if (!isProductionEnvironment()) {
+    return next();
+  }
+  
+  // Check Origin header first (more reliable)
+  if (origin) {
+    if (config.allowedOrigins.includes(origin)) {
+      return next();
+    } else {
+      logger.warn('Security', 'CSRF attempt blocked - invalid Origin', { 
+        origin, 
+        path: req.path, 
+        method: req.method 
+      });
+      return res.status(403).json({ message: 'Invalid origin' });
+    }
+  }
+  
+  // Fallback to Referer header - SECURITY FIX: Robust URL parsing
+  if (referer) {
+    try {
+      const refererOrigin = new URL(referer).origin;
+      if (config.allowedOrigins.includes(refererOrigin)) {
+        return next();
+      } else {
+        logger.warn('Security', 'CSRF attempt blocked - invalid Referer', { 
+          referer: refererOrigin, 
+          path: req.path, 
+          method: req.method 
+        });
+        return res.status(403).json({ message: 'Invalid referer' });
+      }
+    } catch (err) {
+      logger.warn('Security', 'CSRF attempt blocked - malformed Referer', { 
+        referer, 
+        path: req.path, 
+        method: req.method 
+      });
+      return res.status(403).json({ message: 'Invalid referer format' });
+    }
+  }
+  
+  // No valid origin/referer found
+  logger.warn('Security', 'CSRF attempt blocked - no Origin/Referer', { 
+    path: req.path, 
+    method: req.method 
+  });
+  res.status(403).json({ message: 'Origin validation required' });
 }
 
 // Rate limiting headers for API responses

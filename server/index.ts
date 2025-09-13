@@ -18,7 +18,7 @@ import { connectionManager } from "./lib/db-connection";
 import { seedAbigailThursdayTemplate, getTemplateStatus } from "./lib/seed-schedule-templates";
 import { startResourceMonitoring } from "./lib/resource-monitoring";
 import { validateRequiredEnvironment } from "./lib/env-validation";
-import { setupSecurityHeaders } from "./lib/security-headers";
+import { setupSecurityHeaders, validateOrigin, isProductionEnvironment } from "./lib/security-headers";
 
 const app = express();
 
@@ -27,8 +27,8 @@ app.set('trust proxy', 1);
 console.log('✅ PROXY TRUST ENABLED: Server will recognize HTTPS behind Replit proxy');
 
 // Production-ready session configuration  
-// FIXED: Detect production via Replit deployment environment
-const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+// SECURITY FIX: Use unified production detection
+const isProduction = isProductionEnvironment();
 
 // Require SESSION_SECRET for session management
 if (!process.env.SESSION_SECRET) {
@@ -122,16 +122,20 @@ app.use((req, res, next) => {
   const start = Date.now();
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+  // SECURITY FIX: Only capture response bodies in development
+  if (!isProduction) {
+    const originalResJson = res.json;
+    res.json = function (bodyJson, ...args) {
+      capturedJsonResponse = bodyJson;
+      return originalResJson.apply(res, [bodyJson, ...args]);
+    };
+  }
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (req.path.startsWith("/api")) {
-      logger.api(req.method, req.path, res.statusCode, duration, capturedJsonResponse);
+      // In production, log without response body for security
+      logger.api(req.method, req.path, res.statusCode, duration, isProduction ? undefined : capturedJsonResponse);
     }
   });
 
