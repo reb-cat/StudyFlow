@@ -8,6 +8,7 @@ import { validateOrigin } from "./lib/security-headers";
 import { assignmentCache, scheduleCache, canvasCache, getAllCacheStats } from "./lib/cache";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
+import bcrypt from 'bcrypt';
 
 // CSRF protection middleware for all state-changing routes
 const csrfProtection = (req: Request, res: Response, next: NextFunction) => {
@@ -41,14 +42,23 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 
 // Simple unlock endpoint for family password
 const setupFamilyAuth = (app: Express) => {
-  app.post('/api/unlock', authRateLimit, (req: Request, res: Response) => {
+  app.post('/api/unlock', authRateLimit, async (req: Request, res: Response) => {
     const { password } = req.body;
     
     if (!password) {
       return res.status(400).json({ message: 'Password required' });
     }
     
-    if (password === process.env.FAMILY_PASSWORD) {
+    // SECURITY FIX: Use bcrypt to compare password against stored hash
+    const passwordHash = process.env.FAMILY_PASSWORD_HASH;
+    if (!passwordHash) {
+      logger.error('Auth', 'FAMILY_PASSWORD_HASH not configured');
+      return res.status(500).json({ message: 'Authentication system not configured' });
+    }
+    
+    try {
+      const isValidPassword = await bcrypt.compare(password, passwordHash);
+      if (isValidPassword) {
       // SECURITY FIX: Regenerate session to prevent session fixation
       req.session.regenerate((err) => {
         if (err) {
@@ -74,8 +84,12 @@ const setupFamilyAuth = (app: Express) => {
           res.json({ success: true, authenticated: true });
         });
       });
-    } else {
-      res.status(401).json({ message: 'Invalid password' });
+      } else {
+        res.status(401).json({ message: 'Invalid password' });
+      }
+    } catch (error: any) {
+      logger.error('Auth', 'bcrypt.compare failed', { error: error.message });
+      return res.status(500).json({ message: 'Authentication error' });
     }
   });
   
@@ -133,7 +147,8 @@ const setupFamilyAuth = (app: Express) => {
   });
 
   // Debug endpoint for production troubleshooting
-  app.get('/api/debug', (req: Request, res: Response) => {
+  // SECURITY FIX: Protect debug endpoint in production
+  app.get('/api/debug', requireAuth, (req: Request, res: Response) => {
     res.json({
       nodeEnv: process.env.NODE_ENV,
       replitDeployment: process.env.REPLIT_DEPLOYMENT,

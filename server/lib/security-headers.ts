@@ -82,10 +82,11 @@ export function setupSecurityHeaders(app: Express): void {
   // Content Security Policy (production only)
   if (config.enableCSP) {
     app.use((req: Request, res: Response, next: NextFunction) => {
+      // SECURITY FIX: Hardened CSP - removed unsafe-inline and unsafe-eval
       const csp = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Relaxed for development frameworks
-        "style-src 'self' 'unsafe-inline'",
+        "script-src 'self'", // Removed 'unsafe-inline' 'unsafe-eval'
+        "style-src 'self' 'unsafe-inline'", // Keep for CSS-in-JS frameworks  
         "img-src 'self' data: blob:",
         "font-src 'self'",
         "connect-src 'self' https:",
