@@ -3914,11 +3914,50 @@ Bumped to make room for: ${continuedTitle}`.trim(),
       // Get assignments scheduled for this student and date
       const assignments = await storage.getAssignmentsByStudentAndDate(student, date);
       
+      // CRITICAL FIX: Also get completed assignments that may have lost their block associations
+      const userId = `${student.toLowerCase()}-user`;
+      const completedAssignments = await storage.getAllAssignments()
+        .then(allAssignments => allAssignments.filter(a => 
+          a.userId === userId && 
+          a.completionStatus === 'completed' && 
+          !a.scheduledDate // Find completed assignments missing block associations
+        ));
+      
+      console.log(`📍 SCHEDULE PREVIEW: Found ${assignments.length} scheduled assignments + ${completedAssignments.length} unlinked completed assignments for ${student} on ${date}`);
+      
       // Create a map of assignments by block number
       const assignmentsByBlock = new Map();
       assignments.forEach(assignment => {
         if (assignment.scheduledBlock) {
           assignmentsByBlock.set(assignment.scheduledBlock, assignment);
+        }
+      });
+      
+      // RESTORATION LOGIC: For blocks marked "complete" but missing assignments,
+      // attempt to restore from completed assignments that lost their block associations
+      let completedAssignmentIndex = 0;
+      blocks.forEach(blockStatus => {
+        const blockNumber = blockStatus.template.blockNumber;
+        const blockType = blockStatus.template.blockType;
+        
+        // If block is marked complete but has no assignment, try to restore it
+        if (blockStatus.status === 'complete' && !assignmentsByBlock.has(blockNumber) && blockType === 'Assignment') {
+          // Find a completed assignment that could belong to this block
+          if (completedAssignmentIndex < completedAssignments.length) {
+            const completedAssignment = completedAssignments[completedAssignmentIndex];
+            console.log(`🔧 RESTORING: Linking completed assignment "${completedAssignment.title}" to block ${blockNumber}`);
+            
+            // Link the completed assignment to this block
+            assignmentsByBlock.set(blockNumber, completedAssignment);
+            
+            // PERMANENT LOCK: Update the assignment with proper block association
+            storage.updateAssignmentScheduling(completedAssignment.id, {
+              scheduledDate: date,
+              scheduledBlock: blockNumber
+            }).catch(err => console.error('Error locking completed assignment:', err));
+            
+            completedAssignmentIndex++;
+          }
         }
       });
 

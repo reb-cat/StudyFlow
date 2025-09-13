@@ -634,18 +634,19 @@ export class DatabaseStorage implements IStorage {
       });
       console.log(`📅 DUE TODAY: ${dueToday.length} assignments due on ${targetDate}`);
       
-      const unscheduledAssignments = userAssignments.filter(a => {
+      let unscheduledAssignments = userAssignments.filter(a => {
         // CRITICAL FIX: Only exclude completed assignments from TODAY
         // All other pending assignments should be available for rescheduling on refresh!
         
-        // First filter: must be pending (never reschedule completed assignments)
-        if (a.completionStatus !== 'pending') {
+        // CRITICAL: Completely protect all completed assignments from rescheduling
+        // Once marked complete on Overview, they must be LOCKED PERMANENTLY
+        if (a.completionStatus === 'completed') {
+          console.log(`🔒 LOCKING completed assignment - never reschedule: ${a.title}`);
           return false;
         }
         
-        // Second filter: NEVER reschedule assignments completed TODAY
-        if (a.completionStatus === 'completed' && a.scheduledDate === targetDate) {
-          console.log(`🔒 Preserving completed assignment from today: ${a.title}`);
+        // Only schedule pending assignments (exclude stuck, needs_more_time, etc. for now)
+        if (a.completionStatus !== 'pending') {
           return false;
         }
         
